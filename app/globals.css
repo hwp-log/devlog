@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* 실시간 폼 검증용 variant (user-valid/invalid, :has() 활용) */
+@custom-variant user-invalid (&:user-invalid);
+@custom-variant user-valid (&:user-valid);
+@custom-variant has-invalid (&:has(input:user-invalid));
+@custom-variant has-valid (&:has(input:user-valid));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
