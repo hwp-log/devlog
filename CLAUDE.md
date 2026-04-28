@@ -1,4 +1,5 @@
 @AGENTS.md
+@docs/DECISIONS.md
 
 # DevLog Project
 
@@ -38,10 +39,13 @@
 - Jotai (클라이언트 상태)
 - Supabase (DB + Auth, @supabase/ssr 기반 SSR 구조)
 - Vercel (배포)
+- Jest + React Testing Library (TDD)
 
 ### Folder Structure
 - `app/` — Next.js App Router
 - `lib/` — Supabase 클라이언트, 유틸 함수
+- `__tests__/` — 각 폴더 내 테스트 (코드 옆에 배치)
+- `docs/prompts/` — 프롬프트 기록 (NNNN-한국어-제목.md)
 - 그 외 폴더는 필요할 때만 생성 (미리 잡지 않음)
 
 ---
@@ -56,10 +60,33 @@
 - TypeScript `PageProps<'/경로'>` 헬퍼 사용 가능
 
 ### Supabase
-- 현재 `lib/supabase.ts` 단일 파일 (M2.1에서 생성)
-- M2.2에서 `@supabase/ssr` 기반 3파일 구조로 분리 예정
-  (`lib/supabase/client.ts` / `server.ts` / `middleware.ts`)
+- `lib/supabase/` 3파일 구조 (`client.ts` / `server.ts` / `middleware.ts`)
 - `@supabase/auth-helpers-nextjs` 사용 금지 (deprecated)
+
+### Testing (TDD)
+
+**Red-Green-Refactor 사이클:**
+
+1. **Red**: 먼저 실패하는 테스트 작성
+   - 테스트가 실제로 실패하는지 확인
+   - 실패 이유가 예상대로인지 확인
+
+2. **Green**: 테스트를 통과시키는 최소한의 코드 작성
+   - "최소한"은 정말 최소한
+   - 하드코딩도 허용 (다음 테스트가 일반화 강제)
+
+3. **Refactor**: 테스트 통과 상태에서 코드 개선
+   - 중복 제거, 명확한 이름, 구조 개선
+
+**Plan Mode 내 단계:**
+"go"라고 하면 다음 순서로 진행:
+1. 다음 테스트 케이스 식별
+2. 실패하는 테스트 작성
+3. 테스트 실행하여 실패 확인
+4. 최소 구현
+5. 테스트 통과 확인
+6. 리팩터링 (필요시)
+7. 전체 테스트 실행
 
 ---
 
@@ -71,6 +98,13 @@
 - 테스트가 실패하면 테스트를 수정하지 말고 사용자에게 보고
 - Supabase RLS 정책을 임의로 변경 금지
 
+### Testing 관련 금지
+- 테스트 없이 구현 코드 작성 금지
+- 테스트와 구현을 동시에 작성 금지 (Red 단계 누락)
+- 테스트 skip 또는 주석 처리 금지
+- expect 조건을 느슨하게 변경 금지
+- 실패 원인 분석 없이 테스트 수정 금지
+
 ---
 
 ## 4. Conventions
@@ -81,13 +115,26 @@
 - 폴더명은 kebab-case
 - 한 파일 한 책임
 
+### Testing
+- 테스트 파일 위치: 코드 폴더 안 `__tests__/` 폴더
+- 명명 규칙: `[원본파일이름].test.ts`
+- 예: `actions.ts` → `__tests__/actions.test.ts`
+- 테스트명은 동작을 설명하도록 의미 있게 작성
+  - 예: `should return error when email is invalid`
+
 ### Commit
 - 형식: `<type>: <한국어 설명>`
-- type: feat, fix, refactor, style, chore, docs
+- type: feat, fix, refactor, style, chore, docs, test
 - 파일 단위 X, 논리적 단위로 커밋
 - 의존성 추가와 기능 구현은 별도 커밋
 - 구조 변경(refactor)과 행동 변경(feat/fix)은 같은 커밋에 섞지 말 것
 - Co-Authored-By 트레일러 사용 금지
+
+### Prompt Records
+- 위치: `docs/prompts/NNNN-한국어-제목.md`
+- 번호: 커밋 순서 = 프롬프트 파일 번호 (Initial commit = 0001)
+- 양식: 메타정보 / 작업개요 / 작업대상 / 판단근거 / 구현요구사항 / 스코프경계 / 완료조건 / TDD적용여부 / 커밋계획 / Plan출력요구사항 / 실행결과
+- 프롬프트 파일은 해당 작업 커밋과 함께 staging
 
 ---
 
@@ -97,3 +144,4 @@
 - 한 번에 수정하는 파일 3개 이내
 - 변경 후 뭘 왜 바꿨는지 짧게 설명
 - 모르는 부분은 추측하지 말고 질문
+- TDD 적용 시 Red → Green → Refactor 순서 강제
