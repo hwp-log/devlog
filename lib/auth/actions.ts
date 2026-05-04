@@ -1,0 +1,24 @@
+import { createClient } from '@/lib/supabase/server';
+import { isValidEmail } from './validators';
+
+/**
+ * 이메일/비밀번호로 로그인 처리
+ * 이메일 형식 검증 후 Supabase Auth 호출
+ */
+export async function signIn(email: string, password: string) {
+  if (!isValidEmail(email)) {
+    return { error: '이메일 형식이 올바르지 않습니다' };
+  }
+  if (password === '') {
+    return { error: '비밀번호를 입력해주세요' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    return { error: '이메일 또는 비밀번호가 올바르지 않습니다' };
+  }
+
+  return { data: { user: data.user } };
+}
