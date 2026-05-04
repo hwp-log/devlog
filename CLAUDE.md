@@ -145,3 +145,10 @@
 - 변경 후 뭘 왜 바꿨는지 짧게 설명
 - 모르는 부분은 추측하지 말고 질문
 - TDD 적용 시 Red → Green → Refactor 순서 강제
+
+## 6. Session & Workflow
+
+- 한 작업 (NNNN 번호) = 한 세션
+- 새 세션 시작 시 첫 프롬프트에 이전 작업 내용 명시
+- 큰 결정은 docs/decisions/DECISIONS.md 참고
+- 사이클 종료 시 docs/prompts/NNNN-제목.md 작성
