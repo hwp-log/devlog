@@ -22,3 +22,24 @@ export async function signIn(email: string, password: string) {
 
   return { data: { user: data.user } };
 }
+
+export async function signUp(email: string, password: string, passwordConfirm: string) {
+  if (!isValidEmail(email)) {
+    return { error: '이메일 형식이 올바르지 않습니다' };
+  }
+  if (password.length < 8) {
+    return { error: '비밀번호는 8자 이상이어야 합니다' };
+  }
+  if (password !== passwordConfirm) {
+    return { error: '비밀번호가 일치하지 않습니다' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({ email, password });
+
+  if (error) {
+    return { error: '회원가입에 실패했습니다' };
+  }
+
+  return { data: { user: data.user } };
+}
