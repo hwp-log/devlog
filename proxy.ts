@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 미인증 + /dashboard → /login | 미인증 + /login → 통과 (루프 없음)
-  if (!user && pathname.startsWith('/dashboard')) {
+  if (!user && (pathname.startsWith('/dashboard') || pathname.startsWith('/til'))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
