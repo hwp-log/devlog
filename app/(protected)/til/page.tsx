@@ -44,12 +44,17 @@ export default async function TilPage() {
       </div>
       <ul className="flex flex-col gap-4">
         {entries.map((entry) => (
-          <li key={entry.id} className="border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
-            <h3 className="font-semibold text-slate-800">{entry.title}</h3>
-            <p className="text-sm text-slate-600 line-clamp-2">{entry.content}</p>
-            <time className="text-xs text-slate-400">
-              {new Date(entry.created_at).toLocaleDateString('ko-KR')}
-            </time>
+          <li key={entry.id}>
+            <Link
+              href={`/til/${entry.id}`}
+              className="border border-slate-200 rounded-lg p-4 flex flex-col gap-2 hover:border-slate-400 transition-colors block"
+            >
+              <h3 className="font-semibold text-slate-800">{entry.title}</h3>
+              <p className="text-sm text-slate-600 line-clamp-2">{entry.content}</p>
+              <time className="text-xs text-slate-400">
+                {new Date(entry.created_at).toLocaleDateString('ko-KR')}
+              </time>
+            </Link>
           </li>
         ))}
       </ul>
