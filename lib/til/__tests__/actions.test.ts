@@ -1,4 +1,4 @@
-import { createTilEntry, getTilEntries } from '../actions';
+import { createTilEntry, getTilEntries, getTilStreak } from '../actions';
 
 const mockSingle      = jest.fn();
 const mockSelect      = jest.fn(() => ({ single: mockSingle }));
@@ -8,12 +8,14 @@ const mockEq          = jest.fn(() => ({ order: mockOrder }));
 const mockFromSelect  = jest.fn(() => ({ eq: mockEq }));
 const mockFrom        = jest.fn(() => ({ insert: mockInsert, select: mockFromSelect }));
 const mockGetUser     = jest.fn();
+const mockRpc         = jest.fn();
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() =>
     Promise.resolve({
       auth: { getUser: mockGetUser },
       from: mockFrom,
+      rpc: mockRpc,
     })
   ),
 }));
@@ -116,5 +118,38 @@ describe('getTilEntries', () => {
     const result = await getTilEntries();
 
     expect(result).toEqual({ error: 'TIL 조회에 실패했습니다' });
+  });
+});
+
+describe('getTilStreak', () => {
+  // Cycle 1 — 정상 조회
+  it('should return currentStreak and bestStreak', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: 'user-123' } } });
+    mockRpc.mockResolvedValueOnce({ data: [{ current_streak: 3, best_streak: 7 }], error: null });
+
+    const result = await getTilStreak();
+
+    expect(mockRpc).toHaveBeenCalledWith('get_til_streak');
+    expect(result).toEqual({ data: { currentStreak: 3, bestStreak: 7 } });
+  });
+
+  // Cycle 2 — 인증 가드
+  it('should return error when user is not authenticated', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
+
+    const result = await getTilStreak();
+
+    expect(result).toEqual({ error: '로그인이 필요합니다' });
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  // Cycle 1.5 — DB 에러
+  it('should return friendly error when RPC fails', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: 'user-123' } } });
+    mockRpc.mockResolvedValueOnce({ data: null, error: { message: 'DB error' } });
+
+    const result = await getTilStreak();
+
+    expect(result).toEqual({ error: '통계를 불러오지 못했습니다' });
   });
 });

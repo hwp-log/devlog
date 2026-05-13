@@ -13,6 +13,11 @@ jest.mock('../actions', () => ({
   signOutAction: jest.fn(),
 }));
 
+jest.mock('../StreakWidget', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 describe('DashboardPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();

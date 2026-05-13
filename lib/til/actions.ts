@@ -48,3 +48,26 @@ export async function getTilEntries() {
 
   return { data: { entries: data } };
 }
+
+export async function getTilStreak() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: '로그인이 필요합니다' };
+  }
+
+  const { data, error } = await supabase.rpc('get_til_streak');
+
+  if (error) {
+    return { error: '통계를 불러오지 못했습니다' };
+  }
+
+  const row = data?.[0] ?? { current_streak: 0, best_streak: 0 };
+  return {
+    data: {
+      currentStreak: Number(row.current_streak),
+      bestStreak: Number(row.best_streak),
+    },
+  };
+}
