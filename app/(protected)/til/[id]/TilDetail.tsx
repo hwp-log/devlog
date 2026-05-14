@@ -7,6 +7,7 @@ type TilEntry = {
   title: string;
   content: string;
   created_at: string;
+  type: 'TIL' | 'DeepDive' | 'TechStudy';
 };
 
 export default function TilDetail({ entry }: { entry: TilEntry }) {

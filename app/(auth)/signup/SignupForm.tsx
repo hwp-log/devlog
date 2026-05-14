@@ -40,7 +40,7 @@ export function SignupForm({ action }: SignupFormProps) {
           id="email"
           name="email"
           type="email"
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
       <div className="flex flex-col gap-1">
@@ -52,7 +52,7 @@ export function SignupForm({ action }: SignupFormProps) {
           name="password"
           type="password"
           onChange={(e) => setStrength(getPasswordStrength(e.target.value))}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
         <p className="text-xs text-slate-400">8자 이상 입력해주세요</p>
         {strength && (
@@ -74,7 +74,7 @@ export function SignupForm({ action }: SignupFormProps) {
           id="passwordConfirm"
           name="passwordConfirm"
           type="password"
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
       {state && 'error' in state && (

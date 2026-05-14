@@ -21,7 +21,7 @@ export function LoginForm({ action }: LoginFormProps) {
           id="email"
           name="email"
           type="email"
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
       <div className="flex flex-col gap-1">
@@ -32,7 +32,7 @@ export function LoginForm({ action }: LoginFormProps) {
           id="password"
           name="password"
           type="password"
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
       {state && 'error' in state && (

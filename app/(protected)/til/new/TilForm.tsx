@@ -18,7 +18,7 @@ export function TilForm({ action }: TilFormProps) {
           id="title"
           name="title"
           type="text"
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
       <div className="flex flex-col gap-1">
@@ -27,7 +27,7 @@ export function TilForm({ action }: TilFormProps) {
           id="content"
           name="content"
           rows={6}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
         />
       </div>
       {state && 'error' in state && (
