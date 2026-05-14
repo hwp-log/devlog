@@ -54,7 +54,7 @@ export default async function TilPage() {
           <li key={entry.id}>
             <Link
               href={`/til/${entry.id}`}
-              className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-2 hover:shadow-md transition-shadow block h-full"
+              className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-2 hover:shadow-md hover:-translate-y-1 transition-all duration-500 ease-out block h-full"
             >
               <span className={`self-start text-xs font-medium rounded-md px-2 py-0.5 ${badgeStyle[entry.type] ?? badgeStyle['TIL']}`}>
                 {entry.type}
