@@ -167,3 +167,23 @@ chore: Jest 설정 파일 추가
 - `package.json` scripts 3개 추가 (`test`, `test:watch`, `test:coverage`)
 - `.gitignore`에 `/coverage` 추가
 - `npm test` 검증 성공 ("No tests found in /Users/.../devlog" 정상 출력)
+
+## 결정
+
+### 1. TDD 도입 (Jest + React Testing Library)
+- **결정**: Jest + React Testing Library 도입, TDD 사이클(Red-Green-Refactor) 적용
+- **근거**:
+  - AI 출력은 비결정적 (같은 입력에도 다른 출력 가능)
+  - 테스트가 "결과가 올바른가?"의 객관적 기준 역할
+  - 새 기능 추가 시 기존 기능 회귀 방지를 위한 안전망
+  - 증강 코딩(Augmented Coding) 방법론은 TDD를 전제로 작동. TDD가 빠지면 AI 출력 통제가 무너지고 vibe coding으로 회귀.
+- **참조**: 켄트 벡의 증강 코딩(Augmented Coding) 개념 (2025)
+- **수정 (2026-05-16)**: 4단계 사이클 도입으로 TDD = 3차 리팩토링 시점에만 강제 적용 (1차 바이브 시점에는 테스트 없이 구현 OK)
+
+### 2. 프롬프트 양식 업그레이드 (완료 조건 섹션 추가)
+- **결정**: prompts/ 파일 양식에 "완료 조건" 섹션 추가
+- **근거**:
+  - AI는 자체 판단으로 "완료" 응답하지만 개발자 기대와 다를 수 있음
+  - 구체적/측정 가능/검증 가능한 완료 조건이 있어야 객관적 검증 가능
+  - 예: "빠르게 동작" → "API 응답 300ms 이내"
+- **수정 (2026-05-16)**: 회고 양식 = 5섹션 경량 양식으로 변경 (완료 조건 별도 섹션 X / 5번 결과 섹션에 통합)
