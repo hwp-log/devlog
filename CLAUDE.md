@@ -1,5 +1,4 @@
 @AGENTS.md
-@docs/DECISIONS.md
 
 # Claude Code 특화 규칙
 
