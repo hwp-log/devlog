@@ -1,4 +1,5 @@
 import { getTilEntries } from '@/lib/til/actions';
+import { formatRelativeTime } from '@/lib/util/formatRelativeTime';
 import StreakWidget from './StreakWidget';
 import Link from 'next/link';
 
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
                   <h3 className="font-semibold text-slate-800 line-clamp-1">{entry.title}</h3>
                   <p className="text-sm text-slate-600 line-clamp-3 flex-1">{entry.content}</p>
                   <time className="text-xs text-slate-400">
-                    {new Date(entry.created_at).toLocaleDateString('ko-KR')}
+                    {formatRelativeTime(entry.created_at)}
                   </time>
                 </Link>
               </li>
