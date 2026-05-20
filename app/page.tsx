@@ -72,7 +72,7 @@ export default async function Home() {
                   textShadow: '0 1px 4px rgba(0,0,0,0.2)',
                 }}
               >
-                여행에 점을 찍다.
+                여행의 시작점을 찍다.
               </div>
 
               <div
@@ -82,7 +82,7 @@ export default async function Home() {
                   marginBottom: '36px',
                 }}
               >
-                旅に点を打つ。
+                旅の始まりに点を打つ。
               </div>
 
               <div
@@ -112,10 +112,10 @@ export default async function Home() {
             <div className="glass-form flex flex-col justify-center" style={{ padding: '56px 48px' }}>
               <div style={{ marginBottom: '36px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#1A1A1A', marginBottom: '6px' }}>
-                  지금 시작하기
+                  가보고 싶었던 그 장면, 그 장소.
                 </h2>
                 <p style={{ fontSize: '13px', color: '#666' }}>
-                  첫 점을 찍어보세요
+                  촬영지를 찾고, 여행을 계획하고, 기록하세요
                 </p>
               </div>
 

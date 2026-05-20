@@ -52,7 +52,7 @@ export default function LoginPage() {
             textShadow: '0 1px 4px rgba(0,0,0,0.2)',
           }}
         >
-          여행에 점을 찍다.
+          여행의 시작점을 찍다.
         </div>
 
         <div
@@ -62,7 +62,7 @@ export default function LoginPage() {
             marginBottom: '36px',
           }}
         >
-          旅に点を打つ。
+          旅の始まりに点を打つ。
         </div>
 
         <div
