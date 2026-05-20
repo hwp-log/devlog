@@ -55,7 +55,7 @@ AI 코드 생성 후 다음 형식으로 분류 + 의도 보고한다.
 
 ## 4. @import 참조 규칙
 
-이 파일 상단의 `@AGENTS.md` / `@docs/DECISIONS.md` / `@docs/prompts/0099-회고-작성-예시.md`는 Claude Code의 `@import` 문법.
+이 파일 상단의 `@AGENTS.md`는 Claude Code의 `@import` 문법.
 
 - 세션 시작 시 자동 로드됨
 - 이후 이 파일 내용 추가됨
