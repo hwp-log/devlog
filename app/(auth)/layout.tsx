@@ -1,21 +1,24 @@
-/**
- * 로그인/회원가입 페이지를 감싸는 공통 껍데기
- * - 화면 중앙 정렬된 카드 형태
- * - 상단에 서비스 로고 고정
- * - 본문(children)은 각 페이지가 채움
- */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    // 전체 배경: 화면 전체 높이 확보, 연한 중립 톤으로 카드와 대비
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      {/* 카드 컨테이너: 최대 너비 제한으로 폼 가독성 확보 */}
-      <div className="w-full max-w-md bg-white rounded-xl shadow-sm p-8">
-        {/* 서비스 로고: 브랜드 인지 + 현재 위치 안내 */}
-        <h1 className="text-2xl font-bold text-center text-slate-800 mb-8">
-          DevLog
-        </h1>
-        {children}
+    <>
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+      />
+      <div
+        className="relative min-h-screen overflow-hidden flex items-center justify-center px-4 py-8"
+        style={{
+          backgroundImage: "url('/images/auth-bg.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif",
+        }}
+      >
+        <div className="absolute inset-0 z-0" style={{ background: 'rgba(0, 0, 0, 0.4)' }} />
+        <div className="relative z-10 w-full flex items-center justify-center">
+          {children}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
