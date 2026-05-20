@@ -1,5 +1,6 @@
 {
-  "name": "devlog",
+  "name": "dotrip",
+  "description": "Korean content pilgrimage platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {
