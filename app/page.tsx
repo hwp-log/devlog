@@ -2,24 +2,142 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
+const BRAND_TAGS = ['TRAVEL', 'PLAN', 'RECORD'] as const;
+
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect('/dashboard');
+
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="text-center flex flex-col items-center gap-6">
-        <h1 className="text-4xl font-bold text-slate-800">DevLog</h1>
-        <p className="text-slate-500 max-w-xs">개발 학습을 기록하고 성장을 추적하세요</p>
-        <div className="flex gap-3">
-          <Link href="/login" className="px-5 py-2 rounded-lg bg-slate-800 text-white text-sm hover:bg-slate-700 transition-colors">
-            로그인
-          </Link>
-          <Link href="/signup" className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-100 transition-colors">
-            회원가입
-          </Link>
+    <>
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+      />
+      <div
+        className="relative min-h-screen overflow-hidden flex items-center justify-center px-4 py-8"
+        style={{
+          backgroundImage: "url('/images/auth-bg.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif",
+        }}
+      >
+        <div className="absolute inset-0 z-0" style={{ background: 'rgba(0, 0, 0, 0.4)' }} />
+        <div className="relative z-10 w-full flex items-center justify-center">
+          <div
+            className="glass-outer grid w-full"
+            style={{ maxWidth: '900px', gridTemplateColumns: '1.1fr 1fr' }}
+          >
+            {/* 좌측: brand-side */}
+            <div style={{ padding: '56px 48px', color: '#FFFFFF' }}>
+              <div className="flex gap-2" style={{ marginBottom: '32px' }}>
+                {BRAND_TAGS.map((tag) => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.08em',
+                      padding: '4px 10px',
+                      borderRadius: '100px',
+                      background: 'rgba(255,255,255,0.2)',
+                      border: '0.5px solid rgba(255,255,255,0.35)',
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  fontSize: '56px',
+                  fontWeight: 600,
+                  letterSpacing: '-2px',
+                  lineHeight: 1,
+                  marginBottom: '10px',
+                  textShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                }}
+              >
+                Dotrip
+              </div>
+
+              <div
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                }}
+              >
+                여행에 점을 찍다.
+              </div>
+
+              <div
+                style={{
+                  fontSize: '13px',
+                  color: 'rgba(255,255,255,0.9)',
+                  marginBottom: '36px',
+                }}
+              >
+                旅に点を打つ。
+              </div>
+
+              <div
+                style={{
+                  fontSize: '14px',
+                  lineHeight: 1.85,
+                  color: 'rgba(255,255,255,0.8)',
+                }}
+              >
+                영화나 드라마에서 봤던 그 장면, 그 장소.<br />
+                나만의 점을 찍어보자.<br />
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: 'rgba(255,255,255,0.65)',
+                    marginTop: '8px',
+                    display: 'inline-block',
+                  }}
+                >
+                  映画やドラマで見たあのシーン、あの場所。<br />
+                  自分だけの点を打ってみよう。
+                </span>
+              </div>
+            </div>
+
+            {/* 우측: cta-side */}
+            <div className="glass-form flex flex-col justify-center" style={{ padding: '56px 48px' }}>
+              <div style={{ marginBottom: '36px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#1A1A1A', marginBottom: '6px' }}>
+                  지금 시작하기
+                </h2>
+                <p style={{ fontSize: '13px', color: '#666' }}>
+                  첫 점을 찍어보세요
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/signup"
+                  className="w-full bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold text-center hover:bg-[#333] transition-colors"
+                >
+                  회원가입
+                </Link>
+                <Link
+                  href="/login"
+                  className="w-full rounded-full py-[13px] text-sm font-semibold text-center text-[#1A1A1A] transition-colors hover:bg-black/5"
+                  style={{ border: '0.5px solid rgba(0,0,0,0.2)' }}
+                >
+                  로그인
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </main>
+    </>
   );
 }
