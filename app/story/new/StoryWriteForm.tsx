@@ -5,9 +5,10 @@ type ActionState = { error: string } | null;
 
 interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  initialData?: { title: string; content: string };
 }
 
-export function StoryWriteForm({ action }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
 
   return (
@@ -18,6 +19,7 @@ export function StoryWriteForm({ action }: StoryWriteFormProps) {
           id="title"
           name="title"
           type="text"
+          defaultValue={initialData?.title ?? ''}
           className="w-full border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
         />
       </div>
@@ -27,6 +29,7 @@ export function StoryWriteForm({ action }: StoryWriteFormProps) {
           id="content"
           name="content"
           rows={10}
+          defaultValue={initialData?.content ?? ''}
           className="w-full border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all resize-none"
         />
       </div>
@@ -38,7 +41,9 @@ export function StoryWriteForm({ action }: StoryWriteFormProps) {
         disabled={isPending}
         className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {isPending ? '등록 중...' : '스토리 등록'}
+        {initialData
+          ? (isPending ? '수정 중...' : '수정')
+          : (isPending ? '등록 중...' : '스토리 등록')}
       </button>
     </form>
   );
