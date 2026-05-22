@@ -8,7 +8,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ action }: LoginFormProps) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction, isPending] = useActionState(action, null);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -39,9 +39,10 @@ export function LoginForm({ action }: LoginFormProps) {
       )}
       <button
         type="submit"
-        className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors"
+        disabled={isPending}
+        className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        로그인
+        {isPending ? '로그인 중...' : '로그인'}
       </button>
     </form>
   );

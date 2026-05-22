@@ -27,7 +27,7 @@ const strengthColor: Record<Strength, string> = {
 };
 
 export function SignupForm({ action }: SignupFormProps) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction, isPending] = useActionState(action, null);
   const [strength, setStrength] = useState<Strength | null>(null);
 
   return (
@@ -82,9 +82,10 @@ export function SignupForm({ action }: SignupFormProps) {
       )}
       <button
         type="submit"
-        className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors"
+        disabled={isPending}
+        className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        회원가입
+        {isPending ? '가입 중...' : '회원가입'}
       </button>
     </form>
   );
