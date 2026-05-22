@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_LINKS = [
-  { href: '/dashboard', label: 'Story' },
+  { href: '/story', label: 'Story' },
   { href: '/spot-finder', label: 'SpotFinder' },
   { href: '/cost-plan', label: 'CostPlan' },
   { href: '/my-dots', label: 'My Dots' },
@@ -14,10 +14,7 @@ export function NavLinks() {
   return (
     <nav className="flex items-center gap-6">
       {NAV_LINKS.map(({ href, label }) => {
-        const isActive =
-          href === '/dashboard'
-            ? pathname === '/dashboard'
-            : pathname.startsWith(href);
+        const isActive = pathname.startsWith(href);
         return (
           <Link
             key={href}

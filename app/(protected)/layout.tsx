@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { LogoutButton } from '@/app/(protected)/dashboard/LogoutButton';
-import { signOutAction } from '@/app/(protected)/dashboard/actions';
+import { LogoutButton } from '@/app/(protected)/_components/LogoutButton';
+import { signOut } from '@/lib/auth/actions';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       >
         <header className="sticky top-0 z-10 glass-header">
           <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-            <Link href="/dashboard" className="text-lg font-bold text-[#1A1A1A]">Dotrip</Link>
+            <Link href="/story" className="text-lg font-bold text-[#1A1A1A]">Dotrip</Link>
             <div className="flex items-center gap-6">
               <NavLinks />
               <div className="flex items-center gap-2">
@@ -30,7 +30,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 </div>
                 <span className="text-sm text-slate-600">{user?.email}</span>
               </div>
-              <LogoutButton action={signOutAction} />
+              <LogoutButton action={signOut} />
             </div>
           </div>
         </header>

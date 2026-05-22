@@ -1,3 +1,5 @@
+'use server';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isValidEmail } from './validators';
 import { prisma } from '@/lib/prisma';
@@ -56,4 +58,10 @@ export async function signUp(email: string, password: string, passwordConfirm: s
   }
 
   return { data: { user: data.user } };
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login');
 }
