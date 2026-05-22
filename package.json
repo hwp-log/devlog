@@ -13,7 +13,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "db:execute": "prisma db execute",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "node --env-file=.env.local node_modules/.bin/tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
