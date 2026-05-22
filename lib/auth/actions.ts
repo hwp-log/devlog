@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { isValidEmail } from './validators';
+import { prisma } from '@/lib/prisma';
 
 /**
  * 이메일/비밀번호로 로그인 처리
@@ -39,6 +40,19 @@ export async function signUp(email: string, password: string, passwordConfirm: s
 
   if (error) {
     return { error: '회원가입에 실패했습니다' };
+  }
+
+  if (data.user) {
+    try {
+      await prisma.user.create({
+        data: {
+          id: data.user.id,
+          email: data.user.email!,
+        },
+      });
+    } catch (e) {
+      console.error('public.users 생성 실패:', e);
+    }
   }
 
   return { data: { user: data.user } };
