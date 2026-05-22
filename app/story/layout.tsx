@@ -25,6 +25,9 @@ export default async function StoryLayout({ children }: { children: React.ReactN
             {user ? (
               <>
                 <NavLinks />
+                <Link href="/story/new" className="bg-[#1A1A1A] text-white px-4 py-1.5 rounded-full text-sm">
+                  + 스토리
+                </Link>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-medium">
                     {initial}
