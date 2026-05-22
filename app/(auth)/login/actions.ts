@@ -9,7 +9,7 @@ export async function loginAction(_prevState: unknown, formData: FormData) {
     formData.get('password') as string,
   );
   if (result && 'data' in result) {
-    redirect('/dashboard');
+    redirect('/story');
   }
   return result;
 }

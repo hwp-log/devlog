@@ -7,7 +7,7 @@ const BRAND_TAGS = ['TRAVEL', 'PLAN', 'RECORD'] as const;
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect('/dashboard');
+  if (user) redirect('/story');
 
   return (
     <>

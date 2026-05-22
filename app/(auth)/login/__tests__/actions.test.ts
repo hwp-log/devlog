@@ -15,13 +15,13 @@ describe('loginAction', () => {
     jest.clearAllMocks();
   });
 
-  it('should redirect to /dashboard on successful login', async () => {
+  it('should redirect to /story on successful login', async () => {
     (signIn as jest.Mock).mockResolvedValueOnce({ data: { user: { id: 'user-1' } } });
     const formData = new FormData();
     formData.append('email', 'test@test.com');
     formData.append('password', 'password123');
     await loginAction(null, formData);
-    expect(redirect).toHaveBeenCalledWith('/dashboard');
+    expect(redirect).toHaveBeenCalledWith('/story');
   });
 
   it('should return error result when login fails', async () => {
