@@ -40,6 +40,11 @@ body {
     border-radius: 28px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     overflow: hidden;
+    transition: box-shadow 300ms ease-in-out;
+  }
+
+  .glass-outer:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
 
   .glass-form {

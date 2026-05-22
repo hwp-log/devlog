@@ -17,7 +17,7 @@ export default async function StoryPage() {
       ) : (
         <div className="flex flex-col gap-4">
           {stories.map((story) => (
-            <Link key={story.id} href={`/story/${story.id}`} className="glass-outer p-6 block hover:shadow-lg transition-all duration-300 ease-in-out cursor-pointer">
+            <Link key={story.id} href={`/story/${story.id}`} className="glass-outer p-6 block cursor-pointer">
               <article>
                 <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">{story.title}</h2>
                 <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-3">{story.content}</p>
