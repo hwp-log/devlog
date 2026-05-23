@@ -3,7 +3,7 @@ export function extractFirstImage(html: string): string | null {
   if (!match) return null;
 
   const url = match[1];
-  if (!url.startsWith('http://') && !url.startsWith('https://')) return null;
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) return null;
   return url;
 }
 
