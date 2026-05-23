@@ -11,7 +11,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
 
   return (
     <div
-      className="min-h-screen bg-slate-50"
+      className="min-h-screen"
       style={{ fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}
     >
       <link

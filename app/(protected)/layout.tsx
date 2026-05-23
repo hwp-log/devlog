@@ -16,7 +16,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
       />
       <div
-        className="min-h-screen bg-slate-50"
+        className="min-h-screen"
         style={{ fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}
       >
         <header className="sticky top-0 z-10 glass-header">
