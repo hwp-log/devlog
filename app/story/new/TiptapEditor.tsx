@@ -37,7 +37,7 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false }),
       Image,
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: placeholder ?? '내용을 입력하세요...' }),
