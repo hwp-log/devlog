@@ -19,7 +19,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
       />
       <header className="sticky top-0 z-10 glass-header">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/story" className="text-lg font-bold text-[#1A1A1A]">Dotrip</Link>
           <div className="flex items-center gap-6">
             {user ? (
@@ -44,7 +44,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
           </div>
         </div>
       </header>
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {children}
       </main>
     </div>
