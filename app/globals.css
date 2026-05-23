@@ -40,10 +40,13 @@ body {
     border-radius: 28px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     overflow: hidden;
+  }
+
+  .glass-outer-interactive {
     transition: box-shadow 300ms ease-in-out, transform 300ms ease-in-out;
   }
 
-  .glass-outer:hover {
+  .glass-outer-interactive:hover {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     transform: translateY(-4px);
   }
