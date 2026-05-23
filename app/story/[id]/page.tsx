@@ -40,9 +40,10 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <span>·</span>
           <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
         </div>
-        <p className="text-base text-slate-800 leading-relaxed whitespace-pre-wrap mb-6">
-          {story.content}
-        </p>
+        <div
+          className="tiptap-content text-base text-slate-800 leading-relaxed mb-6"
+          dangerouslySetInnerHTML={{ __html: story.content }}
+        />
         {story.tags.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             {story.tags.map((tag) => (

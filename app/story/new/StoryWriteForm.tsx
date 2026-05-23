@@ -1,5 +1,6 @@
 'use client';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
+import { TiptapEditor } from './TiptapEditor';
 
 type ActionState = { error: string } | null;
 
@@ -10,6 +11,7 @@ interface StoryWriteFormProps {
 
 export function StoryWriteForm({ action, initialData }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const [content, setContent] = useState(initialData?.content ?? '');
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -24,14 +26,13 @@ export function StoryWriteForm({ action, initialData }: StoryWriteFormProps) {
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="content" className="text-sm font-medium text-[#1A1A1A]">본문</label>
-        <textarea
-          id="content"
-          name="content"
-          rows={10}
-          defaultValue={initialData?.content ?? ''}
-          className="w-full border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all resize-none"
+        <label className="text-sm font-medium text-[#1A1A1A]">본문</label>
+        <TiptapEditor
+          content={content}
+          onChange={setContent}
+          placeholder="다녀온 그 장소의 이야기를 남겨주세요..."
         />
+        <input type="hidden" name="content" value={content} />
       </div>
       {state && 'error' in state && (
         <p role="alert" className="text-sm text-red-600">{state.error}</p>

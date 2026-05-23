@@ -48,6 +48,12 @@ body {
     transform: translateY(-4px);
   }
 
+  .tiptap-content h1 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+  .tiptap-content h2 { font-size: 1.25rem; font-weight: 600; margin: 0.875rem 0 0.5rem; }
+  .tiptap-content ul { list-style: disc; padding-left: 1.5rem; }
+  .tiptap-content a { color: #2563eb; text-decoration: underline; }
+  .tiptap-content p.is-editor-empty:first-child::before { color: #94a3b8; content: attr(data-placeholder); float: left; pointer-events: none; height: 0; }
+
   .glass-form {
     background: rgba(255, 255, 255, 0.85);
     -webkit-backdrop-filter: blur(20px);
