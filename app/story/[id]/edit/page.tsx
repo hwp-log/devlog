@@ -24,6 +24,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
         <StoryWriteForm
           action={boundAction}
           initialData={{ title: story.title, content: story.content }}
+          userId={user.id}
         />
       </div>
     </div>

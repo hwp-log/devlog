@@ -7,9 +7,10 @@ type ActionState = { error: string } | null;
 interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initialData?: { title: string; content: string };
+  userId: string;
 }
 
-export function StoryWriteForm({ action, initialData }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData, userId }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [content, setContent] = useState(initialData?.content ?? '');
 
@@ -30,6 +31,7 @@ export function StoryWriteForm({ action, initialData }: StoryWriteFormProps) {
         <TiptapEditor
           content={content}
           onChange={setContent}
+          userId={userId}
           placeholder="다녀온 그 장소의 이야기를 남겨주세요..."
         />
         <input type="hidden" name="content" value={content} />

@@ -1,14 +1,17 @@
 'use client';
+import { useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import { uploadStoryImage } from '@/lib/supabase/storage';
 
 interface TiptapEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  userId: string;
 }
 
 function ToolbarButton({
@@ -33,7 +36,9 @@ function ToolbarButton({
   );
 }
 
-export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
+export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -61,8 +66,33 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
     editor.chain().focus().setLink({ href: url }).run();
   }
 
+  function handleImageUpload() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+
+    try {
+      const url = await uploadStoryImage(file, userId);
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch {
+      alert('이미지 업로드에 실패했습니다.');
+    }
+
+    e.target.value = '';
+  }
+
   return (
     <div className="border-[0.5px] border-black/15 rounded-[10px] bg-white">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       <div className="border-b border-black/10 p-2 flex gap-1 flex-wrap">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -100,7 +130,7 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
         >
           🔗
         </ToolbarButton>
-        <ToolbarButton onClick={() => alert('0040에서 구현')}>
+        <ToolbarButton onClick={handleImageUpload}>
           🖼
         </ToolbarButton>
       </div>
