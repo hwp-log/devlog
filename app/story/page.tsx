@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
 
 export default async function StoryPage() {
   const stories = await prisma.story.findMany({
@@ -16,31 +17,43 @@ export default async function StoryPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {stories.map((story) => (
-            <Link key={story.id} href={`/story/${story.id}`} className="glass-outer glass-outer-interactive p-6 block cursor-pointer">
-              <article>
-                <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">{story.title}</h2>
-                <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-3">{story.content}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {story.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"
-                      >
-                        #{tag.name}
-                      </span>
-                    ))}
+          {stories.map((story) => {
+            const thumbnail = extractFirstImage(story.content);
+            const preview = extractTextPreview(story.content);
+            return (
+              <Link key={story.id} href={`/story/${story.id}`} className="glass-outer glass-outer-interactive overflow-hidden block cursor-pointer">
+                <article>
+                  {thumbnail ? (
+                    <div className="aspect-[16/9] overflow-hidden bg-slate-100">
+                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/9] bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
+                      이미지 없음
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">{story.title}</h2>
+                    <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-2">{preview}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {story.tags.map((tag) => (
+                          <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                            #{tag.name}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="text-xs text-slate-400 shrink-0 ml-4">
+                        <span>{story.user.email}</span>
+                        <span className="mx-1">·</span>
+                        <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-400 shrink-0 ml-4">
-                    <span>{story.user.email}</span>
-                    <span className="mx-1">·</span>
-                    <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
-                  </div>
-                </div>
-              </article>
-            </Link>
-          ))}
+                </article>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

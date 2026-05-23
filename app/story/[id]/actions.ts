@@ -15,13 +15,25 @@ export async function updateStoryAction(storyId: string, prevState: ActionState,
 
   const title = formData.get('title')?.toString().trim() ?? '';
   const content = formData.get('content')?.toString().trim() ?? '';
+  const tagsRaw = formData.get('tags') as string;
+  const tagNames: string[] = JSON.parse(tagsRaw || '[]');
 
   if (!title) return { error: '제목을 입력해주세요' };
   if (!content) return { error: '본문을 입력해주세요' };
 
   await prisma.story.update({
     where: { id: storyId },
-    data: { title, content },
+    data: {
+      title,
+      content,
+      tags: {
+        set: [],
+        connectOrCreate: tagNames.map((name) => ({
+          where: { name },
+          create: { name },
+        })),
+      },
+    },
   });
 
   redirect(`/story/${storyId}`);

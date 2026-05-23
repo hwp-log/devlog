@@ -12,12 +12,25 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
 
   const title = formData.get('title')?.toString().trim() ?? '';
   const content = formData.get('content')?.toString().trim() ?? '';
+  const tagsRaw = formData.get('tags') as string;
+  const tagNames: string[] = JSON.parse(tagsRaw || '[]');
 
   if (!title) return { error: '제목을 입력해주세요' };
   if (!content) return { error: '본문을 입력해주세요' };
 
   await prisma.story.create({
-    data: { title, content, photoUrl: null, userId: user.id },
+    data: {
+      title,
+      content,
+      photoUrl: null,
+      userId: user.id,
+      tags: {
+        connectOrCreate: tagNames.map((name) => ({
+          where: { name },
+          create: { name },
+        })),
+      },
+    },
   });
 
   redirect('/story');

@@ -7,7 +7,7 @@ import { updateStoryAction } from '../actions';
 export default async function StoryEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const story = await prisma.story.findUnique({ where: { id } });
+  const story = await prisma.story.findUnique({ where: { id }, include: { tags: true } });
   if (!story) notFound();
 
   const supabase = await createClient();
@@ -23,7 +23,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
       <div className="glass-outer p-8">
         <StoryWriteForm
           action={boundAction}
-          initialData={{ title: story.title, content: story.content }}
+          initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}
           userId={user.id}
         />
       </div>
