@@ -78,13 +78,19 @@ export default function SpotMap({
     });
 
     spots.forEach((spot, i) => {
+      const color =
+        spots.length === 1 ? '#16a34a' :
+        i === 0 ? '#16a34a' :
+        i === spots.length - 1 ? '#dc2626' :
+        '#0ea5e9';
+
       const el = document.createElement('div');
       el.textContent = String(i + 1);
       Object.assign(el.style, {
         width: '28px',
         height: '28px',
         borderRadius: '50%',
-        background: '#0ea5e9',
+        background: color,
         color: '#fff',
         display: 'flex',
         alignItems: 'center',
@@ -119,6 +125,53 @@ export default function SpotMap({
     if (!mapRef.current) return;
     mapRef.current.easeTo({ pitch: is3D ? 60 : 0, duration: 1000 });
   }, [is3D]);
+
+  // 폴리라인: spots 변경 시 Directions API 호출
+  useEffect(() => {
+    if (!mapRef.current || spots.length < 2 || !token) return;
+    const map = mapRef.current;
+
+    const drawRoute = (geometry: GeoJSON.Geometry) => {
+      const data = { type: 'Feature' as const, geometry, properties: {} };
+      const existing = map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
+      if (existing) {
+        existing.setData(data);
+      } else {
+        map.addSource('route', { type: 'geojson', data });
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#fbbf24', 'line-width': 4, 'line-opacity': 0.85 },
+        });
+      }
+    };
+
+    const fetchAndDrawRoute = async () => {
+      const coords = spots.map(s => `${s.lng},${s.lat}`).join(';');
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${token}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Directions API 실패');
+        const data = await res.json();
+        if (!data.routes || data.routes.length === 0) {
+          console.warn('폴리라인: 경로를 찾지 못함');
+          return;
+        }
+        const geometry = data.routes[0].geometry;
+        if (!map.isStyleLoaded()) {
+          map.once('style.load', () => drawRoute(geometry));
+        } else {
+          drawRoute(geometry);
+        }
+      } catch (err) {
+        console.error('폴리라인 오류:', err);
+      }
+    };
+
+    fetchAndDrawRoute();
+  }, [spots, token]);
 
   function exitAddMode() {
     setIsAddMode(false);
