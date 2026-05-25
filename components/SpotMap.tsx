@@ -161,7 +161,7 @@ export default function SpotMap({
         }
         const geometry = data.routes[0].geometry;
         if (!map.isStyleLoaded()) {
-          map.once('style.load', () => drawRoute(geometry));
+          map.once('idle', () => drawRoute(geometry));
         } else {
           drawRoute(geometry);
         }
