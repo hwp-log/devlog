@@ -143,7 +143,12 @@ export default function SpotMap({
           type: 'line',
           source: 'route',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#fbbf24', 'line-width': 4, 'line-opacity': 0.85 },
+          paint: {
+            'line-color': '#fb923c',
+            'line-width': 4,
+            'line-opacity': 0.85,
+            'line-emissive-strength': 1.0,
+          },
         });
       }
     };
@@ -159,18 +164,17 @@ export default function SpotMap({
           console.warn('폴리라인: 경로를 찾지 못함');
           return;
         }
-        const geometry = data.routes[0].geometry;
-        if (!map.isStyleLoaded()) {
-          map.once('idle', () => drawRoute(geometry));
-        } else {
-          drawRoute(geometry);
-        }
+        drawRoute(data.routes[0].geometry);
       } catch (err) {
         console.error('폴리라인 오류:', err);
       }
     };
 
-    fetchAndDrawRoute();
+    if (map.loaded()) {
+      fetchAndDrawRoute();
+    } else {
+      map.once('load', () => fetchAndDrawRoute());
+    }
   }, [spots, token]);
 
   function exitAddMode() {
