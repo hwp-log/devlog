@@ -1,6 +1,8 @@
 'use client';
 import { useActionState, useState } from 'react';
 import { TiptapEditor } from './TiptapEditor';
+import SpotMap from '@/components/SpotMapWrapper';
+import type { Spot } from '@prisma/client';
 
 type ActionState = { error: string } | null;
 
@@ -8,9 +10,10 @@ interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initialData?: { title: string; content: string; tags: string[] };
   userId: string;
+  spots?: Spot[];
 }
 
-export function StoryWriteForm({ action, initialData, userId }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData, userId, spots = [] }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [content, setContent] = useState(initialData?.content ?? '');
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
@@ -85,6 +88,10 @@ export function StoryWriteForm({ action, initialData, userId }: StoryWriteFormPr
           </div>
         )}
         <input type="hidden" name="tags" value={JSON.stringify(tags)} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-[#1A1A1A]">촬영지 지도</label>
+        <SpotMap spots={spots} />
       </div>
       {state && 'error' in state && (
         <p role="alert" className="text-sm text-red-600">{state.error}</p>

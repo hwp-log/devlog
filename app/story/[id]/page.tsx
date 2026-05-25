@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
+import SpotMap from '@/components/SpotMapWrapper';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +13,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
 
   const story = await prisma.story.findUnique({
     where: { id },
-    include: { user: true, tags: true },
+    include: { user: true, tags: true, spots: { orderBy: { order: 'asc' } } },
   });
   if (!story) notFound();
 
@@ -51,6 +52,11 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
                 #{tag.name}
               </span>
             ))}
+          </div>
+        )}
+        {story.spots.length > 0 && (
+          <div className="mt-6">
+            <SpotMap spots={story.spots} />
           </div>
         )}
       </div>
