@@ -11,9 +11,10 @@ interface StoryWriteFormProps {
   initialData?: { title: string; content: string; tags: string[] };
   userId: string;
   spots?: Spot[];
+  storyId?: string;
 }
 
-export function StoryWriteForm({ action, initialData, userId, spots = [] }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData, userId, spots = [], storyId }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [content, setContent] = useState(initialData?.content ?? '');
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
@@ -91,7 +92,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [] }: Stor
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium text-[#1A1A1A]">촬영지 지도</label>
-        <SpotMap spots={spots} />
+        <SpotMap key={spots.length} spots={spots} storyId={storyId} canAddSpot={!!storyId} />
       </div>
       {state && 'error' in state && (
         <p role="alert" className="text-sm text-red-600">{state.error}</p>

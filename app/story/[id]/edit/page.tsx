@@ -29,6 +29,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
           initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}
           userId={user.id}
           spots={story.spots}
+          storyId={story.id}
         />
       </div>
     </div>
