@@ -27,10 +27,29 @@ model Story {
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags      Tag[]
+  spots     Spot[]
 
   @@map("stories")
   @@index([userId])
   @@index([createdAt])
+}
+
+model Spot {
+  id          String   @id @default(cuid())
+  storyId     String   @map("story_id")
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  order       Int
+  name        String
+  description String?
+  lat         Float
+  lng         Float
+  photoUrl    String?  @map("photo_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("spots")
+  @@index([storyId])
+  @@index([storyId, order])
 }
 
 model Tag {
