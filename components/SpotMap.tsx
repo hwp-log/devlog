@@ -31,7 +31,7 @@ export default function SpotMap({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
 
-  const [is3D, setIs3D] = useState(true);
+  const [is3D, setIs3D] = useState(false);
   const [isAddMode, setIsAddMode] = useState(false);
   const [selectedCoord, setSelectedCoord] = useState<{ lng: number; lat: number } | null>(null);
   const [inputName, setInputName] = useState('');
@@ -64,7 +64,7 @@ export default function SpotMap({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/standard',
       center,
-      zoom: 16,
+      zoom: 13,
       pitch: 60,
     });
 
