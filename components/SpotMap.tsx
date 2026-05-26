@@ -4,7 +4,9 @@ import { useRef, useEffect, useState, useTransition } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { Spot } from '@prisma/client';
-import { createSpot } from '@/app/story/[id]/spots/actions';
+import { createSpot, reorderSpots } from '@/app/story/[id]/spots/actions';
+import { SpotList } from './SpotList';
+import { getSpotColor } from '@/lib/spot-color';
 
 // interactive prop: 0046b에서 onMapClick 호출 여부 제어용. mapboxgl.Map의 interactive 옵션과는 무관.
 type Props = {
@@ -34,6 +36,10 @@ export default function SpotMap({
   const [inputName, setInputName] = useState('');
   const [spotError, setSpotError] = useState('');
   const [spotPending, startSpotTransition] = useTransition();
+
+  const [localSpots, setLocalSpots] = useState(spots);
+  const [reorderError, setReorderError] = useState('');
+  const [isReordering, setIsReordering] = useState(false);
 
   // stale closure 방지: useEffect([], []) 클로저 안에서 isAddMode 최신값 읽기용
   const addModeRef = useRef(false);
@@ -78,11 +84,7 @@ export default function SpotMap({
     });
 
     spots.forEach((spot, i) => {
-      const color =
-        spots.length === 1 ? '#16a34a' :
-        i === 0 ? '#16a34a' :
-        i === spots.length - 1 ? '#dc2626' :
-        '#0ea5e9';
+      const color = getSpotColor(i, spots.length);
 
       const el = document.createElement('div');
       el.textContent = String(i + 1);
@@ -126,12 +128,14 @@ export default function SpotMap({
     mapRef.current.easeTo({ pitch: is3D ? 60 : 0, duration: 1000 });
   }, [is3D]);
 
-  // 폴리라인: spots 변경 시 Directions API 호출
+  // 폴리라인: localSpots 변경 시 Directions API 호출
   useEffect(() => {
-    if (!mapRef.current || spots.length < 2 || !token) return;
+    if (!mapRef.current || localSpots.length < 2 || !token) return;
     const map = mapRef.current;
+    let cancelled = false;
 
     const drawRoute = (geometry: GeoJSON.Geometry) => {
+      if (cancelled) return;
       const data = { type: 'Feature' as const, geometry, properties: {} };
       const existing = map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
       if (existing) {
@@ -154,18 +158,21 @@ export default function SpotMap({
     };
 
     const fetchAndDrawRoute = async () => {
-      const coords = spots.map(s => `${s.lng},${s.lat}`).join(';');
+      const coords = localSpots.map(s => `${s.lng},${s.lat}`).join(';');
       const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${token}`;
       try {
         const res = await fetch(url);
+        if (cancelled) return;
         if (!res.ok) throw new Error('Directions API 실패');
         const data = await res.json();
+        if (cancelled) return;
         if (!data.routes || data.routes.length === 0) {
           console.warn('폴리라인: 경로를 찾지 못함');
           return;
         }
         drawRoute(data.routes[0].geometry);
       } catch (err) {
+        if (cancelled) return;
         console.error('폴리라인 오류:', err);
       }
     };
@@ -175,7 +182,24 @@ export default function SpotMap({
     } else {
       map.once('load', () => fetchAndDrawRoute());
     }
-  }, [spots, token]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [localSpots, token]);
+
+  async function handleReorder(newSpots: Spot[]) {
+    const prev = localSpots;
+    setLocalSpots(newSpots);
+    setReorderError('');
+    setIsReordering(true);
+    const result = await reorderSpots(storyId!, newSpots.map((s) => s.id));
+    setIsReordering(false);
+    if ('error' in result) {
+      setLocalSpots(prev);
+      setReorderError(result.error);
+    }
+  }
 
   function exitAddMode() {
     setIsAddMode(false);
@@ -236,6 +260,12 @@ export default function SpotMap({
           </button>
         </div>
       </div>
+
+      {/* 마커 목록: 편집 모드에서 항상 표시 */}
+      {canAddSpot && storyId && localSpots.length > 0 && (
+        <SpotList spots={localSpots} onReorder={handleReorder} isReordering={isReordering} />
+      )}
+      {reorderError && <p className="text-xs text-red-600">{reorderError}</p>}
 
       {/* 인라인 폼: isAddMode + selectedCoord 시 표시 */}
       {isAddMode && selectedCoord && (

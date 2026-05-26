@@ -92,7 +92,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], storyI
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium text-[#1A1A1A]">촬영지 지도</label>
-        <SpotMap key={spots.length} spots={spots} storyId={storyId} canAddSpot={!!storyId} />
+        <SpotMap key={spots.map(s => s.id).join(',')} spots={spots} storyId={storyId} canAddSpot={!!storyId} />
       </div>
       {state && 'error' in state && (
         <p role="alert" className="text-sm text-red-600">{state.error}</p>
