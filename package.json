@@ -17,6 +17,9 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@supabase/ssr": "^0.10.2",
@@ -29,6 +32,7 @@
     "@tiptap/react": "^3.23.6",
     "@tiptap/starter-kit": "^3.23.6",
     "jotai": "^2.19.1",
+    "lucide-react": "^1.16.0",
     "mapbox-gl": "^3.24.0",
     "next": "16.2.3",
     "pg": "^8.21.0",
