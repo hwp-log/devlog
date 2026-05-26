@@ -20,7 +20,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
   const boundAction = updateStoryAction.bind(null, story.id);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2">스토리 수정</h1>
       <p className="text-sm text-slate-500 mb-6">내용을 수정하고 저장하세요</p>
       <div className="glass-outer p-8">

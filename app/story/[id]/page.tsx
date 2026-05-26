@@ -20,7 +20,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
   const isOwner = currentUser?.id === story.userId;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="glass-outer p-8">
         <div className="flex items-start justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold text-[#1A1A1A] leading-tight">{story.title}</h1>

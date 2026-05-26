@@ -44,6 +44,8 @@ model Spot {
   lat         Float
   lng         Float
   photoUrl    String?  @map("photo_url")
+  review      String?  @map("review")
+  address     String?  @map("address")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

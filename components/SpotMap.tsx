@@ -4,8 +4,9 @@ import { useRef, useEffect, useState, useTransition } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { Spot } from '@prisma/client';
-import { createSpot, reorderSpots } from '@/app/story/[id]/spots/actions';
+import { createSpot, reorderSpots, deleteSpot } from '@/app/story/[id]/spots/actions';
 import { SpotList } from './SpotList';
+import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 
 // interactive prop: 0046b에서 onMapClick 호출 여부 제어용. mapboxgl.Map의 interactive 옵션과는 무관.
@@ -38,8 +39,9 @@ export default function SpotMap({
   const [spotPending, startSpotTransition] = useTransition();
 
   const [localSpots, setLocalSpots] = useState(spots);
-  const [reorderError, setReorderError] = useState('');
   const [isReordering, setIsReordering] = useState(false);
+
+  const [activeSpot, setActiveSpot] = useState<Spot | null>(null);
 
   // stale closure 방지: useEffect([], []) 클로저 안에서 isAddMode 최신값 읽기용
   const addModeRef = useRef(false);
@@ -107,12 +109,15 @@ export default function SpotMap({
         .setLngLat([spot.lng, spot.lat])
         .addTo(map);
       markersRef.current.push(marker);
+
+      el.addEventListener('click', () => {
+        setActiveSpot(prev => prev?.id === spot.id ? null : spot);
+      });
     });
 
     mapRef.current = map;
 
     return () => {
-      // 언마운트 cleanup: Popup + 마커 + 지도 모두 제거
       popupRef.current?.remove();
       popupRef.current = null;
       markersRef.current.forEach((m) => m.remove());
@@ -191,13 +196,31 @@ export default function SpotMap({
   async function handleReorder(newSpots: Spot[]) {
     const prev = localSpots;
     setLocalSpots(newSpots);
-    setReorderError('');
+    setSpotError('');
     setIsReordering(true);
     const result = await reorderSpots(storyId!, newSpots.map((s) => s.id));
     setIsReordering(false);
     if ('error' in result) {
       setLocalSpots(prev);
-      setReorderError(result.error);
+      setSpotError(result.error);
+    }
+  }
+
+  function handleSpotUpdate(fields: { name?: string; review?: string }) {
+    setActiveSpot(prev => prev ? { ...prev, ...fields } : null);
+    setLocalSpots(prev => prev.map(s =>
+      s.id === activeSpot?.id ? { ...s, ...fields } : s
+    ));
+  }
+
+  async function handleDelete(spotId: string) {
+    const prev = localSpots;
+    setLocalSpots(prev.filter((s) => s.id !== spotId));
+    setActiveSpot(null);
+    const result = await deleteSpot(spotId);
+    if ('error' in result) {
+      setLocalSpots(prev);
+      setSpotError(result.error);
     }
   }
 
@@ -233,31 +256,50 @@ export default function SpotMap({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* 지도 컨테이너 */}
-      <div className="relative w-full h-[400px] rounded-xl overflow-hidden">
-        <div ref={containerRef} className="w-full h-full" />
-        {/* 버튼 스택 (우측 상단) */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
-          {canAddSpot && storyId && (
+      <div className="flex flex-col md:flex-row gap-3">
+        {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
+        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${
+          activeSpot ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+        }`}>
+          {activeSpot && (
+            <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200">
+              <SpotPopup
+                spot={activeSpot}
+                readOnly={!canAddSpot || !storyId}
+                onDelete={canAddSpot && storyId ? () => handleDelete(activeSpot.id) : undefined}
+                onClose={() => setActiveSpot(null)}
+                onUpdate={handleSpotUpdate}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* 지도 컨테이너 */}
+        <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+          <div ref={containerRef} className="w-full h-full" />
+          {/* 버튼 스택 (우측 상단) */}
+          <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
+            {canAddSpot && storyId && (
+              <button
+                type="button"
+                onClick={() => (isAddMode ? exitAddMode() : setIsAddMode(true))}
+                className={`text-xs font-medium px-3 py-1.5 rounded-lg shadow-md transition-colors ${
+                  isAddMode
+                    ? 'bg-sky-500 text-white hover:bg-sky-600'
+                    : 'bg-white/90 backdrop-blur-sm text-slate-700 hover:bg-white'
+                }`}
+              >
+                {isAddMode ? '완료' : '마커 추가'}
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => (isAddMode ? exitAddMode() : setIsAddMode(true))}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg shadow-md transition-colors ${
-                isAddMode
-                  ? 'bg-sky-500 text-white hover:bg-sky-600'
-                  : 'bg-white/90 backdrop-blur-sm text-slate-700 hover:bg-white'
-              }`}
+              onClick={() => setIs3D((prev) => !prev)}
+              className="bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-md hover:bg-white transition-colors"
             >
-              {isAddMode ? '완료' : '마커 추가'}
+              {is3D ? '2D' : '3D'}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setIs3D((prev) => !prev)}
-            className="bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-md hover:bg-white transition-colors"
-          >
-            {is3D ? '2D' : '3D'}
-          </button>
+          </div>
         </div>
       </div>
 
@@ -265,7 +307,7 @@ export default function SpotMap({
       {canAddSpot && storyId && localSpots.length > 0 && (
         <SpotList spots={localSpots} onReorder={handleReorder} isReordering={isReordering} />
       )}
-      {reorderError && <p className="text-xs text-red-600">{reorderError}</p>}
+      {spotError && <p className="text-xs text-red-600">{spotError}</p>}
 
       {/* 인라인 폼: isAddMode + selectedCoord 시 표시 */}
       {isAddMode && selectedCoord && (
