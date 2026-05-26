@@ -258,12 +258,13 @@ export default function SpotMap({
     <div className="flex flex-col gap-2">
       <div className="flex flex-col md:flex-row gap-3">
         {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
-        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${
+<div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${
           activeSpot ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
         }`}>
           {activeSpot && (
             <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200">
               <SpotPopup
+                key={activeSpot.id}
                 spot={activeSpot}
                 readOnly={!canAddSpot || !storyId}
                 onDelete={canAddSpot && storyId ? () => handleDelete(activeSpot.id) : undefined}
