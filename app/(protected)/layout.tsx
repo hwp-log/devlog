@@ -34,7 +34,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             </div>
           </div>
         </header>
-        <main className="max-w-5xl mx-auto px-6 py-8">
+        <main className="max-w-7xl mx-auto px-6 py-8">
           {children}
         </main>
       </div>
