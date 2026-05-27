@@ -6,7 +6,6 @@ const NAV_LINKS = [
   { href: '/story', label: 'Story' },
   { href: '/spot-finder', label: 'SpotFinder' },
   { href: '/cost-plan', label: 'CostPlan' },
-  { href: '/my-dots', label: 'MyPage' },
 ];
 
 export function NavLinks() {

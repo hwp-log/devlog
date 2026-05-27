@@ -1,13 +1,11 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { LogoutButton } from '@/app/(protected)/_components/LogoutButton';
-import { signOut } from '@/lib/auth/actions';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
+import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?';
 
   return (
     <>
@@ -24,13 +22,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             <Link href="/story" className="text-lg font-bold text-[#1A1A1A]">Dotrip</Link>
             <div className="flex items-center gap-6">
               <NavLinks />
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-medium">
-                  {initial}
-                </div>
-                <span className="text-sm text-slate-600">{user?.email}</span>
-              </div>
-              <LogoutButton action={signOut} />
+              <UserDropdown email={user?.email ?? ''} />
             </div>
           </div>
         </header>
