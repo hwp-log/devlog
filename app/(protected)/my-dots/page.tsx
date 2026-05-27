@@ -15,7 +15,7 @@ export default async function MyDotsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6">내 스토리</h1>
+      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6">MyStory</h1>
 
       {stories.length === 0 ? (
         <div className="glass-outer p-12 text-center">
