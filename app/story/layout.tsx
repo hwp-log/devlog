@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
@@ -23,8 +24,12 @@ export default async function StoryLayout({ children }: { children: React.ReactN
             {user ? (
               <>
                 <NavLinks />
-                <Link href="/story/new" className="bg-[#1A1A1A] text-white px-4 py-1.5 rounded-full text-sm">
-                  + 스토리
+                <Link
+                  href="/story/new"
+                  className="flex items-center gap-1.5 bg-white text-slate-600 border border-slate-300 px-4 py-1.5 rounded-full text-sm hover:bg-slate-50 transition-colors"
+                >
+                  <PenSquare size={14} />
+                  Write
                 </Link>
                 <UserDropdown email={user.email ?? ''} />
               </>

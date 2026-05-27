@@ -92,7 +92,7 @@ export default function SignupPage() {
       <div className="glass-form flex flex-col justify-center" style={{ padding: '56px 48px' }}>
         <div style={{ marginBottom: '28px' }}>
           <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#1A1A1A', marginBottom: '6px' }}>
-            회원가입
+            Sign Up
           </h2>
           <p style={{ fontSize: '13px', color: '#666' }}>
             그럼 시작해 볼까요?
@@ -104,7 +104,7 @@ export default function SignupPage() {
         <p style={{ fontSize: '13px', color: '#666', textAlign: 'center', marginTop: '20px' }}>
           이미 계정이 있으신가요?{' '}
           <Link href="/login" style={{ color: '#1A1A1A', fontWeight: 600 }}>
-            로그인
+            Sign In
           </Link>
         </p>
       </div>

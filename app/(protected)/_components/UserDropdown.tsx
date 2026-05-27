@@ -48,7 +48,7 @@ export function UserDropdown({ email }: Props) {
             className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
             onClick={() => setOpen(false)}
           >
-            마이페이지
+            MyPage
           </Link>
           <form action={signOut}>
             <button
@@ -56,7 +56,7 @@ export function UserDropdown({ email }: Props) {
               role="menuitem"
               className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
             >
-              로그아웃
+              Sign Out
             </button>
           </form>
         </div>

@@ -92,7 +92,7 @@ export default function LoginPage() {
       <div className="glass-form flex flex-col justify-center" style={{ padding: '56px 48px' }}>
         <div style={{ marginBottom: '28px' }}>
           <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#1A1A1A', marginBottom: '6px' }}>
-            로그인
+            Sign In
           </h2>
           <p style={{ fontSize: '13px', color: '#666' }}>
             Dotrip에 오신 것을 환영합니다
@@ -110,7 +110,7 @@ export default function LoginPage() {
         <p style={{ fontSize: '13px', color: '#666', textAlign: 'center' }}>
           아직 계정이 없으신가요?{' '}
           <Link href="/signup" style={{ color: '#1A1A1A', fontWeight: 600 }}>
-            회원가입
+            Sign Up
           </Link>
         </p>
       </div>

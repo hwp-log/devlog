@@ -42,7 +42,7 @@ export function LoginForm({ action }: LoginFormProps) {
         disabled={isPending}
         className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {isPending ? '로그인 중...' : '로그인'}
+        {isPending ? 'Signing in...' : 'Sign In'}
       </button>
     </form>
   );

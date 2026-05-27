@@ -85,7 +85,7 @@ export function SignupForm({ action }: SignupFormProps) {
         disabled={isPending}
         className="w-full mt-1 bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {isPending ? '가입 중...' : '회원가입'}
+        {isPending ? 'Signing up...' : 'Sign Up'}
       </button>
     </form>
   );
