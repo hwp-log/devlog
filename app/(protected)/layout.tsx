@@ -19,7 +19,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         style={{ fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}
       >
         <header className="sticky top-0 z-10 glass-header">
-          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
             <Link href="/story" className="text-lg font-bold text-[#1A1A1A]">Dotrip</Link>
             <div className="flex items-center gap-6">
               <NavLinks />
