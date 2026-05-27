@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
@@ -16,18 +15,7 @@ export default async function MyDotsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#1A1A1A]">내 스토리</h1>
-        {stories.length > 0 && (
-          <Link
-            href="/story/new"
-            className="flex items-center gap-1.5 bg-white text-slate-600 border border-slate-300 px-4 py-1.5 rounded-full text-sm hover:bg-slate-50 transition-colors"
-          >
-            <PenSquare size={14} />
-            Write
-          </Link>
-        )}
-      </div>
+      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6">내 스토리</h1>
 
       {stories.length === 0 ? (
         <div className="glass-outer p-12 text-center">
