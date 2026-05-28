@@ -47,6 +47,10 @@ export default function SpotMap({
   const addModeRef = useRef(false);
   useEffect(() => { addModeRef.current = isAddMode; }, [isAddMode]);
 
+  // stale closure 방지: useEffect([], []) 클로저 안에서 localSpots 최신값 읽기용
+  const localSpotsRef = useRef(localSpots);
+  useEffect(() => { localSpotsRef.current = localSpots; }, [localSpots]);
+
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   // 지도 초기화 (마운트 1회)
@@ -111,7 +115,8 @@ export default function SpotMap({
       markersRef.current.push(marker);
 
       el.addEventListener('click', () => {
-        setActiveSpot(prev => prev?.id === spot.id ? null : spot);
+        const current = localSpotsRef.current.find(s => s.id === spot.id) ?? spot;
+        setActiveSpot(prev => prev?.id === current.id ? null : current);
       });
     });
 
