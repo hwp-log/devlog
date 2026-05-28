@@ -3,28 +3,29 @@
 import { useRef, useEffect, useState, useTransition } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import type { Spot } from '@prisma/client';
-import { createSpot, reorderSpots, deleteSpot } from '@/app/story/[id]/spots/actions';
+import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 
 // interactive prop: 0046b에서 onMapClick 호출 여부 제어용. mapboxgl.Map의 interactive 옵션과는 무관.
 type Props = {
-  spots: Spot[];
+  spots: LocalSpot[];
   initialCenter?: [number, number]; // [lng, lat]
   interactive?: boolean;
-  onSpotClick?: (spot: Spot) => void;
+  onSpotClick?: (spot: LocalSpot) => void;
   onMapClick?: (lng: number, lat: number) => void;
-  storyId?: string;      // createSpot 호출용
-  canAddSpot?: boolean;  // 마커 추가 버튼 노출 여부
+  canAddSpot?: boolean;
+  onSpotsChange?: (spots: LocalSpot[]) => void;
+  onPhotoSelect?: (spotId: string, file: File | null) => void;
 };
 
 export default function SpotMap({
   spots,
   initialCenter,
-  storyId,
   canAddSpot,
+  onSpotsChange,
+  onPhotoSelect,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -36,24 +37,19 @@ export default function SpotMap({
   const [selectedCoord, setSelectedCoord] = useState<{ lng: number; lat: number } | null>(null);
   const [inputName, setInputName] = useState('');
   const [spotError, setSpotError] = useState('');
-  const [spotPending, startSpotTransition] = useTransition();
+  const [, startSpotTransition] = useTransition();
 
-  const [localSpots, setLocalSpots] = useState(spots);
-  const [isReordering, setIsReordering] = useState(false);
+  const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
 
-  const [activeSpot, setActiveSpot] = useState<Spot | null>(null);
+  const [activeSpot, setActiveSpot] = useState<LocalSpot | null>(null);
 
   // stale closure 방지: useEffect([], []) 클로저 안에서 isAddMode 최신값 읽기용
   const addModeRef = useRef(false);
   useEffect(() => { addModeRef.current = isAddMode; }, [isAddMode]);
 
-  // stale closure 방지: useEffect([], []) 클로저 안에서 localSpots 최신값 읽기용
-  const localSpotsRef = useRef(localSpots);
-  useEffect(() => { localSpotsRef.current = localSpots; }, [localSpots]);
-
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-  // 지도 초기화 (마운트 1회)
+  // 지도 초기화 (마운트 1회) — 마커 렌더링 제외
   useEffect(() => {
     if (!containerRef.current || !token) return;
 
@@ -89,37 +85,6 @@ export default function SpotMap({
         .addTo(map);
     });
 
-    spots.forEach((spot, i) => {
-      const color = getSpotColor(i, spots.length);
-
-      const el = document.createElement('div');
-      el.textContent = String(i + 1);
-      Object.assign(el.style, {
-        width: '28px',
-        height: '28px',
-        borderRadius: '50%',
-        background: color,
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        border: '2px solid #fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-        cursor: 'default',
-      });
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([spot.lng, spot.lat])
-        .addTo(map);
-      markersRef.current.push(marker);
-
-      el.addEventListener('click', () => {
-        const current = localSpotsRef.current.find(s => s.id === spot.id) ?? spot;
-        setActiveSpot(prev => prev?.id === current.id ? null : current);
-      });
-    });
-
     mapRef.current = map;
 
     return () => {
@@ -131,6 +96,51 @@ export default function SpotMap({
       mapRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 마커 렌더링: localSpots 변경 시 전체 재렌더
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const render = () => {
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+
+      localSpots.forEach((spot, i) => {
+        const color = getSpotColor(i, localSpots.length);
+
+        const el = document.createElement('div');
+        el.textContent = String(i + 1);
+        Object.assign(el.style, {
+          width: '28px',
+          height: '28px',
+          borderRadius: '50%',
+          background: color,
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          border: '2px solid #fff',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          cursor: 'default',
+        });
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([spot.lng, spot.lat])
+          .addTo(map);
+        markersRef.current.push(marker);
+
+        el.addEventListener('click', () => {
+          setActiveSpot((prev) => (prev?.id === spot.id ? null : spot));
+        });
+      });
+    };
+
+    if (map.loaded()) render();
+    else map.once('load', render);
+  }, [localSpots]);
 
   // pitch 토글
   useEffect(() => {
@@ -198,35 +208,27 @@ export default function SpotMap({
     };
   }, [localSpots, token]);
 
-  async function handleReorder(newSpots: Spot[]) {
-    const prev = localSpots;
+  function handleReorder(newSpots: LocalSpot[]) {
     setLocalSpots(newSpots);
-    setSpotError('');
-    setIsReordering(true);
-    const result = await reorderSpots(storyId!, newSpots.map((s) => s.id));
-    setIsReordering(false);
-    if ('error' in result) {
-      setLocalSpots(prev);
-      setSpotError(result.error);
-    }
+    onSpotsChange?.(newSpots);
   }
 
-  function handleSpotUpdate(fields: { name?: string; review?: string }) {
-    setActiveSpot(prev => prev ? { ...prev, ...fields } : null);
-    setLocalSpots(prev => prev.map(s =>
+  function handleSpotUpdate(fields: { name?: string; review?: string; photoUrl?: string | null }) {
+    setActiveSpot((prev) => (prev ? { ...prev, ...fields } : null));
+    const next = localSpots.map((s) =>
       s.id === activeSpot?.id ? { ...s, ...fields } : s
-    ));
+    );
+    setLocalSpots(next);
+    onSpotsChange?.(next);
   }
 
-  async function handleDelete(spotId: string) {
-    const prev = localSpots;
-    setLocalSpots(prev.filter((s) => s.id !== spotId));
+  function handleDelete(spotId: string) {
+    const next = localSpots
+      .filter((s) => s.id !== spotId)
+      .map((s, i) => ({ ...s, order: i + 1 }));
+    setLocalSpots(next);
     setActiveSpot(null);
-    const result = await deleteSpot(spotId);
-    if ('error' in result) {
-      setLocalSpots(prev);
-      setSpotError(result.error);
-    }
+    onSpotsChange?.(next);
   }
 
   function exitAddMode() {
@@ -234,19 +236,23 @@ export default function SpotMap({
     setSelectedCoord(null);
     setInputName('');
     setSpotError('');
-    // 모드 종료 시 Popup cleanup
     popupRef.current?.remove();
     popupRef.current = null;
   }
 
   function handleSaveSpot() {
-    if (!selectedCoord || !storyId || !inputName.trim()) return;
-    startSpotTransition(async () => {
-      const result = await createSpot(storyId, { name: inputName.trim(), ...selectedCoord });
-      if ('error' in result) {
-        setSpotError(result.error);
-        return;
-      }
+    if (!selectedCoord || !inputName.trim()) return;
+    startSpotTransition(() => {
+      const newSpot: LocalSpot = {
+        id: `tmp_${crypto.randomUUID()}`,
+        name: inputName.trim(),
+        lat: selectedCoord.lat,
+        lng: selectedCoord.lng,
+        order: localSpots.length + 1,
+      };
+      const next = [...localSpots, newSpot];
+      setLocalSpots(next);
+      onSpotsChange?.(next);
       exitAddMode();
     });
   }
@@ -271,10 +277,11 @@ export default function SpotMap({
               <SpotPopup
                 key={activeSpot.id}
                 spot={activeSpot}
-                readOnly={!canAddSpot || !storyId}
-                onDelete={canAddSpot && storyId ? () => handleDelete(activeSpot.id) : undefined}
+                readOnly={!canAddSpot}
+                onDelete={canAddSpot ? () => handleDelete(activeSpot.id) : undefined}
                 onClose={() => setActiveSpot(null)}
                 onUpdate={handleSpotUpdate}
+                onFileSelect={(file) => onPhotoSelect?.(activeSpot.id, file)}
               />
             </div>
           )}
@@ -285,7 +292,7 @@ export default function SpotMap({
           <div ref={containerRef} className="w-full h-full" />
           {/* 버튼 스택 (우측 상단) */}
           <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
-            {canAddSpot && storyId && (
+            {canAddSpot && (
               <button
                 type="button"
                 onClick={() => (isAddMode ? exitAddMode() : setIsAddMode(true))}
@@ -310,8 +317,8 @@ export default function SpotMap({
       </div>
 
       {/* 마커 목록: 편집 모드에서 항상 표시 */}
-      {canAddSpot && storyId && localSpots.length > 0 && (
-        <SpotList spots={localSpots} onReorder={handleReorder} isReordering={isReordering} />
+      {canAddSpot && localSpots.length > 0 && (
+        <SpotList spots={localSpots} onReorder={handleReorder} />
       )}
       {spotError && <p className="text-xs text-red-600">{spotError}</p>}
 
@@ -333,10 +340,10 @@ export default function SpotMap({
             <button
               type="button"
               onClick={handleSaveSpot}
-              disabled={spotPending || !inputName.trim()}
+              disabled={!inputName.trim()}
               className="px-4 py-2 rounded-[10px] text-sm font-medium bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {spotPending ? '저장 중...' : '저장'}
+              저장
             </button>
             <button
               type="button"

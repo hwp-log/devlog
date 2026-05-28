@@ -1,9 +1,10 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { useActionState, useMemo, useState, useTransition } from 'react';
 import { TiptapEditor } from './TiptapEditor';
 import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin } from 'lucide-react';
 import type { Spot } from '@prisma/client';
+import type { LocalSpot } from '@/lib/types';
 
 type ActionState = { error: string } | null;
 
@@ -15,11 +16,51 @@ interface StoryWriteFormProps {
   storyId?: string;
 }
 
-export function StoryWriteForm({ action, initialData, userId, spots = [], storyId }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData, userId, spots = [] }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const [, startTransition] = useTransition();
   const [content, setContent] = useState(initialData?.content ?? '');
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initialLocalSpots = useMemo(() => spots.map((s): LocalSpot => ({
+    id: s.id, name: s.name, lat: s.lat, lng: s.lng, order: s.order,
+    photoUrl: s.photoUrl, review: s.review, address: s.address, description: s.description,
+  })), []);
+
+  const [spotsJson, setSpotsJson] = useState(() => JSON.stringify(initialLocalSpots));
+  const [pendingPhotos, setPendingPhotos] = useState<Map<string, File>>(new Map());
+
+  function handleSpotsChange(newSpots: LocalSpot[]) {
+    setSpotsJson(JSON.stringify(newSpots));
+    const currentIds = new Set(newSpots.map(s => s.id));
+    setPendingPhotos(prev => {
+      const next = new Map(prev);
+      for (const key of next.keys()) {
+        if (!currentIds.has(key)) next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  function handlePhotoSelect(spotId: string, file: File | null) {
+    setPendingPhotos(prev => {
+      const next = new Map(prev);
+      if (file) next.set(spotId, file);
+      else next.delete(spotId);
+      return next;
+    });
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    pendingPhotos.forEach((file, tmpId) => {
+      fd.append(`spotPhoto_${tmpId}`, file);
+    });
+    startTransition(() => formAction(fd));
+  }
 
   function addTag() {
     const t = tagInput.trim();
@@ -33,7 +74,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], storyI
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="max-w-4xl mx-auto w-full flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="title" className="text-sm font-medium text-[#1A1A1A]">제목</label>
@@ -97,7 +138,8 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], storyI
             <MapPin size={16} />
             촬영지 지도
           </h2>
-          <SpotMap key={spots.map(s => s.id).join(',')} spots={spots} storyId={storyId} canAddSpot={!!storyId} />
+          <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} />
+          <input type="hidden" name="spots" value={spotsJson} />
         </div>
         {state && 'error' in state && (
           <p role="alert" className="text-sm text-red-600">{state.error}</p>

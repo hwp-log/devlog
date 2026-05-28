@@ -1,18 +1,19 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
-import type { Spot } from '@prisma/client';
-import { uploadSpotPhoto, updateSpot } from '@/app/story/[id]/spots/actions';
+import type { LocalSpot } from '@/lib/types';
+import { uploadSpotPhoto } from '@/app/story/[id]/spots/actions';
 
 type SpotPopupProps = {
-  spot: Spot;
+  spot: LocalSpot;
   onDelete?: () => void;
   onClose?: () => void;
   readOnly?: boolean;
-  onUpdate?: (fields: { name?: string; review?: string }) => void;
+  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null }) => void;
+  onFileSelect?: (file: File | null) => void;
 };
 
-export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate }: SpotPopupProps) {
+export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect }: SpotPopupProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [displayName, setDisplayName] = useState(spot.name);
   const [nameInput, setNameInput] = useState(spot.name);
@@ -23,42 +24,51 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate 
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
+  const isTemp = spot.id.startsWith('tmp_');
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const MAX_SIZE = 5 * 1024 * 1024;
+
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (isTemp) {
+      if (file.size > MAX_SIZE) { setError('파일 크기는 5MB 이하여야 합니다'); return; }
+      if (!ALLOWED_TYPES.includes(file.type)) { setError('jpeg, png, webp만 허용됩니다'); return; }
+      const previewUrl = URL.createObjectURL(file);
+      setPhotoUrl(previewUrl);
+      onUpdate?.({ photoUrl: previewUrl });
+      onFileSelect?.(file);
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     startTransition(async () => {
       const result = await uploadSpotPhoto(spot.id, formData);
       if ('error' in result) { setError(result.error); return; }
       setPhotoUrl(result.photoUrl);
+      onUpdate?.({ photoUrl: result.photoUrl });
     });
   }
 
   function handleSaveName() {
     if (!nameInput.trim()) return;
-    startTransition(async () => {
-      const result = await updateSpot(spot.id, { name: nameInput.trim() });
-      if ('error' in result) { setError(result.error); return; }
-      setDisplayName(nameInput.trim());
-      setIsEditingName(false);
-      onUpdate?.({ name: nameInput.trim() });
-    });
+    setDisplayName(nameInput.trim());
+    setIsEditingName(false);
+    onUpdate?.({ name: nameInput.trim() });
   }
 
   function handleSaveReview() {
-    startTransition(async () => {
-      const result = await updateSpot(spot.id, { review: reviewInput });
-      if ('error' in result) { setError(result.error); return; }
-      setDisplayReview(reviewInput);
-      setIsEditingReview(false);
-      onUpdate?.({ review: reviewInput });
-    });
+    setDisplayReview(reviewInput);
+    setIsEditingReview(false);
+    onUpdate?.({ review: reviewInput });
   }
 
   return (
     <div className="flex flex-col font-sans text-[#1A1A1A]">
-      {/* 1. 사진 zone — 사진 있거나 편집 모드: X 버튼 내장 */}
+      {/* 1. 사진 zone — readOnly가 아닐 때 항상 표시 (tmp_는 로컬 미리보기, DB spot은 즉시 업로드) */}
       {(photoUrl || !readOnly) && (
         <div className="relative">
           {photoUrl ? (
@@ -117,7 +127,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate 
                 <Pencil size={14} />
               </button>
             )}
-            {/* X 버튼: 사진 없고 readOnly일 때만 이름 행에 표시 */}
+            {/* X 버튼: 사진 zone이 없고(readOnly + 사진 없음) 이름 행에 표시 */}
             {!photoUrl && readOnly && (
               <button type="button" onClick={onClose} className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0">
                 <X size={12} />

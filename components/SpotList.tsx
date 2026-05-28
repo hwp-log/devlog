@@ -18,23 +18,21 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
-import type { Spot } from '@prisma/client';
+import type { LocalSpot } from '@/lib/types';
 import { getSpotColor } from '@/lib/spot-color';
 
 type SpotListProps = {
-  spots: Spot[];
-  onReorder: (newSpots: Spot[]) => void;
-  isReordering: boolean;
+  spots: LocalSpot[];
+  onReorder: (newSpots: LocalSpot[]) => void;
 };
 
 type SortableItemProps = {
-  spot: Spot;
+  spot: LocalSpot;
   index: number;
   total: number;
-  isReordering: boolean;
 };
 
-function SortableItem({ spot, index, total, isReordering }: SortableItemProps) {
+function SortableItem({ spot, index, total }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: spot.id });
 
@@ -44,7 +42,7 @@ function SortableItem({ spot, index, total, isReordering }: SortableItemProps) {
   };
 
   const color = getSpotColor(index, total);
-  const canDrag = total > 1 && !isReordering;
+  const canDrag = total > 1;
 
   return (
     <li
@@ -75,7 +73,7 @@ function SortableItem({ spot, index, total, isReordering }: SortableItemProps) {
   );
 }
 
-export function SpotList({ spots, onReorder, isReordering }: SpotListProps) {
+export function SpotList({ spots, onReorder }: SpotListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -99,7 +97,6 @@ export function SpotList({ spots, onReorder, isReordering }: SpotListProps) {
               spot={spot}
               index={i}
               total={spots.length}
-              isReordering={isReordering}
             />
           ))}
         </ul>
