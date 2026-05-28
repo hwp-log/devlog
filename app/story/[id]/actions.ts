@@ -64,13 +64,14 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
     // 기존 spot order/name/review/photoUrl 업데이트
     for (const [i, spot] of spotsData.entries()) {
       if (!spot.id.startsWith('tmp_')) {
+        const hasPendingFile = formData.get(`spotPhoto_${spot.id}`) instanceof File;
         await tx.spot.update({
           where: { id: spot.id },
           data: {
             order: i + 1,
             name: spot.name,
             review: spot.review ?? null,
-            photoUrl: spot.photoUrl ?? null,
+            photoUrl: hasPendingFile ? undefined : (spot.photoUrl ?? null),
           },
         });
       }
@@ -114,6 +115,27 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       .getPublicUrl(uploadData.path);
 
     await prisma.spot.update({ where: { id: realId }, data: { photoUrl: publicUrl } });
+  }
+
+  // real spot 사진 교체 (부분 실패 허용)
+  for (const spot of spotsData) {
+    if (spot.id.startsWith('tmp_')) continue;
+    const file = formData.get(`spotPhoto_${spot.id}`);
+    if (!(file instanceof File)) continue;
+
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const path = `${user.id}/spot/${spot.id}/${Date.now()}.${ext}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('story-photos')
+      .upload(path, file, { upsert: true });
+    if (uploadError) continue;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('story-photos')
+      .getPublicUrl(uploadData.path);
+
+    await prisma.spot.update({ where: { id: spot.id }, data: { photoUrl: publicUrl } });
   }
 
   redirect(`/story/${storyId}`);

@@ -118,6 +118,34 @@ export async function updateSpot(
   return { ok: true };
 }
 
+export async function clearSpotPhoto(
+  spotId: string
+): Promise<{ error: string } | { ok: true }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: '로그인이 필요합니다' };
+
+  const spot = await getSpotWithOwnership(spotId, user.id);
+  if (!spot) return { error: '권한이 없습니다' };
+
+  if (spot.photoUrl) {
+    const url = new URL(spot.photoUrl);
+    const prefix = '/storage/v1/object/public/story-photos/';
+    const storagePath = url.pathname.startsWith(prefix)
+      ? url.pathname.slice(prefix.length)
+      : null;
+    if (storagePath) {
+      await supabase.storage.from('story-photos').remove([storagePath]);
+    }
+  }
+
+  await prisma.spot.update({ where: { id: spotId }, data: { photoUrl: null } });
+
+  revalidatePath(`/story/${spot.story.id}`);
+  revalidatePath(`/story/${spot.story.id}/edit`);
+  return { ok: true };
+}
+
 export async function deleteSpot(
   spotId: string
 ): Promise<{ error: string } | { ok: true }> {
