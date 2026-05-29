@@ -240,19 +240,25 @@ export default function SpotMap({
     popupRef.current = null;
   }
 
+  function addSpot(name: string, lng: number, lat: number): string {
+    const id = `tmp_${crypto.randomUUID()}`;
+    const newSpot: LocalSpot = {
+      id,
+      name,
+      lat,
+      lng,
+      order: localSpots.length + 1,
+    };
+    const next = [...localSpots, newSpot];
+    setLocalSpots(next);
+    onSpotsChange?.(next);
+    return id;
+  }
+
   function handleSaveSpot() {
     if (!selectedCoord || !inputName.trim()) return;
     startSpotTransition(() => {
-      const newSpot: LocalSpot = {
-        id: `tmp_${crypto.randomUUID()}`,
-        name: inputName.trim(),
-        lat: selectedCoord.lat,
-        lng: selectedCoord.lng,
-        order: localSpots.length + 1,
-      };
-      const next = [...localSpots, newSpot];
-      setLocalSpots(next);
-      onSpotsChange?.(next);
+      addSpot(inputName.trim(), selectedCoord.lng, selectedCoord.lat);
       exitAddMode();
     });
   }
