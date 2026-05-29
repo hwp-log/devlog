@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useEffect, useState, useTransition } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
+import { Search, MapPin, ArrowUpDown, ArrowLeft } from 'lucide-react';
 
 // interactive prop: 0046b에서 onMapClick 호출 여부 제어용. mapboxgl.Map의 interactive 옵션과는 무관.
 type Props = {
@@ -30,22 +31,20 @@ export default function SpotMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const popupRef = useRef<mapboxgl.Popup | null>(null);
 
   const [is3D, setIs3D] = useState(false);
-  const [isAddMode, setIsAddMode] = useState(false);
-  const [selectedCoord, setSelectedCoord] = useState<{ lng: number; lat: number } | null>(null);
-  const [inputName, setInputName] = useState('');
-  const [spotError, setSpotError] = useState('');
-  const [, startSpotTransition] = useTransition();
 
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
 
   const [activeSpot, setActiveSpot] = useState<LocalSpot | null>(null);
+  const [mode, setMode] = useState<'menu' | 'pinning' | 'edit' | 'view'>('menu');
 
-  // stale closure 방지: useEffect([], []) 클로저 안에서 isAddMode 최신값 읽기용
-  const addModeRef = useRef(false);
-  useEffect(() => { addModeRef.current = isAddMode; }, [isAddMode]);
+  // stale closure 방지: useEffect([], []) 클로저 안에서 mode 최신값 읽기용
+  const modeRef = useRef<'menu' | 'pinning' | 'edit' | 'view'>('menu');
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
+  // 콜백 ref: 렌더마다 최신 addSpot·localSpots·setActiveSpot을 캡처 (stale closure 우회)
+  const addSpotFromMapRef = useRef<((lng: number, lat: number) => void) | null>(null);
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -72,24 +71,16 @@ export default function SpotMap({
       map.setConfigProperty('basemap', 'lightPreset', 'dusk');
     });
 
-    // 지도 클릭 핸들러 — addModeRef로 최신 isAddMode 읽음 (stale closure 방지)
+    // 지도 클릭 핸들러 — modeRef·addSpotFromMapRef로 최신값 읽음 (stale closure 방지)
     map.on('click', (e) => {
-      if (!addModeRef.current) return;
+      if (modeRef.current !== 'pinning') return;
       const { lng, lat } = e.lngLat;
-      setSelectedCoord({ lng, lat });
-
-      popupRef.current?.remove();
-      popupRef.current = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
-        .setLngLat([lng, lat])
-        .setHTML(`<p style="font-size:12px;margin:0;color:#1e293b">${lat.toFixed(5)}, ${lng.toFixed(5)}</p>`)
-        .addTo(map);
+      addSpotFromMapRef.current?.(lng, lat);
     });
 
     mapRef.current = map;
 
     return () => {
-      popupRef.current?.remove();
-      popupRef.current = null;
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
       map.remove();
@@ -134,6 +125,7 @@ export default function SpotMap({
 
         el.addEventListener('click', () => {
           setActiveSpot((prev) => (prev?.id === spot.id ? null : spot));
+          setMode('view');
         });
       });
     };
@@ -231,15 +223,6 @@ export default function SpotMap({
     onSpotsChange?.(next);
   }
 
-  function exitAddMode() {
-    setIsAddMode(false);
-    setSelectedCoord(null);
-    setInputName('');
-    setSpotError('');
-    popupRef.current?.remove();
-    popupRef.current = null;
-  }
-
   function addSpot(name: string, lng: number, lat: number): string {
     const id = `tmp_${crypto.randomUUID()}`;
     const newSpot: LocalSpot = {
@@ -255,13 +238,14 @@ export default function SpotMap({
     return id;
   }
 
-  function handleSaveSpot() {
-    if (!selectedCoord || !inputName.trim()) return;
-    startSpotTransition(() => {
-      addSpot(inputName.trim(), selectedCoord.lng, selectedCoord.lat);
-      exitAddMode();
-    });
-  }
+  // deps 없는 effect → 렌더 후마다 최신 addSpot·localSpots를 ref에 반영
+  useEffect(() => {
+    addSpotFromMapRef.current = (lng: number, lat: number) => {
+      const id = addSpot('', lng, lat);
+      setActiveSpot({ id, name: '', lat, lng, order: localSpots.length + 1 });
+      setMode('edit');
+    };
+  });
 
   if (!token) {
     return (
@@ -276,21 +260,77 @@ export default function SpotMap({
       <div className="flex flex-col md:flex-row gap-3">
         {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
 <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${
-          activeSpot ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          (canAddSpot || activeSpot) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
         }`}>
-          {activeSpot && (
+          {activeSpot ? (
             <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200">
               <SpotPopup
                 key={activeSpot.id}
                 spot={activeSpot}
                 readOnly={!canAddSpot}
                 onDelete={canAddSpot ? () => handleDelete(activeSpot.id) : undefined}
-                onClose={() => setActiveSpot(null)}
+                onClose={() => { setActiveSpot(null); setMode('menu'); }}
                 onUpdate={handleSpotUpdate}
                 onFileSelect={(file) => onPhotoSelect?.(activeSpot.id, file)}
+                initialEditing={mode === 'edit'}
               />
             </div>
-          )}
+          ) : canAddSpot ? (
+            <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 flex flex-col gap-4">
+              {mode === 'pinning' ? (
+                <>
+                  <p className="text-sm text-slate-500">지도를 클릭하세요</p>
+                  <button
+                    type="button"
+                    onClick={() => setMode('menu')}
+                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                  >
+                    <ArrowLeft size={14} />
+                    뒤로
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-base font-semibold text-slate-800">여행동선 짜기</p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      disabled
+                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full opacity-40 cursor-not-allowed bg-slate-50"
+                    >
+                      <Search size={20} className="text-slate-500 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">촬영지 직접검색</p>
+                        <p className="text-xs text-slate-500">이름으로 바로 추가</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('pinning')}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-sky-200 text-left w-full hover:bg-sky-50 transition-colors"
+                    >
+                      <MapPin size={20} className="text-sky-500 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">지도에서 찍기</p>
+                        <p className="text-xs text-slate-500">지도를 눌러 위치 지정</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full opacity-40 cursor-not-allowed bg-slate-50"
+                    >
+                      <ArrowUpDown size={20} className="text-slate-500 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">여행순서 바꾸기</p>
+                        <p className="text-xs text-slate-500">방문 순서 편집</p>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {/* 지도 컨테이너 */}
@@ -298,19 +338,6 @@ export default function SpotMap({
           <div ref={containerRef} className="w-full h-full" />
           {/* 버튼 스택 (우측 상단) */}
           <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
-            {canAddSpot && (
-              <button
-                type="button"
-                onClick={() => (isAddMode ? exitAddMode() : setIsAddMode(true))}
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg shadow-md transition-colors ${
-                  isAddMode
-                    ? 'bg-sky-500 text-white hover:bg-sky-600'
-                    : 'bg-white/90 backdrop-blur-sm text-slate-700 hover:bg-white'
-                }`}
-              >
-                {isAddMode ? '완료' : '마커 추가'}
-              </button>
-            )}
             <button
               type="button"
               onClick={() => setIs3D((prev) => !prev)}
@@ -325,44 +352,6 @@ export default function SpotMap({
       {/* 마커 목록: 편집 모드에서 항상 표시 */}
       {canAddSpot && localSpots.length > 0 && (
         <SpotList spots={localSpots} onReorder={handleReorder} />
-      )}
-      {spotError && <p className="text-xs text-red-600">{spotError}</p>}
-
-      {/* 인라인 폼: isAddMode + selectedCoord 시 표시 */}
-      {isAddMode && selectedCoord && (
-        <div className="bg-white/90 backdrop-blur-sm border border-black/10 rounded-xl px-4 py-3 flex flex-col gap-2 shadow-sm">
-          <p className="text-xs text-slate-500">
-            위도 {selectedCoord.lat.toFixed(5)}, 경도 {selectedCoord.lng.toFixed(5)}
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputName}
-              onChange={(e) => setInputName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveSpot(); } }}
-              placeholder="장소 이름 (예: 후암동 오리올)"
-              className="flex-1 border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
-            />
-            <button
-              type="button"
-              onClick={handleSaveSpot}
-              disabled={!inputName.trim()}
-              className="px-4 py-2 rounded-[10px] text-sm font-medium bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              저장
-            </button>
-            <button
-              type="button"
-              onClick={exitAddMode}
-              className="px-4 py-2 rounded-[10px] text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-            >
-              취소
-            </button>
-          </div>
-          {spotError && (
-            <p className="text-xs text-red-600">{spotError}</p>
-          )}
-        </div>
       )}
     </div>
   );

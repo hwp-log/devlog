@@ -11,15 +11,16 @@ type SpotPopupProps = {
   readOnly?: boolean;
   onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null }) => void;
   onFileSelect?: (file: File | null) => void;
+  initialEditing?: boolean;
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
 
-export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect }: SpotPopupProps) {
+export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false }: SpotPopupProps) {
   const isTemp = spot.id.startsWith('tmp_');
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditing);
   const [displayName, setDisplayName] = useState(spot.name);
   const [displayReview, setDisplayReview] = useState(spot.review ?? '');
   const [nameInput, setNameInput] = useState(spot.name);
@@ -41,6 +42,12 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
   }
 
   function cancelEdit() {
+    if (initialEditing && !displayName.trim()) {
+      if (pendingPhotoPreview) URL.revokeObjectURL(pendingPhotoPreview);
+      onDelete?.();
+      onClose?.();
+      return;
+    }
     setNameInput(displayName);
     setReviewInput(displayReview);
     if (pendingPhotoPreview) URL.revokeObjectURL(pendingPhotoPreview);
