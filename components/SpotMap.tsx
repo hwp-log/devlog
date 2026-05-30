@@ -8,7 +8,7 @@ import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
-import { Search, MapPin, ArrowUpDown, ArrowLeft } from 'lucide-react';
+import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
 
 type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
@@ -347,11 +347,23 @@ export default function SpotMap({
               ) : mode === 'reorder' ? (
                 <>
                   <p className="text-base font-semibold text-slate-800">여행순서 바꾸기</p>
-                  <SpotList
-                    spots={localSpots}
-                    onReorder={handleReorder}
-                    onDelete={handleDeleteInReorder}
-                  />
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    <SpotList
+                      spots={localSpots}
+                      onReorder={handleReorder}
+                      onDelete={handleDeleteInReorder}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
+                      <p className="text-xs text-slate-400">⠿ 을 누르고 위아래로 옮기면 순서를 바꿀 수 있습니다.</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
+                      <p className="text-xs text-slate-400">마커를 지우려면 × 를 누릅니다.</p>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
@@ -409,30 +421,20 @@ export default function SpotMap({
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start gap-2">
                         <Search size={14} className="text-slate-400 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-500">검색하거나 지도를 찍어 촬영지 추가</p>
+                        <p className="text-xs text-slate-500">촬영지 직접검색 또는 지도에서 찍기 버튼을 눌러 마커를 하나 추가합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <MapPin size={14} className="text-slate-400 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-500">추가한 곳마다 마커가 생성</p>
+                        <p className="text-xs text-slate-500">추가한 마커의 장소에 사진과 리뷰를 작성합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <ArrowUpDown size={14} className="text-slate-400 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-500">방문 순서 확인·정리</p>
+                        <p className="text-xs text-slate-500">①②를 반복하면 마커가 선으로 이어져 나만의 여행 동선이 완성됩니다.</p>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-start gap-2">
-                        <ArrowUpDown size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-400">순서를 바꾸려면 여행순서 바꾸기</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-400">마커 내용을 고치려면 지도의 마커를 클릭</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Search size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-400">사진·후기는 마커 클릭 후 작성</p>
-                      </div>
+                    <div className="flex items-start gap-2">
+                      <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
+                      <p className="text-xs text-slate-400">마커 순서를 바꾸려면 여행순서 바꾸기 버튼을 누르면 됩니다.</p>
                     </div>
                   </div>
                 </>
