@@ -316,7 +316,10 @@ export default function SpotMap({
             <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 flex flex-col gap-4">
               {mode === 'pinning' ? (
                 <>
-                  <p className="text-sm text-slate-500">지도를 클릭하세요</p>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                    <MapPin size={40} className="text-slate-300" />
+                    <p className="text-sm text-slate-400 text-center">지도를 클릭해 위치를 지정하세요</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
@@ -328,7 +331,10 @@ export default function SpotMap({
                 </>
               ) : mode === 'search' ? (
                 <>
-                  <p className="text-sm text-slate-500">장소 이름으로 검색하세요</p>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                    <Search size={40} className="text-slate-300" />
+                    <p className="text-sm text-slate-400 text-center">오른쪽 지도에서 검색 결과를 선택하세요</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
@@ -357,14 +363,14 @@ export default function SpotMap({
                 </>
               ) : (
                 <>
-                  <p className="text-base font-semibold text-slate-800">여행동선 짜기</p>
+                  <p className="text-base font-semibold text-slate-800">나만의 경로 짜기</p>
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
                       onClick={() => setMode('search')}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-sky-200 text-left w-full hover:bg-sky-50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full hover:bg-slate-50 transition-colors"
                     >
-                      <Search size={20} className="text-sky-500 shrink-0" />
+                      <Search size={20} className="text-slate-400 shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-slate-700">촬영지 직접검색</p>
                         <p className="text-xs text-slate-500">이름으로 바로 추가</p>
@@ -373,9 +379,9 @@ export default function SpotMap({
                     <button
                       type="button"
                       onClick={() => setMode('pinning')}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-sky-200 text-left w-full hover:bg-sky-50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full hover:bg-slate-50 transition-colors"
                     >
-                      <MapPin size={20} className="text-sky-500 shrink-0" />
+                      <MapPin size={20} className="text-slate-400 shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-slate-700">지도에서 찍기</p>
                         <p className="text-xs text-slate-500">지도를 눌러 위치 지정</p>
@@ -387,16 +393,47 @@ export default function SpotMap({
                       disabled={localSpots.length < 2}
                       className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${
                         localSpots.length >= 2
-                          ? 'border-sky-200 hover:bg-sky-50'
+                          ? 'border-slate-200 hover:bg-slate-50'
                           : 'border-slate-200 opacity-40 cursor-not-allowed bg-slate-50'
                       }`}
                     >
-                      <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-sky-500' : 'text-slate-500'}`} />
+                      <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-slate-400' : 'text-slate-500'}`} />
                       <div>
                         <p className="text-sm font-medium text-slate-700">여행순서 바꾸기</p>
                         <p className="text-xs text-slate-500">방문 순서 편집</p>
                       </div>
                     </button>
+                  </div>
+                  <div className="flex flex-col gap-3 pt-2 border-t border-slate-100">
+                    <p className="text-xs font-semibold text-slate-600">나만의 여행 동선 만들기</p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-start gap-2">
+                        <Search size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                        <p className="text-xs text-slate-500">검색하거나 지도를 찍어 촬영지 추가</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                        <p className="text-xs text-slate-500">추가한 곳마다 마커가 생성</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ArrowUpDown size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                        <p className="text-xs text-slate-500">방문 순서 확인·정리</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-start gap-2">
+                        <ArrowUpDown size={12} className="text-slate-300 mt-0.5 shrink-0" />
+                        <p className="text-xs text-slate-400">순서를 바꾸려면 여행순서 바꾸기</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin size={12} className="text-slate-300 mt-0.5 shrink-0" />
+                        <p className="text-xs text-slate-400">마커 내용을 고치려면 지도의 마커를 클릭</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Search size={12} className="text-slate-300 mt-0.5 shrink-0" />
+                        <p className="text-xs text-slate-400">사진·후기는 마커 클릭 후 작성</p>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}

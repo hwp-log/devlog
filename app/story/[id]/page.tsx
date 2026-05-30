@@ -60,7 +60,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             <div className="border-t border-black/10 pt-6 mt-6">
               <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
                 <MapPin size={16} />
-                촬영지 지도
+                여행동선
               </h2>
               <SpotMap spots={story.spots} />
             </div>

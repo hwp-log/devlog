@@ -136,7 +136,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [] }: Stor
         <div className="border-t border-black/10 pt-6 mt-2">
           <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
             <MapPin size={16} />
-            촬영지 지도
+            여행동선
           </h2>
           <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} />
           <input type="hidden" name="spots" value={spotsJson} />
