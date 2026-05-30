@@ -151,8 +151,16 @@ export default function SpotMap({
 
   // 폴리라인: localSpots 변경 시 Directions API 호출
   useEffect(() => {
-    if (!mapRef.current || localSpots.length < 2 || !token) return;
+    if (!mapRef.current || !token) return;
     const map = mapRef.current;
+
+    if (localSpots.length < 2) {
+      if (map.loaded()) {
+        if (map.getLayer('route-line')) map.removeLayer('route-line');
+        if (map.getSource('route')) map.removeSource('route');
+      }
+      return;
+    }
     let cancelled = false;
 
     const drawRoute = (geometry: GeoJSON.Geometry) => {
