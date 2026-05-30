@@ -52,6 +52,18 @@ function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
       style={style}
       className={`flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-black/[0.08] ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
     >
+      <button
+        type="button"
+        aria-label="드래그 핸들"
+        className={`text-slate-400 flex-shrink-0 transition-colors ${
+          canDrag
+            ? 'cursor-grab active:cursor-grabbing hover:text-slate-600'
+            : 'cursor-default opacity-30'
+        }`}
+        {...(canDrag ? { ...attributes, ...listeners } : {})}
+      >
+        <GripVertical size={16} />
+      </button>
       <span
         className="w-5 h-5 rounded-full flex-shrink-0 text-white text-[10px] font-bold flex items-center justify-center"
         style={{ backgroundColor: color }}
@@ -69,18 +81,6 @@ function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
           <X size={14} />
         </button>
       )}
-      <button
-        type="button"
-        aria-label="드래그 핸들"
-        className={`text-slate-400 flex-shrink-0 transition-colors ${
-          canDrag
-            ? 'cursor-grab active:cursor-grabbing hover:text-slate-600'
-            : 'cursor-default opacity-30'
-        }`}
-        {...(canDrag ? { ...attributes, ...listeners } : {})}
-      >
-        <GripVertical size={16} />
-      </button>
     </li>
   );
 }

@@ -432,11 +432,6 @@ export default function SpotMap({
           </div>
         </div>
       </div>
-
-      {/* 마커 목록: reorder 모드엔 사이드 카드에 표시하므로 하단 중복 제거 */}
-      {canAddSpot && localSpots.length > 0 && mode !== 'reorder' && (
-        <SpotList spots={localSpots} onReorder={handleReorder} />
-      )}
     </div>
   );
 }
