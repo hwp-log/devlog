@@ -387,6 +387,7 @@ export default function SpotMap({
                 options={{ language: 'ko', country: 'kr' }}
                 onRetrieve={handleSearchRetrieve}
                 marker={false}
+                placeholder="예) 광화문, 서울시청"
               />
             </div>
           )}
