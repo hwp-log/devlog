@@ -12,18 +12,19 @@ type SpotPopupProps = {
   onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null }) => void;
   onFileSelect?: (file: File | null) => void;
   initialEditing?: boolean;
+  initialNameInput?: string;
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
 
-export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false }: SpotPopupProps) {
+export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput }: SpotPopupProps) {
   const isTemp = spot.id.startsWith('tmp_');
 
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [displayName, setDisplayName] = useState(spot.name);
   const [displayReview, setDisplayReview] = useState(spot.review ?? '');
-  const [nameInput, setNameInput] = useState(spot.name);
+  const [nameInput, setNameInput] = useState(initialNameInput ?? spot.name);
   const [reviewInput, setReviewInput] = useState(spot.review ?? '');
   const [photoUrl, setPhotoUrl] = useState<string | null | undefined>(spot.photoUrl);
   const [originalPhotoUrl] = useState(spot.photoUrl);

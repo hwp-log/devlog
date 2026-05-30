@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { LocalSpot } from '@/lib/types';
@@ -8,6 +9,13 @@ import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { Search, MapPin, ArrowUpDown, ArrowLeft } from 'lucide-react';
+
+type Mode = 'menu' | 'pinning' | 'search' | 'edit' | 'view';
+
+const SearchBoxDynamic = dynamic(
+  () => import('@mapbox/search-js-react').then((m) => ({ default: m.SearchBox })),
+  { ssr: false }
+);
 
 // interactive prop: 0046b에서 onMapClick 호출 여부 제어용. mapboxgl.Map의 interactive 옵션과는 무관.
 type Props = {
@@ -37,10 +45,11 @@ export default function SpotMap({
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
 
   const [activeSpot, setActiveSpot] = useState<LocalSpot | null>(null);
-  const [mode, setMode] = useState<'menu' | 'pinning' | 'edit' | 'view'>('menu');
+  const [mode, setMode] = useState<Mode>('menu');
+  const [searchedName, setSearchedName] = useState('');
 
   // stale closure 방지: useEffect([], []) 클로저 안에서 mode 최신값 읽기용
-  const modeRef = useRef<'menu' | 'pinning' | 'edit' | 'view'>('menu');
+  const modeRef = useRef<Mode>('menu');
   useEffect(() => { modeRef.current = mode; }, [mode]);
 
   // 콜백 ref: 렌더마다 최신 addSpot·localSpots·setActiveSpot을 캡처 (stale closure 우회)
@@ -243,9 +252,21 @@ export default function SpotMap({
     addSpotFromMapRef.current = (lng: number, lat: number) => {
       const id = addSpot('', lng, lat);
       setActiveSpot({ id, name: '', lat, lng, order: localSpots.length + 1 });
+      setSearchedName('');
       setMode('edit');
     };
   });
+
+  function handleSearchRetrieve(res: import('@mapbox/search-js-core').SearchBoxRetrieveResponse) {
+    const feature = res.features[0];
+    if (!feature) return;
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+    const name = (feature.properties.name ?? '') as string;
+    const id = addSpot('', lng, lat);
+    setActiveSpot({ id, name: '', lat, lng, order: localSpots.length + 1 });
+    setSearchedName(name);
+    setMode('edit');
+  }
 
   if (!token) {
     return (
@@ -273,6 +294,7 @@ export default function SpotMap({
                 onUpdate={handleSpotUpdate}
                 onFileSelect={(file) => onPhotoSelect?.(activeSpot.id, file)}
                 initialEditing={mode === 'edit'}
+                initialNameInput={searchedName || undefined}
               />
             </div>
           ) : canAddSpot ? (
@@ -289,16 +311,28 @@ export default function SpotMap({
                     뒤로
                   </button>
                 </>
+              ) : mode === 'search' ? (
+                <>
+                  <p className="text-sm text-slate-500">장소 이름으로 검색하세요</p>
+                  <button
+                    type="button"
+                    onClick={() => setMode('menu')}
+                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                  >
+                    <ArrowLeft size={14} />
+                    뒤로
+                  </button>
+                </>
               ) : (
                 <>
                   <p className="text-base font-semibold text-slate-800">여행동선 짜기</p>
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
-                      disabled
-                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full opacity-40 cursor-not-allowed bg-slate-50"
+                      onClick={() => setMode('search')}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-sky-200 text-left w-full hover:bg-sky-50 transition-colors"
                     >
-                      <Search size={20} className="text-slate-500 shrink-0" />
+                      <Search size={20} className="text-sky-500 shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-slate-700">촬영지 직접검색</p>
                         <p className="text-xs text-slate-500">이름으로 바로 추가</p>
@@ -336,6 +370,18 @@ export default function SpotMap({
         {/* 지도 컨테이너 */}
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           <div ref={containerRef} className="w-full h-full" />
+          {mode === 'search' && token && (
+            <div className="absolute inset-x-3 top-3 z-20">
+              <SearchBoxDynamic
+                accessToken={token}
+                map={mapRef.current ?? undefined}
+                mapboxgl={mapboxgl}
+                options={{ language: 'ko', country: 'kr' }}
+                onRetrieve={handleSearchRetrieve}
+                marker={false}
+              />
+            </div>
+          )}
           {/* 버튼 스택 (우측 상단) */}
           <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
             <button
