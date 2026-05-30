@@ -361,7 +361,7 @@ export default function SpotMap({
                     </div>
                     <div className="flex items-start gap-2">
                       <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                      <p className="text-xs text-slate-400">마커를 지우려면 × 를 누릅니다.</p>
+                      <p className="text-xs text-slate-400">마커를 지우려면 × 를 누르세요.</p>
                     </div>
                   </div>
                   <button
@@ -420,16 +420,16 @@ export default function SpotMap({
                     <p className="text-xs font-semibold text-slate-600">나만의 여행 동선 만들기</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start gap-2">
-                        <Search size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                        <span className="text-xs text-slate-400 mt-0.5 shrink-0 font-medium">①</span>
                         <p className="text-xs text-slate-500">촬영지 직접검색 또는 지도에서 찍기 버튼을 눌러 마커를 하나 추가합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <MapPin size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                        <span className="text-xs text-slate-400 mt-0.5 shrink-0 font-medium">②</span>
                         <p className="text-xs text-slate-500">추가한 마커의 장소에 사진과 리뷰를 작성합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <ArrowUpDown size={14} className="text-slate-400 mt-0.5 shrink-0" />
-                        <p className="text-xs text-slate-500">①②를 반복하면 마커가 선으로 이어져 나만의 여행 동선이 완성됩니다.</p>
+                        <span className="text-xs text-slate-400 mt-0.5 shrink-0 font-medium">③</span>
+                        <p className="text-xs text-slate-500">1,2를 반복하면 마커가 선으로 이어져 나만의 여행 동선이 완성됩니다.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
