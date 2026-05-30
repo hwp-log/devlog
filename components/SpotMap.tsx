@@ -10,7 +10,7 @@ import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { Search, MapPin, ArrowUpDown, ArrowLeft } from 'lucide-react';
 
-type Mode = 'menu' | 'pinning' | 'search' | 'edit' | 'view';
+type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
 const SearchBoxDynamic = dynamic(
   () => import('@mapbox/search-js-react').then((m) => ({ default: m.SearchBox })),
@@ -240,6 +240,13 @@ export default function SpotMap({
     onSpotsChange?.(next);
   }
 
+  function handleDeleteInReorder(spotId: string) {
+    handleDelete(spotId);
+    if (localSpots.filter((s) => s.id !== spotId).length < 2) {
+      setMode('menu');
+    }
+  }
+
   function addSpot(name: string, lng: number, lat: number): string {
     const id = `tmp_${crypto.randomUUID()}`;
     const newSpot: LocalSpot = {
@@ -331,6 +338,23 @@ export default function SpotMap({
                     뒤로
                   </button>
                 </>
+              ) : mode === 'reorder' ? (
+                <>
+                  <p className="text-base font-semibold text-slate-800">여행순서 바꾸기</p>
+                  <SpotList
+                    spots={localSpots}
+                    onReorder={handleReorder}
+                    onDelete={handleDeleteInReorder}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMode('menu')}
+                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                  >
+                    <ArrowLeft size={14} />
+                    뒤로
+                  </button>
+                </>
               ) : (
                 <>
                   <p className="text-base font-semibold text-slate-800">여행동선 짜기</p>
@@ -359,10 +383,15 @@ export default function SpotMap({
                     </button>
                     <button
                       type="button"
-                      disabled
-                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full opacity-40 cursor-not-allowed bg-slate-50"
+                      onClick={() => setMode('reorder')}
+                      disabled={localSpots.length < 2}
+                      className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${
+                        localSpots.length >= 2
+                          ? 'border-sky-200 hover:bg-sky-50'
+                          : 'border-slate-200 opacity-40 cursor-not-allowed bg-slate-50'
+                      }`}
                     >
-                      <ArrowUpDown size={20} className="text-slate-500 shrink-0" />
+                      <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-sky-500' : 'text-slate-500'}`} />
                       <div>
                         <p className="text-sm font-medium text-slate-700">여행순서 바꾸기</p>
                         <p className="text-xs text-slate-500">방문 순서 편집</p>
@@ -404,8 +433,8 @@ export default function SpotMap({
         </div>
       </div>
 
-      {/* 마커 목록: 편집 모드에서 항상 표시 */}
-      {canAddSpot && localSpots.length > 0 && (
+      {/* 마커 목록: reorder 모드엔 사이드 카드에 표시하므로 하단 중복 제거 */}
+      {canAddSpot && localSpots.length > 0 && mode !== 'reorder' && (
         <SpotList spots={localSpots} onReorder={handleReorder} />
       )}
     </div>

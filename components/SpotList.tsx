@@ -17,22 +17,24 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
 import { getSpotColor } from '@/lib/spot-color';
 
 type SpotListProps = {
   spots: LocalSpot[];
   onReorder: (newSpots: LocalSpot[]) => void;
+  onDelete?: (id: string) => void;
 };
 
 type SortableItemProps = {
   spot: LocalSpot;
   index: number;
   total: number;
+  onDelete?: (id: string) => void;
 };
 
-function SortableItem({ spot, index, total }: SortableItemProps) {
+function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: spot.id });
 
@@ -57,6 +59,16 @@ function SortableItem({ spot, index, total }: SortableItemProps) {
         {index + 1}
       </span>
       <span className="flex-1 text-sm text-[#1A1A1A] truncate">{spot.name}</span>
+      {onDelete && (
+        <button
+          type="button"
+          aria-label="촬영지 삭제"
+          onClick={() => onDelete(spot.id)}
+          className="text-slate-300 hover:text-red-400 flex-shrink-0 transition-colors"
+        >
+          <X size={14} />
+        </button>
+      )}
       <button
         type="button"
         aria-label="드래그 핸들"
@@ -73,7 +85,7 @@ function SortableItem({ spot, index, total }: SortableItemProps) {
   );
 }
 
-export function SpotList({ spots, onReorder }: SpotListProps) {
+export function SpotList({ spots, onReorder, onDelete }: SpotListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -97,6 +109,7 @@ export function SpotList({ spots, onReorder }: SpotListProps) {
               spot={spot}
               index={i}
               total={spots.length}
+              onDelete={onDelete}
             />
           ))}
         </ul>
