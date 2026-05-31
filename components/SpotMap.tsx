@@ -27,6 +27,7 @@ type Props = {
   canAddSpot?: boolean;
   onSpotsChange?: (spots: LocalSpot[]) => void;
   onPhotoSelect?: (spotId: string, file: File | null) => void;
+  readOnly?: boolean;
 };
 
 export default function SpotMap({
@@ -35,16 +36,19 @@ export default function SpotMap({
   canAddSpot,
   onSpotsChange,
   onPhotoSelect,
+  readOnly,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const markerElemsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const [is3D, setIs3D] = useState(false);
 
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
 
   const [activeSpot, setActiveSpot] = useState<LocalSpot | null>(null);
+  const [displayedSpot, setDisplayedSpot] = useState<LocalSpot | null>(null);
   const [mode, setMode] = useState<Mode>('menu');
   const [searchedName, setSearchedName] = useState('');
 
@@ -105,15 +109,23 @@ export default function SpotMap({
     const render = () => {
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
+      markerElemsRef.current.clear();
 
       localSpots.forEach((spot, i) => {
         const color = getSpotColor(i, localSpots.length);
 
+        const wrapper = document.createElement('div');
+        Object.assign(wrapper.style, {
+          position: 'relative',
+          width: '28px',
+          height: '28px',
+        });
+
         const el = document.createElement('div');
         el.textContent = String(i + 1);
         Object.assign(el.style, {
-          width: '28px',
-          height: '28px',
+          position: 'absolute',
+          inset: '0',
           borderRadius: '50%',
           background: color,
           color: '#fff',
@@ -126,15 +138,32 @@ export default function SpotMap({
           boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
           cursor: 'default',
         });
+        wrapper.appendChild(el);
+        markerElemsRef.current.set(spot.id, wrapper);
 
-        const marker = new mapboxgl.Marker({ element: el })
+        const marker = new mapboxgl.Marker({ element: wrapper })
           .setLngLat([spot.lng, spot.lat])
           .addTo(map);
         markersRef.current.push(marker);
 
         el.addEventListener('click', () => {
           setActiveSpot((prev) => (prev?.id === spot.id ? null : spot));
+          if (readOnly) {
+            setDisplayedSpot(spot);
+            mapRef.current?.panTo([spot.lng, spot.lat]);
+          }
           setMode('view');
+          const ring = document.createElement('div');
+          Object.assign(ring.style, {
+            position: 'absolute',
+            inset: '-5px',
+            borderRadius: '50%',
+            border: '2px solid #3b82f6',
+            animation: 'spot-pulse 0.6s ease-out forwards',
+            pointerEvents: 'none',
+          });
+          wrapper.appendChild(ring);
+          ring.addEventListener('animationend', () => ring.remove());
         });
       });
     };
@@ -222,6 +251,30 @@ export default function SpotMap({
     onSpotsChange?.(newSpots);
   }
 
+  function triggerPulse(spotId: string) {
+    const wrapper = markerElemsRef.current.get(spotId);
+    if (!wrapper) return;
+    const ring = document.createElement('div');
+    Object.assign(ring.style, {
+      position: 'absolute',
+      inset: '-5px',
+      borderRadius: '50%',
+      border: '2px solid #3b82f6',
+      animation: 'spot-pulse 0.6s ease-out forwards',
+      pointerEvents: 'none',
+    });
+    wrapper.appendChild(ring);
+    ring.addEventListener('animationend', () => ring.remove());
+  }
+
+  function handleSpotSelect(spot: LocalSpot) {
+    setDisplayedSpot(spot);
+    setActiveSpot(spot);
+    setMode('view');
+    mapRef.current?.panTo([spot.lng, spot.lat]);
+    triggerPulse(spot.id);
+  }
+
   function handleSpotUpdate(fields: { name?: string; review?: string; photoUrl?: string | null }) {
     setActiveSpot((prev) => (prev ? { ...prev, ...fields } : null));
     const next = localSpots.map((s) =>
@@ -296,9 +349,30 @@ export default function SpotMap({
       <div className="flex flex-col md:flex-row gap-3">
         {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
 <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${
-          (canAddSpot || activeSpot) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          (canAddSpot || activeSpot || readOnly) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
         }`}>
-          {activeSpot ? (
+          {readOnly ? (
+            <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 relative overflow-hidden">
+              {/* 리스트 */}
+              <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
+                <p className="text-base font-semibold text-slate-800 mb-3">여행 순서</p>
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
+                </div>
+              </div>
+              {/* 카드 */}
+              <div className={`absolute inset-0 transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                {displayedSpot && (
+                  <SpotPopup
+                    key={displayedSpot.id}
+                    spot={displayedSpot}
+                    readOnly
+                    onClose={() => { setActiveSpot(null); setMode('menu'); }}
+                  />
+                )}
+              </div>
+            </div>
+          ) : activeSpot ? (
             <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200">
               <SpotPopup
                 key={activeSpot.id}

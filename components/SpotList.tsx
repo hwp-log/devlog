@@ -23,8 +23,10 @@ import { getSpotColor } from '@/lib/spot-color';
 
 type SpotListProps = {
   spots: LocalSpot[];
-  onReorder: (newSpots: LocalSpot[]) => void;
+  onReorder?: (newSpots: LocalSpot[]) => void;
   onDelete?: (id: string) => void;
+  readOnly?: boolean;
+  onSelect?: (spot: LocalSpot) => void;
 };
 
 type SortableItemProps = {
@@ -85,7 +87,7 @@ function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
   );
 }
 
-export function SpotList({ spots, onReorder, onDelete }: SpotListProps) {
+export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect }: SpotListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -96,7 +98,32 @@ export function SpotList({ spots, onReorder, onDelete }: SpotListProps) {
     if (!over || active.id === over.id) return;
     const oldIndex = spots.findIndex((s) => s.id === active.id);
     const newIndex = spots.findIndex((s) => s.id === over.id);
-    onReorder(arrayMove(spots, oldIndex, newIndex));
+    onReorder?.(arrayMove(spots, oldIndex, newIndex));
+  }
+
+  if (readOnly) {
+    return (
+      <ul className="flex flex-col gap-1">
+        {spots.map((spot, i) => {
+          const color = getSpotColor(i, spots.length);
+          return (
+            <li
+              key={spot.id}
+              onClick={() => onSelect?.(spot)}
+              className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-black/[0.08] cursor-pointer hover:bg-slate-50 transition-colors"
+            >
+              <span
+                className="w-5 h-5 rounded-full flex-shrink-0 text-white text-[10px] font-bold flex items-center justify-center"
+                style={{ backgroundColor: color }}
+              >
+                {i + 1}
+              </span>
+              <span className="flex-1 text-sm text-[#1A1A1A] truncate">{spot.name}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
   }
 
   return (

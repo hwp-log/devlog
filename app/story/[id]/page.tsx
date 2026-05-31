@@ -62,7 +62,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
                 <MapPin size={16} />
                 여행동선
               </h2>
-              <SpotMap spots={story.spots} />
+              <SpotMap spots={story.spots} readOnly />
             </div>
           )}
         </div>
