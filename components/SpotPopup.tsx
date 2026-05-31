@@ -194,11 +194,6 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
         ) : (
           <div className="flex items-start gap-2">
             <h3 className="flex-1 text-lg font-semibold text-[#1A1A1A]">{displayName}</h3>
-            {!readOnly && (
-              <button type="button" onClick={enterEdit} className="px-2.5 py-1 text-xs rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex-shrink-0">
-                수정
-              </button>
-            )}
             {!photoUrl && (
               <button type="button" onClick={onClose} className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0">
                 <X size={12} />
@@ -261,11 +256,22 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 에러 */}
       {error && <p className="px-4 pb-2 text-xs text-red-600">{error}</p>}
 
-      {/* 마커 삭제 */}
-      {!readOnly && (
-        <div className="px-4 pb-4">
-          <button type="button" onClick={onDelete} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors">
-            <Trash2 size={12} /> 마커 삭제
+      {/* 보기 상태 하단: 수정·삭제 */}
+      {!readOnly && !isEditing && (
+        <div className="px-4 pb-4 flex gap-2">
+          <button
+            type="button"
+            onClick={enterEdit}
+            className="flex-1 py-1.5 rounded-lg text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+          >
+            수정
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex-1 py-1.5 rounded-lg text-sm text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+          >
+            <Trash2 size={12} /> 삭제
           </button>
         </div>
       )}
