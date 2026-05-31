@@ -158,7 +158,7 @@ export default function SpotMap({
             position: 'absolute',
             inset: '-5px',
             borderRadius: '50%',
-            border: '2px solid #3b82f6',
+            border: `2px solid ${color}`,
             animation: 'spot-pulse 0.6s ease-out forwards',
             pointerEvents: 'none',
           });
@@ -254,12 +254,14 @@ export default function SpotMap({
   function triggerPulse(spotId: string) {
     const wrapper = markerElemsRef.current.get(spotId);
     if (!wrapper) return;
+    const idx = localSpots.findIndex((s) => s.id === spotId);
+    const color = idx >= 0 ? getSpotColor(idx, localSpots.length) : '#0ea5e9';
     const ring = document.createElement('div');
     Object.assign(ring.style, {
       position: 'absolute',
       inset: '-5px',
       borderRadius: '50%',
-      border: '2px solid #3b82f6',
+      border: `2px solid ${color}`,
       animation: 'spot-pulse 0.6s ease-out forwards',
       pointerEvents: 'none',
     });
