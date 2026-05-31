@@ -22,6 +22,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="max-w-7xl mx-auto">
+      <div className="max-w-4xl mx-auto">
       <div className="glass-outer p-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between gap-4 mb-6">
@@ -56,21 +57,22 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               ))}
             </div>
           )}
-          {story.spots.length > 0 && (
-            <div className="border-t border-black/10 pt-6 mt-6">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
-                <MapPin size={16} />
-                여행동선
-              </h2>
-              <SpotMap spots={story.spots} readOnly />
-            </div>
-          )}
         </div>
       </div>
+      {story.spots.length > 0 && (
+        <div className="mt-6">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
+            <MapPin size={16} />
+            여행동선
+          </h2>
+          <SpotMap spots={story.spots} readOnly />
+        </div>
+      )}
       <div className="mt-4">
         <Link href="/story" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
           ← 목록으로
         </Link>
+      </div>
       </div>
     </div>
   );
