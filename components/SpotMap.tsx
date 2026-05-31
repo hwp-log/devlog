@@ -357,7 +357,7 @@ export default function SpotMap({
             <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 relative overflow-hidden">
               {/* 리스트 */}
               <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
-                <p className="text-base font-semibold text-slate-800 mb-3">여행 순서</p>
+                <p className="text-base font-semibold text-slate-800 mb-3">순서</p>
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                 </div>
