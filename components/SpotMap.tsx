@@ -8,7 +8,7 @@ import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
 
-type Mode = 'menu' | 'pinning' | 'reorder' | 'edit' | 'view';
+type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
 type Props = {
   spots: LocalSpot[];
@@ -44,6 +44,9 @@ export default function SpotMap({
   const [displayedSpot, setDisplayedSpot] = useState<LocalSpot | null>(null);
   const [mode, setMode] = useState<Mode>('menu');
   const [pulsingIds, setPulsingIds] = useState<Set<string>>(new Set());
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState<kakao.maps.services.PlacesSearchResultItem[]>([]);
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
 
   // modeRef·addSpotFromMapRef를 렌더마다 최신값으로 갱신 (stale closure 방지)
   modeRef.current = mode;
@@ -128,6 +131,32 @@ export default function SpotMap({
     onSpotsChange?.(newSpots);
   }
 
+  function handleKeywordSearch() {
+    const kw = searchKeyword.trim();
+    if (!kw) return;
+    const ps = new kakao.maps.services.Places();
+    ps.keywordSearch(kw, (data, status) => {
+      if (status === kakao.maps.services.Status.OK) {
+        setSearchResults(data);
+        setSearchStatus('ok');
+      } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+        setSearchResults([]);
+        setSearchStatus('zero');
+      } else {
+        setSearchResults([]);
+        setSearchStatus('error');
+      }
+    });
+  }
+
+  function handlePlaceSelect(place: kakao.maps.services.PlacesSearchResultItem) {
+    const lng = parseFloat(place.x); // x = 경도(lng) ★★★
+    const lat = parseFloat(place.y); // y = 위도(lat) ★★★
+    const id = addSpot(place.place_name, lng, lat);
+    setActiveSpot({ id, name: place.place_name, lat, lng, order: localSpots.length + 1 });
+    setMode('edit');
+  }
+
   function addSpot(name: string, lng: number, lat: number): string {
     const id = `tmp_${crypto.randomUUID()}`;
     const newSpot: LocalSpot = { id, name, lat, lng, order: localSpots.length + 1 };
@@ -156,9 +185,8 @@ export default function SpotMap({
     <div className="flex flex-col gap-2">
       <div className="flex flex-col md:flex-row gap-3">
         {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
-        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${
-          (canAddSpot || activeSpot || readOnly) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
-        }`}>
+        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          }`}>
           {readOnly ? (
             <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 relative overflow-hidden">
               <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
@@ -208,6 +236,21 @@ export default function SpotMap({
                     뒤로
                   </button>
                 </>
+              ) : mode === 'search' ? (
+                <>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                    <Search size={40} className="text-slate-300" />
+                    <p className="text-sm text-slate-400 text-center">오른쪽 지도에서 장소를 검색하세요</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('menu'); setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle'); }}
+                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                  >
+                    <ArrowLeft size={14} />
+                    뒤로
+                  </button>
+                </>
               ) : mode === 'reorder' ? (
                 <>
                   <p className="text-base font-semibold text-slate-800">여행순서 바꾸기</p>
@@ -237,11 +280,10 @@ export default function SpotMap({
                 <>
                   <p className="text-base font-semibold text-slate-800">나만의 경로 짜기</p>
                   <div className="flex flex-col gap-2">
-                    {/* 촬영지 검색 — 0063에서 카카오 장소검색으로 구현 예정, 현재 비활성 */}
                     <button
                       type="button"
-                      disabled
-                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full opacity-40 cursor-not-allowed bg-slate-50"
+                      onClick={() => { setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle'); setMode('search'); }}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full hover:bg-slate-50 transition-colors"
                     >
                       <Search size={20} className="text-slate-400 shrink-0" />
                       <div>
@@ -264,11 +306,10 @@ export default function SpotMap({
                       type="button"
                       onClick={() => setMode('reorder')}
                       disabled={localSpots.length < 2}
-                      className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${
-                        localSpots.length >= 2
-                          ? 'border-slate-200 hover:bg-slate-50'
-                          : 'border-slate-200 opacity-40 cursor-not-allowed bg-slate-50'
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${localSpots.length >= 2
+                        ? 'border-slate-200 hover:bg-slate-50'
+                        : 'border-slate-200 opacity-40 cursor-not-allowed bg-slate-50'
+                        }`}
                     >
                       <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-slate-400' : 'text-slate-500'}`} />
                       <div>
@@ -308,7 +349,7 @@ export default function SpotMap({
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           <Map
             center={center}
-            level={4}
+            level={5}
             onCreate={handleMapCreate}
             onClick={handleMapClick}
             className="w-full h-full"
@@ -321,9 +362,9 @@ export default function SpotMap({
                   { lat: spot.lat, lng: spot.lng },
                   { lat: localSpots[i + 1].lat, lng: localSpots[i + 1].lng },
                 ]}
-                strokeWeight={7}
-                strokeColor="#ffffff"
-                strokeOpacity={0.9}
+                strokeWeight={10}
+                strokeColor="#0a5cc4"
+                strokeOpacity={1}
                 zIndex={1}
               />
             ))}
@@ -334,44 +375,12 @@ export default function SpotMap({
                   { lat: spot.lat, lng: spot.lng },
                   { lat: localSpots[i + 1].lat, lng: localSpots[i + 1].lng },
                 ]}
-                strokeWeight={4}
-                strokeColor="#f97316"
+                strokeWeight={6}
+                strokeColor="#1a8cff"
                 strokeOpacity={1}
                 zIndex={2}
               />
             ))}
-
-            {/* 구간 중점 방향 화살표 — Mercator 보정 각도, 마커 아래(zIndex=0) */}
-            {localSpots.length >= 2 && localSpots.slice(0, -1).map((a, i) => {
-              const b = localSpots[i + 1];
-              const midLat = (a.lat + b.lat) / 2;
-              const midLng = (a.lng + b.lng) / 2;
-              // cos(midLat) 보정으로 Mercator 위도 왜곡 제거 ★★★
-              const angle = Math.atan2(
-                -(b.lat - a.lat),
-                (b.lng - a.lng) * Math.cos(midLat * Math.PI / 180)
-              ) * 180 / Math.PI;
-              return (
-                <CustomOverlayMap
-                  key={`arrow-${a.id}`}
-                  position={{ lat: midLat, lng: midLng }}
-                  zIndex={0}
-                >
-                  <div style={{
-                    pointerEvents: 'none',
-                    color: '#f97316',
-                    fontSize: 20,
-                    fontWeight: 'bold',
-                    lineHeight: 1,
-                    transform: `rotate(${angle}deg)`,
-                    textShadow: '0 0 2px #fff, 0 0 4px #fff',
-                    userSelect: 'none',
-                  }}>
-                    ›
-                  </div>
-                </CustomOverlayMap>
-              );
-            })}
 
             {/* 마커: CustomOverlayMap + 펄스 */}
             {localSpots.map((spot, i) => {
@@ -425,6 +434,56 @@ export default function SpotMap({
               );
             })}
           </Map>
+          {mode === 'search' && (
+            <div className="absolute inset-x-3 top-3 z-20">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2.5">
+                  <Search size={14} className="text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleKeywordSearch(); }}
+                    placeholder="예) 광화문, 서울시청"
+                    autoFocus
+                    className="flex-1 text-sm text-slate-900 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleKeywordSearch}
+                    className="text-xs text-slate-500 hover:text-slate-800 px-2 transition-colors"
+                  >
+                    검색
+                  </button>
+                </div>
+                {searchStatus === 'zero' && (
+                  <div className="border-t border-slate-100 px-3 py-3">
+                    <p className="text-sm text-slate-400">검색 결과가 없습니다.</p>
+                  </div>
+                )}
+                {searchStatus === 'error' && (
+                  <div className="border-t border-slate-100 px-3 py-3">
+                    <p className="text-sm text-red-400">검색 중 오류가 발생했습니다.</p>
+                  </div>
+                )}
+                {searchStatus === 'ok' && (
+                  <div className="border-t border-slate-100 max-h-48 overflow-y-auto">
+                    {searchResults.map((place) => (
+                      <button
+                        key={place.id}
+                        type="button"
+                        onClick={() => handlePlaceSelect(place)}
+                        className="text-left w-full px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+                      >
+                        <p className="text-sm font-medium text-slate-700">{place.place_name}</p>
+                        <p className="text-xs text-slate-400">{place.address_name}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
