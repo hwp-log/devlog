@@ -1,0 +1,43 @@
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+
+export default async function MyPlanPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const plans = await prisma.myPlan.findMany({
+    where: { ownerId: user!.id },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-[#1A1A1A]">My Plan</h1>
+        <button
+          className="bg-[#1A1A1A] text-white px-5 py-2 rounded-full text-sm opacity-40 cursor-not-allowed"
+          disabled
+        >
+          새 계획
+        </button>
+      </div>
+
+      {plans.length === 0 ? (
+        <div className="glass-outer p-12 text-center">
+          <p className="text-slate-500">아직 계획이 없습니다.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {plans.map((plan) => (
+            <div key={plan.id} className="glass-outer p-6">
+              <h2 className="text-lg font-semibold text-[#1A1A1A]">{plan.title}</h2>
+              <p className="text-xs text-slate-400 mt-2">
+                {plan.createdAt.toLocaleDateString('ko-KR')}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

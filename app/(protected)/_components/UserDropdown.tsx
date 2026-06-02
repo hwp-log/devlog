@@ -50,6 +50,14 @@ export function UserDropdown({ email }: Props) {
           >
             MyStory
           </Link>
+          <Link
+            href="/my-plan"
+            role="menuitem"
+            className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            onClick={() => setOpen(false)}
+          >
+            My Plan
+          </Link>
           <form action={signOut}>
             <button
               type="submit"
