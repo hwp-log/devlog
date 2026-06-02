@@ -44,8 +44,24 @@ function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[
   });
 }
 
+function updateDayItems(
+  prev: EditorState,
+  day: number,
+  updater: (items: PlanItem[]) => PlanItem[],
+): EditorState {
+  return {
+    ...prev,
+    days: prev.days.map((d) =>
+      d.day === day ? { ...d, items: updater(d.items) } : d,
+    ),
+  };
+}
+
 const INPUT_CLASS =
   'border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all';
+
+const ITEM_INPUT_CLASS =
+  'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
 
 export function MyPlanNewForm() {
   const [editor, setEditor] = useState<EditorState>({
@@ -69,6 +85,29 @@ export function MyPlanNewForm() {
   const hasDays = editor.days.length > 0;
   const clampedDay = hasDays ? Math.min(selectedDay, editor.days.length) : 1;
   const currentItems = editor.days.find((d) => d.day === clampedDay)?.items ?? [];
+
+  function addItem() {
+    setEditor((prev) =>
+      updateDayItems(prev, clampedDay, (items) => [
+        ...items,
+        { id: crypto.randomUUID(), name: '', category: '', amount: 0 },
+      ]),
+    );
+  }
+
+  function updateItem(id: string, patch: Partial<PlanItem>) {
+    setEditor((prev) =>
+      updateDayItems(prev, clampedDay, (items) =>
+        items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
+      ),
+    );
+  }
+
+  function removeItem(id: string) {
+    setEditor((prev) =>
+      updateDayItems(prev, clampedDay, (items) => items.filter((it) => it.id !== id)),
+    );
+  }
 
   return (
     <div>
@@ -153,7 +192,63 @@ export function MyPlanNewForm() {
       <div className="glass-outer p-6 mb-4">
         {currentItems.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-6">항목 없음</p>
-        ) : null}
+        ) : (
+          <div className="flex flex-col gap-3">
+            {currentItems.map((item) => (
+              <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
+                <input
+                  type="text"
+                  value={item.name}
+                  onChange={(e) => updateItem(item.id, { name: e.target.value })}
+                  placeholder="장소 이름"
+                  className={ITEM_INPUT_CLASS}
+                />
+                <select
+                  value={item.category}
+                  onChange={(e) =>
+                    updateItem(item.id, { category: e.target.value as CostCategory | '' })
+                  }
+                  className={ITEM_INPUT_CLASS}
+                >
+                  <option value="">카테고리</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {CATEGORY_LABEL[cat]}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  value={item.amount === 0 ? '' : item.amount}
+                  onChange={(e) => {
+                    const raw = Number(e.target.value);
+                    updateItem(item.id, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
+                  }}
+                  placeholder="금액"
+                  className={ITEM_INPUT_CLASS}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.id)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors text-base"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {hasDays && (
+          <button
+            type="button"
+            onClick={addItem}
+            className="mt-4 w-full py-2.5 border border-dashed border-slate-300 rounded-[10px] text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            + Day {clampedDay} 항목 추가
+          </button>
+        )}
       </div>
 
       {/* 카테고리 비용 막대 */}
