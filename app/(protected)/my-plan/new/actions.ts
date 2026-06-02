@@ -21,7 +21,7 @@ export async function createMyPlanAction(
 
   if (!title) return { error: '제목을 입력해주세요' };
 
-  await prisma.myPlan.create({
+  const plan = await prisma.myPlan.create({
     data: {
       ownerId: user.id,
       title,
@@ -31,5 +31,5 @@ export async function createMyPlanAction(
     },
   });
 
-  redirect('/my-plan');
+  redirect(`/my-plan/${plan.id}`);
 }

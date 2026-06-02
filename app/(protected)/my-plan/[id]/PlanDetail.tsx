@@ -128,7 +128,7 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
                 type="text"
                 required
                 placeholder="예: 경복궁"
-                className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
+                className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
               />
             </div>
 
@@ -137,7 +137,7 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
                 <label className="text-sm font-medium text-[#1A1A1A]">카테고리</label>
                 <select
                   name="category"
-                  className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm bg-white focus:outline-none transition-all"
+                  className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm text-[#1A1A1A] bg-white focus:outline-none transition-all"
                 >
                   <option value="">선택 안 함</option>
                   <option value="TRANSPORT">교통</option>
@@ -154,7 +154,7 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
                   type="number"
                   min="0"
                   placeholder="0"
-                  className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm bg-white focus:outline-none transition-all"
+                  className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm text-[#1A1A1A] bg-white focus:outline-none transition-all"
                 />
               </div>
             </div>
