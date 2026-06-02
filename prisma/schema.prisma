@@ -6,12 +6,27 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Currency {
+  KRW
+  USD
+  JPY
+}
+
+enum CostCategory {
+  TRANSPORT
+  ACCOMMODATION
+  FOOD
+  ENTRANCE
+  ETC
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
 
   stories   Story[]
+  myPlans   MyPlan[]
 
   @@map("users")
 }
@@ -62,4 +77,55 @@ model Tag {
   stories   Story[]
 
   @@map("tags")
+}
+
+model MyPlan {
+  id            String    @id @default(cuid())
+  ownerId       String    @map("owner_id") @db.Uuid
+  sourceStoryId String?   @map("source_story_id")
+  title         String
+  currency      Currency  @default(KRW)
+  startDate     DateTime? @map("start_date")
+  endDate       DateTime? @map("end_date")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  owner  User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  spots  PlanSpot[]
+  costs  PlanCost[]
+
+  @@map("my_plans")
+  @@index([ownerId])
+}
+
+model PlanSpot {
+  id        String   @id @default(cuid())
+  planId    String   @map("plan_id")
+  day       Int
+  order     Int
+  name      String
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plan  MyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("plan_spots")
+  @@index([planId])
+  @@index([planId, day, order])
+}
+
+model PlanCost {
+  id        String       @id @default(cuid())
+  planId    String       @map("plan_id")
+  day       Int
+  category  CostCategory
+  label     String
+  amount    Int
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  plan  MyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("plan_costs")
+  @@index([planId])
+  @@index([planId, day])
 }
