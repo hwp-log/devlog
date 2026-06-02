@@ -30,7 +30,7 @@ export default async function MyPlanPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {plans.map((plan) => (
-            <div key={plan.id} className="glass-outer p-6">
+            <Link key={plan.id} href={`/my-plan/${plan.id}`} className="glass-outer p-6 block hover:shadow-md transition-shadow">
               <h2 className="text-lg font-semibold text-[#1A1A1A]">{plan.title}</h2>
               <p className="text-sm text-slate-500 mt-1">{plan.currency}</p>
               <p className="text-xs text-slate-400 mt-2">
@@ -38,7 +38,7 @@ export default async function MyPlanPage() {
                   ? `${plan.startDate.toLocaleDateString('ko-KR')} ~ ${plan.endDate.toLocaleDateString('ko-KR')}`
                   : '기간 미설정'}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
