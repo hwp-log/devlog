@@ -87,6 +87,9 @@ model MyPlan {
   currency      Currency  @default(KRW)
   startDate     DateTime? @map("start_date")
   endDate       DateTime? @map("end_date")
+  description   String?
+  region        String?
+  movie         String?
   createdAt     DateTime  @default(now()) @map("created_at")
 
   owner  User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)

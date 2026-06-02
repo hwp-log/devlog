@@ -71,6 +71,28 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
             </>
           )}
         </p>
+
+        {(plan.region || plan.movie) && (
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {plan.region && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                {plan.region}
+              </span>
+            )}
+            {plan.movie && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                {plan.movie}
+              </span>
+            )}
+          </div>
+        )}
+
+        {plan.description && (
+          <div className="mt-3 bg-orange-50 border border-orange-100 rounded-[10px] p-4">
+            <p className="text-xs font-semibold text-orange-400 mb-1">여행계획 간단소개</p>
+            <p className="text-sm text-orange-700 whitespace-pre-wrap">{plan.description}</p>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">

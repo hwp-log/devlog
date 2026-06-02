@@ -17,6 +17,9 @@ type SavePayload = {
   currency: Currency;
   startDate: string;
   endDate: string;
+  region: string;
+  movie: string;
+  description: string;
   items: SaveItem[];
 };
 
@@ -40,6 +43,9 @@ export async function createPlanWithItemsAction(
           currency: payload.currency,
           startDate: payload.startDate ? new Date(payload.startDate) : null,
           endDate: payload.endDate ? new Date(payload.endDate) : null,
+          region: payload.region || null,
+          movie: payload.movie || null,
+          description: payload.description || null,
         },
       });
 

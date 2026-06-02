@@ -26,6 +26,9 @@ type EditorState = {
   currency: 'KRW' | 'USD' | 'JPY';
   startDate: string;
   endDate: string;
+  region: string;
+  movie: string;
+  description: string;
   days: DayPlan[];
 };
 
@@ -65,6 +68,9 @@ export function MyPlanNewForm() {
     currency: 'KRW',
     startDate: '',
     endDate: '',
+    region: '',
+    movie: '',
+    description: '',
     days: [],
   });
   const [selectedDay, setSelectedDay] = useState(1);
@@ -140,6 +146,9 @@ export function MyPlanNewForm() {
         currency: editor.currency,
         startDate: editor.startDate,
         endDate: editor.endDate,
+        region: editor.region,
+        movie: editor.movie,
+        description: editor.description,
         items,
       });
       if (result?.error) setSaveError(result.error);
@@ -201,6 +210,41 @@ export function MyPlanNewForm() {
             />
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#1A1A1A]">지역</label>
+            <input
+              type="text"
+              value={editor.region}
+              onChange={(e) => setEditor((p) => ({ ...p, region: e.target.value }))}
+              placeholder="예: 서울 용산구 이태원"
+              className={INPUT_CLASS}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#1A1A1A]">영화</label>
+            <input
+              type="text"
+              value={editor.movie}
+              onChange={(e) => setEditor((p) => ({ ...p, movie: e.target.value }))}
+              placeholder="예: 이태원 클라쓰"
+              className={INPUT_CLASS}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-[#1A1A1A]">여행계획 간단소개</label>
+          <textarea
+            value={editor.description}
+            onChange={(e) => setEditor((p) => ({ ...p, description: e.target.value }))}
+            placeholder={`조광진 웹툰 원작 「이태원 클라쓰」(2020) — 박서준·김다미 주연, 넷플릭스를 타고 일본까지 한류 열풍을 이끈 JTBC 화제작의 촬영지 4곳을 따라가는 코스.
+녹사평 육교 → 단밤 포차 자리(GS25 이태원힐점 옆) → 경리단길 어반클리프(이사한 단밤) → 남산공원 백범광장. 서울 공식 관광 추천 코스 기반 / 드라마 속 동선 그대로.`}
+            rows={3}
+            className={INPUT_CLASS + ' resize-none'}
+          />
+        </div>
       </div>
 
       {/* Day 탭 */}
@@ -228,7 +272,7 @@ export function MyPlanNewForm() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-slate-400 mb-4">기간을 설정하면 Day 탭이 생성됩니다.</p>
+        <p className="text-sm text-slate-400 mb-4">여행 기간을 설정하면, 날짜별 일정과 비용을 작성할 수 있어요.</p>
       )}
 
       {/* 타임라인 */}
