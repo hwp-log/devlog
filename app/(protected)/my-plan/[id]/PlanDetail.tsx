@@ -1,14 +1,27 @@
 'use client';
 import { useState, useActionState } from 'react';
 import type { MyPlan, PlanSpot, PlanCost } from '@prisma/client';
+import {
+  CATEGORIES,
+  CATEGORY_LABEL,
+  CATEGORY_COLOR,
+  formatAmount,
+  type CostCategory,
+} from '../_lib/cost';
 
-const CATEGORY_LABEL: Record<string, string> = {
-  TRANSPORT: '교통',
-  ACCOMMODATION: '숙박',
-  FOOD: '식비',
-  ENTRANCE: '입장료',
-  ETC: '기타',
-};
+function calcCostSummary(costs: PlanCost[]): Record<CostCategory, number> {
+  const totals: Record<CostCategory, number> = {
+    TRANSPORT: 0,
+    ACCOMMODATION: 0,
+    FOOD: 0,
+    ENTRANCE: 0,
+    ETC: 0,
+  };
+  for (const cost of costs) {
+    totals[cost.category as CostCategory] += cost.amount;
+  }
+  return totals;
+}
 
 type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[] };
 type ActionState = { error: string } | null;
@@ -39,6 +52,10 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
   const timeline = buildTimeline(plan.spots, plan.costs, selectedDay);
+
+  const costSummary = calcCostSummary(plan.costs);
+  const totalPlanCost = CATEGORIES.reduce((sum, cat) => sum + costSummary[cat], 0);
+  const maxPlanCost = Math.max(0, ...CATEGORIES.map((cat) => costSummary[cat]));
 
   return (
     <div>
@@ -104,6 +121,39 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
             ))}
           </ol>
         )}
+      </div>
+
+      {/* 카테고리 비용 요약 (읽기 전용) */}
+      <div className="glass-outer p-5 mb-4">
+        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+          카테고리별 비용
+        </p>
+        <div className="flex flex-col gap-2">
+          {CATEGORIES.map((cat) => {
+            const barPct =
+              maxPlanCost > 0 ? (costSummary[cat] / maxPlanCost) * 100 : 0;
+            return (
+              <div key={cat} className="flex items-center text-sm gap-2">
+                <span className="text-slate-600 w-16 shrink-0">{CATEGORY_LABEL[cat]}</span>
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-200"
+                    style={{ width: `${barPct}%`, backgroundColor: CATEGORY_COLOR[cat] }}
+                  />
+                </div>
+                <span className="text-slate-500 text-xs w-24 text-right shrink-0">
+                  {formatAmount(costSummary[cat], plan.currency as 'KRW' | 'USD' | 'JPY')}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold">
+          <span className="text-[#1A1A1A]">총 비용</span>
+          <span className="text-[#1A1A1A]">
+            {formatAmount(totalPlanCost, plan.currency as 'KRW' | 'USD' | 'JPY')}
+          </span>
+        </div>
       </div>
 
       {!showForm ? (

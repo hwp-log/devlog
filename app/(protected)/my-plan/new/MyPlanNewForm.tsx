@@ -1,8 +1,13 @@
 'use client';
 import { useState, useMemo, useTransition } from 'react';
 import { createPlanWithItemsAction } from './actions';
-
-type CostCategory = 'TRANSPORT' | 'ACCOMMODATION' | 'FOOD' | 'ENTRANCE' | 'ETC';
+import {
+  CATEGORIES,
+  CATEGORY_LABEL,
+  CATEGORY_COLOR,
+  formatAmount,
+  type CostCategory,
+} from '../_lib/cost';
 
 type PlanItem = {
   id: string;
@@ -22,16 +27,6 @@ type EditorState = {
   startDate: string;
   endDate: string;
   days: DayPlan[];
-};
-
-const CATEGORIES: CostCategory[] = ['TRANSPORT', 'ACCOMMODATION', 'FOOD', 'ENTRANCE', 'ETC'];
-
-const CATEGORY_LABEL: Record<CostCategory, string> = {
-  TRANSPORT: '교통',
-  ACCOMMODATION: '숙박',
-  FOOD: '식비',
-  ENTRANCE: '입장료',
-  ETC: '기타',
 };
 
 function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[] {
@@ -56,16 +51,6 @@ function updateDayItems(
       d.day === day ? { ...d, items: updater(d.items) } : d,
     ),
   };
-}
-
-const CURRENCY_SYMBOL: Record<EditorState['currency'], string> = {
-  KRW: '₩',
-  USD: '$',
-  JPY: '¥',
-};
-
-function formatAmount(amount: number, currency: EditorState['currency']): string {
-  return `${CURRENCY_SYMBOL[currency]}${amount.toLocaleString()}`;
 }
 
 const INPUT_CLASS =
@@ -325,8 +310,8 @@ export function MyPlanNewForm() {
                 <span className="text-slate-600 w-16 shrink-0">{CATEGORY_LABEL[cat]}</span>
                 <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-slate-400 rounded-full transition-all duration-200"
-                    style={{ width: `${barPct}%` }}
+                    className="h-full rounded-full transition-all duration-200"
+                    style={{ width: `${barPct}%`, backgroundColor: CATEGORY_COLOR[cat] }}
                   />
                 </div>
                 <span className="text-slate-500 text-xs w-24 text-right shrink-0">
