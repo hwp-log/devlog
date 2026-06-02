@@ -1,5 +1,6 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
+import { createPlanWithItemsAction } from './actions';
 
 type CostCategory = 'TRANSPORT' | 'ACCOMMODATION' | 'FOOD' | 'ENTRANCE' | 'ETC';
 
@@ -82,6 +83,8 @@ export function MyPlanNewForm() {
     days: [],
   });
   const [selectedDay, setSelectedDay] = useState(1);
+  const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function handleDateChange(field: 'startDate' | 'endDate', value: string) {
     setEditor((prev) => {
@@ -131,6 +134,31 @@ export function MyPlanNewForm() {
         items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
       ),
     );
+  }
+
+  function handleSave() {
+    setSaveError(null);
+    const items = editor.days.flatMap((day) =>
+      day.items
+        .filter((item) => item.name.trim() !== '')
+        .map((item, idx) => ({
+          day: day.day,
+          order: idx + 1,
+          name: item.name.trim(),
+          category: item.category,
+          amount: item.amount,
+        })),
+    );
+    startTransition(async () => {
+      const result = await createPlanWithItemsAction({
+        title: editor.title,
+        currency: editor.currency,
+        startDate: editor.startDate,
+        endDate: editor.endDate,
+        items,
+      });
+      if (result?.error) setSaveError(result.error);
+    });
   }
 
   function removeItem(id: string) {
@@ -314,13 +342,20 @@ export function MyPlanNewForm() {
         </div>
       </div>
 
-      {/* 저장 버튼 (4단계에서 구현) */}
+      {saveError && (
+        <p role="alert" className="text-sm text-red-600 mb-2">{saveError}</p>
+      )}
       <button
         type="button"
-        disabled
-        className="w-full bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold opacity-40 cursor-not-allowed"
+        onClick={handleSave}
+        disabled={!editor.title.trim() || isPending}
+        className={`w-full bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold transition-colors ${
+          !editor.title.trim() || isPending
+            ? 'opacity-40 cursor-not-allowed'
+            : 'hover:bg-[#333]'
+        }`}
       >
-        저장
+        {isPending ? '저장 중...' : '저장'}
       </button>
     </div>
   );
