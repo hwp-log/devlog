@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 type CostCategory = 'TRANSPORT' | 'ACCOMMODATION' | 'FOOD' | 'ENTRANCE' | 'ETC';
 
@@ -57,6 +57,16 @@ function updateDayItems(
   };
 }
 
+const CURRENCY_SYMBOL: Record<EditorState['currency'], string> = {
+  KRW: '₩',
+  USD: '$',
+  JPY: '¥',
+};
+
+function formatAmount(amount: number, currency: EditorState['currency']): string {
+  return `${CURRENCY_SYMBOL[currency]}${amount.toLocaleString()}`;
+}
+
 const INPUT_CLASS =
   'border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all';
 
@@ -81,6 +91,26 @@ export function MyPlanNewForm() {
       return { ...prev, [field]: value, days: newDays };
     });
   }
+
+  const categoryTotals = useMemo(() => {
+    const totals: Record<CostCategory, number> = {
+      TRANSPORT: 0,
+      ACCOMMODATION: 0,
+      FOOD: 0,
+      ENTRANCE: 0,
+      ETC: 0,
+    };
+    for (const day of editor.days) {
+      for (const item of day.items) {
+        const cat: CostCategory = item.category === '' ? 'ETC' : item.category;
+        totals[cat] += item.amount;
+      }
+    }
+    return totals;
+  }, [editor.days]);
+
+  const totalCost = CATEGORIES.reduce((sum, cat) => sum + categoryTotals[cat], 0);
+  const maxCategoryAmount = Math.max(0, ...CATEGORIES.map((cat) => categoryTotals[cat]));
 
   const hasDays = editor.days.length > 0;
   const clampedDay = hasDays ? Math.min(selectedDay, editor.days.length) : 1;
@@ -257,17 +287,30 @@ export function MyPlanNewForm() {
           카테고리별 비용
         </p>
         <div className="flex flex-col gap-2">
-          {CATEGORIES.map((cat) => (
-            <div key={cat} className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 w-16">{CATEGORY_LABEL[cat]}</span>
-              <div className="flex-1 mx-3 h-1.5 bg-slate-100 rounded-full" />
-              <span className="text-slate-400 text-xs w-10 text-right">0</span>
-            </div>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const barPct =
+              maxCategoryAmount > 0
+                ? (categoryTotals[cat] / maxCategoryAmount) * 100
+                : 0;
+            return (
+              <div key={cat} className="flex items-center text-sm gap-2">
+                <span className="text-slate-600 w-16 shrink-0">{CATEGORY_LABEL[cat]}</span>
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-slate-400 rounded-full transition-all duration-200"
+                    style={{ width: `${barPct}%` }}
+                  />
+                </div>
+                <span className="text-slate-500 text-xs w-24 text-right shrink-0">
+                  {formatAmount(categoryTotals[cat], editor.currency)}
+                </span>
+              </div>
+            );
+          })}
         </div>
         <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold">
           <span className="text-[#1A1A1A]">총 비용</span>
-          <span className="text-[#1A1A1A]">0</span>
+          <span className="text-[#1A1A1A]">{formatAmount(totalCost, editor.currency)}</span>
         </div>
       </div>
 
