@@ -12,6 +12,11 @@ enum Currency {
   JPY
 }
 
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
+}
+
 enum CostCategory {
   TRANSPORT
   ACCOMMODATION
@@ -92,9 +97,10 @@ model MyPlan {
   movie         String?
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  owner  User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner  User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   spots  PlanSpot[]
   costs  PlanCost[]
+  flight PlanFlight?
 
   @@map("my_plans")
   @@index([ownerId])
@@ -134,4 +140,31 @@ model PlanCost {
   @@map("plan_costs")
   @@index([planId])
   @@index([planId, day])
+}
+
+model PlanFlight {
+  id          String   @id @default(cuid())
+  planId      String   @unique @map("plan_id")
+  tripType    TripType @map("trip_type")
+  totalAmount Int      @map("total_amount")       // 원(KRW 고정)
+
+  outOrigin      String   @map("out_origin")      @db.Char(3)
+  outDestination String   @map("out_destination") @db.Char(3)
+  outDepartsAt   DateTime @map("out_departs_at")  @db.Timestamptz(3)
+  outArrivesAt   DateTime @map("out_arrives_at")  @db.Timestamptz(3)
+  outAirline     String   @map("out_airline")
+  outFlightNo    String   @map("out_flight_no")
+
+  retOrigin      String?   @map("ret_origin")      @db.Char(3)
+  retDestination String?   @map("ret_destination") @db.Char(3)
+  retDepartsAt   DateTime? @map("ret_departs_at")  @db.Timestamptz(3)
+  retArrivesAt   DateTime? @map("ret_arrives_at")  @db.Timestamptz(3)
+  retAirline     String?   @map("ret_airline")
+  retFlightNo    String?   @map("ret_flight_no")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plan MyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("plan_flights")
 }
