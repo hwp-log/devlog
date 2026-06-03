@@ -9,19 +9,19 @@ import {
   type CostCategory,
 } from '../_lib/cost';
 
-type PlanItem = {
+export type PlanItem = {
   id: string;
   name: string;
   category: CostCategory | '';
   amount: number;
 };
 
-type DayPlan = {
+export type DayPlan = {
   day: number;
   items: PlanItem[];
 };
 
-type EditorState = {
+export type EditorState = {
   title: string;
   currency: 'KRW' | 'USD' | 'JPY';
   startDate: string;
@@ -31,6 +31,11 @@ type EditorState = {
   description: string;
   days: DayPlan[];
 };
+
+interface Props {
+  initialState?: EditorState;
+  mode?: 'create' | 'edit';
+}
 
 function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[] {
   if (!startDate || !endDate) return [];
@@ -62,17 +67,19 @@ const INPUT_CLASS =
 const ITEM_INPUT_CLASS =
   'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
 
-export function MyPlanNewForm() {
-  const [editor, setEditor] = useState<EditorState>({
-    title: '',
-    currency: 'KRW',
-    startDate: '',
-    endDate: '',
-    region: '',
-    movie: '',
-    description: '',
-    days: [],
-  });
+const DEFAULT_STATE: EditorState = {
+  title: '',
+  currency: 'KRW',
+  startDate: '',
+  endDate: '',
+  region: '',
+  movie: '',
+  description: '',
+  days: [],
+};
+
+export function MyPlanNewForm({ initialState, mode = 'create' }: Props) {
+  const [editor, setEditor] = useState<EditorState>(initialState ?? DEFAULT_STATE);
   const [selectedDay, setSelectedDay] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -377,9 +384,9 @@ export function MyPlanNewForm() {
       <button
         type="button"
         onClick={handleSave}
-        disabled={!editor.title.trim() || isPending}
+        disabled={mode === 'edit' || !editor.title.trim() || isPending}
         className={`w-full bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold transition-colors ${
-          !editor.title.trim() || isPending
+          mode === 'edit' || !editor.title.trim() || isPending
             ? 'opacity-40 cursor-not-allowed'
             : 'hover:bg-[#333]'
         }`}
