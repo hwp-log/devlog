@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useTransition } from 'react';
-import { createPlanWithItemsAction } from './actions';
+import { createPlanWithItemsAction, updatePlanWithItemsAction } from './actions';
 import {
   CATEGORIES,
   CATEGORY_LABEL,
@@ -35,6 +35,7 @@ export type EditorState = {
 interface Props {
   initialState?: EditorState;
   mode?: 'create' | 'edit';
+  planId?: string;
 }
 
 function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[] {
@@ -78,7 +79,7 @@ const DEFAULT_STATE: EditorState = {
   days: [],
 };
 
-export function MyPlanNewForm({ initialState, mode = 'create' }: Props) {
+export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) {
   const [editor, setEditor] = useState<EditorState>(initialState ?? DEFAULT_STATE);
   const [selectedDay, setSelectedDay] = useState(1);
   const [isPending, startTransition] = useTransition();
@@ -136,29 +137,34 @@ export function MyPlanNewForm({ initialState, mode = 'create' }: Props) {
 
   function handleSave() {
     setSaveError(null);
-    const items = editor.days.flatMap((day) =>
-      day.items
-        .filter((item) => item.name.trim() !== '')
-        .map((item, idx) => ({
-          day: day.day,
-          order: idx + 1,
-          name: item.name.trim(),
-          category: item.category,
-          amount: item.amount,
-        })),
-    );
+    const payload = {
+      title: editor.title,
+      currency: editor.currency,
+      startDate: editor.startDate,
+      endDate: editor.endDate,
+      region: editor.region,
+      movie: editor.movie,
+      description: editor.description,
+      items: editor.days.flatMap((day) =>
+        day.items
+          .filter((item) => item.name.trim() !== '')
+          .map((item, idx) => ({
+            day: day.day,
+            order: idx + 1,
+            name: item.name.trim(),
+            category: item.category,
+            amount: item.amount,
+          })),
+      ),
+    };
     startTransition(async () => {
-      const result = await createPlanWithItemsAction({
-        title: editor.title,
-        currency: editor.currency,
-        startDate: editor.startDate,
-        endDate: editor.endDate,
-        region: editor.region,
-        movie: editor.movie,
-        description: editor.description,
-        items,
-      });
-      if (result?.error) setSaveError(result.error);
+      if (mode === 'edit' && planId) {
+        const result = await updatePlanWithItemsAction(planId, payload);
+        if (result?.error) setSaveError(result.error);
+      } else {
+        const result = await createPlanWithItemsAction(payload);
+        if (result?.error) setSaveError(result.error);
+      }
     });
   }
 
@@ -384,9 +390,9 @@ export function MyPlanNewForm({ initialState, mode = 'create' }: Props) {
       <button
         type="button"
         onClick={handleSave}
-        disabled={mode === 'edit' || !editor.title.trim() || isPending}
+        disabled={!editor.title.trim() || isPending}
         className={`w-full bg-[#1A1A1A] text-white rounded-full py-[13px] text-sm font-semibold transition-colors ${
-          mode === 'edit' || !editor.title.trim() || isPending
+          !editor.title.trim() || isPending
             ? 'opacity-40 cursor-not-allowed'
             : 'hover:bg-[#333]'
         }`}

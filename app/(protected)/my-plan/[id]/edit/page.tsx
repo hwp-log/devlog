@@ -73,7 +73,7 @@ export default async function MyPlanEditPage({ params }: Props) {
 
   return (
     <div>
-      <MyPlanNewForm initialState={buildInitialState(plan, dayCount)} mode="edit" />
+      <MyPlanNewForm initialState={buildInitialState(plan, dayCount)} mode="edit" planId={plan.id} />
     </div>
   );
 }
