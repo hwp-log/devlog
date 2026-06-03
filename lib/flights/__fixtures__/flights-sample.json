@@ -1,0 +1,212 @@
+{
+  "status": true,
+  "timestamp": 1691008981566,
+  "sessionId": "25cee707-a873-4d0a-aeb2-4128a7ca0258",
+  "data": {
+    "context": {
+      "status": "incomplete",
+      "totalResults": 10
+    },
+    "itineraries": [
+      {
+        "id": "13542-2402201235--30598-0-12712-2402201550|12712-2402221810--30598-0-13542-2402230600",
+        "price": {
+          "raw": 419.18,
+          "formatted": "$420"
+        },
+        "legs": [
+          {
+            "id": "13542-2402201235--30598-0-12712-2402201550",
+            "origin": {
+              "id": "LGW",
+              "name": "London Gatwick",
+              "displayCode": "LGW",
+              "city": "London",
+              "isHighlighted": false
+            },
+            "destination": {
+              "id": "JFK",
+              "name": "New York John F. Kennedy",
+              "displayCode": "JFK",
+              "city": "New York",
+              "isHighlighted": false
+            },
+            "durationInMinutes": 495,
+            "stopCount": 0,
+            "isSmallestStops": false,
+            "departure": "2024-02-20T12:35:00",
+            "arrival": "2024-02-20T15:50:00",
+            "timeDeltaInDays": 0,
+            "carriers": {
+              "marketing": [
+                {
+                  "id": -30598,
+                  "logoUrl": "https://logos.skyscnr.com/images/airlines/favicon/I%29.png",
+                  "name": "Norse Atlantic Airways (UK)"
+                }
+              ],
+              "operationType": "fully_operated"
+            },
+            "segments": [
+              {
+                "id": "13542-12712-2402201235-2402201550--30598",
+                "origin": {
+                  "flightPlaceId": "LGW",
+                  "displayCode": "LGW"
+                },
+                "destination": {
+                  "flightPlaceId": "JFK",
+                  "displayCode": "JFK"
+                },
+                "departure": "2024-02-20T12:35:00",
+                "arrival": "2024-02-20T15:50:00",
+                "durationInMinutes": 495,
+                "flightNumber": "701",
+                "marketingCarrier": {
+                  "id": -30598,
+                  "name": "Norse Atlantic Airways (UK)",
+                  "alternateId": "I)",
+                  "allianceId": 0
+                },
+                "operatingCarrier": {
+                  "id": -30598,
+                  "name": "Norse Atlantic Airways (UK)",
+                  "alternateId": "I)",
+                  "allianceId": 0
+                }
+              }
+            ]
+          },
+          {
+            "id": "12712-2402221810--30598-0-13542-2402230600",
+            "origin": {
+              "id": "JFK",
+              "name": "New York John F. Kennedy",
+              "displayCode": "JFK",
+              "city": "New York",
+              "isHighlighted": false
+            },
+            "destination": {
+              "id": "LGW",
+              "name": "London Gatwick",
+              "displayCode": "LGW",
+              "city": "London",
+              "isHighlighted": false
+            },
+            "durationInMinutes": 410,
+            "stopCount": 0,
+            "isSmallestStops": false,
+            "departure": "2024-02-22T18:10:00",
+            "arrival": "2024-02-23T06:00:00",
+            "timeDeltaInDays": 1,
+            "carriers": {
+              "marketing": [
+                {
+                  "id": -30598,
+                  "logoUrl": "https://logos.skyscnr.com/images/airlines/favicon/I%29.png",
+                  "name": "Norse Atlantic Airways (UK)"
+                }
+              ],
+              "operationType": "fully_operated"
+            },
+            "segments": [
+              {
+                "id": "12712-13542-2402221810-2402230600--30598",
+                "origin": {
+                  "flightPlaceId": "JFK",
+                  "displayCode": "JFK"
+                },
+                "destination": {
+                  "flightPlaceId": "LGW",
+                  "displayCode": "LGW"
+                },
+                "departure": "2024-02-22T18:10:00",
+                "arrival": "2024-02-23T06:00:00",
+                "durationInMinutes": 410,
+                "flightNumber": "702",
+                "marketingCarrier": {
+                  "id": -30598,
+                  "name": "Norse Atlantic Airways (UK)",
+                  "alternateId": "I)",
+                  "allianceId": 0
+                },
+                "operatingCarrier": {
+                  "id": -30598,
+                  "name": "Norse Atlantic Airways (UK)",
+                  "alternateId": "I)",
+                  "allianceId": 0
+                }
+              }
+            ]
+          }
+        ],
+        "isSelfTransfer": false,
+        "tags": ["cheapest", "shortest"],
+        "score": 0.998502
+      },
+      {
+        "id": "13554-2402200750--32753-1-12712-2402201355|12712-2402222110--32753-1-13554-2402231130",
+        "price": {
+          "raw": 527.97,
+          "formatted": "$528"
+        },
+        "legs": [
+          {
+            "id": "13554-2402200750--32753-1-12712-2402201355",
+            "origin": {
+              "id": "LHR",
+              "displayCode": "LHR",
+              "city": "London"
+            },
+            "destination": {
+              "id": "JFK",
+              "displayCode": "JFK",
+              "city": "New York"
+            },
+            "durationInMinutes": 665,
+            "stopCount": 1,
+            "departure": "2024-02-20T07:50:00",
+            "arrival": "2024-02-20T13:55:00",
+            "carriers": {
+              "marketing": [{"id": -32753, "name": "Aer Lingus"}]
+            },
+            "segments": [
+              {
+                "flightNumber": "151",
+                "marketingCarrier": {"alternateId": "EI"}
+              }
+            ]
+          },
+          {
+            "id": "12712-2402222110--32753-1-13554-2402231130",
+            "origin": {"id": "JFK", "displayCode": "JFK"},
+            "destination": {"id": "LHR", "displayCode": "LHR"},
+            "durationInMinutes": 560,
+            "stopCount": 1,
+            "departure": "2024-02-22T21:10:00",
+            "arrival": "2024-02-23T11:30:00",
+            "carriers": {
+              "marketing": [{"id": -32753, "name": "Aer Lingus"}]
+            },
+            "segments": [
+              {
+                "flightNumber": "106",
+                "marketingCarrier": {"alternateId": "EI"}
+              }
+            ]
+          }
+        ],
+        "tags": ["second_cheapest"],
+        "score": 0.58567
+      }
+    ],
+    "messages": [],
+    "filterStats": {
+      "stopPrices": {
+        "direct": {"isPresent": true, "formattedPrice": "$420"},
+        "one": {"isPresent": true, "formattedPrice": "$528"},
+        "twoOrMore": {"isPresent": false}
+      }
+    }
+  }
+}
