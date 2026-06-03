@@ -1,5 +1,6 @@
 'use client';
-import { useState, useActionState } from 'react';
+import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import type { MyPlan, PlanSpot, PlanCost } from '@prisma/client';
 import {
   CATEGORIES,
@@ -24,12 +25,11 @@ function calcCostSummary(costs: PlanCost[]): Record<CostCategory, number> {
 }
 
 type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[] };
-type ActionState = { error: string } | null;
 
 interface Props {
   plan: FullPlan;
   dayCount: number;
-  addItemAction: (s: ActionState, f: FormData) => Promise<ActionState>;
+  deleteAction: (planId: string) => Promise<void>;
 }
 
 function buildTimeline(spots: PlanSpot[], costs: PlanCost[], day: number) {
@@ -45,10 +45,9 @@ function buildTimeline(spots: PlanSpot[], costs: PlanCost[], day: number) {
   }));
 }
 
-export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
+export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
-  const [showForm, setShowForm] = useState(false);
-  const [state, formAction, isPending] = useActionState(addItemAction, null);
+  const [isPending, startTransition] = useTransition();
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
   const timeline = buildTimeline(plan.spots, plan.costs, selectedDay);
@@ -99,10 +98,7 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
         {days.map((d) => (
           <button
             key={d}
-            onClick={() => {
-              setSelectedDay(d);
-              setShowForm(false);
-            }}
+            onClick={() => setSelectedDay(d)}
             className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
               selectedDay === d
                 ? 'bg-[#1A1A1A] text-white'
@@ -178,84 +174,25 @@ export function PlanDetail({ plan, dayCount, addItemAction }: Props) {
         </div>
       </div>
 
-      {!showForm ? (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full py-3 border border-dashed border-slate-300 rounded-[10px] text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+      <div className="flex gap-3 mt-4">
+        <Link
+          href={`/my-plan/${plan.id}/edit`}
+          className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
         >
-          + Day {selectedDay} 항목 추가
+          수정
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (!confirm('계획을 삭제하시겠습니까?')) return;
+            startTransition(() => deleteAction(plan.id));
+          }}
+          disabled={isPending}
+          className="flex-1 py-2.5 rounded-full text-sm font-semibold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-colors disabled:opacity-50"
+        >
+          {isPending ? '삭제 중...' : '삭제'}
         </button>
-      ) : (
-        <div className="glass-outer p-6">
-          <form action={formAction} className="flex flex-col gap-3">
-            <input type="hidden" name="planId" value={plan.id} />
-            <input type="hidden" name="day" value={selectedDay} />
-
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-[#1A1A1A]">
-                장소 이름 <span className="text-red-400">*</span>
-              </label>
-              <input
-                name="name"
-                type="text"
-                required
-                placeholder="예: 경복궁"
-                className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-[#1A1A1A]">카테고리</label>
-                <select
-                  name="category"
-                  className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm text-[#1A1A1A] bg-white focus:outline-none transition-all"
-                >
-                  <option value="">선택 안 함</option>
-                  <option value="TRANSPORT">교통</option>
-                  <option value="ACCOMMODATION">숙박</option>
-                  <option value="FOOD">식비</option>
-                  <option value="ENTRANCE">입장료</option>
-                  <option value="ETC">기타</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-[#1A1A1A]">금액</label>
-                <input
-                  name="amount"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  className="border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-2.5 text-sm text-[#1A1A1A] bg-white focus:outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {state?.error && (
-              <p role="alert" className="text-sm text-red-600">
-                {state.error}
-              </p>
-            )}
-
-            <div className="flex gap-2 mt-1">
-              <button
-                type="submit"
-                disabled={isPending}
-                className="flex-1 bg-[#1A1A1A] text-white rounded-full py-2.5 text-sm font-semibold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isPending ? '추가 중...' : '추가'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-5 py-2.5 rounded-full text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                취소
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

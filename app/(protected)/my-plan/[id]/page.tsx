@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { PlanDetail } from './PlanDetail';
-import { addPlanItemAction } from './actions';
+import { deleteMyPlanAction } from '../actions';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -28,5 +28,5 @@ export default async function MyPlanDetailPage({ params }: Props) {
     dayCount = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
   }
 
-  return <PlanDetail plan={plan} dayCount={dayCount} addItemAction={addPlanItemAction} />;
+  return <PlanDetail plan={plan} dayCount={dayCount} deleteAction={deleteMyPlanAction} />;
 }
