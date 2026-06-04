@@ -73,7 +73,7 @@ function SkeletonCard({
 }) {
   return (
     <div className={`glass-outer px-6 py-5 mb-[10px] ${isReturn ? 'opacity-60' : ''}`}>
-      <p className="text-[11px] text-[#888] mb-3">{label}</p>
+      <p className="text-[11px] text-[#888] mb-3">{label}{dateStr ? ` · ${fmtDateFromStr(dateStr)}` : ''}</p>
       <div className="flex items-center gap-5 flex-wrap">
 
         <div className="w-[180px] shrink-0">
@@ -99,7 +99,6 @@ function SkeletonCard({
           <p className={`text-[11px] mt-0.5 ${isReturn ? 'text-[#888] text-center' : 'invisible'}`}>
             {isReturn ? (AIRPORT_NAME[origin] ?? '') : ' '}
           </p>
-          {!!dateStr && <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">{fmtDateFromStr(dateStr)}</p>}
         </div>
 
         <div className="flex-1 flex flex-col items-center min-w-[80px]">
