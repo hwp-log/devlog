@@ -14,6 +14,16 @@ function fmtTime(iso: string) {
   return iso.slice(11, 16);
 }
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function durationFromIso(departsAt: string, arrivesAt: string) {
+  const m = Math.round((new Date(arrivesAt).getTime() - new Date(departsAt).getTime()) / 60000);
+  return `${Math.floor(m / 60)}시간 ${m % 60}분`;
+}
+
 function SelectedCard({
   flight,
   onClear,
@@ -51,7 +61,7 @@ function SelectedCard({
           </div>
         )}
         <p className="text-sm font-semibold text-[#1A1A1A] pt-1">
-          ₩{flight.totalAmount.toLocaleString()}
+          {isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'} ₩{flight.totalAmount.toLocaleString()}
         </p>
       </div>
       <button
@@ -92,11 +102,13 @@ function OfferCard({
           <p className="text-xs text-slate-500 mt-0.5">
             {offer.outbound.origin} → {offer.outbound.destination}
             {' · '}{fmtTime(offer.outbound.departsAt)} ~ {fmtTime(offer.outbound.arrivesAt)}
+            {' · '}{durationFromIso(offer.outbound.departsAt, offer.outbound.arrivesAt)}
           </p>
           {offer.return && (
             <p className="text-xs text-slate-500 mt-0.5">
-              귀국 {offer.return.airline} · {offer.return.flightNo}
+              오는편 {offer.return.airline} · {offer.return.flightNo}
               {' · '}{fmtTime(offer.return.departsAt)} ~ {fmtTime(offer.return.arrivesAt)}
+              {' · '}{durationFromIso(offer.return.departsAt, offer.return.arrivesAt)}
             </p>
           )}
         </div>
@@ -117,14 +129,19 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
   const [status, setStatus] = useState<'idle' | 'searching' | 'done' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const isPastDate = !!startDate && startDate < todayStr();
+
   const canSearch =
     !!startDate &&
+    !isPastDate &&
     (tripType === 'ONE_WAY' || !!endDate) &&
     originIata.length === 3 &&
     destIata.length === 3;
 
   const dateWarning = !startDate
     ? '계획 날짜를 먼저 입력하세요'
+    : isPastDate
+    ? '지난 날짜는 검색할 수 없습니다'
     : tripType === 'ROUND_TRIP' && !endDate
     ? '왕복 검색을 위해 계획 종료일을 먼저 입력하세요'
     : null;
@@ -191,7 +208,7 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
             <input
               type="text"
               value={originIata}
-              onChange={(e) => setOriginIata(e.target.value.toUpperCase().slice(0, 3))}
+              onChange={(e) => setOriginIata(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
               placeholder="출발 (ICN)"
               maxLength={3}
               className="w-24 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center text-[#1A1A1A] uppercase focus:outline-none focus:border-blue-400"
@@ -200,7 +217,7 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
             <input
               type="text"
               value={destIata}
-              onChange={(e) => setDestIata(e.target.value.toUpperCase().slice(0, 3))}
+              onChange={(e) => setDestIata(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
               placeholder="도착 (NRT)"
               maxLength={3}
               className="w-24 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center text-[#1A1A1A] uppercase focus:outline-none focus:border-blue-400"

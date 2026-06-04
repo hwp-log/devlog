@@ -265,6 +265,13 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         </div>
       </div>
 
+      <FlightSearchSection
+        startDate={editor.startDate}
+        endDate={editor.endDate}
+        flight={editor.flight}
+        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
+      />
+
       {/* Day 탭 */}
       {hasDays ? (
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
@@ -388,13 +395,6 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           <span className="text-[#1A1A1A]">{formatAmount(totalCost, editor.currency)}</span>
         </div>
       </div>
-
-      <FlightSearchSection
-        startDate={editor.startDate}
-        endDate={editor.endDate}
-        flight={editor.flight}
-        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
-      />
 
       {saveError && (
         <p role="alert" className="text-sm text-red-600 mb-2">{saveError}</p>
