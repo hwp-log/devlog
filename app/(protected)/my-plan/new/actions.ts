@@ -160,7 +160,8 @@ export async function searchFlightsAction(params: {
   try {
     const offers = await searchFlights(params);
     return { offers };
-  } catch {
+  } catch (e) {
+    console.error('[flights] search failed:', e);
     return { error: '항공편 검색에 실패했습니다' };
   }
 }
