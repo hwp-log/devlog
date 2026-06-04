@@ -33,11 +33,30 @@ function fmtDateFromStr(dateStr: string) {
   return `${d.getMonth() + 1}.${d.getDate()} (${wd})`;
 }
 
-const IATA_INPUT_CLASS =
-  'bg-transparent border-b border-dashed border-slate-300 w-16 ' +
-  'text-[22px] font-bold text-[#1A1A1A] tracking-[-0.5px] leading-none ' +
-  'text-left uppercase focus:outline-none focus:border-blue-400 ' +
-  'placeholder:text-slate-200';
+const KR_AIRPORTS = ['ICN', 'GMP', 'CJU', 'PUS', 'TAE', 'CJJ'] as const;
+const JP_AIRPORTS = ['NRT', 'HND', 'KIX', 'FUK', 'CTS', 'NGO', 'OKA'] as const;
+
+const ROUTES: Record<string, string[]> = {
+  // 2026-06 기준 정기 직항 (한국 출발)
+  ICN: ['NRT', 'HND', 'KIX', 'FUK', 'CTS', 'NGO', 'OKA'],
+  GMP: ['HND', 'KIX', 'CJU', 'PUS'],
+  PUS: ['NRT', 'KIX', 'FUK', 'NGO', 'GMP', 'CJU'],
+  CJU: ['GMP', 'PUS', 'TAE', 'CJJ'],
+  TAE: ['CJU'],
+  CJJ: ['CJU'],
+  // 역방향 (위 노선에서 도출 — 새 노선 없음)
+  NRT: ['ICN', 'PUS'],
+  HND: ['ICN', 'GMP'],
+  KIX: ['ICN', 'GMP', 'PUS'],
+  FUK: ['ICN', 'PUS'],
+  CTS: ['ICN'],
+  NGO: ['ICN', 'PUS'],
+  OKA: ['ICN'],
+};
+
+const IATA_SELECT_CLASS =
+  'border border-slate-200 rounded-lg px-2 py-1.5 text-[13px] font-semibold ' +
+  'text-[#1A1A1A] bg-white focus:outline-none focus:border-blue-400 w-full';
 
 function SkeletonCard({
   label, origin, dest, dateStr, isReturn, isRoundTrip,
@@ -53,31 +72,38 @@ function SkeletonCard({
   onDestChange?: (v: string) => void;
 }) {
   return (
-    <div className={`bg-white border-[0.5px] rounded-[14px] px-6 py-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-[10px] ${
-      isReturn ? 'border-slate-200 opacity-60' : 'border-black/[0.08]'
-    }`}>
+    <div className={`glass-outer px-6 py-5 mb-[10px] ${isReturn ? 'opacity-60' : ''}`}>
       <p className="text-[11px] text-[#888] mb-3">{label}</p>
       <div className="flex items-center gap-5 flex-wrap">
 
-        <div className="shrink-0 min-w-[100px]">
+        <div className="w-[180px] shrink-0">
           {isReturn ? (
-            <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{origin || '?'}</p>
+            <div className="h-8 flex items-center justify-center">
+              <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{origin || '?'}</p>
+            </div>
           ) : (
-            <input
-              type="text"
-              value={origin}
-              onChange={(e) => onOriginChange?.(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
-              placeholder="NRT"
-              maxLength={3}
-              className={IATA_INPUT_CLASS}
-            />
+            <select value={origin} onChange={(e) => onOriginChange?.(e.target.value)} className={IATA_SELECT_CLASS}>
+              <option value="">공항 선택</option>
+              <optgroup label="한국">
+                {KR_AIRPORTS.map((iata) => (
+                  <option key={iata} value={iata}>{AIRPORT_NAME[iata]} ({iata})</option>
+                ))}
+              </optgroup>
+              <optgroup label="일본">
+                {JP_AIRPORTS.map((iata) => (
+                  <option key={iata} value={iata}>{AIRPORT_NAME[iata]} ({iata})</option>
+                ))}
+              </optgroup>
+            </select>
           )}
-          <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[origin] ?? ''}</p>
-          <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">{fmtDateFromStr(dateStr)}</p>
+          <p className={`text-[11px] mt-0.5 ${isReturn ? 'text-[#888] text-center' : 'invisible'}`}>
+            {isReturn ? (AIRPORT_NAME[origin] ?? '') : ' '}
+          </p>
+          {!!dateStr && <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">{fmtDateFromStr(dateStr)}</p>}
         </div>
 
         <div className="flex-1 flex flex-col items-center min-w-[80px]">
-          <p className="text-[11px] text-[#888] mb-1">? · 직항</p>
+          <p className="text-[11px] text-[#888] mb-1">직항</p>
           <div className="w-full h-px bg-[#E0E0E0] relative">
             <span className="absolute -right-1 top-1/2 -translate-y-1/2 bg-white px-1 text-[#5C7BC9]">
               {PLANE_ICON}
@@ -86,28 +112,31 @@ function SkeletonCard({
           <p className="text-[11px] text-[#888] mt-1">—</p>
         </div>
 
-        <div className="shrink-0 min-w-[100px]">
+        <div className="w-[180px] shrink-0">
           {isReturn ? (
-            <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{dest || '?'}</p>
-          ) : (
-            <input
-              type="text"
-              value={dest}
-              onChange={(e) => onDestChange?.(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
-              placeholder="ICN"
-              maxLength={3}
-              className={IATA_INPUT_CLASS}
-            />
-          )}
-          <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[dest] ?? ''}</p>
+            <div className="h-8 flex items-center justify-center">
+              <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{dest || '?'}</p>
+            </div>
+          ) : (() => {
+            const destOptions = ROUTES[origin] ?? [];
+            return (
+              <select value={dest} onChange={(e) => onDestChange?.(e.target.value)}
+                disabled={destOptions.length === 0} className={IATA_SELECT_CLASS}>
+                <option value="">공항 선택</option>
+                {destOptions.map((iata) => (
+                  <option key={iata} value={iata}>{AIRPORT_NAME[iata]} ({iata})</option>
+                ))}
+              </select>
+            );
+          })()}
+          <p className={`text-[11px] mt-0.5 ${isReturn ? 'text-[#888] text-center' : 'invisible'}`}>
+            {isReturn ? (AIRPORT_NAME[dest] ?? '') : ' '}
+          </p>
         </div>
 
         <div className="shrink-0 text-right min-w-[110px]">
           {!isReturn ? (
-            <>
-              <p className="text-[11px] text-[#888]">{isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}</p>
-              <p className="text-[18px] font-bold text-slate-200 mt-0.5">?</p>
-            </>
+            <p className="text-[11px] text-[#888]">{isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}</p>
           ) : (
             <p className="text-[11px] text-[#888]">상기 금액에 포함됨</p>
           )}
@@ -267,7 +296,10 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
             dateStr={startDate}
             isReturn={false}
             isRoundTrip={tripType === 'ROUND_TRIP'}
-            onOriginChange={(v) => setOriginIata(v)}
+            onOriginChange={(v) => {
+              setOriginIata(v);
+              if (destIata && !(ROUTES[v] ?? []).includes(destIata)) setDestIata('');
+            }}
             onDestChange={(v) => setDestIata(v)}
           />
           {tripType === 'ROUND_TRIP' && (

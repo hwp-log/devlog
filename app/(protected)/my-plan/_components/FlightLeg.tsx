@@ -16,8 +16,9 @@ export type FlightLegData = {
 
 export const AIRPORT_NAME: Record<string, string> = {
   ICN: '인천 국제', GMP: '서울 김포', PUS: '부산 김해', CJU: '제주',
+  TAE: '대구', CJJ: '청주',
   NRT: '도쿄 나리타', HND: '도쿄 하네다', KIX: '오사카 간사이',
-  FUK: '후쿠오카', OKA: '오키나와 나하', NGO: '나고야 중부',
+  FUK: '후쿠오카', OKA: '오키나와 나하', NGO: '나고야 중부', CTS: '삿포로 신치토세',
   BKK: '방콕 수완나품', HKT: '푸켓', SIN: '싱가포르 창이',
   HKG: '홍콩', TPE: '타이베이 타오위안', PEK: '베이징 수도',
   PVG: '상하이 푸동', JFK: 'New York JFK', LAX: 'LA 국제',
@@ -53,7 +54,7 @@ function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice }: {
 }) {
   const duration = durationMin(seg.departsAt, seg.arrivesAt);
   return (
-    <div className="bg-white border-[0.5px] border-black/[0.08] rounded-[14px] px-6 py-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-[10px]">
+    <div className="glass-outer px-6 py-5 mb-[10px]">
       <p className="text-[11px] text-[#888] mb-3">{label}</p>
       <div className="flex items-center gap-5 flex-wrap">
         <div className="shrink-0 min-w-[100px]">

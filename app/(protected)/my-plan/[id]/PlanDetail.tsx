@@ -117,9 +117,9 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
         )}
 
         {plan.description && (
-          <div className="mt-3 bg-orange-50 border border-orange-100 rounded-[10px] p-4">
-            <p className="text-xs font-semibold text-orange-400 mb-1">여행계획 간단소개</p>
-            <p className="text-sm text-orange-700 whitespace-pre-wrap">{plan.description}</p>
+          <div className="mt-3 glass-outer p-4">
+            <p className="text-xs font-semibold text-slate-500 mb-1">여행계획 간단소개</p>
+            <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{plan.description}</p>
           </div>
         )}
       </div>
