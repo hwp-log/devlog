@@ -89,7 +89,28 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1A1A1A]">{plan.title}</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl font-bold text-[#1A1A1A]">{plan.title}</h1>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={`/my-plan/${plan.id}/edit`}
+              className="px-4 py-1.5 rounded-full text-sm bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors"
+            >
+              수정
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                if (!confirm('계획을 삭제하시겠습니까?')) return;
+                startTransition(() => deleteAction(plan.id));
+              }}
+              disabled={isPending}
+              className="px-4 py-1.5 rounded-full text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              {isPending ? '삭제 중...' : '삭제'}
+            </button>
+          </div>
+        </div>
         <p className="text-sm text-slate-500 mt-1">
           {plan.currency}
           {plan.startDate && plan.endDate && (
@@ -208,24 +229,10 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
         currency={plan.currency as 'KRW' | 'USD' | 'JPY'}
       />
 
-      <div className="flex gap-3 mt-4">
-        <Link
-          href={`/my-plan/${plan.id}/edit`}
-          className="flex-1 py-2.5 rounded-full text-sm font-semibold text-center border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
-        >
-          수정
+      <div className="mt-4">
+        <Link href="/my-plan" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+          ← 목록으로
         </Link>
-        <button
-          type="button"
-          onClick={() => {
-            if (!confirm('계획을 삭제하시겠습니까?')) return;
-            startTransition(() => deleteAction(plan.id));
-          }}
-          disabled={isPending}
-          className="flex-1 py-2.5 rounded-full text-sm font-semibold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-colors disabled:opacity-50"
-        >
-          {isPending ? '삭제 중...' : '삭제'}
-        </button>
       </div>
     </div>
   );
