@@ -30,6 +30,8 @@ const CURRENCY_SYMBOL: Record<'KRW' | 'USD' | 'JPY', string> = {
   JPY: '¥',
 };
 
+export const FLIGHT_COLOR = '#38BDF8';
+
 export function formatAmount(
   amount: number,
   currency: 'KRW' | 'USD' | 'JPY',

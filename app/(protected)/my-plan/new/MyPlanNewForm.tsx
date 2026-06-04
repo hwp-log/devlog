@@ -7,9 +7,10 @@ import {
   CATEGORIES,
   CATEGORY_LABEL,
   CATEGORY_COLOR,
-  formatAmount,
   type CostCategory,
 } from '../_lib/cost';
+import { CATEGORY_ICON } from '../_components/CostSection';
+import { CostSection } from '../_components/CostSection';
 
 export type PlanItem = {
   id: string;
@@ -88,6 +89,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   const [selectedDay, setSelectedDay] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [dateMissing, setDateMissing] = useState({ start: false, end: false });
 
   function handleDateChange(field: 'startDate' | 'endDate', value: string) {
     setEditor((prev) => {
@@ -115,8 +117,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
     return totals;
   }, [editor.days]);
 
-  const totalCost = CATEGORIES.reduce((sum, cat) => sum + categoryTotals[cat], 0);
-  const maxCategoryAmount = Math.max(0, ...CATEGORIES.map((cat) => categoryTotals[cat]));
+  const flightAmount = editor.flight?.totalAmount ?? 0;
 
   const hasDays = editor.days.length > 0;
   const clampedDay = hasDays ? Math.min(selectedDay, editor.days.length) : 1;
@@ -143,7 +144,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
     setSaveError(null);
     const payload = {
       title: editor.title,
-      currency: editor.currency,
+      currency: 'KRW' as const,
       startDate: editor.startDate,
       endDate: editor.endDate,
       region: editor.region,
@@ -194,37 +195,23 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">통화</label>
-            <select
-              value={editor.currency}
-              onChange={(e) =>
-                setEditor((p) => ({ ...p, currency: e.target.value as EditorState['currency'] }))
-              }
-              className={INPUT_CLASS}
-            >
-              <option value="KRW">KRW — 한국 원</option>
-              <option value="USD">USD — 미국 달러</option>
-              <option value="JPY">JPY — 일본 엔</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">시작일</label>
+            <label className="text-sm font-medium text-[#1A1A1A]">출발일</label>
             <input
               type="date"
               value={editor.startDate}
               onChange={(e) => handleDateChange('startDate', e.target.value)}
-              className={INPUT_CLASS}
+              className={`${INPUT_CLASS}${dateMissing.start ? ' !border-red-400 focus:!border-red-400' : ''}`}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">종료일</label>
+            <label className="text-sm font-medium text-[#1A1A1A]">도착일</label>
             <input
               type="date"
               value={editor.endDate}
               onChange={(e) => handleDateChange('endDate', e.target.value)}
-              className={INPUT_CLASS}
+              className={`${INPUT_CLASS}${dateMissing.end ? ' !border-red-400 focus:!border-red-400' : ''}`}
             />
           </div>
         </div>
@@ -270,6 +257,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         endDate={editor.endDate}
         flight={editor.flight}
         onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
+        onDateMissingChange={setDateMissing}
       />
 
       {/* Day 탭 */}
@@ -307,7 +295,16 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         ) : (
           <div className="flex flex-col gap-3">
             {currentItems.map((item) => (
-              <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
+              <div key={item.id} className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-2 items-center">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                  style={item.category
+                    ? { backgroundColor: CATEGORY_COLOR[item.category as CostCategory] + '20', color: CATEGORY_COLOR[item.category as CostCategory] }
+                    : { backgroundColor: 'white', border: '1.5px solid #e2e8f0' }
+                  }
+                >
+                  {item.category ? CATEGORY_ICON[item.category as CostCategory] : null}
+                </div>
                 <input
                   type="text"
                   value={item.name}
@@ -363,38 +360,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         )}
       </div>
 
-      {/* 카테고리 비용 막대 */}
-      <div className="glass-outer p-5 mb-4">
-        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-          카테고리별 비용
-        </p>
-        <div className="flex flex-col gap-2">
-          {CATEGORIES.map((cat) => {
-            const barPct =
-              maxCategoryAmount > 0
-                ? (categoryTotals[cat] / maxCategoryAmount) * 100
-                : 0;
-            return (
-              <div key={cat} className="flex items-center text-sm gap-2">
-                <span className="text-slate-600 w-16 shrink-0">{CATEGORY_LABEL[cat]}</span>
-                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-200"
-                    style={{ width: `${barPct}%`, backgroundColor: CATEGORY_COLOR[cat] }}
-                  />
-                </div>
-                <span className="text-slate-500 text-xs w-24 text-right shrink-0">
-                  {formatAmount(categoryTotals[cat], editor.currency)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm font-semibold">
-          <span className="text-[#1A1A1A]">총 비용</span>
-          <span className="text-[#1A1A1A]">{formatAmount(totalCost, editor.currency)}</span>
-        </div>
-      </div>
+      <CostSection
+        totals={categoryTotals}
+        flightAmount={flightAmount}
+        currency="KRW"
+      />
 
       {saveError && (
         <p role="alert" className="text-sm text-red-600 mb-2">{saveError}</p>

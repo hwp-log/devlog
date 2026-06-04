@@ -1,17 +1,19 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FlightOffer } from '@/lib/flights';
 import { searchFlightsAction } from './actions';
+import { FlightLeg, AIRPORT_NAME, PLANE_ICON } from '../_components/FlightLeg';
 
 interface Props {
   startDate: string;
   endDate: string;
   flight: FlightOffer | null;
   onChange: (offer: FlightOffer | null) => void;
+  onDateMissingChange?: (missing: { start: boolean; end: boolean }) => void;
 }
 
 function fmtTime(iso: string) {
-  return iso.slice(11, 16);
+  return new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function todayStr() {
@@ -24,53 +26,93 @@ function durationFromIso(departsAt: string, arrivesAt: string) {
   return `${Math.floor(m / 60)}시간 ${m % 60}분`;
 }
 
-function SelectedCard({
-  flight,
-  onClear,
+function fmtDateFromStr(dateStr: string) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  const wd = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+  return `${d.getMonth() + 1}.${d.getDate()} (${wd})`;
+}
+
+const IATA_INPUT_CLASS =
+  'bg-transparent border-b border-dashed border-slate-300 w-16 ' +
+  'text-[22px] font-bold text-[#1A1A1A] tracking-[-0.5px] leading-none ' +
+  'text-left uppercase focus:outline-none focus:border-blue-400 ' +
+  'placeholder:text-slate-200';
+
+function SkeletonCard({
+  label, origin, dest, dateStr, isReturn, isRoundTrip,
+  onOriginChange, onDestChange,
 }: {
-  flight: FlightOffer;
-  onClear: () => void;
+  label: string;
+  origin: string;
+  dest: string;
+  dateStr: string;
+  isReturn: boolean;
+  isRoundTrip: boolean;
+  onOriginChange?: (v: string) => void;
+  onDestChange?: (v: string) => void;
 }) {
-  const isRoundTrip = flight.tripType === 'ROUND_TRIP';
   return (
-    <div className="bg-blue-50 border border-blue-100 rounded-[10px] p-4 mb-3">
-      <p className="text-xs font-semibold text-blue-500 mb-2 uppercase tracking-wide">
-        선택된 항공편
-      </p>
-      <div className="space-y-2">
-        <div>
-          <p className="text-xs text-slate-500">가는편</p>
-          <p className="text-sm font-medium text-[#1A1A1A]">
-            {flight.outbound.airline} · {flight.outbound.flightNo}
-          </p>
-          <p className="text-sm text-slate-600">
-            {flight.outbound.origin} → {flight.outbound.destination}
-            {' · '}{fmtTime(flight.outbound.departsAt)} ~ {fmtTime(flight.outbound.arrivesAt)}
-          </p>
+    <div className={`bg-white border-[0.5px] rounded-[14px] px-6 py-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-[10px] ${
+      isReturn ? 'border-slate-200 opacity-60' : 'border-black/[0.08]'
+    }`}>
+      <p className="text-[11px] text-[#888] mb-3">{label}</p>
+      <div className="flex items-center gap-5 flex-wrap">
+
+        <div className="shrink-0 min-w-[100px]">
+          {isReturn ? (
+            <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{origin || '?'}</p>
+          ) : (
+            <input
+              type="text"
+              value={origin}
+              onChange={(e) => onOriginChange?.(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
+              placeholder="NRT"
+              maxLength={3}
+              className={IATA_INPUT_CLASS}
+            />
+          )}
+          <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[origin] ?? ''}</p>
+          <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">{fmtDateFromStr(dateStr)}</p>
         </div>
-        {isRoundTrip && flight.return && (
-          <div>
-            <p className="text-xs text-slate-500">오는편</p>
-            <p className="text-sm font-medium text-[#1A1A1A]">
-              {flight.return.airline} · {flight.return.flightNo}
-            </p>
-            <p className="text-sm text-slate-600">
-              {flight.return.origin} → {flight.return.destination}
-              {' · '}{fmtTime(flight.return.departsAt)} ~ {fmtTime(flight.return.arrivesAt)}
-            </p>
+
+        <div className="flex-1 flex flex-col items-center min-w-[80px]">
+          <p className="text-[11px] text-[#888] mb-1">? · 직항</p>
+          <div className="w-full h-px bg-[#E0E0E0] relative">
+            <span className="absolute -right-1 top-1/2 -translate-y-1/2 bg-white px-1 text-[#5C7BC9]">
+              {PLANE_ICON}
+            </span>
           </div>
-        )}
-        <p className="text-sm font-semibold text-[#1A1A1A] pt-1">
-          {isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'} ₩{flight.totalAmount.toLocaleString()}
-        </p>
+          <p className="text-[11px] text-[#888] mt-1">—</p>
+        </div>
+
+        <div className="shrink-0 min-w-[100px]">
+          {isReturn ? (
+            <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{dest || '?'}</p>
+          ) : (
+            <input
+              type="text"
+              value={dest}
+              onChange={(e) => onDestChange?.(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
+              placeholder="ICN"
+              maxLength={3}
+              className={IATA_INPUT_CLASS}
+            />
+          )}
+          <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[dest] ?? ''}</p>
+        </div>
+
+        <div className="shrink-0 text-right min-w-[110px]">
+          {!isReturn ? (
+            <>
+              <p className="text-[11px] text-[#888]">{isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}</p>
+              <p className="text-[18px] font-bold text-slate-200 mt-0.5">?</p>
+            </>
+          ) : (
+            <p className="text-[11px] text-[#888]">상기 금액에 포함됨</p>
+          )}
+        </div>
       </div>
-      <button
-        type="button"
-        onClick={onClear}
-        className="mt-3 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
-      >
-        변경
-      </button>
     </div>
   );
 }
@@ -120,7 +162,7 @@ function OfferCard({
   );
 }
 
-export function FlightSearchSection({ startDate, endDate, flight, onChange }: Props) {
+export function FlightSearchSection({ startDate, endDate, flight, onChange, onDateMissingChange }: Props) {
   const [showForm, setShowForm] = useState(!flight);
   const [tripType, setTripType] = useState<'ONE_WAY' | 'ROUND_TRIP'>('ROUND_TRIP');
   const [originIata, setOriginIata] = useState('');
@@ -138,8 +180,16 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
     originIata.length === 3 &&
     destIata.length === 3;
 
+  const bothIata = showForm && originIata.length === 3 && destIata.length === 3;
+  const startMissing = bothIata && !startDate;
+  const endMissing   = bothIata && tripType === 'ROUND_TRIP' && !endDate;
+
+  useEffect(() => {
+    onDateMissingChange?.({ start: startMissing, end: endMissing });
+  }, [startMissing, endMissing, onDateMissingChange]);
+
   const dateWarning = !startDate
-    ? '계획 날짜를 먼저 입력하세요'
+    ? '출발일, 도착일을 입력해주세요'
     : isPastDate
     ? '지난 날짜는 검색할 수 없습니다'
     : tripType === 'ROUND_TRIP' && !endDate
@@ -170,19 +220,25 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
   return (
     <div className="glass-outer p-5 mb-4">
       <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-        항공편
+        항공편 (예상)
       </p>
 
       {flight && !showForm && (
-        <SelectedCard
-          flight={flight}
-          onClear={() => {
-            onChange(null);
-            setShowForm(true);
-            setStatus('idle');
-            setOffers([]);
-          }}
-        />
+        <>
+          <FlightLeg data={{ tripType: flight.tripType, totalAmount: flight.totalAmount, out: flight.outbound, ret: flight.return }} />
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null);
+              setShowForm(true);
+              setStatus('idle');
+              setOffers([]);
+            }}
+            className="mt-1 mb-3 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            변경
+          </button>
+        </>
       )}
 
       {showForm && (
@@ -204,36 +260,26 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
             ))}
           </div>
 
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="text"
-              value={originIata}
-              onChange={(e) => setOriginIata(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
-              placeholder="출발 (ICN)"
-              maxLength={3}
-              className="w-24 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center text-[#1A1A1A] uppercase focus:outline-none focus:border-blue-400"
+          <SkeletonCard
+            label="가는편"
+            origin={originIata}
+            dest={destIata}
+            dateStr={startDate}
+            isReturn={false}
+            isRoundTrip={tripType === 'ROUND_TRIP'}
+            onOriginChange={(v) => setOriginIata(v)}
+            onDestChange={(v) => setDestIata(v)}
+          />
+          {tripType === 'ROUND_TRIP' && (
+            <SkeletonCard
+              label="오는편"
+              origin={destIata}
+              dest={originIata}
+              dateStr={endDate}
+              isReturn={true}
+              isRoundTrip={true}
             />
-            <span className="text-slate-400">→</span>
-            <input
-              type="text"
-              value={destIata}
-              onChange={(e) => setDestIata(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3))}
-              placeholder="도착 (NRT)"
-              maxLength={3}
-              className="w-24 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center text-[#1A1A1A] uppercase focus:outline-none focus:border-blue-400"
-            />
-          </div>
-
-          <div className="mb-3 space-y-1">
-            <p className="text-xs text-slate-500">
-              가는편: <span className="text-slate-700">{startDate || '—'}</span>
-            </p>
-            {tripType === 'ROUND_TRIP' && (
-              <p className="text-xs text-slate-500">
-                오는편: <span className="text-slate-700">{endDate || '—'}</span>
-              </p>
-            )}
-          </div>
+          )}
 
           {dateWarning && (
             <p className="text-xs text-amber-600 mb-3">{dateWarning}</p>
@@ -253,7 +299,10 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange }: Pr
       {showForm && status === 'done' && (
         <div className="mt-4">
           {offers.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-4">직항 결과가 없습니다.</p>
+            <>
+              <p className="text-sm text-slate-400 text-center py-4">검색 결과가 없습니다.</p>
+              <p className="text-xs text-red-500 text-center">출발일을 1~2일 뒤로 변경하거나, 직항이 있는 노선인지 확인해보세요.</p>
+            </>
           ) : (
             <>
               {offers.map((offer, i) => (
