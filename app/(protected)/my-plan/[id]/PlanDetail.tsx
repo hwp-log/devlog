@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import type { MyPlan, PlanSpot, PlanCost } from '@prisma/client';
+import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import {
   CATEGORIES,
   CATEGORY_LABEL,
@@ -9,6 +9,33 @@ import {
   formatAmount,
   type CostCategory,
 } from '../_lib/cost';
+
+const AIRPORT_NAME: Record<string, string> = {
+  ICN: '인천국제', GMP: '서울김포', PUS: '부산김해', CJU: '제주',
+  NRT: '도쿄나리타', HND: '도쿄하네다', KIX: '오사카간사이',
+  FUK: '후쿠오카', OKA: '오키나와나하', NGO: '나고야중부',
+  BKK: '방콕수완나품', HKT: '푸켓', SIN: '싱가포르창이',
+  HKG: '홍콩', TPE: '타이베이타오위안', PEK: '베이징수도',
+  PVG: '상하이푸동', JFK: 'New York JFK', LAX: 'LA국제',
+};
+
+function airportLabel(iata: string) {
+  const name = AIRPORT_NAME[iata];
+  return name ? `${iata} ${name}` : iata;
+}
+
+function durationMin(from: Date, to: Date) {
+  const m = Math.round((to.getTime() - from.getTime()) / 60000);
+  return `${Math.floor(m / 60)}시간 ${m % 60}분`;
+}
+
+function fmtTime(d: Date) {
+  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function fmtDateKo(d: Date) {
+  return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
+}
 
 function calcCostSummary(costs: PlanCost[]): Record<CostCategory, number> {
   const totals: Record<CostCategory, number> = {
@@ -24,7 +51,7 @@ function calcCostSummary(costs: PlanCost[]): Record<CostCategory, number> {
   return totals;
 }
 
-type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[] };
+type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
 
 interface Props {
   plan: FullPlan;
@@ -43,6 +70,37 @@ function buildTimeline(spots: PlanSpot[], costs: PlanCost[], day: number) {
     spot,
     cost: costMap.get(spot.id) ?? null,
   }));
+}
+
+function FlightLeg({ leg, flight }: { leg: 'out' | 'ret'; flight: PlanFlight }) {
+  const isOut = leg === 'out';
+  const origin      = isOut ? flight.outOrigin      : (flight.retOrigin ?? '');
+  const destination = isOut ? flight.outDestination : (flight.retDestination ?? '');
+  const departsAt   = isOut ? flight.outDepartsAt   : flight.retDepartsAt!;
+  const arrivesAt   = isOut ? flight.outArrivesAt   : flight.retArrivesAt!;
+  const airline     = isOut ? flight.outAirline     : (flight.retAirline ?? '');
+  const flightNo    = isOut ? flight.outFlightNo    : (flight.retFlightNo ?? '');
+
+  return (
+    <div className={isOut ? 'mb-3' : 'mt-2 pt-2 border-t border-slate-100'}>
+      <p className="text-xs text-slate-500 mb-1">{isOut ? '가는편' : '오는편'}</p>
+      <p className="text-sm font-medium text-[#1A1A1A]">{airline} · {flightNo}</p>
+      <p className="text-xs text-slate-600 mt-0.5">
+        {airportLabel(origin)} → {airportLabel(destination)}
+      </p>
+      <p className="text-xs text-slate-600">
+        {fmtDateKo(departsAt)} · {fmtTime(departsAt)} ~ {fmtTime(arrivesAt)}
+        {' · '}{durationMin(departsAt, arrivesAt)}
+      </p>
+      {isOut ? (
+        <p className="text-sm font-semibold text-[#1A1A1A] mt-1">
+          {flight.tripType === 'ROUND_TRIP' ? '왕복(예상)' : '편도(예상)'} ₩{flight.totalAmount.toLocaleString()}
+        </p>
+      ) : (
+        <p className="text-xs text-slate-400 mt-1">포함 (위와 동일)</p>
+      )}
+    </div>
+  );
 }
 
 export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
@@ -141,7 +199,6 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
         )}
       </div>
 
-      {/* 카테고리 비용 요약 (읽기 전용) */}
       <div className="glass-outer p-5 mb-4">
         <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
           카테고리별 비용
@@ -173,6 +230,18 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
           </span>
         </div>
       </div>
+
+      {plan.flight && (
+        <div className="glass-outer p-5 mb-4">
+          <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+            항공편 (예상)
+          </p>
+          <FlightLeg leg="out" flight={plan.flight} />
+          {plan.flight.tripType === 'ROUND_TRIP' && plan.flight.retOrigin && (
+            <FlightLeg leg="ret" flight={plan.flight} />
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3 mt-4">
         <Link

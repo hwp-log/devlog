@@ -2,7 +2,9 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import type { Currency, CostCategory, Prisma } from '@prisma/client';
+import type { Currency, CostCategory, TripType, Prisma } from '@prisma/client';
+import { searchFlights } from '@/lib/flights';
+import type { FlightOffer } from '@/lib/flights';
 
 type SaveItem = {
   day: number;
@@ -21,7 +23,27 @@ type SavePayload = {
   movie: string;
   description: string;
   items: SaveItem[];
+  flight: FlightOffer | null;
 };
+
+function flightFields(offer: FlightOffer) {
+  return {
+    tripType:       offer.tripType as TripType,
+    totalAmount:    offer.totalAmount,
+    outOrigin:      offer.outbound.origin,
+    outDestination: offer.outbound.destination,
+    outDepartsAt:   new Date(offer.outbound.departsAt),
+    outArrivesAt:   new Date(offer.outbound.arrivesAt),
+    outAirline:     offer.outbound.airline,
+    outFlightNo:    offer.outbound.flightNo,
+    retOrigin:      offer.return?.origin      ?? null,
+    retDestination: offer.return?.destination ?? null,
+    retDepartsAt:   offer.return ? new Date(offer.return.departsAt) : null,
+    retArrivesAt:   offer.return ? new Date(offer.return.arrivesAt) : null,
+    retAirline:     offer.return?.airline     ?? null,
+    retFlightNo:    offer.return?.flightNo    ?? null,
+  };
+}
 
 async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items: SaveItem[]): Promise<void> {
   for (const item of items) {
@@ -63,6 +85,9 @@ export async function createPlanWithItemsAction(
         },
       });
       await buildPlanRows(tx, plan.id, payload.items);
+      if (payload.flight) {
+        await tx.planFlight.create({ data: { planId: plan.id, ...flightFields(payload.flight) } });
+      }
       return plan;
     });
     planId = result.id;
@@ -104,6 +129,15 @@ export async function updatePlanWithItemsAction(
       await tx.planCost.deleteMany({ where: { planId } });
       await tx.planSpot.deleteMany({ where: { planId } });
       await buildPlanRows(tx, planId, payload.items);
+      if (payload.flight) {
+        await tx.planFlight.upsert({
+          where:  { planId },
+          create: { planId, ...flightFields(payload.flight) },
+          update: flightFields(payload.flight),
+        });
+      } else {
+        await tx.planFlight.deleteMany({ where: { planId } });
+      }
     });
   } catch {
     return { error: '저장 중 오류가 발생했습니다' };
@@ -112,10 +146,29 @@ export async function updatePlanWithItemsAction(
   redirect(`/my-plan/${planId}`);
 }
 
+export async function searchFlightsAction(params: {
+  tripType: 'ONE_WAY' | 'ROUND_TRIP';
+  originIata: string;
+  destinationIata: string;
+  departDate: string;
+  returnDate?: string;
+}): Promise<{ offers: FlightOffer[] } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: '로그인이 필요합니다' };
+
+  try {
+    const offers = await searchFlights(params);
+    return { offers };
+  } catch {
+    return { error: '항공편 검색에 실패했습니다' };
+  }
+}
+
 type ActionState = { error: string } | null;
 
 export async function createMyPlanAction(
-  prevState: ActionState,
+  _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();

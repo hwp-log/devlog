@@ -1,12 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import type { MyPlan, PlanSpot, PlanCost } from '@prisma/client';
+import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { MyPlanNewForm } from '../../new/MyPlanNewForm';
 import type { EditorState, DayPlan, PlanItem } from '../../new/MyPlanNewForm';
+import type { FlightOffer } from '@/lib/flights';
 
 type Props = { params: Promise<{ id: string }> };
-type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[] };
+type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
 
 function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
   const costBySpotId = new Map(
@@ -37,6 +38,27 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
     return { day, items };
   });
 
+  const flightSlot: FlightOffer | null = plan.flight ? {
+    tripType: plan.flight.tripType as 'ONE_WAY' | 'ROUND_TRIP',
+    totalAmount: plan.flight.totalAmount,
+    outbound: {
+      origin:      plan.flight.outOrigin,
+      destination: plan.flight.outDestination,
+      departsAt:   plan.flight.outDepartsAt.toISOString(),
+      arrivesAt:   plan.flight.outArrivesAt.toISOString(),
+      airline:     plan.flight.outAirline,
+      flightNo:    plan.flight.outFlightNo,
+    },
+    return: plan.flight.retOrigin ? {
+      origin:      plan.flight.retOrigin,
+      destination: plan.flight.retDestination!,
+      departsAt:   plan.flight.retDepartsAt!.toISOString(),
+      arrivesAt:   plan.flight.retArrivesAt!.toISOString(),
+      airline:     plan.flight.retAirline!,
+      flightNo:    plan.flight.retFlightNo!,
+    } : undefined,
+  } : null;
+
   return {
     title: plan.title,
     currency: plan.currency as EditorState['currency'],
@@ -46,6 +68,7 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
     movie: plan.movie ?? '',
     description: plan.description ?? '',
     days,
+    flight: flightSlot,
   };
 }
 
@@ -61,6 +84,7 @@ export default async function MyPlanEditPage({ params }: Props) {
     include: {
       spots: { orderBy: { order: 'asc' } },
       costs: { orderBy: { createdAt: 'asc' } },
+      flight: true,
     },
   });
   if (!plan) notFound();

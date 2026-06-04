@@ -18,6 +18,7 @@ export default async function MyPlanDetailPage({ params }: Props) {
     include: {
       spots: { orderBy: { order: 'asc' } },
       costs: { orderBy: { createdAt: 'asc' } },
+      flight: true,
     },
   });
   if (!plan) notFound();
@@ -28,5 +29,11 @@ export default async function MyPlanDetailPage({ params }: Props) {
     dayCount = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
   }
 
-  return <PlanDetail plan={plan} dayCount={dayCount} deleteAction={deleteMyPlanAction} />;
+  return (
+    <PlanDetail
+      plan={plan}
+      dayCount={dayCount}
+      deleteAction={deleteMyPlanAction}
+    />
+  );
 }

@@ -22,7 +22,6 @@ export async function addPlanItemAction(
 
   if (!name) return { error: '이름을 입력해주세요' };
 
-  // 소유 검증 — 클라이언트에서 받은 planId가 본인 것인지 확인
   const plan = await prisma.myPlan.findFirst({
     where: { id: planId, ownerId: user.id },
     select: { id: true },

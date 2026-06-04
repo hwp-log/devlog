@@ -1,6 +1,8 @@
 'use client';
 import { useState, useMemo, useTransition } from 'react';
 import { createPlanWithItemsAction, updatePlanWithItemsAction } from './actions';
+import { FlightSearchSection } from './FlightSearchSection';
+import type { FlightOffer } from '@/lib/flights';
 import {
   CATEGORIES,
   CATEGORY_LABEL,
@@ -30,6 +32,7 @@ export type EditorState = {
   movie: string;
   description: string;
   days: DayPlan[];
+  flight: FlightOffer | null;
 };
 
 interface Props {
@@ -77,6 +80,7 @@ const DEFAULT_STATE: EditorState = {
   movie: '',
   description: '',
   days: [],
+  flight: null,
 };
 
 export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) {
@@ -156,6 +160,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
             amount: item.amount,
           })),
       ),
+      flight: editor.flight,
     };
     startTransition(async () => {
       if (mode === 'edit' && planId) {
@@ -383,6 +388,13 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           <span className="text-[#1A1A1A]">{formatAmount(totalCost, editor.currency)}</span>
         </div>
       </div>
+
+      <FlightSearchSection
+        startDate={editor.startDate}
+        endDate={editor.endDate}
+        flight={editor.flight}
+        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
+      />
 
       {saveError && (
         <p role="alert" className="text-sm text-red-600 mb-2">{saveError}</p>
