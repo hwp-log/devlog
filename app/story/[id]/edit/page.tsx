@@ -17,6 +17,18 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id !== story.userId) redirect(`/story/${id}`);
 
+  const availablePlans = await prisma.myPlan.findMany({
+    where: {
+      ownerId: user.id,
+      OR: [{ story: null }, { story: { id: story.id } }],
+    },
+    select: {
+      id: true, title: true, currency: true,
+      costs: { select: { category: true, amount: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
   const boundAction = updateStoryAction.bind(null, story.id);
 
   return (
@@ -30,6 +42,8 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
         userId={user.id}
         spots={story.spots}
         storyId={story.id}
+        availablePlans={availablePlans}
+        initialPlanId={story.planId}
       />
       </div>
     </div>

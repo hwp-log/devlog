@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -23,9 +24,16 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   const tagNames: string[] = JSON.parse(tagsRaw || '[]');
   const spotsRaw = formData.get('spots') as string;
   const spotsData: LocalSpot[] = JSON.parse(spotsRaw || '[]');
+  const planIdRaw = formData.get('plan_id')?.toString().trim() ?? '';
+  const planId = planIdRaw || null;
 
   if (!title) return { error: '제목을 입력해주세요' };
   if (!content) return { error: '본문을 입력해주세요' };
+
+  if (planId) {
+    const plan = await prisma.myPlan.findUnique({ where: { id: planId }, select: { ownerId: true } });
+    if (!plan || plan.ownerId !== user.id) return { error: '유효하지 않은 플랜입니다.' };
+  }
 
   // 파일 검증 (트랜잭션 전)
   for (const [key, value] of formData.entries()) {
@@ -37,65 +45,73 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   // 트랜잭션: Story 업데이트 + Spots 동기화, 신규 spot real ID 획득
   const tmpToReal: Array<{ tmpId: string; realId: string }> = [];
 
-  await prisma.$transaction(async (tx) => {
-    await tx.story.update({
-      where: { id: storyId },
-      data: {
-        title,
-        content,
-        tags: {
-          set: [],
-          connectOrCreate: tagNames.map((name) => ({
-            where: { name },
-            create: { name },
-          })),
-        },
-      },
-    });
-
-    // 제출된 목록에서 실제 DB ID(tmp_ 아닌 것)만 추출
-    const realIds = spotsData
-      .filter((s) => !s.id.startsWith('tmp_'))
-      .map((s) => s.id);
-
-    // 제출 목록에 없는 기존 spot 삭제
-    await tx.spot.deleteMany({ where: { storyId, id: { notIn: realIds } } });
-
-    // 기존 spot order/name/review/photoUrl 업데이트
-    for (const [i, spot] of spotsData.entries()) {
-      if (!spot.id.startsWith('tmp_')) {
-        const hasPendingFile = formData.get(`spotPhoto_${spot.id}`) instanceof File;
-        await tx.spot.update({
-          where: { id: spot.id },
-          data: {
-            order: i + 1,
-            name: spot.name,
-            review: spot.review ?? null,
-            photoUrl: hasPendingFile ? undefined : (spot.photoUrl ?? null),
-          },
-        });
-      }
-    }
-
-    // 새 spot 추가 (tmp_ ID) — create 루프로 real ID 획득
-    for (const [i, spot] of spotsData.entries()) {
-      if (!spot.id.startsWith('tmp_')) continue;
-      const created = await tx.spot.create({
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.story.update({
+        where: { id: storyId },
         data: {
-          storyId,
-          name: spot.name,
-          lat: spot.lat,
-          lng: spot.lng,
-          order: i + 1,
-          review: spot.review ?? null,
-          address: spot.address ?? null,
-          description: spot.description ?? null,
-          photoUrl: null,
+          title,
+          content,
+          planId,
+          tags: {
+            set: [],
+            connectOrCreate: tagNames.map((name) => ({
+              where: { name },
+              create: { name },
+            })),
+          },
         },
       });
-      tmpToReal.push({ tmpId: spot.id, realId: created.id });
+
+      // 제출된 목록에서 실제 DB ID(tmp_ 아닌 것)만 추출
+      const realIds = spotsData
+        .filter((s) => !s.id.startsWith('tmp_'))
+        .map((s) => s.id);
+
+      // 제출 목록에 없는 기존 spot 삭제
+      await tx.spot.deleteMany({ where: { storyId, id: { notIn: realIds } } });
+
+      // 기존 spot order/name/review/photoUrl 업데이트
+      for (const [i, spot] of spotsData.entries()) {
+        if (!spot.id.startsWith('tmp_')) {
+          const hasPendingFile = formData.get(`spotPhoto_${spot.id}`) instanceof File;
+          await tx.spot.update({
+            where: { id: spot.id },
+            data: {
+              order: i + 1,
+              name: spot.name,
+              review: spot.review ?? null,
+              photoUrl: hasPendingFile ? undefined : (spot.photoUrl ?? null),
+            },
+          });
+        }
+      }
+
+      // 새 spot 추가 (tmp_ ID) — create 루프로 real ID 획득
+      for (const [i, spot] of spotsData.entries()) {
+        if (!spot.id.startsWith('tmp_')) continue;
+        const created = await tx.spot.create({
+          data: {
+            storyId,
+            name: spot.name,
+            lat: spot.lat,
+            lng: spot.lng,
+            order: i + 1,
+            review: spot.review ?? null,
+            address: spot.address ?? null,
+            description: spot.description ?? null,
+            photoUrl: null,
+          },
+        });
+        tmpToReal.push({ tmpId: spot.id, realId: created.id });
+      }
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return { error: '이미 다른 스토리에 연결된 플랜입니다.' };
     }
-  });
+    throw e;
+  }
 
   // 트랜잭션 바깥: Storage 업로드 (부분 실패 허용)
   for (const { tmpId, realId } of tmpToReal) {

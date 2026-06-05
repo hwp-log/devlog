@@ -8,20 +8,42 @@ import type { LocalSpot } from '@/lib/types';
 
 type ActionState = { error: string } | null;
 
+export type PlanWithCosts = {
+  id: string;
+  title: string;
+  currency: 'KRW' | 'USD' | 'JPY';
+  costs: { category: string; amount: number }[];
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  TRANSPORT: '교통', ACCOMMODATION: '숙박',
+  FOOD: '식비', ENTRANCE: '입장료', ETC: '기타',
+};
+
+function formatAmount(amount: number, currency: string) {
+  const localeMap: Record<string, string> = { KRW: 'ko-KR', USD: 'en-US', JPY: 'ja-JP' };
+  return new Intl.NumberFormat(localeMap[currency] ?? 'ko-KR', {
+    style: 'currency', currency, maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initialData?: { title: string; content: string; tags: string[] };
   userId: string;
   spots?: Spot[];
   storyId?: string;
+  availablePlans?: PlanWithCosts[];
+  initialPlanId?: string | null;
 }
 
-export function StoryWriteForm({ action, initialData, userId, spots = [] }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData, userId, spots = [], availablePlans = [], initialPlanId }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [, startTransition] = useTransition();
   const [content, setContent] = useState(initialData?.content ?? '');
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(initialPlanId ?? null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialLocalSpots = useMemo(() => spots.map((s): LocalSpot => ({
@@ -135,6 +157,45 @@ export function StoryWriteForm({ action, initialData, userId, spots = [] }: Stor
               )}
               <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             </div>
+            {availablePlans.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-[#1A1A1A]">내 플랜 연결</label>
+                <select
+                  value={selectedPlanId ?? ''}
+                  onChange={(e) => setSelectedPlanId(e.target.value || null)}
+                  className="w-full border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all"
+                >
+                  <option value="">연결 안 함</option>
+                  {availablePlans.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+                {selectedPlanId && (() => {
+                  const plan = availablePlans.find((p) => p.id === selectedPlanId);
+                  if (!plan) return null;
+                  const total = plan.costs.reduce((s, c) => s + c.amount, 0);
+                  const byCat = Object.entries(CATEGORY_LABELS)
+                    .map(([key, label]) => {
+                      const sum = plan.costs
+                        .filter((c) => c.category === key)
+                        .reduce((s, c) => s + c.amount, 0);
+                      return sum > 0 ? { label, sum } : null;
+                    })
+                    .filter(Boolean) as { label: string; sum: number }[];
+                  return (
+                    <div className="rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      <p className="font-medium mb-2">이 플랜을 연결하면 아래 비용 정보가 스토리에 공개됩니다</p>
+                      <p className="mb-1">합계: {formatAmount(total, plan.currency)}</p>
+                      {byCat.length > 0 && (
+                        <p className="text-amber-700">
+                          {byCat.map((c) => `${c.label} ${formatAmount(c.sum, plan.currency)}`).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
             {state && 'error' in state && (
               <p role="alert" className="text-sm text-red-600">{state.error}</p>
             )}
@@ -148,6 +209,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [] }: Stor
                 : (isPending ? '등록 중...' : '스토리 등록')}
             </button>
             <input type="hidden" name="spots" value={spotsJson} />
+            <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
           </div>
         </form>
       </div>
