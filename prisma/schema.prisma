@@ -45,7 +45,10 @@ model Story {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  planId    String?  @unique @map("plan_id")
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      MyPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
   tags      Tag[]
   spots     Spot[]
 
@@ -98,6 +101,7 @@ model MyPlan {
   createdAt     DateTime  @default(now()) @map("created_at")
 
   owner  User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  story  Story?
   spots  PlanSpot[]
   costs  PlanCost[]
   flight PlanFlight?
