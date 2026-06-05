@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
 import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin } from 'lucide-react';
+import { CostSection } from '@/app/(protected)/my-plan/_components/CostSection';
+import { CATEGORIES, type CostCategory } from '@/app/(protected)/my-plan/_lib/cost';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,11 +16,34 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
 
   const story = await prisma.story.findUnique({
     where: { id },
-    include: { user: true, tags: true, spots: { orderBy: { order: 'asc' } } },
+    include: {
+      user: true,
+      tags: true,
+      spots: { orderBy: { order: 'asc' } },
+      plan: {
+        select: {
+          currency: true,
+          costs: { select: { category: true, amount: true } },
+          flight: { select: { totalAmount: true } },
+        },
+      },
+    },
   });
   if (!story) notFound();
 
   const isOwner = currentUser?.id === story.userId;
+
+  const costTotals = story.plan
+    ? (Object.fromEntries(
+        CATEGORIES.map((cat) => [
+          cat,
+          story.plan!.costs
+            .filter((c) => c.category === cat)
+            .reduce((s, c) => s + c.amount, 0),
+        ])
+      ) as Record<CostCategory, number>)
+    : null;
+  const flightAmount = story.plan?.flight?.totalAmount ?? 0;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -66,6 +91,16 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             여행동선
           </h2>
           <SpotMap spots={story.spots} readOnly />
+        </div>
+      )}
+      {story.plan && costTotals && (
+        <div className="mt-6">
+          <h2 className="text-base font-semibold text-[#1A1A1A] mb-4">예산 요약</h2>
+          <CostSection
+            totals={costTotals}
+            flightAmount={flightAmount}
+            currency={story.plan.currency as 'KRW' | 'USD' | 'JPY'}
+          />
         </div>
       )}
       <div className="mt-4">

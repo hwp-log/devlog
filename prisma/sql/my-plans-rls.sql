@@ -131,3 +131,14 @@ USING (
     AND my_plans.owner_id = (select auth.uid())
   )
 );
+
+-- SELECT (공개): 스토리에 연결된 플랜의 비용은 누구나 조회 가능
+-- 기존 plan_costs_select(owner용) 정책은 유지
+CREATE POLICY "plan_costs_public_select" ON "plan_costs"
+FOR SELECT TO public
+USING (
+  EXISTS (
+    SELECT 1 FROM stories
+    WHERE stories.plan_id = plan_costs.plan_id
+  )
+);
