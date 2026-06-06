@@ -1,12 +1,29 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useKakaoLoader, Map, CustomOverlayMap, Polyline } from 'react-kakao-maps-sdk';
 import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
+
+const LONG_DISTANCE_KM = 50;
+
+function haversineKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) *
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
 
 type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
@@ -38,7 +55,9 @@ export default function SpotMap({
   const mapRef = useRef<kakao.maps.Map | null>(null);
   const modeRef = useRef<Mode>('menu');
   const addSpotFromMapRef = useRef<((lng: number, lat: number) => void) | null>(null);
+  const fitDoneRef = useRef(false);
 
+  const [mapInstance, setMapInstance] = useState<kakao.maps.Map | null>(null);
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
   const [activeSpot, setActiveSpot] = useState<LocalSpot | null>(null);
   const [displayedSpot, setDisplayedSpot] = useState<LocalSpot | null>(null);
@@ -57,20 +76,29 @@ export default function SpotMap({
   };
 
   // initialCenter props: [lng, lat] 순서 → 카카오 {lat, lng}로 변환 ★★★
-  const center = spots.length > 0
-    ? { lat: spots[0].lat, lng: spots[0].lng }
-    : initialCenter
-      ? { lat: initialCenter[1], lng: initialCenter[0] }
-      : { lat: 37.566, lng: 126.978 };
+  // useState 초기화 함수로 마운트 1회만 계산 — 이후 레퍼런스 고정으로 Map 내부 center sync 반복 방지
+  const [mapCenter] = useState(() =>
+    spots.length > 0
+      ? { lat: spots[0].lat, lng: spots[0].lng }
+      : initialCenter
+        ? { lat: initialCenter[1], lng: initialCenter[0] }
+        : { lat: 37.566, lng: 126.978 }
+  );
 
   function handleMapCreate(map: kakao.maps.Map) {
     mapRef.current = map;
-    if (readOnly && spots.length >= 2) {
-      const bounds = new kakao.maps.LatLngBounds();
-      spots.forEach(s => bounds.extend(new kakao.maps.LatLng(s.lat, s.lng))); // ★★★ lat first
-      map.setBounds(bounds, 60, 60, 60, 60);
-    }
+    setMapInstance(map); // re-render 트리거 → SpotMap useEffect가 Map 내부 effect 이후 실행
   }
+
+  // setBounds를 useEffect로 이관: 자식(Map) effect → 부모(SpotMap) effect 순서 보장
+  // Map 내부 center/level 동기화 이후에 setBounds가 실행되므로 덮어씌워지지 않음
+  useEffect(() => {
+    if (!mapInstance || fitDoneRef.current || spots.length < 2) return;
+    const bounds = new kakao.maps.LatLngBounds();
+    spots.forEach(s => bounds.extend(new kakao.maps.LatLng(s.lat, s.lng))); // ★★★ lat first
+    mapInstance.setBounds(bounds, 60, 60, 60, 60);
+    fitDoneRef.current = true;
+  }, [mapInstance]);
 
   function handleMapClick(_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) {
     if (modeRef.current !== 'pinning') return;
@@ -348,39 +376,40 @@ export default function SpotMap({
         {/* 지도 컨테이너 */}
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           <Map
-            center={center}
+            center={mapCenter}
             level={5}
             onCreate={handleMapCreate}
             onClick={handleMapClick}
             className="w-full h-full"
           >
-            {/* 폴리라인: 케이싱(흰 테두리) + 코어(주황) 2겹 */}
-            {localSpots.length >= 2 && localSpots.slice(0, -1).map((spot, i) => (
-              <Polyline
-                key={`casing-${spot.id}`}
-                path={[
-                  { lat: spot.lat, lng: spot.lng },
-                  { lat: localSpots[i + 1].lat, lng: localSpots[i + 1].lng },
-                ]}
-                strokeWeight={10}
-                strokeColor="#0a5cc4"
-                strokeOpacity={1}
-                zIndex={1}
-              />
-            ))}
-            {localSpots.length >= 2 && localSpots.slice(0, -1).map((spot, i) => (
-              <Polyline
-                key={`core-${spot.id}`}
-                path={[
-                  { lat: spot.lat, lng: spot.lng },
-                  { lat: localSpots[i + 1].lat, lng: localSpots[i + 1].lng },
-                ]}
-                strokeWeight={6}
-                strokeColor="#1a8cff"
-                strokeOpacity={1}
-                zIndex={2}
-              />
-            ))}
+            {/* 폴리라인: 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 */}
+            {localSpots.length >= 2 && localSpots.slice(0, -1).map((spot, i) => {
+              const next = localSpots[i + 1];
+              const isDash = haversineKm(spot, next) > LONG_DISTANCE_KM;
+              const path = [
+                { lat: spot.lat, lng: spot.lng },
+                { lat: next.lat, lng: next.lng },
+              ];
+              return (
+                <Fragment key={spot.id}>
+                  {isDash ? (
+                    <Polyline
+                      path={path}
+                      strokeWeight={3}
+                      strokeColor="#1a8cff"
+                      strokeOpacity={0.7}
+                      strokeStyle="dash"
+                      zIndex={1}
+                    />
+                  ) : (
+                    <>
+                      <Polyline path={path} strokeWeight={10} strokeColor="#0a5cc4" strokeOpacity={1} strokeStyle="solid" zIndex={1} />
+                      <Polyline path={path} strokeWeight={6}  strokeColor="#1a8cff" strokeOpacity={1} strokeStyle="solid" zIndex={2} />
+                    </>
+                  )}
+                </Fragment>
+              );
+            })}
 
             {/* 마커: CustomOverlayMap + 펄스 */}
             {localSpots.map((spot, i) => {
