@@ -13,6 +13,7 @@ export type PlanWithCosts = {
   title: string;
   currency: 'KRW' | 'USD' | 'JPY';
   costs: { category: string; amount: number }[];
+  flight: { totalAmount: number } | null;
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -173,7 +174,9 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
                 {selectedPlanId && (() => {
                   const plan = availablePlans.find((p) => p.id === selectedPlanId);
                   if (!plan) return null;
-                  const total = plan.costs.reduce((s, c) => s + c.amount, 0);
+                  const flightAmount = plan.flight?.totalAmount ?? 0;
+                  const costsTotal = plan.costs.reduce((s, c) => s + c.amount, 0);
+                  const total = costsTotal + flightAmount;
                   const byCat = Object.entries(CATEGORY_LABELS)
                     .map(([key, label]) => {
                       const sum = plan.costs
@@ -182,13 +185,17 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
                       return sum > 0 ? { label, sum } : null;
                     })
                     .filter(Boolean) as { label: string; sum: number }[];
+                  const allItems = [
+                    ...(flightAmount > 0 ? [{ label: '항공', sum: flightAmount }] : []),
+                    ...byCat,
+                  ];
                   return (
                     <div className="rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                       <p className="font-medium mb-2">이 플랜을 연결하면 아래 비용 정보가 스토리에 공개됩니다</p>
                       <p className="mb-1">합계: {formatAmount(total, plan.currency)}</p>
-                      {byCat.length > 0 && (
+                      {allItems.length > 0 && (
                         <p className="text-amber-700">
-                          {byCat.map((c) => `${c.label} ${formatAmount(c.sum, plan.currency)}`).join(' · ')}
+                          {allItems.map((c) => `${c.label} ${formatAmount(c.sum, plan.currency)}`).join(' · ')}
                         </p>
                       )}
                     </div>

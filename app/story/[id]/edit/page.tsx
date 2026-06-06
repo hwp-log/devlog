@@ -25,6 +25,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
     select: {
       id: true, title: true, currency: true,
       costs: { select: { category: true, amount: true } },
+      flight: { select: { totalAmount: true } },
     },
     orderBy: { createdAt: 'desc' },
   });

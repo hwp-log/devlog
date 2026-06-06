@@ -14,6 +14,7 @@ export default async function StoryNewPage() {
     select: {
       id: true, title: true, currency: true,
       costs: { select: { category: true, amount: true } },
+      flight: { select: { totalAmount: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
