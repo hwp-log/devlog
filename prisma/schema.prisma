@@ -32,6 +32,7 @@ model User {
 
   stories   Story[]
   myPlans   MyPlan[]
+  likes     Like[]
 
   @@map("users")
 }
@@ -51,6 +52,7 @@ model Story {
   plan      MyPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
   tags      Tag[]
   spots     Spot[]
+  likes     Like[]
 
   @@map("stories")
   @@index([userId])
@@ -171,4 +173,17 @@ model PlanFlight {
   plan MyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@map("plan_flights")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  storyId   String   @map("story_id")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("likes")
+  @@unique([storyId, userId])
 }
