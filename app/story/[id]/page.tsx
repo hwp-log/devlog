@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
+import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin } from 'lucide-react';
 import { CostSection } from '@/app/(protected)/my-plan/_components/CostSection';
@@ -14,21 +15,30 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
   const supabase = await createClient();
   const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-  const story = await prisma.story.findUnique({
-    where: { id },
-    include: {
-      user: true,
-      tags: true,
-      spots: { orderBy: { order: 'asc' } },
-      plan: {
-        select: {
-          currency: true,
-          costs: { select: { category: true, amount: true } },
-          flight: { select: { totalAmount: true } },
+  const [story, myLike] = await Promise.all([
+    prisma.story.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        tags: true,
+        spots: { orderBy: { order: 'asc' } },
+        plan: {
+          select: {
+            currency: true,
+            costs: { select: { category: true, amount: true } },
+            flight: { select: { totalAmount: true } },
+          },
         },
+        _count: { select: { likes: true } },
       },
-    },
-  });
+    }),
+    currentUser
+      ? prisma.like.findUnique({
+          where: { storyId_userId: { storyId: id, userId: currentUser.id } },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+  ]);
   if (!story) notFound();
 
   const isOwner = currentUser?.id === story.userId;
@@ -74,7 +84,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             dangerouslySetInnerHTML={{ __html: story.content }}
           />
           {story.tags.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap mb-6">
+            <div className="flex items-center gap-2 flex-wrap mb-4">
               {story.tags.map((tag) => (
                 <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                   #{tag.name}
@@ -82,6 +92,12 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               ))}
             </div>
           )}
+          <LikeButton
+            storyId={story.id}
+            initialLiked={!!myLike}
+            initialCount={story._count.likes}
+            isLoggedIn={!!currentUser}
+          />
         </div>
       </div>
       {story.spots.length > 0 && (

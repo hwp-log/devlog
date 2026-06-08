@@ -1,5 +1,6 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -155,6 +156,39 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   }
 
   redirect(`/story/${storyId}`);
+}
+
+export async function toggleLikeAction(storyId: string): Promise<{ liked: boolean; count: number }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('로그인이 필요합니다');
+
+  const existing = await prisma.like.findUnique({
+    where: { storyId_userId: { storyId, userId: user.id } },
+  });
+
+  let liked: boolean;
+  if (existing) {
+    await prisma.like.delete({
+      where: { storyId_userId: { storyId, userId: user.id } },
+    });
+    liked = false;
+  } else {
+    try {
+      await prisma.like.create({ data: { storyId, userId: user.id } });
+      liked = true;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        liked = true;
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  const count = await prisma.like.count({ where: { storyId } });
+  revalidatePath('/story');
+  return { liked, count };
 }
 
 export async function deleteStoryAction(storyId: string): Promise<void> {
