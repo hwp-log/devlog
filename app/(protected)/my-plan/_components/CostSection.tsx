@@ -45,11 +45,11 @@ export const CATEGORY_ICON: Record<CostCategory, React.ReactNode> = {
 interface Props {
   totals: Record<CostCategory, number>;
   flightAmount: number;
+  total: number;
   currency: 'KRW' | 'USD' | 'JPY';
 }
 
-export function CostSection({ totals, flightAmount, currency }: Props) {
-  const total = CATEGORIES.reduce((sum, cat) => sum + totals[cat], 0) + flightAmount;
+export function CostSection({ totals, flightAmount, total, currency }: Props) {
   const max = Math.max(0, flightAmount, ...CATEGORIES.map((cat) => totals[cat]));
 
   return (

@@ -8,6 +8,7 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin } from 'lucide-react';
 import { CostSection } from '@/app/(protected)/my-plan/_components/CostSection';
 import { CATEGORIES, type CostCategory } from '@/app/(protected)/my-plan/_lib/cost';
+import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -54,6 +55,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       ) as Record<CostCategory, number>)
     : null;
   const flightAmount = story.plan?.flight?.totalAmount ?? 0;
+  const planTotal = story.plan ? calcPlanTotal(story.plan.costs, story.plan.flight) : 0;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -115,6 +117,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <CostSection
             totals={costTotals}
             flightAmount={flightAmount}
+            total={planTotal}
             currency={story.plan.currency as 'KRW' | 'USD' | 'JPY'}
           />
         </div>

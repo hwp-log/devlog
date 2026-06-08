@@ -9,6 +9,7 @@ import {
 } from '../_lib/cost';
 import { FlightLeg, type FlightLegData } from '../_components/FlightLeg';
 import { CostSection, CATEGORY_ICON } from '../_components/CostSection';
+import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 function planFlightToLegData(f: PlanFlight): FlightLegData {
   return {
@@ -85,6 +86,7 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
 
   const costSummary = calcCostSummary(plan.costs);
   const flightAmount = plan.flight?.totalAmount ?? 0;
+  const total = calcPlanTotal(plan.costs, plan.flight);
 
   return (
     <div>
@@ -226,6 +228,7 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
       <CostSection
         totals={costSummary}
         flightAmount={flightAmount}
+        total={total}
         currency={plan.currency as 'KRW' | 'USD' | 'JPY'}
       />
 

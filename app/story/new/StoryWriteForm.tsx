@@ -5,6 +5,7 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
+import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 type ActionState = { error: string } | null;
 
@@ -175,8 +176,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
                   const plan = availablePlans.find((p) => p.id === selectedPlanId);
                   if (!plan) return null;
                   const flightAmount = plan.flight?.totalAmount ?? 0;
-                  const costsTotal = plan.costs.reduce((s, c) => s + c.amount, 0);
-                  const total = costsTotal + flightAmount;
+                  const total = calcPlanTotal(plan.costs, plan.flight);
                   const byCat = Object.entries(CATEGORY_LABELS)
                     .map(([key, label]) => {
                       const sum = plan.costs

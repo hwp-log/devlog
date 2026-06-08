@@ -30,6 +30,7 @@ import {
 } from '../_lib/cost';
 import { CATEGORY_ICON } from '../_components/CostSection';
 import { CostSection } from '../_components/CostSection';
+import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 export type PlanItem = {
   id: string;
@@ -220,6 +221,10 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   }, [editor.days]);
 
   const flightAmount = editor.flight?.totalAmount ?? 0;
+  const total = calcPlanTotal(
+    Object.values(categoryTotals).map((amount) => ({ amount })),
+    editor.flight,
+  );
 
   const hasDays = editor.days.length > 0;
   const clampedDay = hasDays ? Math.min(selectedDay, editor.days.length) : 1;
@@ -451,6 +456,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       <CostSection
         totals={categoryTotals}
         flightAmount={flightAmount}
+        total={total}
         currency="KRW"
       />
 
