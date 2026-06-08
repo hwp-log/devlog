@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
-import { MapPin } from 'lucide-react';
+import { MapPin, Wallet } from 'lucide-react';
 import { CostSection } from '@/app/(protected)/my-plan/_components/CostSection';
 import { CATEGORIES, type CostCategory } from '@/app/(protected)/my-plan/_lib/cost';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
@@ -113,7 +113,10 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       )}
       {story.plan && costTotals && (
         <div className="mt-6">
-          <h2 className="text-base font-semibold text-[#1A1A1A] mb-4">예산 요약</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
+            <Wallet size={16} />
+            예산 요약
+          </h2>
           <CostSection
             totals={costTotals}
             flightAmount={flightAmount}
