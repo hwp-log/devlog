@@ -454,6 +454,8 @@ export default function SpotMap({
                     <div
                       onClick={() => handleMarkerClick(group.representative)}
                       style={{
+                        position: 'relative',
+                        zIndex: 1,
                         borderRadius: 9999,
                         background: background,
                         color: '#fff',
@@ -479,7 +481,8 @@ export default function SpotMap({
                           position: 'absolute',
                           inset: -5,
                           borderRadius: 9999,
-                          border: `2px solid ${firstColor}`,
+                          background: `linear-gradient(135deg, ${firstColor}, ${lastColor})`,
+                          zIndex: 0,
                           animation: 'spot-pulse 0.6s ease-out forwards',
                           pointerEvents: 'none',
                         }}
