@@ -9,6 +9,7 @@ import { getSpotColor } from '@/lib/spot-color';
 import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
 
 const LONG_DISTANCE_KM = 50;
+const MERGE_EPSILON_KM = 0.05; // 50m 이내 = 같은 장소로 병합
 
 function haversineKm(
   a: { lat: number; lng: number },
@@ -23,6 +24,25 @@ function haversineKm(
       Math.cos((b.lat * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+type MarkerGroup = {
+  representative: LocalSpot;
+  orders: number[];
+};
+
+function groupByProximity(spots: LocalSpot[]): MarkerGroup[] {
+  const groups: MarkerGroup[] = [];
+  for (const spot of spots) {
+    const hit = groups.find(g => haversineKm(g.representative, spot) < MERGE_EPSILON_KM);
+    if (hit) {
+      hit.orders.push(spot.order);
+    } else {
+      groups.push({ representative: spot, orders: [spot.order] });
+    }
+  }
+  groups.forEach(g => g.orders.sort((a, b) => a - b));
+  return groups;
 }
 
 type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
@@ -411,51 +431,63 @@ export default function SpotMap({
               );
             })}
 
-            {/* 마커: CustomOverlayMap + 펄스 */}
-            {localSpots.map((spot, i) => {
-              const color = getSpotColor(i, localSpots.length);
+            {/* 마커: CustomOverlayMap + 펄스. 같은 좌표(50m 이내) 병합 → "1·7" 라벨 */}
+            {groupByProximity(localSpots).map((group) => {
+              const isMerge = group.orders.length > 1;
+              const label = group.orders.join('·');
+              const firstColor = getSpotColor(group.orders[0] - 1, localSpots.length);
+              const lastColor  = getSpotColor(group.orders[group.orders.length - 1] - 1, localSpots.length);
+              const background = isMerge
+                ? `linear-gradient(135deg, ${firstColor}, ${lastColor})`
+                : firstColor;
+              const isPulse = group.orders.some(o =>
+                localSpots.find(s => s.order === o && pulsingIds.has(s.id))
+              );
               return (
                 <CustomOverlayMap
-                  key={spot.id}
-                  position={{ lat: spot.lat, lng: spot.lng }}  // ★★★ lat first
+                  key={group.representative.id}
+                  position={{ lat: group.representative.lat, lng: group.representative.lng }}  // ★★★ lat first
                   zIndex={1}
                 >
-                  <div style={{ position: 'relative', width: 28, height: 28 }}>
+                  <div style={{ position: 'relative', display: 'inline-flex' }}>
                     <div
-                      onClick={() => handleMarkerClick(spot)}
+                      onClick={() => handleMarkerClick(group.representative)}
                       style={{
-                        position: 'absolute',
-                        inset: 0,
-                        borderRadius: '50%',
-                        background: color,
+                        borderRadius: 9999,
+                        background: background,
                         color: '#fff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 12,
+                        fontSize: isMerge ? 11 : 12,
                         fontWeight: 'bold',
                         border: '2px solid #fff',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                         cursor: 'default',
+                        minWidth: 28,
+                        height: 28,
+                        padding: isMerge ? '0 6px' : 0,
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {i + 1}
+                      {label}
                     </div>
-                    {pulsingIds.has(spot.id) && (
+                    {isPulse && (
                       <div
                         style={{
                           position: 'absolute',
                           inset: -5,
-                          borderRadius: '50%',
-                          border: `2px solid ${color}`,
+                          borderRadius: 9999,
+                          border: `2px solid ${firstColor}`,
                           animation: 'spot-pulse 0.6s ease-out forwards',
                           pointerEvents: 'none',
                         }}
-                        onAnimationEnd={() => setPulsingIds(prev => {
-                          const s = new Set(prev);
-                          s.delete(spot.id);
-                          return s;
-                        })}
+                        onAnimationEnd={() => {
+                          group.orders.forEach(o => {
+                            const s = localSpots.find(sp => sp.order === o);
+                            if (s) setPulsingIds(prev => { const ns = new Set(prev); ns.delete(s.id); return ns; });
+                          });
+                        }}
                       />
                     )}
                   </div>
