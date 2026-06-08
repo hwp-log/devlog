@@ -1,14 +1,27 @@
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
 import { formatRelativeDate } from '@/lib/format-date';
 
 export default async function StoryPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const stories = await prisma.story.findMany({
     include: { user: true, tags: true, _count: { select: { likes: true } } },
     orderBy: { createdAt: 'desc' },
   });
+
+  const myLikedIds = new Set<string>();
+  if (user) {
+    const myLikes = await prisma.like.findMany({
+      where: { userId: user.id, storyId: { in: stories.map((s) => s.id) } },
+      select: { storyId: true },
+    });
+    myLikes.forEach((l) => myLikedIds.add(l.storyId));
+  }
 
   return (
     <div>
@@ -64,7 +77,7 @@ export default async function StoryPage() {
                     <span className="flex items-center gap-1 text-xs text-slate-400">
                       <Heart
                         size={13}
-                        className={story._count.likes === 0 ? 'text-slate-300' : 'fill-rose-500 text-rose-500'}
+                        className={myLikedIds.has(story.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
                       />
                       <span>{story._count.likes}</span>
                     </span>
