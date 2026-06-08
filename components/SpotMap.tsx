@@ -175,8 +175,9 @@ export default function SpotMap({
   }
 
   function handleReorder(newSpots: LocalSpot[]) {
-    setLocalSpots(newSpots);
-    onSpotsChange?.(newSpots);
+    const reindexed = newSpots.map((s, i) => ({ ...s, order: i + 1 }));
+    setLocalSpots(reindexed);
+    onSpotsChange?.(reindexed);
   }
 
   function handleKeywordSearch() {
