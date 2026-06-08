@@ -79,6 +79,55 @@ body {
   .tiptap-content img { width: 100%; height: auto; display: block; }
   .tiptap-content p.is-editor-empty:first-child::before { color: #94a3b8; content: attr(data-placeholder); float: left; pointer-events: none; height: 0; }
 
+  .btn-elevated {
+    position: relative;
+    background: #fff;
+    border-radius: 9999px;
+    overflow: hidden;
+    isolation: isolate;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.06);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .btn-elevated::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(
+      115deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.5) 50%,
+      transparent 65%
+    );
+    background-size: 250% 100%;
+    background-position: 150% 0;
+    transition: background-position .7s ease;
+  }
+
+  .btn-elevated:hover::after {
+    background-position: -80% 0;
+  }
+
+  .btn-elevated:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 14px 36px rgba(0, 0, 0, 0.16),
+      0 4px 10px rgba(0, 0, 0, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.06);
+  }
+
+  .btn-elevated:active {
+    transform: scale(0.96);
+  }
+
   .glass-form {
     background: rgba(255, 255, 255, 0.85);
     -webkit-backdrop-filter: blur(20px);

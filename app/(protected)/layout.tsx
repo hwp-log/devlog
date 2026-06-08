@@ -25,10 +25,12 @@ export default async function ProtectedLayout({ children }: { children: React.Re
               <NavLinks />
               <Link
                 href="/story/new"
-                className="flex items-center gap-1.5 bg-white text-slate-600 border border-slate-300 px-4 py-1.5 rounded-full text-sm hover:bg-slate-50 transition-colors"
+                className="btn-elevated flex items-center px-4 py-1.5 text-slate-600 text-sm"
               >
-                <PenSquare size={14} />
-                Write
+                <span className="relative z-[2] flex items-center gap-1.5">
+                  <PenSquare size={14} />
+                  Write
+                </span>
               </Link>
               <UserDropdown email={user?.email ?? ''} />
             </div>
