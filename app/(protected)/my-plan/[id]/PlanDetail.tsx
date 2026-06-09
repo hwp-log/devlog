@@ -10,6 +10,7 @@ import {
 import { FlightLeg, type FlightLegData } from '../_components/FlightLeg';
 import { CostSection, CATEGORY_ICON } from '../_components/CostSection';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
+import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
 
 function planFlightToLegData(f: PlanFlight): FlightLegData {
   return {
@@ -36,19 +37,6 @@ function planFlightToLegData(f: PlanFlight): FlightLegData {
   };
 }
 
-function calcCostSummary(costs: PlanCost[]): Record<CostCategory, number> {
-  const totals: Record<CostCategory, number> = {
-    TRANSPORT: 0,
-    ACCOMMODATION: 0,
-    FOOD: 0,
-    ENTRANCE: 0,
-    ETC: 0,
-  };
-  for (const cost of costs) {
-    totals[cost.category as CostCategory] += cost.amount;
-  }
-  return totals;
-}
 
 type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
 
