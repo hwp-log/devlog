@@ -88,9 +88,13 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           {story.tags.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mb-4">
               {story.tags.map((tag) => (
-                <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                <Link
+                  key={tag.id}
+                  href={`/story?q=${encodeURIComponent(tag.name)}`}
+                  className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 cursor-pointer hover:bg-slate-200 transition-colors"
+                >
                   #{tag.name}
-                </span>
+                </Link>
               ))}
             </div>
           )}
