@@ -4,12 +4,28 @@ import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
 import { formatRelativeDate } from '@/lib/format-date';
+import { TagSearchBar } from './_components/TagSearchBar';
 
-export default async function StoryPage() {
+function escapeILike(s: string) {
+  return s.replace(/[%_\\]/g, '\\$&');
+}
+
+export default async function StoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const keyword = q?.trim() ?? '';
+  const escaped = escapeILike(keyword);
+
   const stories = await prisma.story.findMany({
+    where: keyword
+      ? { tags: { some: { name: { contains: escaped, mode: 'insensitive' } } } }
+      : undefined,
     include: { user: true, tags: true, _count: { select: { likes: true } } },
     orderBy: { createdAt: 'desc' },
   });
@@ -25,10 +41,13 @@ export default async function StoryPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6">Story</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-[#1A1A1A]">Story</h1>
+        <TagSearchBar q={keyword} />
+      </div>
       {stories.length === 0 ? (
         <div className="glass-outer p-12 text-center text-slate-500">
-          아직 작성된 글이 없습니다
+          {keyword ? `"${keyword}" 태그가 포함된 스토리가 없습니다` : '아직 작성된 글이 없습니다'}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
