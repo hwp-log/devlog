@@ -1,25 +1,39 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 
 export function TagSearchBar({ q }: { q: string }) {
   const router = useRouter();
   const [value, setValue] = useState(q);
-  const isFirstRender = useRef(true);
+  const isComposing = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    const normalized = value.trim().replace(/\s/g, '');
-    const timer = setTimeout(() => {
+  const scheduleSearch = useCallback((val: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const normalized = val.trim().replace(/\s/g, '');
       const url = normalized ? `/story?q=${encodeURIComponent(normalized)}` : '/story';
       router.replace(url);
     }, 300);
-    return () => clearTimeout(timer);
-  }, [value, router]);
+  }, [router]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setValue(val);
+    if (!isComposing.current) {
+      scheduleSearch(val);
+    }
+  };
+
+  const handleCompositionStart = () => {
+    isComposing.current = true;
+  };
+
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+    isComposing.current = false;
+    scheduleSearch(e.currentTarget.value);
+  };
 
   return (
     <div className="relative flex items-center">
@@ -27,7 +41,9 @@ export function TagSearchBar({ q }: { q: string }) {
       <input
         type="text"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={handleChange}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
         placeholder="제목, 지역명을 입력하세요"
         className="w-70 pl-9 pr-9 py-2 text-sm text-[#1A1A1A] rounded-full border border-slate-200 bg-white/70
                    focus:outline-none focus:ring-2 focus:ring-slate-300
@@ -36,7 +52,7 @@ export function TagSearchBar({ q }: { q: string }) {
       />
       {value && (
         <button
-          onClick={() => setValue('')}
+          onClick={() => { setValue(''); scheduleSearch(''); }}
           className="absolute right-3 text-slate-400 hover:text-slate-600"
         >
           <X size={14} />

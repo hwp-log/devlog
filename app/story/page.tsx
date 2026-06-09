@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
+import { ViewTransition } from 'react';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
@@ -39,12 +40,15 @@ export default async function StoryPage({
     myLikes.forEach((l) => myLikedIds.add(l.storyId));
   }
 
+  const listKey = stories.map(s => s.id).join('-') || '__empty__';
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#1A1A1A]">Story</h1>
         <TagSearchBar q={keyword} />
       </div>
+      <ViewTransition key={listKey} default="page-fade">
       {stories.length === 0 ? (
         <div className="glass-outer p-12 text-center text-slate-500">
           {keyword ? `"${keyword}" 태그가 포함된 스토리가 없습니다` : '아직 작성된 글이 없습니다'}
@@ -107,6 +111,7 @@ export default async function StoryPage({
           })}
         </div>
       )}
+      </ViewTransition>
     </div>
   );
 }

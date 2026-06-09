@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PenSquare } from 'lucide-react';
+import { ViewTransition } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
@@ -44,7 +45,9 @@ export default async function StoryLayout({ children }: { children: React.ReactN
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {children}
+        <ViewTransition default="page-fade">
+          {children}
+        </ViewTransition>
       </main>
     </div>
   );
