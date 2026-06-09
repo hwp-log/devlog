@@ -185,7 +185,7 @@ body {
   }
 }
 
-::view-transition-old(.page-fade),
-::view-transition-new(.page-fade) {
-  animation-duration: 0.8s;
+::view-transition-old(.list-fade),
+::view-transition-new(.list-fade) {
+  animation-duration: 0.4s;
 }
