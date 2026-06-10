@@ -6,9 +6,8 @@ import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin, Wallet } from 'lucide-react';
-import { CostSection } from '@/app/(protected)/my-plan/_components/CostSection';
-import { CATEGORIES, type CostCategory } from '@/app/(protected)/my-plan/_lib/cost';
-import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
+import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
+import { PublicCostSection } from './PublicCostSection';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,18 +43,13 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
 
   const isOwner = currentUser?.id === story.userId;
 
-  const costTotals = story.plan
-    ? (Object.fromEntries(
-        CATEGORIES.map((cat) => [
-          cat,
-          story.plan!.costs
-            .filter((c) => c.category === cat)
-            .reduce((s, c) => s + c.amount, 0),
-        ])
-      ) as Record<CostCategory, number>)
+  const publicSummary = story.plan
+    ? summarizePlanCost(
+        story.plan.costs,
+        story.plan.flight,
+        story.plan.currency as 'KRW' | 'USD' | 'JPY',
+      )
     : null;
-  const flightAmount = story.plan?.flight?.totalAmount ?? 0;
-  const planTotal = story.plan ? calcPlanTotal(story.plan.costs, story.plan.flight) : 0;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -115,18 +109,13 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <SpotMap spots={story.spots} readOnly />
         </div>
       )}
-      {story.plan && costTotals && (
+      {story.plan && publicSummary && (
         <div className="mt-6">
           <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
             <Wallet size={16} />
             예산 요약
           </h2>
-          <CostSection
-            totals={costTotals}
-            flightAmount={flightAmount}
-            total={planTotal}
-            currency={story.plan.currency as 'KRW' | 'USD' | 'JPY'}
-          />
+          <PublicCostSection summary={publicSummary} />
         </div>
       )}
       <div className="mt-4">
