@@ -187,5 +187,5 @@ body {
 
 ::view-transition-old(.list-fade),
 ::view-transition-new(.list-fade) {
-  animation-duration: 0.4s;
+  animation-duration: 0.8s;
 }
