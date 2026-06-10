@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useOptimistic } from 'react';
 import Link from 'next/link';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import {
@@ -11,6 +11,7 @@ import { FlightLeg, type FlightLegData } from '../_components/FlightLeg';
 import { CostSection, CATEGORY_ICON } from '../_components/CostSection';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
+import { togglePlanPublicAction } from './actions';
 
 function planFlightToLegData(f: PlanFlight): FlightLegData {
   return {
@@ -68,6 +69,19 @@ function buildTimeline(spots: PlanSpot[], costs: PlanCost[], day: number) {
 export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const [isPendingPublic, startPublicTransition] = useTransition();
+  const [optimisticPublic, setOptimisticPublic] = useOptimistic(
+    plan.isPublic,
+    (_, next: boolean) => next,
+  );
+
+  const handleTogglePublic = () => {
+    const next = !optimisticPublic;
+    startPublicTransition(async () => {
+      setOptimisticPublic(next);
+      await togglePlanPublicAction(plan.id, next);
+    });
+  };
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
   const timeline = buildTimeline(plan.spots, plan.costs, selectedDay);
@@ -99,6 +113,23 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
             >
               {isPending ? '삭제 중...' : '삭제'}
             </button>
+          </div>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleTogglePublic}
+              disabled={isPendingPublic}
+              className={`px-4 py-1.5 rounded-full text-sm transition-colors disabled:opacity-50 ${
+                optimisticPublic
+                  ? 'bg-[#1A1A1A] text-white hover:bg-[#333]'
+                  : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {optimisticPublic ? '공개 중' : '비공개'}
+            </button>
+            <p className="mt-1.5 text-xs text-slate-400">
+              공개하면 비용이 비중·구간으로 가공되어 표시됩니다 (정밀 금액은 비공개)
+            </p>
           </div>
         </div>
         <p className="text-sm text-slate-500 mt-1">

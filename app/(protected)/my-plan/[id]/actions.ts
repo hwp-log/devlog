@@ -1,10 +1,35 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import type { CostCategory } from '@prisma/client';
 
 type ActionState = { error: string } | null;
+
+export async function togglePlanPublicAction(
+  planId: string,
+  isPublic: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const plan = await prisma.myPlan.findFirst({
+    where: { id: planId, ownerId: user.id },
+    select: { id: true },
+  });
+  if (!plan) return;
+
+  await prisma.myPlan.update({
+    where: { id: planId },
+    data: { isPublic },
+  });
+
+  revalidatePath(`/my-plan/${planId}`);
+  revalidatePath('/my-plan');
+  revalidatePath('/cost-plan');
+}
 
 export async function addPlanItemAction(
   prevState: ActionState,
