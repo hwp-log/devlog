@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 
-export function TagSearchBar({ q }: { q: string }) {
+export function TagSearchBar({ q, basePath }: { q: string; basePath: string }) {
   const router = useRouter();
   const [value, setValue] = useState(q);
   const isComposing = useRef(false);
@@ -13,10 +13,10 @@ export function TagSearchBar({ q }: { q: string }) {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       const normalized = val.trim().replace(/\s/g, '');
-      const url = normalized ? `/story?q=${encodeURIComponent(normalized)}` : '/story';
+      const url = normalized ? `${basePath}?q=${encodeURIComponent(normalized)}` : basePath;
       router.replace(url);
     }, 300);
-  }, [router]);
+  }, [router, basePath]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;

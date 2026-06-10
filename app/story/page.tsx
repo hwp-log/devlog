@@ -1,15 +1,10 @@
-import Link from 'next/link';
-import { Heart } from 'lucide-react';
 import { ViewTransition } from 'react';
-import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
-import { formatRelativeDate } from '@/lib/format-date';
+import { fetchStoriesWithMeta } from '@/lib/story/queries';
 import { TagSearchBar } from './_components/TagSearchBar';
-
-function escapeILike(s: string) {
-  return s.replace(/[%_\\]/g, '\\$&');
-}
+import { StoryCard } from './_components/StoryCard';
 
 export default async function StoryPage({
   searchParams,
@@ -21,15 +16,7 @@ export default async function StoryPage({
   const { data: { user } } = await supabase.auth.getUser();
 
   const keyword = q?.trim() ?? '';
-  const escaped = escapeILike(keyword);
-
-  const stories = await prisma.story.findMany({
-    where: keyword
-      ? { tags: { some: { name: { contains: escaped, mode: 'insensitive' } } } }
-      : undefined,
-    include: { user: true, tags: true, _count: { select: { likes: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const stories = await fetchStoriesWithMeta({ tag: keyword || undefined });
 
   const myLikedIds = new Set<string>();
   if (user) {
@@ -46,7 +33,7 @@ export default async function StoryPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#1A1A1A]">Story</h1>
-        <TagSearchBar q={keyword} />
+        <TagSearchBar q={keyword} basePath="/story" />
       </div>
       <ViewTransition key={listKey} default="list-fade">
       {stories.length === 0 ? (
@@ -55,60 +42,20 @@ export default async function StoryPage({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {stories.map((story) => {
-            const thumbnail = extractFirstImage(story.content);
-            const preview = extractTextPreview(story.content);
-            return (
-              <Link key={story.id} href={`/story/${story.id}`} className="glass-outer glass-outer-interactive overflow-hidden block cursor-pointer">
-                <article>
-                  {thumbnail ? (
-                    <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
-                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
-                      <span
-                        className="absolute bottom-2 right-2 backdrop-blur-sm bg-black/35 rounded-[10px] px-2 py-0.5 font-mono text-xs text-amber-300 select-none"
-                        style={{ textShadow: '0 0 6px #f59e0b' }}
-                      >
-                        {`${story.createdAt.getFullYear()}.${story.createdAt.getMonth() + 1}.${story.createdAt.getDate()}`}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="aspect-[16/9] bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-400 text-xs">
-                      <span>이미지 없음</span>
-                      <span className="font-mono text-amber-400/60">
-                        {`${story.createdAt.getFullYear()}.${story.createdAt.getMonth() + 1}.${story.createdAt.getDate()}`}
-                      </span>
-                    </div>
-                  )}
-                  <div className="p-6 pb-5">
-                    <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">{story.title}</h2>
-                    <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-2">{preview}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {story.tags.slice(0, 3).map((tag) => (
-                        <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          #{tag.name}
-                        </span>
-                      ))}
-                      {story.tags.length > 3 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
-                          +{story.tags.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-100 px-6 py-3 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">{story.user.email}</span>
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                      <Heart
-                        size={13}
-                        className={myLikedIds.has(story.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
-                      />
-                      <span>{story._count.likes}</span>
-                    </span>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
+          {stories.map((story) => (
+            <StoryCard
+              key={story.id}
+              id={story.id}
+              thumbnail={extractFirstImage(story.content)}
+              title={story.title}
+              preview={extractTextPreview(story.content)}
+              createdAt={story.createdAt}
+              tags={story.tags}
+              likeCount={story._count.likes}
+              isLiked={myLikedIds.has(story.id)}
+              author={story.user.email}
+            />
+          ))}
         </div>
       )}
       </ViewTransition>
