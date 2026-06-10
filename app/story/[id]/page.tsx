@@ -19,7 +19,6 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
     prisma.story.findUnique({
       where: { id },
       include: {
-        user: true,
         tags: true,
         spots: { orderBy: { order: 'asc' } },
         plan: {
@@ -71,8 +70,6 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-            <span>{story.user.email}</span>
-            <span>·</span>
             <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
           </div>
           <div
