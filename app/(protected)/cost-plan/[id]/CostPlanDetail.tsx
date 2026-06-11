@@ -22,6 +22,7 @@ interface Props {
   publicFlight: FlightLegData | null;
   summary: PublicCostSummary;
   currency: 'KRW' | 'USD' | 'JPY';
+  authorNickname: string;
 }
 
 export function CostPlanDetail({
@@ -39,6 +40,7 @@ export function CostPlanDetail({
   publicFlight,
   summary,
   currency,
+  authorNickname,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
 
@@ -56,7 +58,7 @@ export function CostPlanDetail({
           <h1 className="text-2xl font-bold text-[#1A1A1A]">{title}</h1>
           <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
         </div>
-        <p className="text-sm text-slate-500 mt-1">{createdAtLabel}</p>
+        <p className="text-sm text-slate-500 mt-1">{createdAtLabel} · {authorNickname}</p>
 
         {(region || movie) && (
           <div className="flex gap-2 mt-2 flex-wrap">

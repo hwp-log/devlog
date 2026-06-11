@@ -15,6 +15,7 @@ export function PlanCard({
   createdAt,
   likeCount,
   isLiked,
+  authorNickname,
   summary,
 }: PublicPlanListItem) {
   const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
@@ -86,7 +87,7 @@ export function PlanCard({
 
       {/* 하단 바 */}
       <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
-        <span className="text-xs text-slate-500">{dateStr}</span>
+        <span className="text-xs text-slate-500">{dateStr} · {authorNickname}</span>
         <span className="flex items-center gap-1 text-xs text-slate-400">
           <Heart size={13} className={isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'} />
           <span>{likeCount}</span>

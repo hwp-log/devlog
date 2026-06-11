@@ -47,6 +47,7 @@ export default async function CostPlanDetailPage({ params }: Props) {
         },
       },
       _count: { select: { planLikes: true } },
+      owner: { select: { nickname: true } },
       ...(user ? { planLikes: { where: { userId: user.id }, select: { id: true } } } : {}),
     },
   });
@@ -121,6 +122,7 @@ export default async function CostPlanDetailPage({ params }: Props) {
       publicFlight={publicFlight}
       summary={summary}
       currency={currency}
+      authorNickname={plan.owner.nickname}
     />
   );
 }

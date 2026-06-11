@@ -10,6 +10,7 @@ export type PublicPlanListItem = {
   createdAt: Date;
   likeCount: number;
   isLiked: boolean;
+  authorNickname: string;
   summary: PublicCostSummary;
 };
 
@@ -26,6 +27,7 @@ export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListI
       _count: { select: { planLikes: true } },
       costs: { select: { category: true, amount: true } },
       flight: { select: { totalAmount: true } },
+      owner: { select: { nickname: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -47,6 +49,7 @@ export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListI
     createdAt: plan.createdAt,
     likeCount: plan._count.planLikes,
     isLiked: likedSet.has(plan.id),
+    authorNickname: plan.owner.nickname,
     summary: summarizePlanCost(
       plan.costs,
       plan.flight,

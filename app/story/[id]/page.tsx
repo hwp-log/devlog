@@ -29,6 +29,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           },
         },
         _count: { select: { likes: true } },
+        user: { select: { nickname: true } },
       },
     }),
     currentUser
@@ -71,6 +72,8 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
             <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
+            <span>·</span>
+            <span>{story.user.nickname}</span>
           </div>
           <div
             className="tiptap-content text-base text-slate-800 leading-relaxed mb-6"

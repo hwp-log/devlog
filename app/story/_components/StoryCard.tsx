@@ -10,9 +10,10 @@ interface StoryCardProps {
   tags: { id: string; name: string }[];
   likeCount: number;
   isLiked: boolean;
+  authorNickname?: string;
 }
 
-export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, likeCount, isLiked }: StoryCardProps) {
+export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, likeCount, isLiked, authorNickname }: StoryCardProps) {
   const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
 
   return (
@@ -50,7 +51,8 @@ export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, like
             )}
           </div>
         </div>
-        <div className="border-t border-slate-100 px-6 py-3 flex items-center justify-end">
+        <div className="border-t border-slate-100 px-6 py-3 flex items-center justify-between">
+          {authorNickname && <span className="text-xs text-slate-500">{authorNickname}</span>}
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <Heart
               size={13}
