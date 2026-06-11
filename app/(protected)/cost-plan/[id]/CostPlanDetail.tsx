@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { FlightLeg, type FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import { PlanTimeline, buildTimeline } from '@/app/(protected)/my-plan/_components/PlanTimeline';
 import { PublicCostSection } from '@/app/story/[id]/PublicCostSection';
+import { PlanLikeButton } from './PlanLikeButton';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 
 interface Props {
+  planId: string;
+  initialLiked: boolean;
+  initialCount: number;
   title: string;
   description: string | null;
   region: string | null;
@@ -21,6 +25,9 @@ interface Props {
 }
 
 export function CostPlanDetail({
+  planId,
+  initialLiked,
+  initialCount,
   title,
   description,
   region,
@@ -45,7 +52,10 @@ export function CostPlanDetail({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1A1A1A]">{title}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold text-[#1A1A1A]">{title}</h1>
+          <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
+        </div>
         <p className="text-sm text-slate-500 mt-1">{createdAtLabel}</p>
 
         {(region || movie) && (

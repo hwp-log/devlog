@@ -1,8 +1,11 @@
+import { createClient } from '@/lib/supabase/server';
 import { fetchPublicPlans } from '@/lib/plan/queries';
 import { PlanListClient } from './_components/PlanListClient';
 
 export default async function CostPlanPage() {
-  const plans = await fetchPublicPlans();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const plans = await fetchPublicPlans(user?.id);
 
   return (
     <div>

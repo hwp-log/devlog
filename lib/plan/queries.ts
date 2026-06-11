@@ -9,10 +9,11 @@ export type PublicPlanListItem = {
   movie: string | null;
   createdAt: Date;
   likeCount: number;
+  isLiked: boolean;
   summary: PublicCostSummary;
 };
 
-export async function fetchPublicPlans(): Promise<PublicPlanListItem[]> {
+export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListItem[]> {
   const plans = await prisma.myPlan.findMany({
     where: { isPublic: true },
     select: {
@@ -29,6 +30,15 @@ export async function fetchPublicPlans(): Promise<PublicPlanListItem[]> {
     orderBy: { createdAt: 'desc' },
   });
 
+  let likedSet = new Set<string>();
+  if (userId) {
+    const likes = await prisma.planLike.findMany({
+      where: { userId, planId: { in: plans.map((p) => p.id) } },
+      select: { planId: true },
+    });
+    likedSet = new Set(likes.map((l) => l.planId));
+  }
+
   return plans.map((plan) => ({
     id: plan.id,
     title: plan.title,
@@ -36,6 +46,7 @@ export async function fetchPublicPlans(): Promise<PublicPlanListItem[]> {
     movie: plan.movie,
     createdAt: plan.createdAt,
     likeCount: plan._count.planLikes,
+    isLiked: likedSet.has(plan.id),
     summary: summarizePlanCost(
       plan.costs,
       plan.flight,

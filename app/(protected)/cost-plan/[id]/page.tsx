@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { CostPlanDetail } from './CostPlanDetail';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
@@ -13,6 +14,9 @@ function calcDurationLabel(from: Date, to: Date): string {
 
 export default async function CostPlanDetailPage({ params }: Props) {
   const { id } = await params;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const plan = await prisma.myPlan.findFirst({
     where: { id, isPublic: true },
@@ -42,6 +46,8 @@ export default async function CostPlanDetailPage({ params }: Props) {
           retDepartsAt: true, retArrivesAt: true,
         },
       },
+      _count: { select: { planLikes: true } },
+      ...(user ? { planLikes: { where: { userId: user.id }, select: { id: true } } } : {}),
     },
   });
 
@@ -101,6 +107,9 @@ export default async function CostPlanDetailPage({ params }: Props) {
 
   return (
     <CostPlanDetail
+      planId={id}
+      initialLiked={!!(plan.planLikes && plan.planLikes.length > 0)}
+      initialCount={plan._count.planLikes}
       title={plan.title}
       description={plan.description}
       region={plan.region}
