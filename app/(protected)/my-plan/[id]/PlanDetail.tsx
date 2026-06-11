@@ -188,7 +188,15 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
         currency={plan.currency as 'KRW' | 'USD' | 'JPY'}
       />
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-2">
+        {plan.sourcePlanId && (
+          <Link
+            href={`/cost-plan/${plan.sourcePlanId}`}
+            className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            원본 플랜 보기 →
+          </Link>
+        )}
         <Link href="/my-plan" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
           ← 목록으로
         </Link>

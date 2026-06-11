@@ -46,6 +46,7 @@ export default async function CostPlanDetailPage({ params }: Props) {
           retDepartsAt: true, retArrivesAt: true,
         },
       },
+      ownerId: true,
       _count: { select: { planLikes: true } },
       owner: { select: { nickname: true } },
       ...(user ? { planLikes: { where: { userId: user.id }, select: { id: true } } } : {}),
@@ -54,6 +55,7 @@ export default async function CostPlanDetailPage({ params }: Props) {
 
   if (!plan) notFound();
 
+  const isOwner = user?.id === plan.ownerId;
   const currency = plan.currency as 'KRW' | 'USD' | 'JPY';
 
   // summarizePlanCost — server-only, 결과만 클라로 전송
@@ -123,6 +125,7 @@ export default async function CostPlanDetailPage({ params }: Props) {
       summary={summary}
       currency={currency}
       authorNickname={plan.owner.nickname}
+      isOwner={isOwner}
     />
   );
 }

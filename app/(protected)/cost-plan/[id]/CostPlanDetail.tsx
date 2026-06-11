@@ -5,6 +5,7 @@ import { FlightLeg, type FlightLegData } from '@/app/(protected)/my-plan/_compon
 import { PlanTimeline, buildTimeline } from '@/app/(protected)/my-plan/_components/PlanTimeline';
 import { PublicCostSection } from '@/app/story/[id]/PublicCostSection';
 import { PlanLikeButton } from './PlanLikeButton';
+import { CopyCostPlanButton } from './CopyCostPlanButton';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
   summary: PublicCostSummary;
   currency: 'KRW' | 'USD' | 'JPY';
   authorNickname: string;
+  isOwner: boolean;
 }
 
 export function CostPlanDetail({
@@ -41,6 +43,7 @@ export function CostPlanDetail({
   summary,
   currency,
   authorNickname,
+  isOwner,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
 
@@ -56,7 +59,10 @@ export function CostPlanDetail({
       <div className="mb-6">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-2xl font-bold text-[#1A1A1A]">{title}</h1>
-          <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
+          <div className="flex items-center gap-2">
+            {!isOwner && <CopyCostPlanButton planId={planId} />}
+            <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
+          </div>
         </div>
         <p className="text-sm text-slate-500 mt-1">{createdAtLabel} · {authorNickname}</p>
 

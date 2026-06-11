@@ -103,8 +103,10 @@ model MyPlan {
   description   String?
   region        String?
   movie         String?
-  isPublic      Boolean   @default(false) @map("is_public")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  isPublic       Boolean   @default(false) @map("is_public")
+  isDraft        Boolean   @default(false) @map("is_draft")
+  sourceNickname String?   @db.VarChar(20) @map("source_nickname")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   story     Story?
