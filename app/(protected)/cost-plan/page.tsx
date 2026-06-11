@@ -1,5 +1,5 @@
 import { fetchPublicPlans } from '@/lib/plan/queries';
-import { PlanCard } from './_components/PlanCard';
+import { PlanListClient } from './_components/PlanListClient';
 
 export default async function CostPlanPage() {
   const plans = await fetchPublicPlans();
@@ -12,11 +12,7 @@ export default async function CostPlanPage() {
           아직 공개된 플랜이 없습니다
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {plans.map((plan) => (
-            <PlanCard key={plan.id} {...plan} />
-          ))}
-        </div>
+        <PlanListClient plans={plans} />
       )}
     </div>
   );
