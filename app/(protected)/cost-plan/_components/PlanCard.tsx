@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import {
@@ -18,7 +19,7 @@ export function PlanCard({
   const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
 
   return (
-    <div className="glass-outer glass-outer-interactive overflow-hidden block cursor-pointer">
+    <Link href={`/cost-plan/${id}`} className="glass-outer glass-outer-interactive overflow-hidden block cursor-pointer">
       <div className="p-5">
         {/* 누적 막대 */}
         <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 mb-3">
@@ -90,6 +91,6 @@ export function PlanCard({
           <span>{likeCount}</span>
         </span>
       </div>
-    </div>
+    </Link>
   );
 }

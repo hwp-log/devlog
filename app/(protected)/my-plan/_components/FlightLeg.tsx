@@ -5,6 +5,7 @@ export type FlightSegmentData = {
   arrivesAt: string;
   airline: string;
   flightNo: string;
+  durationLabel?: string;  // showDetails=false 시 서버 계산값 사용
 };
 
 export type FlightLegData = {
@@ -45,14 +46,17 @@ export const PLANE_ICON = (
   </svg>
 );
 
-function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice }: {
+function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice, showDetails = true }: {
   seg: FlightSegmentData;
   label: string;
   isRoundTrip: boolean;
   totalAmount: number;
   showPrice: boolean;
+  showDetails?: boolean;
 }) {
-  const duration = durationMin(seg.departsAt, seg.arrivesAt);
+  const duration = showDetails
+    ? durationMin(seg.departsAt, seg.arrivesAt)
+    : (seg.durationLabel ?? '');
   return (
     <div className="glass-outer px-6 py-5 mb-[10px]">
       <p className="text-[11px] text-[#888] mb-3">{label}</p>
@@ -60,9 +64,11 @@ function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice }: {
         <div className="shrink-0 min-w-[100px]">
           <p className="text-[22px] font-bold text-[#1A1A1A] tracking-[-0.5px] leading-none">{seg.origin}</p>
           <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[seg.origin] ?? ''}</p>
-          <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">
-            {fmtDateFlight(seg.departsAt)} {fmtTime(seg.departsAt)}
-          </p>
+          {showDetails && (
+            <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">
+              {fmtDateFlight(seg.departsAt)} {fmtTime(seg.departsAt)}
+            </p>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col items-center min-w-[80px]">
@@ -78,31 +84,38 @@ function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice }: {
         <div className="shrink-0 min-w-[100px]">
           <p className="text-[22px] font-bold text-[#1A1A1A] tracking-[-0.5px] leading-none">{seg.destination}</p>
           <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[seg.destination] ?? ''}</p>
-          <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">
-            {fmtDateFlight(seg.arrivesAt)} {fmtTime(seg.arrivesAt)}
-          </p>
-        </div>
-
-        <div className="shrink-0 text-right min-w-[110px]">
-          {showPrice ? (
-            <>
-              <p className="text-[11px] text-[#888]">
-                {isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}
-              </p>
-              <p className="text-[18px] font-bold text-[#1A1A1A] mt-0.5">
-                ₩{totalAmount.toLocaleString()}
-              </p>
-            </>
-          ) : (
-            <p className="text-[11px] text-[#888]">상기 금액에 포함됨</p>
+          {showDetails && (
+            <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">
+              {fmtDateFlight(seg.arrivesAt)} {fmtTime(seg.arrivesAt)}
+            </p>
           )}
         </div>
+
+        {showDetails && (
+          <div className="shrink-0 text-right min-w-[110px]">
+            {showPrice ? (
+              <>
+                <p className="text-[11px] text-[#888]">
+                  {isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}
+                </p>
+                <p className="text-[18px] font-bold text-[#1A1A1A] mt-0.5">
+                  ₩{totalAmount.toLocaleString()}
+                </p>
+              </>
+            ) : (
+              <p className="text-[11px] text-[#888]">상기 금액에 포함됨</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function FlightLeg({ data }: { data: FlightLegData }) {
+export function FlightLeg({ data, showDetails = true }: {
+  data: FlightLegData;
+  showDetails?: boolean;
+}) {
   const isRoundTrip = data.tripType === 'ROUND_TRIP';
   return (
     <>
@@ -112,6 +125,7 @@ export function FlightLeg({ data }: { data: FlightLegData }) {
         isRoundTrip={isRoundTrip}
         totalAmount={data.totalAmount}
         showPrice={true}
+        showDetails={showDetails}
       />
       {isRoundTrip && data.ret && (
         <LegCard
@@ -120,6 +134,7 @@ export function FlightLeg({ data }: { data: FlightLegData }) {
           isRoundTrip={isRoundTrip}
           totalAmount={data.totalAmount}
           showPrice={false}
+          showDetails={showDetails}
         />
       )}
     </>

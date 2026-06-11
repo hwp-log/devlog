@@ -1,15 +1,17 @@
-import type { PlanSpot, PlanCost } from '@prisma/client';
 import { CATEGORY_COLOR, formatAmount, type CostCategory } from '../_lib/cost';
 import { CATEGORY_ICON } from './CostSection';
 
+type SpotInfo = { id: string; day: number; name: string; order?: number };
+type CostInfo = { planSpotId: string | null; category: string; amount: number };
+
 export type TimelineItem = {
-  spot: PlanSpot;
-  cost: PlanCost | null;
+  spot: SpotInfo;
+  cost: CostInfo | null;
 };
 
 export function buildTimeline(
-  spots: PlanSpot[],
-  costs: PlanCost[],
+  spots: SpotInfo[],
+  costs: CostInfo[],
   day: number,
 ): TimelineItem[] {
   const daySpots = spots.filter((s) => s.day === day);
