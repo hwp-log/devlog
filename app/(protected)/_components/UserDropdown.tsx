@@ -43,28 +43,36 @@ export function UserDropdown({ email }: Props) {
           <p className="px-4 py-2 text-xs text-slate-500 truncate">{email}</p>
           <hr className="border-slate-100 my-1" />
           <Link
-            href="/my-dots"
+            href="/mypage"
             role="menuitem"
-            className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150"
             onClick={() => setOpen(false)}
           >
-            MyStory
+            MyPage
           </Link>
           <Link
             href="/my-plan"
             role="menuitem"
-            className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150"
             onClick={() => setOpen(false)}
           >
-            My Plan
+            MyPlan
+          </Link>
+          <Link
+            href="/my-dots"
+            role="menuitem"
+            className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150"
+            onClick={() => setOpen(false)}
+          >
+            MyStory
           </Link>
           <form action={signOut}>
             <button
               type="submit"
               role="menuitem"
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              className="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors duration-150"
             >
-              Sign Out
+              SignOut
             </button>
           </form>
         </div>
