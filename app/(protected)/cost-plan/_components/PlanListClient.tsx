@@ -3,10 +3,11 @@ import { useState } from 'react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PlanCard } from './PlanCard';
 
-type SortKey = 'newest' | 'price_asc' | 'price_desc';
+type SortKey = 'popular' | 'newest' | 'price_asc' | 'price_desc';
 type FilterKey = 'all' | 'under50' | '50to100' | 'over100';
 
 const SORT_LABELS: Record<SortKey, string> = {
+  popular:    '인기순',
   newest:     '최신순',
   price_asc:  '가격 낮은순',
   price_desc: '가격 높은순',
@@ -28,7 +29,7 @@ function getFilterKey(plan: PublicPlanListItem): FilterKey | null {
 }
 
 export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
-  const [sort, setSort]     = useState<SortKey>('newest');
+  const [sort, setSort]     = useState<SortKey>('popular');
   const [filter, setFilter] = useState<FilterKey>('all');
 
   const filtered = filter === 'all'
@@ -36,17 +37,24 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
     : plans.filter((p) => getFilterKey(p) === filter);
 
   const sorted = [...filtered].sort((a, b) => {
-    if (sort === 'newest') {
-      return b.createdAt.getTime() - a.createdAt.getTime();
-    }
+    if (sort === 'popular') return b.likeCount - a.likeCount;
+    if (sort === 'newest')  return b.createdAt.getTime() - a.createdAt.getTime();
     const aLower = a.summary.band?.lower ?? (sort === 'price_asc' ? Infinity : -1);
     const bLower = b.summary.band?.lower ?? (sort === 'price_asc' ? Infinity : -1);
     return sort === 'price_asc' ? aLower - bLower : bLower - aLower;
   });
 
+  const withBand = sorted.filter((p) => p.summary.band);
+  const avgWon = withBand.length > 0
+    ? Math.round(
+        withBand.reduce((s, p) => s + (p.summary.band!.lower + p.summary.band!.upper) / 2, 0)
+        / withBand.length / 10_000,
+      )
+    : null;
+
   return (
-    <div>
-      <div className="flex flex-wrap gap-2 mb-4">
+    <div className="bg-slate-100 rounded-xl p-5">
+      <div className="flex flex-wrap gap-2 mb-[10px]">
         {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key) => (
           <button
             key={key}
@@ -62,7 +70,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 items-center mb-[6px]">
         {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
           <button
             key={key}
@@ -78,14 +86,20 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         ))}
       </div>
 
+      {avgWon !== null && (
+        <p className="text-xs text-slate-400 mb-4 ml-0.5">
+          {sorted.length}개 코스 · 평균 약 {avgWon.toLocaleString()}만원
+        </p>
+      )}
+
       {sorted.length === 0 ? (
         <div className="glass-outer p-12 text-center text-slate-500">
           이 가격대 플랜이 없습니다
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sorted.map((plan) => (
-            <PlanCard key={plan.id} {...plan} />
+        <div className="flex flex-col gap-[10px]">
+          {sorted.map((plan, i) => (
+            <PlanCard key={plan.id} {...plan} rank={i + 1} />
           ))}
         </div>
       )}
