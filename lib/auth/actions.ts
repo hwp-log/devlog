@@ -50,6 +50,7 @@ export async function signUp(email: string, password: string, passwordConfirm: s
         data: {
           id: data.user.id,
           email: data.user.email!,
+          nickname: '여행자_' + data.user.id.slice(0, 4).toUpperCase(),
         },
       });
     } catch (e) {
