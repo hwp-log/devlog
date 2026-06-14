@@ -28,7 +28,7 @@ export async function togglePlanPublicAction(
 
   revalidatePath(`/my-plan/${planId}`);
   revalidatePath('/my-plan');
-  revalidatePath('/cost-plan');
+  revalidatePath('/plan-finder');
 }
 
 export async function addPlanItemAction(

@@ -191,7 +191,7 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
       <div className="mt-4 flex flex-col gap-2">
         {plan.sourcePlanId && (
           <Link
-            href={`/cost-plan/${plan.sourcePlanId}`}
+            href={`/plan-finder/${plan.sourcePlanId}`}
             className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
           >
             원본 플랜 보기 →
