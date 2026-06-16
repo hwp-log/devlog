@@ -25,6 +25,11 @@ enum CostCategory {
   ETC
 }
 
+enum MovieStatus {
+  APPROVED
+  PENDING
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
@@ -73,12 +78,27 @@ model Spot {
   photoUrl    String?  @map("photo_url")
   review      String?  @map("review")
   address     String?  @map("address")
+  movieId     String?  @map("movie_id")
+  movie       Movie?   @relation(fields: [movieId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("spots")
   @@index([storyId])
   @@index([storyId, order])
+  @@index([movieId])
+}
+
+model Movie {
+  id        String      @id @default(cuid())
+  title     String
+  status    MovieStatus @default(APPROVED)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  spots     Spot[]
+
+  @@map("movies")
 }
 
 model Tag {
