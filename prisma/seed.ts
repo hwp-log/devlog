@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 
 async function main() {
+  // Story 시드
   const user = await prisma.user.findUnique({
     where: { email: "test@dotrip.com" },
   });
