@@ -149,7 +149,7 @@ export default function SpotMap({
     triggerPulse(spot.id);
   }
 
-  function handleSpotUpdate(fields: { name?: string; review?: string; photoUrl?: string | null }) {
+  function handleSpotUpdate(fields: { name?: string; review?: string; photoUrl?: string | null; movieId?: string | null; movieTitle?: string | null }) {
     setActiveSpot((prev) => (prev ? { ...prev, ...fields } : null));
     const next = localSpots.map((s) =>
       s.id === activeSpot?.id ? { ...s, ...fields } : s

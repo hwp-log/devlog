@@ -8,4 +8,6 @@ export type LocalSpot = {
   review?: string | null;
   address?: string | null;
   description?: string | null;
+  movieId?: string | null;
+  movieTitle?: string | null;
 };

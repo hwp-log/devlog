@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { LocalSpot } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
@@ -20,7 +21,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       where: { id },
       include: {
         tags: true,
-        spots: { orderBy: { order: 'asc' } },
+        spots: { include: { movie: { select: { title: true } } }, orderBy: { order: 'asc' } },
         plan: {
           select: {
             currency: true,
@@ -40,6 +41,13 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       : Promise.resolve(null),
   ]);
   if (!story) notFound();
+
+  const localSpots: LocalSpot[] = story.spots.map((s) => ({
+    id: s.id, name: s.name, lat: s.lat, lng: s.lng, order: s.order,
+    photoUrl: s.photoUrl, review: s.review, address: s.address, description: s.description,
+    movieId: s.movieId ?? null,
+    movieTitle: s.movie?.title ?? null,
+  }));
 
   const isOwner = currentUser?.id === story.userId;
 
@@ -106,7 +114,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             <MapPin size={16} />
             여행동선
           </h2>
-          <SpotMap spots={story.spots} readOnly />
+          <SpotMap spots={localSpots} readOnly />
         </div>
       )}
       {story.plan && publicSummary && (

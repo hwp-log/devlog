@@ -1,15 +1,17 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useRef, useTransition } from 'react';
 import { Trash2, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
 import { clearSpotPhoto } from '@/app/story/[id]/spots/actions';
+import { searchMoviesAction } from '@/app/movies/actions';
+import type { MovieSuggestion } from '@/lib/movie/queries';
 
 type SpotPopupProps = {
   spot: LocalSpot;
   onDelete?: () => void;
   onClose?: () => void;
   readOnly?: boolean;
-  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null }) => void;
+  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null; movieId?: string | null; movieTitle?: string | null }) => void;
   onFileSelect?: (file: File | null) => void;
   initialEditing?: boolean;
   initialNameInput?: string;
@@ -33,13 +35,51 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
   const [pendingPhotoCleared, setPendingPhotoCleared] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [movieInput, setMovieInput] = useState('');
+  const [movieSuggestions, setMovieSuggestions] = useState<MovieSuggestion[]>([]);
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(spot.movieId ?? null);
+  const [selectedMovieTitle, setSelectedMovieTitle] = useState(spot.movieTitle ?? '');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function enterEdit() {
     setNameInput(displayName);
     setReviewInput(displayReview);
     setPendingPhotoFile(null);
     setPendingPhotoCleared(false);
+    setMovieInput('');
+    setMovieSuggestions([]);
+    setShowDropdown(false);
     setIsEditing(true);
+  }
+
+  function handleMovieInput(value: string) {
+    setMovieInput(value);
+    setSelectedMovieId(null);
+    setSelectedMovieTitle('');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) { setMovieSuggestions([]); setShowDropdown(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      const results = await searchMoviesAction(value);
+      setMovieSuggestions(results);
+      setShowDropdown(results.length > 0);
+    }, 300);
+  }
+
+  function selectMovie(m: MovieSuggestion) {
+    setSelectedMovieId(m.id);
+    setSelectedMovieTitle(m.title);
+    setMovieInput('');
+    setMovieSuggestions([]);
+    setShowDropdown(false);
+  }
+
+  function clearMovie() {
+    setSelectedMovieId(null);
+    setSelectedMovieTitle('');
+    setMovieInput('');
+    setMovieSuggestions([]);
+    setShowDropdown(false);
   }
 
   function cancelEdit() {
@@ -94,7 +134,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           setDisplayName(updatedName);
           setDisplayReview(updatedReview);
           setPhotoUrl(null);
-          onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null });
+          onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, movieId: selectedMovieId, movieTitle: selectedMovieTitle || null });
           setPendingPhotoCleared(false);
           setIsEditing(false);
         });
@@ -104,7 +144,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       setDisplayReview(updatedReview);
       setPhotoUrl(null);
       onFileSelect?.(null);
-      onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null });
+      onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, movieId: selectedMovieId, movieTitle: selectedMovieTitle || null });
       setPendingPhotoCleared(false);
       setIsEditing(false);
       return;
@@ -123,6 +163,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       name: updatedName,
       review: updatedReview,
       ...(updatedPhotoUrl !== undefined && { photoUrl: updatedPhotoUrl }),
+      movieId: selectedMovieId,
+      movieTitle: selectedMovieTitle || null,
     });
     setPendingPhotoFile(null);
     setPendingPhotoPreview(null);
@@ -225,6 +267,56 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
             ) : !readOnly ? (
               <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
                 리뷰 작성...
+              </p>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {/* 촬영 작품 */}
+      {(!readOnly || selectedMovieId) && (
+        <>
+          <div className="border-t border-slate-100 mx-4" />
+          <div className="p-4 relative">
+            <span className="text-sm font-medium text-slate-700 block mb-2">촬영 작품</span>
+            {isEditing ? (
+              selectedMovieId ? (
+                <div className="flex items-center gap-2 border border-black/20 rounded px-2 py-1 text-sm">
+                  <span className="flex-1 truncate">{selectedMovieTitle}</span>
+                  <button type="button" onClick={clearMovie} className="text-slate-400 hover:text-slate-600">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={movieInput}
+                    onChange={(e) => handleMovieInput(e.target.value)}
+                    placeholder="작품명 검색..."
+                    className="border border-black/20 rounded px-2 py-1 text-sm focus:outline-none w-full"
+                  />
+                  {showDropdown && (
+                    <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-black/10 rounded shadow text-sm max-h-48 overflow-y-auto">
+                      {movieSuggestions.map((m) => (
+                        <li
+                          key={m.id}
+                          onMouseDown={() => selectMovie(m)}
+                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer flex justify-between"
+                        >
+                          <span>{m.title}</span>
+                          <span className="text-slate-400 text-xs">{m.spotCount}곳</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            ) : selectedMovieId ? (
+              <p className="text-sm text-slate-600">{selectedMovieTitle}</p>
+            ) : !readOnly ? (
+              <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
+                작품 연결...
               </p>
             ) : null}
           </div>

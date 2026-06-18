@@ -5,6 +5,8 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
+
+type SpotWithMovie = Spot & { movie: { title: string } | null };
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 type ActionState = { error: string } | null;
@@ -33,7 +35,7 @@ interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initialData?: { title: string; content: string; tags: string[] };
   userId: string;
-  spots?: Spot[];
+  spots?: SpotWithMovie[];
   storyId?: string;
   availablePlans?: PlanWithCosts[];
   initialPlanId?: string | null;
@@ -51,6 +53,8 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
   const initialLocalSpots = useMemo(() => spots.map((s): LocalSpot => ({
     id: s.id, name: s.name, lat: s.lat, lng: s.lng, order: s.order,
     photoUrl: s.photoUrl, review: s.review, address: s.address, description: s.description,
+    movieId: s.movieId ?? null,
+    movieTitle: s.movie?.title ?? null,
   })), []);
 
   const [spotsJson, setSpotsJson] = useState(() => JSON.stringify(initialLocalSpots));

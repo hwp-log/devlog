@@ -83,6 +83,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
               name: spot.name,
               review: spot.review ?? null,
               photoUrl: hasPendingFile ? undefined : (spot.photoUrl ?? null),
+              movieId: spot.movieId ?? null,
             },
           });
         }
@@ -102,6 +103,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
             address: spot.address ?? null,
             description: spot.description ?? null,
             photoUrl: null,
+            movieId: spot.movieId ?? null,
           },
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });

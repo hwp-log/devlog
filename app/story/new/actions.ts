@@ -74,6 +74,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
             address: spot.address ?? null,
             description: spot.description ?? null,
             photoUrl: null,
+            movieId: spot.movieId ?? null,
           },
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });
