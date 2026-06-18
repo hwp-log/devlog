@@ -3,6 +3,32 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 
+export async function updatePasswordAction(
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ error: string } | null> {
+  if (!currentPassword || !newPassword) return { error: '모든 항목을 입력해주세요' };
+  if (newPassword.length < 8) return { error: '비밀번호는 8자 이상이어야 합니다' };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: '로그인이 필요합니다' };
+
+  const { error } = await supabase.auth.updateUser({
+    current_password: currentPassword,
+    password: newPassword,
+  });
+
+  if (error) {
+    if (error.status === 422 || error.message.toLowerCase().includes('credential')) {
+      return { error: '현재 비밀번호가 올바르지 않습니다' };
+    }
+    return { error: '비밀번호 변경에 실패했습니다' };
+  }
+
+  return null;
+}
+
 export async function updateNicknameAction(
   nickname: string,
 ): Promise<{ error: string } | null> {
