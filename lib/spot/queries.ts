@@ -7,6 +7,7 @@ export type SpotFinderSpot = {
   lat: number;
   lng: number;
   review: string | null;
+  photoUrl: string | null;
   movie: { id: string; title: string };
   author: { nickname: string };
 };
@@ -20,6 +21,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       lat: true,
       lng: true,
       review: true,
+      photoUrl: true,
       movie: { select: { id: true, title: true } },
       story: { select: { user: { select: { nickname: true } } } },
     },
@@ -31,6 +33,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
     lat: s.lat,
     lng: s.lng,
     review: s.review,
+    photoUrl: s.photoUrl,
     movie: s.movie!,
     author: s.story.user,
   }));
