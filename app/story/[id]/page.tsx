@@ -24,6 +24,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         spots: { include: { movie: { select: { title: true } } }, orderBy: { order: 'asc' } },
         plan: {
           select: {
+            isPublic: true,
             currency: true,
             costs: { select: { category: true, amount: true } },
             flight: { select: { totalAmount: true } },
@@ -126,10 +127,15 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <PublicCostSection summary={publicSummary} />
         </div>
       )}
-      <div className="mt-4">
-        <Link href="/story" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+      <div className="mt-4 flex justify-between items-center">
+        <Link href="/story" className="text-xs text-slate-500 hover:text-slate-800 transition-colors">
           ← 목록으로
         </Link>
+        {story.plan?.isPublic && story.planId && (
+          <Link href={`/plan-finder/${story.planId}`} className="text-xs text-slate-500 hover:text-slate-800 transition-colors">
+            이 여행플랜 보기 →
+          </Link>
+        )}
       </div>
       </div>
     </div>
