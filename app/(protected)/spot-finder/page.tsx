@@ -1,10 +1,12 @@
-import { ComingSoon } from '@/app/(protected)/_components/ComingSoon';
+import { fetchSpotFinderSpots } from '@/lib/spot/queries';
+import SpotFinderMapWrapper from '@/components/SpotFinderMapWrapper';
 
-export default function SpotFinderPage() {
+export default async function SpotFinderPage() {
+  const spots = await fetchSpotFinderSpots();
+
   return (
-    <ComingSoon
-      title="SpotFinder"
-      description="촬영지 검색 기능 준비 중"
-    />
+    <div className="-mx-6 -my-8 h-[calc(100vh-56px)]">
+      <SpotFinderMapWrapper spots={spots} />
+    </div>
   );
 }
