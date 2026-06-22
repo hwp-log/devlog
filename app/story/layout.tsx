@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { Logo } from '@/app/(protected)/_components/Logo';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 
@@ -19,7 +20,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
       />
       <header className="sticky top-0 z-10 glass-header">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/story" className="text-lg font-bold text-[#1A1A1A]">Dotrip</Link>
+          <Logo />
           <div className="flex items-center gap-6">
             {user ? (
               <>
