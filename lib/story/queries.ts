@@ -22,3 +22,13 @@ export async function fetchStoriesWithMeta(options?: {
 }
 
 export type StoryWithMeta = Awaited<ReturnType<typeof fetchStoriesWithMeta>>[number];
+
+export async function fetchPopularTags(limit = 8): Promise<string[]> {
+  const tags = await prisma.tag.findMany({
+    where: { stories: { some: {} } },
+    orderBy: { stories: { _count: 'desc' } },
+    take: limit,
+    select: { name: true },
+  });
+  return tags.map((t) => t.name);
+}

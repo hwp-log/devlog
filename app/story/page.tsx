@@ -2,7 +2,7 @@ import { ViewTransition } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
-import { fetchStoriesWithMeta } from '@/lib/story/queries';
+import { fetchStoriesWithMeta, fetchPopularTags } from '@/lib/story/queries';
 import { TagSearchBar } from './_components/TagSearchBar';
 import { StoryCard } from './_components/StoryCard';
 
@@ -17,6 +17,7 @@ export default async function StoryPage({
 
   const keyword = q?.trim() ?? '';
   const stories = await fetchStoriesWithMeta({ tag: keyword || undefined });
+  const popularTags = await fetchPopularTags();
 
   const myLikedIds = new Set<string>();
   if (user) {
@@ -33,7 +34,7 @@ export default async function StoryPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#1A1A1A]">Story</h1>
-        <TagSearchBar q={keyword} basePath="/story" />
+        <TagSearchBar q={keyword} basePath="/story" tags={popularTags} />
       </div>
       <ViewTransition key={listKey} default="list-fade">
       {stories.length === 0 ? (
