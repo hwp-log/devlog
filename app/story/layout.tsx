@@ -26,7 +26,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
                 <NavLinks />
                 <Link
                   href="/story/new"
-                  className="btn-elevated flex items-center px-4 py-1.5 text-slate-600 text-sm"
+                  className="btn-soft flex items-center px-4 py-1.5 text-slate-600 text-sm"
                 >
                   <span className="relative z-[2] flex items-center gap-1.5">
                     <PenSquare size={14} />
