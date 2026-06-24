@@ -36,6 +36,11 @@
   }
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
 /* 실시간 폼 검증용 variant (user-valid/invalid, :has() 활용) */
 @custom-variant user-invalid (&:user-invalid);
 @custom-variant user-valid (&:user-valid);
