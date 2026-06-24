@@ -1,16 +1,16 @@
 import Link from 'next/link';
-import { ImageIcon, Heart, ChevronRight } from 'lucide-react';
+import { Heart, ChevronRight } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import {
   CATEGORY_COLOR,
   FLIGHT_COLOR,
   type CostCategory,
 } from '@/app/(protected)/my-plan/_lib/cost';
+import { getAvatarInfo } from '@/lib/avatar/generate';
 
-interface Props extends PublicPlanListItem { rank: number }
+type Props = PublicPlanListItem;
 
 export function PlanCard({
-  rank,
   id,
   title,
   region,
@@ -22,18 +22,22 @@ export function PlanCard({
   summary,
 }: Props) {
   const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
+  const { initial, color } = getAvatarInfo(authorNickname);
 
   return (
     <Link
       href={`/plan-finder/${id}`}
       className="group flex items-center gap-3.5 bg-white border border-slate-200 rounded-xl px-4 py-3 transition-all duration-[220ms] hover:-translate-y-0.5 hover:border-slate-300"
     >
-      {/* 썸네일 96×72 + 순위 뱃지 */}
-      <div className="relative w-24 h-[72px] shrink-0 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-        <span className="absolute top-1.5 left-1.5 min-w-[20px] h-5 px-[5px] rounded-full bg-[#1A1A1A] text-white text-[12px] font-medium flex items-center justify-center">
-          {rank}
+      {/* 좌측: 작성자 아바타 말풍선 + 순위 뱃지 */}
+      <div
+        className="relative w-16 h-16 shrink-0 overflow-hidden"
+        style={{ borderRadius: '18px 18px 18px 4px', backgroundColor: color }}
+        aria-label={`${authorNickname} 아바타`}
+      >
+        <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white select-none">
+          {initial}
         </span>
-        <ImageIcon size={24} />
       </div>
 
       {/* 중앙: 제목 / 지역칩+메타 / 미니 막대 */}

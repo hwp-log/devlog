@@ -98,8 +98,8 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         </div>
       ) : (
         <div className="flex flex-col gap-[10px]">
-          {sorted.map((plan, i) => (
-            <PlanCard key={plan.id} {...plan} rank={i + 1} />
+          {sorted.map((plan) => (
+            <PlanCard key={plan.id} {...plan} />
           ))}
         </div>
       )}
