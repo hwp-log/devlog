@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isValidEmail } from './validators';
+import { generateNickname } from './nickname';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -50,7 +51,7 @@ export async function signUp(email: string, password: string, passwordConfirm: s
         data: {
           id: data.user.id,
           email: data.user.email!,
-          nickname: '여행자_' + data.user.id.slice(0, 4).toUpperCase(),
+          nickname: generateNickname(data.user.id),
         },
       });
     } catch (e) {
