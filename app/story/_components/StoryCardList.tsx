@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { StoryCard } from './StoryCard';
+import { CardReveal } from './CardReveal';
 
 interface StoryItem {
   id: string;
@@ -15,27 +16,21 @@ interface StoryItem {
 }
 
 export function StoryCardList({ stories }: { stories: StoryItem[] }) {
-  const isFirstRenderRef = useRef(true);
+  const initialPhaseRef = useRef(true);
   useEffect(() => {
-    isFirstRenderRef.current = false;
+    const t = setTimeout(() => {
+      initialPhaseRef.current = false;
+    }, 200);
+    return () => clearTimeout(t);
   }, []);
-  const isFirst = isFirstRenderRef.current;
-  const baseDelay = 0.36;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {stories.map((story, i) => {
-        const delay = baseDelay + (i < 9 ? i * 0.12 : 1.08);
-        return (
-          <div
-            key={story.id}
-            className={isFirst ? 'appear-up' : undefined}
-            style={isFirst ? { animationDelay: `${delay}s` } : undefined}
-          >
-            <StoryCard {...story} />
-          </div>
-        );
-      })}
+      {stories.map((story, i) => (
+        <CardReveal key={story.id} index={i} initialPhaseRef={initialPhaseRef}>
+          <StoryCard {...story} />
+        </CardReveal>
+      ))}
     </div>
   );
 }
