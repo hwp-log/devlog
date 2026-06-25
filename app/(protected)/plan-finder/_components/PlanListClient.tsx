@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PlanCard } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
@@ -32,6 +32,12 @@ function getFilterKey(plan: PublicPlanListItem): FilterKey | null {
 export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const [sort, setSort]     = useState<SortKey>('popular');
   const [filter, setFilter] = useState<FilterKey>('all');
+
+  const isFirstRenderRef = useRef(true);
+  useEffect(() => {
+    isFirstRenderRef.current = false;
+  }, []);
+  const baseDelay = isFirstRenderRef.current ? 0.48 : 0;
 
   const filtered = filter === 'all'
     ? plans
@@ -66,7 +72,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       )}
 
       <div
-        className="flex flex-wrap gap-2 mb-4 appear-up"
+        className="flex flex-wrap gap-2 mb-4 appear-up relative z-10"
         style={{ animationDelay: '0.36s' }}
       >
         <FilterDropdown<FilterKey>
@@ -84,16 +90,20 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="glass-outer p-12 text-center text-slate-500">
+        <div
+          key={`empty-${sort}-${filter}`}
+          className="glass-outer p-12 text-center text-slate-500 appear-up"
+          style={{ animationDelay: `${baseDelay}s` }}
+        >
           이 가격대 플랜이 없습니다
         </div>
       ) : (
-        <div className="flex flex-col gap-[10px]">
+        <div key={`${sort}-${filter}`} className="flex flex-col gap-[10px]">
           {sorted.map((plan, i) => (
             <div
               key={plan.id}
               className="appear-up"
-              style={{ animationDelay: `${i < 8 ? 0.48 + i * 0.12 : 1.32}s` }}
+              style={{ animationDelay: `${baseDelay + (i < 8 ? i * 0.12 : 0.84)}s` }}
             >
               <PlanCard {...plan} />
             </div>
