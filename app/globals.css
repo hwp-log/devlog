@@ -36,9 +36,16 @@
   }
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0; }
+@keyframes planCardEnter {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* 실시간 폼 검증용 variant (user-valid/invalid, :has() 활용) */
@@ -240,6 +247,10 @@ body {
     backdrop-filter: blur(20px) saturate(180%);
     border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  .appear-up {
+    animation: planCardEnter 0.8s ease-out both;
   }
 }
 

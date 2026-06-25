@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PlanCard } from './PlanCard';
+import { FilterDropdown } from './FilterDropdown';
 
 type SortKey = 'popular' | 'newest' | 'price_asc' | 'price_desc';
 type FilterKey = 'all' | 'under50' | '50to100' | 'over100';
@@ -54,43 +55,33 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
 
   return (
     <div className="bg-slate-100 rounded-xl p-5">
-      <div className="flex flex-wrap gap-2 mb-[10px]">
-        {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-              filter === key
-                ? 'bg-[#1A1A1A] text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {FILTER_LABELS[key]}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-2 items-center mb-[6px]">
-        {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setSort(key)}
-            className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-              sort === key
-                ? 'bg-[#1A1A1A] text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {SORT_LABELS[key]}
-          </button>
-        ))}
-      </div>
-
       {avgWon !== null && (
-        <p className="text-xs text-slate-400 mb-4 ml-0.5">
-          {sorted.length}개 코스 · 평균 약 {avgWon.toLocaleString()}만원
+        <p
+          className="text-sm text-slate-500 mb-3 ml-0.5 appear-up"
+          style={{ animationDelay: '0.24s' }}
+        >
+          <span className="text-[#0369A1] font-semibold">{sorted.length}개</span> 코스 · 평균{' '}
+          <span className="text-[#0369A1] font-semibold">약 {avgWon.toLocaleString()}만원</span>
         </p>
       )}
+
+      <div
+        className="flex flex-wrap gap-2 mb-4 appear-up"
+        style={{ animationDelay: '0.36s' }}
+      >
+        <FilterDropdown<FilterKey>
+          label="가격대"
+          options={FILTER_LABELS}
+          value={filter}
+          onChange={setFilter}
+        />
+        <FilterDropdown<SortKey>
+          label="정렬"
+          options={SORT_LABELS}
+          value={sort}
+          onChange={setSort}
+        />
+      </div>
 
       {sorted.length === 0 ? (
         <div className="glass-outer p-12 text-center text-slate-500">
@@ -98,8 +89,14 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         </div>
       ) : (
         <div className="flex flex-col gap-[10px]">
-          {sorted.map((plan) => (
-            <PlanCard key={plan.id} {...plan} />
+          {sorted.map((plan, i) => (
+            <div
+              key={plan.id}
+              className="appear-up"
+              style={{ animationDelay: `${i < 8 ? 0.48 + i * 0.12 : 1.32}s` }}
+            >
+              <PlanCard {...plan} />
+            </div>
           ))}
         </div>
       )}
