@@ -35,6 +35,7 @@ model User {
   email     String   @unique
   nickname  String   @db.VarChar(20) @map("nickname")
   createdAt DateTime @default(now()) @map("created_at")
+  avatarUrl String?  @map("avatar_url")
 
   stories   Story[]
   myPlans   MyPlan[]
