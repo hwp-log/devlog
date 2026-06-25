@@ -56,6 +56,7 @@ export default async function StoryPage({
             likeCount: story._count.likes,
             isLiked: myLikedIds.has(story.id),
             authorNickname: story.user.nickname,
+            authorAvatarUrl: story.user.avatarUrl,
           }))}
         />
       )}

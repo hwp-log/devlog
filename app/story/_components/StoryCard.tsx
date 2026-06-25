@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
+import { AuthorAvatar } from './AuthorAvatar';
 
 interface StoryCardProps {
   id: string;
@@ -11,9 +12,10 @@ interface StoryCardProps {
   likeCount: number;
   isLiked: boolean;
   authorNickname?: string;
+  authorAvatarUrl?: string | null;
 }
 
-export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, likeCount, isLiked, authorNickname }: StoryCardProps) {
+export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, likeCount, isLiked, authorNickname, authorAvatarUrl }: StoryCardProps) {
   const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
 
   return (
@@ -52,7 +54,14 @@ export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, like
           </div>
         </div>
         <div className="border-t border-slate-100 px-6 py-3 flex items-center justify-between">
-          {authorNickname && <span className="text-xs text-slate-500">{authorNickname}</span>}
+          {authorNickname ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl ?? null} />
+              <span className="text-xs text-slate-500 truncate">{authorNickname}</span>
+            </div>
+          ) : (
+            <span />
+          )}
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <Heart
               size={13}

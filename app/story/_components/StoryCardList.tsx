@@ -13,6 +13,7 @@ interface StoryItem {
   likeCount: number;
   isLiked: boolean;
   authorNickname?: string;
+  authorAvatarUrl?: string | null;
 }
 
 export function StoryCardList({ stories }: { stories: StoryItem[] }) {

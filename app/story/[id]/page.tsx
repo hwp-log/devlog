@@ -9,6 +9,7 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin, Wallet } from 'lucide-react';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { PublicCostSection } from './PublicCostSection';
+import { AuthorAvatar } from '../_components/AuthorAvatar';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,7 +32,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           },
         },
         _count: { select: { likes: true } },
-        user: { select: { nickname: true } },
+        user: { select: { nickname: true, avatarUrl: true } },
       },
     }),
     currentUser
@@ -82,6 +83,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
             <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
             <span>·</span>
+            <AuthorAvatar nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
             <span>{story.user.nickname}</span>
           </div>
           <div

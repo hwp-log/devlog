@@ -16,7 +16,7 @@ export async function fetchStoriesWithMeta(options?: {
         ? { tags: { some: { name: { contains: escapeILike(tag), mode: 'insensitive' } } } }
         : {}),
     },
-    include: { tags: true, _count: { select: { likes: true } }, user: { select: { nickname: true } } },
+    include: { tags: true, _count: { select: { likes: true } }, user: { select: { nickname: true, avatarUrl: true } } },
     orderBy: { createdAt: 'desc' },
   });
 }
