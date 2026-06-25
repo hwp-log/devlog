@@ -1,14 +1,17 @@
 'use client';
 import { useRef, useEffect, useState } from 'react';
-import { User } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from '@/lib/auth/actions';
+import { getAvatarInfo } from '@/lib/avatar/generate';
 
 interface Props {
   email: string;
+  avatarUrl: string | null;
+  nickname: string;
 }
 
-export function UserDropdown({ email }: Props) {
+export function UserDropdown({ email, avatarUrl, nickname }: Props) {
+  const { initial, color } = getAvatarInfo(nickname);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -26,12 +29,18 @@ export function UserDropdown({ email }: Props) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center hover:bg-slate-300 transition-colors"
+        className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:opacity-90 transition-opacity"
+        style={avatarUrl ? undefined : { backgroundColor: color }}
         aria-label="사용자 메뉴"
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <User className="w-4 h-4 text-slate-600" />
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-sm font-bold text-white select-none">{initial}</span>
+        )}
       </button>
 
       {open && (

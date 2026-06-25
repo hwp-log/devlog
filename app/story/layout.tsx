@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { Logo } from '@/app/(protected)/_components/Logo';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
@@ -8,6 +9,12 @@ import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 export default async function StoryLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const profile = user
+    ? await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { nickname: true, avatarUrl: true },
+      })
+    : null;
 
   return (
     <div
@@ -34,7 +41,11 @@ export default async function StoryLayout({ children }: { children: React.ReactN
                     Write
                   </span>
                 </Link>
-                <UserDropdown email={user.email ?? ''} />
+                <UserDropdown
+                  email={user.email ?? ''}
+                  avatarUrl={profile?.avatarUrl ?? null}
+                  nickname={profile?.nickname ?? ''}
+                />
               </>
             ) : (
               <Link href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
