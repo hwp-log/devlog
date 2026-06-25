@@ -48,3 +48,70 @@ export async function updateNicknameAction(
   revalidatePath('/mypage');
   return null;
 }
+
+function extractAvatarPath(url: string, userId: string): string | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const prefix = `${supabaseUrl}/storage/v1/object/public/avatars/`;
+  if (!url.startsWith(prefix)) return null;
+  const path = url.slice(prefix.length);
+  if (!path.startsWith(`${userId}/`)) return null;
+  return path;
+}
+
+export async function updateAvatarAction(
+  newUrl: string,
+): Promise<{ error: string } | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: '로그인이 필요합니다' };
+
+  if (!extractAvatarPath(newUrl, user.id)) {
+    return { error: '잘못된 아바타 URL입니다' };
+  }
+
+  const current = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { avatarUrl: true },
+  });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { avatarUrl: newUrl },
+  });
+
+  if (current?.avatarUrl) {
+    const oldPath = extractAvatarPath(current.avatarUrl, user.id);
+    if (oldPath) {
+      await supabase.storage.from('avatars').remove([oldPath]);
+    }
+  }
+
+  revalidatePath('/mypage');
+  return null;
+}
+
+export async function removeAvatarAction(): Promise<{ error: string } | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: '로그인이 필요합니다' };
+
+  const current = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { avatarUrl: true },
+  });
+
+  if (!current?.avatarUrl) return null;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { avatarUrl: null },
+  });
+
+  const oldPath = extractAvatarPath(current.avatarUrl, user.id);
+  if (oldPath) {
+    await supabase.storage.from('avatars').remove([oldPath]);
+  }
+
+  revalidatePath('/mypage');
+  return null;
+}
