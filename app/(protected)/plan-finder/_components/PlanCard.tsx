@@ -37,6 +37,7 @@ export function PlanCard({
   likeCount,
   isLiked,
   authorNickname,
+  authorAvatarUrl,
   summary,
 }: Props) {
   const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
@@ -58,12 +59,24 @@ export function PlanCard({
       {/* ① 아바타 */}
       <div
         className="relative w-16 h-16 shrink-0 overflow-hidden"
-        style={{ borderRadius: '18px 18px 18px 4px', backgroundColor: color }}
+        style={{
+          borderRadius: '18px 18px 18px 4px',
+          backgroundColor: authorAvatarUrl ? undefined : color,
+        }}
         aria-label={`${authorNickname} 아바타`}
       >
-        <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white select-none">
-          {initial}
-        </span>
+        {authorAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={authorAvatarUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white select-none">
+            {initial}
+          </span>
+        )}
       </div>
 
       {/* ② 제목 + 태그 pill */}
