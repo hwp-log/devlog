@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
-import { AuthorAvatar } from './AuthorAvatar';
+import { AuthorAvatar } from '@/components/AuthorAvatar';
 
 interface StoryCardProps {
   id: string;

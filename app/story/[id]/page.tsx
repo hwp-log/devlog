@@ -9,7 +9,7 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { MapPin, Wallet } from 'lucide-react';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { PublicCostSection } from './PublicCostSection';
-import { AuthorAvatar } from '../_components/AuthorAvatar';
+import { AuthorAvatar } from '@/components/AuthorAvatar';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -9,7 +9,7 @@ export type SpotFinderSpot = {
   review: string | null;
   photoUrl: string | null;
   movie: { id: string; title: string };
-  author: { nickname: string };
+  author: { nickname: string; avatarUrl: string | null };
 };
 
 export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
@@ -23,7 +23,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       review: true,
       photoUrl: true,
       movie: { select: { id: true, title: true } },
-      story: { select: { user: { select: { nickname: true } } } },
+      story: { select: { user: { select: { nickname: true, avatarUrl: true } } } },
     },
   });
 

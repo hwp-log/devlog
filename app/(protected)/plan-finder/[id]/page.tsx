@@ -48,7 +48,7 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       },
       ownerId: true,
       _count: { select: { planLikes: true } },
-      owner: { select: { nickname: true } },
+      owner: { select: { nickname: true, avatarUrl: true } },
       ...(user ? { planLikes: { where: { userId: user.id }, select: { id: true } } } : {}),
     },
   });
@@ -125,6 +125,7 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       summary={summary}
       currency={currency}
       authorNickname={plan.owner.nickname}
+      authorAvatarUrl={plan.owner.avatarUrl}
       isOwner={isOwner}
     />
   );

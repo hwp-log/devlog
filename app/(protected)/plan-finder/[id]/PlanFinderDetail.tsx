@@ -7,6 +7,7 @@ import { PublicCostSection } from '@/app/story/[id]/PublicCostSection';
 import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
+import { AuthorAvatar } from '@/components/AuthorAvatar';
 
 interface Props {
   planId: string;
@@ -24,6 +25,7 @@ interface Props {
   summary: PublicCostSummary;
   currency: 'KRW' | 'USD' | 'JPY';
   authorNickname: string;
+  authorAvatarUrl: string | null;
   isOwner: boolean;
 }
 
@@ -43,6 +45,7 @@ export function PlanFinderDetail({
   summary,
   currency,
   authorNickname,
+  authorAvatarUrl,
   isOwner,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
@@ -64,7 +67,12 @@ export function PlanFinderDetail({
             <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
           </div>
         </div>
-        <p className="text-sm text-slate-500 mt-1">{createdAtLabel} · {authorNickname}</p>
+        <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+          <span>{createdAtLabel}</span>
+          <span>·</span>
+          <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
+          <span>{authorNickname}</span>
+        </div>
 
         {(region || movie) && (
           <div className="flex gap-2 mt-2 flex-wrap">

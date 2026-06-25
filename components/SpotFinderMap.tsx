@@ -123,9 +123,18 @@ export default function SpotFinderMap({ spots }: Props) {
               <div>
                 <p className="text-xs font-medium text-slate-500 mb-2">출처</p>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-[#1A1A1A] text-white text-xs font-semibold flex items-center justify-center flex-shrink-0">
-                    {selectedSpot.author.nickname[0]}
-                  </div>
+                  {selectedSpot.author.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selectedSpot.author.avatarUrl}
+                      alt=""
+                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-[#1A1A1A] text-white text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                      {selectedSpot.author.nickname[0]}
+                    </div>
+                  )}
                   <span className="text-sm text-slate-700">{selectedSpot.author.nickname}</span>
                 </div>
               </div>
