@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
 import { fetchStoriesWithMeta, fetchPopularTags } from '@/lib/story/queries';
 import { TagSearchBar } from './_components/TagSearchBar';
-import { StoryCard } from './_components/StoryCard';
+import { StoryHeader } from './_components/StoryHeader';
+import { StoryCardList } from './_components/StoryCardList';
 
 export default async function StoryPage({
   searchParams,
@@ -32,9 +33,11 @@ export default async function StoryPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#1A1A1A]">Story</h1>
-        <TagSearchBar q={keyword} basePath="/story" tags={popularTags} />
+      <div className="flex items-end justify-between gap-4 mb-6">
+        <StoryHeader />
+        <div className="appear-up" style={{ animationDelay: '0.24s' }}>
+          <TagSearchBar q={keyword} basePath="/story" tags={popularTags} />
+        </div>
       </div>
       <ViewTransition key={listKey} default="list-fade">
       {stories.length === 0 ? (
@@ -42,22 +45,19 @@ export default async function StoryPage({
           {keyword ? `"${keyword}" 태그가 포함된 스토리가 없습니다` : '아직 작성된 글이 없습니다'}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {stories.map((story) => (
-            <StoryCard
-              key={story.id}
-              id={story.id}
-              thumbnail={extractFirstImage(story.content)}
-              title={story.title}
-              preview={extractTextPreview(story.content)}
-              createdAt={story.createdAt}
-              tags={story.tags}
-              likeCount={story._count.likes}
-              isLiked={myLikedIds.has(story.id)}
-              authorNickname={story.user.nickname}
-            />
-          ))}
-        </div>
+        <StoryCardList
+          stories={stories.map((story) => ({
+            id: story.id,
+            thumbnail: extractFirstImage(story.content),
+            title: story.title,
+            preview: extractTextPreview(story.content),
+            createdAt: story.createdAt,
+            tags: story.tags,
+            likeCount: story._count.likes,
+            isLiked: myLikedIds.has(story.id),
+            authorNickname: story.user.nickname,
+          }))}
+        />
       )}
       </ViewTransition>
     </div>
