@@ -18,6 +18,7 @@ export default function SpotFinderMap({ spots }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
 
   // 작품별 그룹핑 — JS 내장 Map과 지도 컴포넌트 Map 이름 충돌 방지
   const movieGroups = useMemo(() => {
@@ -58,6 +59,27 @@ export default function SpotFinderMap({ spots }: Props) {
     return () => observer.disconnect();
   }, [filteredMovieGroups]);
 
+  // 컨테이너 크기 변경 시 지도 relayout — center 보존
+  useEffect(() => {
+    const el = mapWrapperRef.current;
+    if (!el || !mapInstance) return;
+    let frame = 0;
+    const relayout = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const center = mapInstance.getCenter();
+        mapInstance.relayout();
+        mapInstance.setCenter(center);
+      });
+    };
+    const observer = new ResizeObserver(relayout);
+    observer.observe(el);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [mapInstance]);
+
   function scrollChips(dir: 'left' | 'right') {
     chipBarRef.current?.scrollBy({ left: dir === 'right' ? 150 : -150, behavior: 'smooth' });
   }
@@ -65,7 +87,7 @@ export default function SpotFinderMap({ spots }: Props) {
   if (loading) return <div className="w-full h-full bg-slate-100 animate-pulse" />;
 
   return (
-    <div className="relative w-full h-full">
+    <div ref={mapWrapperRef} className="relative w-full h-full">
 
       {/* 왼쪽 컨테이너: 검색창(항상) + 상세 패널(마커 클릭 시) */}
       <div className="absolute top-3 left-3 z-[1000] w-72 flex flex-col gap-2">
