@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { useKakaoLoader, Map, MapMarker, MarkerClusterer } from 'react-kakao-maps-sdk';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 
@@ -214,6 +214,12 @@ export default function SpotFinderMap({ spots }: Props) {
             <ChevronRight size={14} />
           </button>
         )}
+      </div>
+
+      {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
+      <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
+        <Info size={12} className="text-slate-500 shrink-0" />
+        <span className="text-xs text-slate-600">촬영지 정보는 국내만 제공됩니다</span>
       </div>
 
       <Map
