@@ -6,8 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
 import { fetchStoriesWithMeta } from '@/lib/story/queries';
 import { getAvatarInfo } from '@/lib/avatar/generate';
-import { StoryCard } from '@/app/story/_components/StoryCard';
 import { TagSearchBar } from '@/app/story/_components/TagSearchBar';
+import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
 
 export default async function MyDotsPage({
   searchParams,
@@ -94,7 +94,10 @@ export default async function MyDotsPage({
               <p className="text-slate-500">{`"${keyword}" 태그가 포함된 스토리가 없습니다`}</p>
             </div>
           ) : (
-            <div className="glass-outer p-12 h-[calc(100vh-208px)] min-h-[440px] flex flex-col items-center justify-center text-center">
+            <div
+              className="glass-outer p-12 h-[calc(100vh-208px)] min-h-[440px] flex flex-col items-center justify-center text-center appear-up"
+              style={{ animationDelay: '0.36s' }}
+            >
               <MapPin size={40} strokeWidth={1.5} className="text-slate-300 mb-3" />
               <p className="text-slate-700 font-medium mb-1">아직 남긴 이야기가 없어요</p>
               <p className="text-slate-500 text-sm mb-5">여행의 첫 점을 찍어보세요</p>
@@ -108,21 +111,18 @@ export default async function MyDotsPage({
             </div>
           )
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {stories.map((story) => (
-              <StoryCard
-                key={story.id}
-                id={story.id}
-                thumbnail={extractFirstImage(story.content)}
-                title={story.title}
-                preview={extractTextPreview(story.content)}
-                createdAt={story.createdAt}
-                tags={story.tags}
-                likeCount={story._count.likes}
-                isLiked={myLikedIds.has(story.id)}
-              />
-            ))}
-          </div>
+          <MyStoryCardGrid
+            stories={stories.map((story) => ({
+              id: story.id,
+              thumbnail: extractFirstImage(story.content),
+              title: story.title,
+              preview: extractTextPreview(story.content),
+              createdAt: story.createdAt,
+              tags: story.tags,
+              likeCount: story._count.likes,
+              isLiked: myLikedIds.has(story.id),
+            }))}
+          />
         )}
       </ViewTransition>
     </div>

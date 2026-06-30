@@ -21,8 +21,8 @@ export function useInViewOnce<T extends Element>(options: Options = {}) {
         }
       },
       {
-        threshold: options.threshold ?? 0.15,
-        rootMargin: options.rootMargin,
+        threshold: options.threshold ?? 0,
+        rootMargin: options.rootMargin ?? '0px 0px -80px 0px',
       },
     );
     io.observe(el);

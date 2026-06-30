@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function CardReveal({ children, index, initialPhaseRef }: Props) {
-  const { ref, inView } = useInViewOnce<HTMLDivElement>({ threshold: 0.15 });
+  const { ref, inView } = useInViewOnce<HTMLDivElement>();
   const [delay, setDelay] = useState(0);
   const decidedRef = useRef(false);
 
