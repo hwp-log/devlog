@@ -32,3 +32,17 @@ export async function fetchPopularTags(limit = 8): Promise<string[]> {
   });
   return tags.map((t) => t.name);
 }
+
+export async function fetchMyStoryTags(userId: string, limit = 8): Promise<string[]> {
+  const tags = await prisma.tag.findMany({
+    where: { stories: { some: { userId } } },
+    select: {
+      name: true,
+      _count: { select: { stories: { where: { userId } } } },
+    },
+  });
+  return tags
+    .sort((a, b) => b._count.stories - a._count.stories)
+    .slice(0, limit)
+    .map((t) => t.name);
+}

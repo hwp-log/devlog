@@ -4,7 +4,7 @@ import { MapPin, PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
-import { fetchStoriesWithMeta } from '@/lib/story/queries';
+import { fetchStoriesWithMeta, fetchMyStoryTags } from '@/lib/story/queries';
 import { getAvatarInfo } from '@/lib/avatar/generate';
 import { TagSearchBar } from '@/app/story/_components/TagSearchBar';
 import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
@@ -26,6 +26,7 @@ export default async function MyDotsPage({
   const keyword = q?.trim() ?? '';
 
   const stories = await fetchStoriesWithMeta({ userId: user!.id, tag: keyword || undefined });
+  const myTags = await fetchMyStoryTags(user!.id);
 
   const myLikedIds = new Set<string>();
   if (stories.length > 0) {
@@ -83,7 +84,7 @@ export default async function MyDotsPage({
           </div>
         </div>
         <div className="appear-up" style={{ animationDelay: '0.24s' }}>
-          <TagSearchBar q={keyword} basePath="/my-dots" />
+          <TagSearchBar q={keyword} basePath="/my-dots" tags={myTags} />
         </div>
       </div>
 
