@@ -29,7 +29,7 @@ export default async function MyPage() {
           className="text-2xl md:text-3xl font-bold text-[#1A1A1A] appear-up"
           style={{ animationDelay: '0.12s' }}
         >
-          마이페이지
+          {profile.nickname ? `안녕하세요, ${profile.nickname}님` : '안녕하세요'}
         </h1>
       </div>
       <AvatarForm userId={user.id} nickname={profile.nickname} currentAvatarUrl={profile.avatarUrl} />
