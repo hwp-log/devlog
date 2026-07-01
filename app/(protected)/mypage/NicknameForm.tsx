@@ -23,7 +23,7 @@ export function NicknameForm({ email, nickname: initialNickname }: Props) {
   };
 
   return (
-    <div className="glass-outer p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <label className="text-xs font-semibold text-slate-500 mb-1 block">이메일</label>
         <p className="text-sm text-slate-700">{email}</p>
