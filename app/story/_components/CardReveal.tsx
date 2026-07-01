@@ -6,9 +6,10 @@ interface Props {
   children: React.ReactNode;
   index: number;
   initialPhaseRef: RefObject<boolean>;
+  staggerOnRemount?: boolean;
 }
 
-export function CardReveal({ children, index, initialPhaseRef }: Props) {
+export function CardReveal({ children, index, initialPhaseRef, staggerOnRemount }: Props) {
   const { ref, inView } = useInViewOnce<HTMLDivElement>();
   const [delay, setDelay] = useState(0);
   const decidedRef = useRef(false);
@@ -18,10 +19,12 @@ export function CardReveal({ children, index, initialPhaseRef }: Props) {
     decidedRef.current = true;
     if (initialPhaseRef.current) {
       setDelay(0.36 + Math.min(index, 8) * 0.12);
+    } else if (staggerOnRemount) {
+      setDelay(Math.min(index, 8) * 0.12);
     } else {
       setDelay(0);
     }
-  }, [inView, index, initialPhaseRef]);
+  }, [inView, index, initialPhaseRef, staggerOnRemount]);
 
   return (
     <div

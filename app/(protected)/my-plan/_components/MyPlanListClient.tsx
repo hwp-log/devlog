@@ -1,24 +1,23 @@
 'use client';
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef } from 'react';
 import { FilterDropdown } from '@/app/(protected)/plan-finder/_components/FilterDropdown';
-import { CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, FLIGHT_COLOR, formatAmount } from '../_lib/cost';
-import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
+import { CardReveal } from '@/app/story/_components/CardReveal';
+import { MyPlanCard, type Ratio } from './MyPlanCard';
 
 type Currency = 'KRW' | 'USD' | 'JPY';
 
 export type MyPlanListItem = {
   id: string;
   title: string;
+  region: string | null;
   currency: Currency;
   startDate: Date | null;
   endDate: Date | null;
   createdAt: Date;
   spotCount: number;
-  costs: { category: string; amount: number }[];
-  flight: { totalAmount: number } | null;
   total: number;
   band: { lower: number; upper: number } | null;
+  ratios: Ratio[];
 };
 
 type SortKey = 'newest' | 'startDate' | 'price_asc' | 'price_desc';
@@ -50,6 +49,14 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
   const [sort, setSort] = useState<SortKey>('newest');
   const [filter, setFilter] = useState<FilterKey>('all');
 
+  const initialPhaseRef = useRef(true);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      initialPhaseRef.current = false;
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
+
   const filtered = filter === 'all'
     ? items
     : items.filter((p) => getFilterKey(p) === filter);
@@ -67,8 +74,26 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
     return sort === 'price_asc' ? a.total - b.total : b.total - a.total;
   });
 
+  const withBand = sorted.filter((p) => p.band);
+  const avgWon = withBand.length > 0
+    ? Math.round(
+        withBand.reduce((s, p) => s + (p.band!.lower + p.band!.upper) / 2, 0)
+        / withBand.length / 10_000,
+      )
+    : null;
+
   return (
-    <div>
+    <div className="bg-slate-100 rounded-xl p-5">
+      {avgWon !== null && (
+        <p
+          className="text-sm text-slate-500 mb-3 ml-0.5 appear-up"
+          style={{ animationDelay: '0.24s' }}
+        >
+          <span className="text-[#0369A1] font-semibold">{sorted.length}개</span> 계획 · 평균{' '}
+          <span className="text-[#0369A1] font-semibold">약 {avgWon.toLocaleString()}만원</span>
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2 mb-4 relative z-10">
         <FilterDropdown<FilterKey>
           label="가격대"
@@ -89,84 +114,12 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
           이 가격대 계획이 없어요
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sorted.map((plan) => {
-            const summary = calcCostSummary(plan.costs);
-            const total = plan.total;
-            const isEmpty = total === 0;
-            const flightAmt = plan.flight?.totalAmount ?? 0;
-
-            return (
-              <Link
-                key={plan.id}
-                href={`/my-plan/${plan.id}`}
-                className="glass-outer glass-outer-interactive overflow-hidden block cursor-pointer"
-              >
-                <div className="p-5">
-                  {/* 제목 + chevron */}
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h2 className="text-base font-semibold text-[#1A1A1A] leading-snug">{plan.title}</h2>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-slate-400 mt-0.5">
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </div>
-
-                  {/* 메타: 기간 · 스팟 수 */}
-                  <p className="text-xs text-slate-400 mb-4">
-                    {plan.startDate && plan.endDate
-                      ? `${plan.startDate.toLocaleDateString('ko-KR')} ~ ${plan.endDate.toLocaleDateString('ko-KR')}`
-                      : '기간 미설정'}
-                    {' · '}
-                    스팟 {plan.spotCount}개
-                  </p>
-
-                  {isEmpty ? (
-                    <p className="text-xs text-slate-400 py-3">예산 미입력</p>
-                  ) : (
-                    <>
-                      {/* 누적 막대 */}
-                      <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 mb-3">
-                        {flightAmt > 0 && (
-                          <div style={{ width: `${(flightAmt / total) * 100}%`, backgroundColor: FLIGHT_COLOR }} />
-                        )}
-                        {CATEGORIES.map((cat) =>
-                          summary[cat] > 0 ? (
-                            <div
-                              key={cat}
-                              style={{ width: `${(summary[cat] / total) * 100}%`, backgroundColor: CATEGORY_COLOR[cat] }}
-                            />
-                          ) : null
-                        )}
-                      </div>
-
-                      {/* 총액 */}
-                      <p className="text-right text-xl font-bold text-[#1A1A1A] mb-3">
-                        {formatAmount(total, plan.currency)}
-                      </p>
-
-                      {/* 범례: 비용 > 0 항목만 */}
-                      <div className="flex flex-wrap gap-x-3 gap-y-1">
-                        {flightAmt > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-slate-500">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: FLIGHT_COLOR }} />
-                            항공
-                          </span>
-                        )}
-                        {CATEGORIES.map((cat) =>
-                          summary[cat] > 0 ? (
-                            <span key={cat} className="flex items-center gap-1 text-xs text-slate-500">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLOR[cat] }} />
-                              {CATEGORY_LABEL[cat]}
-                            </span>
-                          ) : null
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
+        <div key={`${sort}-${filter}`} className="flex flex-col gap-[10px]">
+          {sorted.map((plan, i) => (
+            <CardReveal key={plan.id} index={i} initialPhaseRef={initialPhaseRef} staggerOnRemount>
+              <MyPlanCard {...plan} />
+            </CardReveal>
+          ))}
         </div>
       )}
     </div>

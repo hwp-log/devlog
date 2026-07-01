@@ -34,24 +34,25 @@ export default async function MyPlanPage() {
 
   const items: MyPlanListItem[] = plans.map((plan) => {
     const currency = plan.currency as 'KRW' | 'USD' | 'JPY';
+    const summary = summarizePlanCost(plan.costs, plan.flight, currency);
     return {
       id: plan.id,
       title: plan.title,
+      region: plan.region,
       currency,
       startDate: plan.startDate,
       endDate: plan.endDate,
       createdAt: plan.createdAt,
       spotCount: plan._count.spots,
-      costs: plan.costs.map((c) => ({ category: c.category, amount: c.amount })),
-      flight: plan.flight ? { totalAmount: plan.flight.totalAmount } : null,
       total: calcPlanTotal(plan.costs, plan.flight),
-      band: summarizePlanCost(plan.costs, plan.flight, currency).band,
+      band: summary.band,
+      ratios: summary.ratios,
     };
   });
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4 mb-6">
+      <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <div className="appear-up" style={{ animationDelay: '0s' }}>
             {profile?.avatarUrl ? (
@@ -78,17 +79,11 @@ export default async function MyPlanPage() {
             >
               {headline}
             </h1>
-            <p
-              className="text-sm text-slate-500 mt-1 appear-up"
-              style={{ animationDelay: '0.18s' }}
-            >
-              {plans.length}개 계획
-            </p>
           </div>
         </div>
         <Link
           href="/my-plan/new"
-          className="bg-[#1A1A1A] text-white px-5 py-2 rounded-full text-sm appear-up"
+          className="bg-[#1A1A1A] text-white px-5 py-2 rounded-full text-sm appear-up transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:bg-[#333] active:translate-y-0 active:scale-[0.96] active:duration-100"
           style={{ animationDelay: '0.24s' }}
         >
           새 계획
