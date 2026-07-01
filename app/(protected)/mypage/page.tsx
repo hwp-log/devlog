@@ -69,7 +69,7 @@ export default async function MyPage() {
       </div>
 
       <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
-        <div className="glass-outer divide-y divide-black/5">
+        <div className="glass-outer divide-y divide-black/5 appear-up" style={{ animationDelay: '0.24s' }}>
           <AvatarForm userId={user.id} nickname={profile.nickname} currentAvatarUrl={profile.avatarUrl} />
           <ActivityDashboardCard
             storyCount={storyCount}
@@ -80,7 +80,7 @@ export default async function MyPage() {
           <RecentActivityCard recentStories={recentStories} recentPlans={recentPlans} />
         </div>
 
-        <div className="glass-outer divide-y divide-black/5">
+        <div className="glass-outer divide-y divide-black/5 appear-up" style={{ animationDelay: '0.24s' }}>
           <NicknameForm email={profile.email} nickname={profile.nickname} />
           <PasswordForm />
           <DangerZoneCard />
