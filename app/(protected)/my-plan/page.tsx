@@ -73,6 +73,12 @@ export default async function MyPlanPage() {
             )}
           </div>
           <div>
+            <p
+              className="text-xs font-semibold text-sky-500 mb-1 appear-up"
+              style={{ animationDelay: '0s' }}
+            >
+              MyPlan
+            </p>
             <h1
               className="text-2xl md:text-3xl font-bold text-[#1A1A1A] appear-up"
               style={{ animationDelay: '0.12s' }}
