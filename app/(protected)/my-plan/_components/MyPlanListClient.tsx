@@ -74,11 +74,10 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
     return sort === 'price_asc' ? a.total - b.total : b.total - a.total;
   });
 
-  const withBand = sorted.filter((p) => p.band);
-  const avgWon = withBand.length > 0
-    ? Math.round(
-        withBand.reduce((s, p) => s + (p.band!.lower + p.band!.upper) / 2, 0)
-        / withBand.length / 10_000,
+  const withTotal = sorted.filter((p) => p.total > 0);
+  const avgWon = withTotal.length > 0
+    ? Math.floor(
+        withTotal.reduce((s, p) => s + p.total, 0) / withTotal.length / 10_000,
       )
     : null;
 
