@@ -306,7 +306,12 @@ export default function SpotMap({
                 <>
                   <p className="text-base font-semibold text-slate-800">여행순서 바꾸기</p>
                   <div className="flex-1 overflow-y-auto min-h-0">
-                    <SpotList spots={localSpots} onReorder={handleReorder} onDelete={handleDeleteInReorder} />
+                    <SpotList
+                      spots={localSpots}
+                      onReorder={handleReorder}
+                      onDelete={handleDeleteInReorder}
+                      onDragStart={(spot) => mapRef.current?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng))}
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
                     <div className="flex items-start gap-2">

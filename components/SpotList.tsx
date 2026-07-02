@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -27,6 +28,7 @@ type SpotListProps = {
   onDelete?: (id: string) => void;
   readOnly?: boolean;
   onSelect?: (spot: LocalSpot) => void;
+  onDragStart?: (spot: LocalSpot) => void;
 };
 
 type SortableItemProps = {
@@ -87,11 +89,16 @@ function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
   );
 }
 
-export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect }: SpotListProps) {
+export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect, onDragStart }: SpotListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  function handleDragStart(event: DragStartEvent) {
+    const s = spots.find((x) => x.id === event.active.id);
+    if (s) onDragStart?.(s);
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -127,7 +134,7 @@ export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect }: Spo
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <SortableContext items={spots.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         <ul className="flex flex-col gap-1">
           {spots.map((spot, i) => (
