@@ -72,7 +72,6 @@ export default function SpotMap({
     libraries: ['services'],
   });
 
-  const mapRef = useRef<kakao.maps.Map | null>(null);
   const modeRef = useRef<Mode>('menu');
   const addSpotFromMapRef = useRef<((lng: number, lat: number) => void) | null>(null);
   const fitDoneRef = useRef(false);
@@ -96,17 +95,16 @@ export default function SpotMap({
   };
 
   // initialCenter props: [lng, lat] 순서 → 카카오 {lat, lng}로 변환 ★★★
-  // useState 초기화 함수로 마운트 1회만 계산 — 이후 레퍼런스 고정으로 Map 내부 center sync 반복 방지
-  const [mapCenter] = useState(() =>
+  const [mapCenter, setMapCenter] = useState(() =>
     spots.length > 0
       ? { lat: spots[0].lat, lng: spots[0].lng }
       : initialCenter
         ? { lat: initialCenter[1], lng: initialCenter[0] }
         : { lat: 37.566, lng: 126.978 }
   );
+  const [mapLevel, setMapLevel] = useState(5);
 
   function handleMapCreate(map: kakao.maps.Map) {
-    mapRef.current = map;
     setMapInstance(map); // re-render 트리거 → SpotMap useEffect가 Map 내부 effect 이후 실행
   }
 
@@ -135,7 +133,7 @@ export default function SpotMap({
     setActiveSpot((prev) => (prev?.id === spot.id ? null : spot));
     if (readOnly) {
       setDisplayedSpot(spot);
-      mapRef.current?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng)); // ★★★ lat first
+      setMapCenter({ lat: spot.lat, lng: spot.lng });
     }
     setMode('view');
     triggerPulse(spot.id);
@@ -145,7 +143,7 @@ export default function SpotMap({
     setDisplayedSpot(spot);
     setActiveSpot(spot);
     setMode('view');
-    mapRef.current?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng)); // ★★★ lat first
+    setMapCenter({ lat: spot.lat, lng: spot.lng });
     triggerPulse(spot.id);
   }
 
@@ -204,8 +202,10 @@ export default function SpotMap({
     const id = addSpot(place.place_name, lng, lat);
     setActiveSpot({ id, name: place.place_name, lat, lng, order: localSpots.length + 1 });
     setMode('edit');
-    mapRef.current?.panTo(new kakao.maps.LatLng(lat, lng)); // ★★★ lat first
-    mapRef.current?.setLevel(3);
+    // @ts-expect-error kakao.maps.d.ts 커뮤니티 타입에 jump 누락 (공식 API)
+    mapInstance?.jump(new kakao.maps.LatLng(lat, lng), 3);
+    setMapCenter({ lat, lng });
+    setMapLevel(3);
   }
 
   function addSpot(name: string, lng: number, lat: number): string {
@@ -310,7 +310,7 @@ export default function SpotMap({
                       spots={localSpots}
                       onReorder={handleReorder}
                       onDelete={handleDeleteInReorder}
-                      onDragStart={(spot) => mapRef.current?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng))}
+                      onDragStart={(spot) => setMapCenter({ lat: spot.lat, lng: spot.lng })}
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
@@ -405,7 +405,8 @@ export default function SpotMap({
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           <Map
             center={mapCenter}
-            level={5}
+            level={mapLevel}
+            isPanto={true}
             onCreate={handleMapCreate}
             onClick={handleMapClick}
             className="w-full h-full"
