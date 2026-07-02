@@ -30,12 +30,18 @@ enum MovieStatus {
   PENDING
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
   nickname  String   @db.VarChar(20) @map("nickname")
   createdAt DateTime @default(now()) @map("created_at")
   avatarUrl String?  @map("avatar_url")
+  role      UserRole @default(USER)
 
   stories   Story[]
   myPlans   MyPlan[]

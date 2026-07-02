@@ -12,7 +12,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const profile = user
     ? await prisma.user.findUnique({
         where: { id: user.id },
-        select: { nickname: true, avatarUrl: true },
+        select: { nickname: true, avatarUrl: true, role: true },
       })
     : null;
 
@@ -30,7 +30,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-6">
-              <NavLinks />
+              <NavLinks isAdmin={profile?.role === 'ADMIN'} />
               <Link
                 href="/story/new"
                 className="btn-soft flex items-center px-4 py-1.5 text-slate-600 text-sm"

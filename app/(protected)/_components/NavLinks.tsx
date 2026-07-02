@@ -2,17 +2,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const NAV_LINKS = [
+const BASE_NAV = [
   { href: '/story', label: 'Story' },
   { href: '/spot-finder', label: 'SpotFinder' },
   { href: '/plan-finder', label: 'PlanFinder' },
 ];
 
-export function NavLinks() {
+type NavLinksProps = { isAdmin?: boolean };
+
+export function NavLinks({ isAdmin = false }: NavLinksProps) {
   const pathname = usePathname();
+  const links = isAdmin
+    ? [...BASE_NAV, { href: '/admin', label: 'Admin' }]
+    : BASE_NAV;
+
   return (
     <nav className="flex items-center gap-6">
-      {NAV_LINKS.map(({ href, label }) => {
+      {links.map(({ href, label }) => {
         const isActive = pathname.startsWith(href);
         return (
           <Link
