@@ -12,7 +12,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
   const profile = user
     ? await prisma.user.findUnique({
         where: { id: user.id },
-        select: { nickname: true, avatarUrl: true },
+        select: { nickname: true, avatarUrl: true, role: true },
       })
     : null;
 
@@ -31,7 +31,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-6">
             {user ? (
               <>
-                <NavLinks />
+                <NavLinks isAdmin={profile?.role === 'ADMIN'} />
                 <Link
                   href="/story/new"
                   className="btn-soft flex items-center px-4 py-1.5 text-slate-600 text-sm"
