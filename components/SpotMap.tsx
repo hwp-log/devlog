@@ -204,6 +204,8 @@ export default function SpotMap({
     const id = addSpot(place.place_name, lng, lat);
     setActiveSpot({ id, name: place.place_name, lat, lng, order: localSpots.length + 1 });
     setMode('edit');
+    mapRef.current?.panTo(new kakao.maps.LatLng(lat, lng)); // ★★★ lat first
+    mapRef.current?.setLevel(3);
   }
 
   function addSpot(name: string, lng: number, lat: number): string {
