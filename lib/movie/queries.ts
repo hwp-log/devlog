@@ -43,3 +43,47 @@ export async function searchMovies(
     spotCount: Number(r.spot_count),
   }));
 }
+
+export async function findMovieByNormalizedTitle(
+  rawTitle: string,
+): Promise<{ id: string; title: string } | null> {
+  const normalized = normalizeForSearch(rawTitle);
+  if (!normalized) return null;
+
+  const rows = await prisma.$queryRaw<Array<{ id: string; title: string }>>`
+    SELECT m.id, m.title
+    FROM movies m
+    WHERE REPLACE(LOWER(m.title), ' ', '') = ${normalized}
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+export async function findMergeCandidates(
+  pendingTitle: string,
+  limit: number = 3,
+): Promise<MovieSuggestion[]> {
+  const normalized = escapeLike(normalizeForSearch(pendingTitle));
+  if (!normalized) return [];
+
+  const pattern = `%${normalized}%`;
+
+  const rows = await prisma.$queryRaw<
+    Array<{ id: string; title: string; spot_count: bigint }>
+  >`
+    SELECT m.id, m.title, COUNT(s.id) AS spot_count
+    FROM movies m
+    LEFT JOIN spots s ON s.movie_id = m.id
+    WHERE m.status = 'APPROVED'
+      AND REPLACE(LOWER(m.title), ' ', '') LIKE ${pattern}
+    GROUP BY m.id
+    ORDER BY spot_count DESC, m.title ASC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    spotCount: Number(r.spot_count),
+  }));
+}

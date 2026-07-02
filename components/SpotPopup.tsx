@@ -3,8 +3,12 @@ import { useState, useRef, useTransition } from 'react';
 import { Trash2, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
 import { clearSpotPhoto } from '@/app/story/[id]/spots/actions';
-import { searchMoviesAction } from '@/app/movies/actions';
+import { searchMoviesAction, submitMovie } from '@/app/movies/actions';
 import type { MovieSuggestion } from '@/lib/movie/queries';
+
+function normalizeTitle(s: string) {
+  return s.toLowerCase().replace(/\s+/g, '');
+}
 
 type SpotPopupProps = {
   spot: LocalSpot;
@@ -62,8 +66,14 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     debounceRef.current = setTimeout(async () => {
       const results = await searchMoviesAction(value);
       setMovieSuggestions(results);
-      setShowDropdown(results.length > 0);
+      setShowDropdown(true);
     }, 300);
+  }
+
+  async function handleSubmitNew() {
+    const result = await submitMovie(movieInput);
+    if ('error' in result) { setError(result.error); return; }
+    selectMovie({ id: result.movie.id, title: result.movie.title, spotCount: 0 });
   }
 
   function selectMovie(m: MovieSuggestion) {
@@ -296,7 +306,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                     placeholder="작품명 검색..."
                     className="border border-black/20 rounded px-2 py-1 text-sm focus:outline-none w-full"
                   />
-                  {showDropdown && (
+                  {showDropdown && movieInput.trim() !== '' && (
                     <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-black/10 rounded shadow text-sm max-h-48 overflow-y-auto">
                       {movieSuggestions.map((m) => (
                         <li
@@ -308,6 +318,14 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                           <span className="text-slate-400 text-xs">{m.spotCount}곳</span>
                         </li>
                       ))}
+                      {!movieSuggestions.some((m) => normalizeTitle(m.title) === normalizeTitle(movieInput)) && (
+                        <li
+                          onMouseDown={handleSubmitNew}
+                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer text-slate-600 border-t border-slate-100"
+                        >
+                          <span className="text-sm">&apos;{movieInput.trim()}&apos; 새 작품으로 등록</span>
+                        </li>
+                      )}
                     </ul>
                   )}
                 </div>
