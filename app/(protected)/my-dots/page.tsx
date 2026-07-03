@@ -48,7 +48,7 @@ export default async function MyDotsPage({
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <div className="appear-up" style={{ animationDelay: '0s' }}>
             {profile?.avatarUrl ? (
@@ -76,7 +76,7 @@ export default async function MyDotsPage({
               MyStory
             </p>
             <h1
-              className="text-2xl md:text-3xl font-bold text-[#1A1A1A] appear-up"
+              className="text-2xl md:text-3xl font-bold text-[#1A1A1A] break-keep appear-up"
               style={{ animationDelay: '0.12s' }}
             >
               {headline}
@@ -89,7 +89,7 @@ export default async function MyDotsPage({
             </p>
           </div>
         </div>
-        <div className="appear-up" style={{ animationDelay: '0.24s' }}>
+        <div className="appear-up w-full md:w-auto" style={{ animationDelay: '0.24s' }}>
           <TagSearchBar q={keyword} basePath="/my-dots" tags={myTags} />
         </div>
       </div>

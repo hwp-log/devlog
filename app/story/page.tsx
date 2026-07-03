@@ -33,9 +33,9 @@ export default async function StoryPage({
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <StoryHeader />
-        <div className="appear-up" style={{ animationDelay: '0.24s' }}>
+        <div className="appear-up w-full md:w-auto" style={{ animationDelay: '0.24s' }}>
           <TagSearchBar q={keyword} basePath="/story" tags={popularTags} />
         </div>
       </div>

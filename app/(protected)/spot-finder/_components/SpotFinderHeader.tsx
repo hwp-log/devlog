@@ -23,7 +23,7 @@ export function SpotFinderHeader() {
         SpotFinder
       </p>
       <h1
-        className="text-2xl md:text-3xl font-bold text-[#1A1A1A] appear-up"
+        className="text-xl md:text-3xl font-bold text-[#1A1A1A] break-keep appear-up"
         style={{ animationDelay: '0.12s' }}
       >
         {headline}

@@ -70,7 +70,7 @@ export function TagSearchBar({ q, basePath, tags = [] }: { q: string; basePath: 
         onCompositionEnd={handleCompositionEnd}
         placeholder={tags.length > 0 ? '' : '제목, 지역명을 입력하세요'}
         aria-label="제목, 지역명 또는 인기 태그로 검색"
-        className="w-70 pl-9 pr-9 py-2 text-sm text-[#1A1A1A] rounded-full border border-slate-200 bg-white/70
+        className="w-full md:w-70 pl-9 pr-9 py-2 text-sm text-[#1A1A1A] rounded-full border border-slate-200 bg-white/70
                    focus:outline-none focus:ring-2 focus:ring-slate-300
                    transition-[box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]
                    placeholder:text-slate-400"
