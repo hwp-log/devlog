@@ -8,9 +8,10 @@ interface Props {
   email: string;
   avatarUrl: string | null;
   nickname: string;
+  isAdmin: boolean;
 }
 
-export function UserDropdown({ email, avatarUrl, nickname }: Props) {
+export function UserDropdown({ email, avatarUrl, nickname, isAdmin }: Props) {
   const { initial, color } = getAvatarInfo(nickname);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -75,6 +76,19 @@ export function UserDropdown({ email, avatarUrl, nickname }: Props) {
           >
             MyStory
           </Link>
+          {isAdmin && (
+            <>
+              <hr className="border-slate-100 my-1" />
+              <Link
+                href="/admin"
+                role="menuitem"
+                className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150"
+                onClick={() => setOpen(false)}
+              >
+                Admin
+              </Link>
+            </>
+          )}
           <form action={signOut}>
             <button
               type="submit"

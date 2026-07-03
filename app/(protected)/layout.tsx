@@ -30,7 +30,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-6">
-              <NavLinks isAdmin={profile?.role === 'ADMIN'} />
+              <NavLinks />
               <Link
                 href="/story/new"
                 className="btn-soft flex items-center px-4 py-1.5 text-slate-600 text-sm"
@@ -44,6 +44,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
                 email={user?.email ?? ''}
                 avatarUrl={profile?.avatarUrl ?? null}
                 nickname={profile?.nickname ?? ''}
+                isAdmin={profile?.role === 'ADMIN'}
               />
             </div>
           </div>

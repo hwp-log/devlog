@@ -31,7 +31,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-6">
             {user ? (
               <>
-                <NavLinks isAdmin={profile?.role === 'ADMIN'} />
+                <NavLinks />
                 <Link
                   href="/story/new"
                   className="btn-soft flex items-center px-4 py-1.5 text-slate-600 text-sm"
@@ -45,6 +45,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
                   email={user.email ?? ''}
                   avatarUrl={profile?.avatarUrl ?? null}
                   nickname={profile?.nickname ?? ''}
+                  isAdmin={profile?.role === 'ADMIN'}
                 />
               </>
             ) : (
