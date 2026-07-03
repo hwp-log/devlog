@@ -19,6 +19,8 @@ export default function SpotFinderMap({ spots }: Props) {
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
+  const userInteractedRef = useRef(false);
+  const lastProgrammaticFitTsRef = useRef(0);
 
   // 작품별 그룹핑 — JS 내장 Map과 지도 컴포넌트 Map 이름 충돌 방지
   const movieGroups = useMemo(() => {
@@ -36,17 +38,37 @@ export default function SpotFinderMap({ spots }: Props) {
     return movieGroups.filter((g) => g.title.toLowerCase().includes(q));
   }, [movieGroups, searchQuery]);
 
-  const visibleSpots = selectedMovieId
-    ? spots.filter((s) => s.movie.id === selectedMovieId)
-    : spots;
+  const visibleSpots = useMemo(
+    () => selectedMovieId
+      ? spots.filter((s) => s.movie.id === selectedMovieId)
+      : spots,
+    [spots, selectedMovieId]
+  );
 
   // 칩 클릭 시 자동 줌 — visibleSpots 대신 selectedMovieId 의존으로 무한루프 방지
   useEffect(() => {
     if (!mapInstance || visibleSpots.length === 0) return;
     const bounds = new kakao.maps.LatLngBounds();
     visibleSpots.forEach((s) => bounds.extend(new kakao.maps.LatLng(s.lat, s.lng)));
-    mapInstance.setBounds(bounds, 80, 40, 40, 40);
+    lastProgrammaticFitTsRef.current = Date.now();
+    mapInstance.setBounds(bounds, 110, 40, 40, 40);
   }, [selectedMovieId, mapInstance]);
+
+  // 사용자 조작 감지 — dragstart / zoom_start(시간창 가드)
+  useEffect(() => {
+    if (!mapInstance) return;
+    const onDragStart = () => { userInteractedRef.current = true; };
+    const onZoomStart = () => {
+      if (Date.now() - lastProgrammaticFitTsRef.current < 500) return;
+      userInteractedRef.current = true;
+    };
+    kakao.maps.event.addListener(mapInstance, 'dragstart', onDragStart);
+    kakao.maps.event.addListener(mapInstance, 'zoom_start', onZoomStart);
+    return () => {
+      kakao.maps.event.removeListener(mapInstance, 'dragstart', onDragStart);
+      kakao.maps.event.removeListener(mapInstance, 'zoom_start', onZoomStart);
+    };
+  }, [mapInstance]);
 
   // 칩 바 넘침 감지 — 폰트 스왑 후 재측정 포함(Pretendard 로드 완료 시)
   useEffect(() => {
@@ -67,26 +89,33 @@ export default function SpotFinderMap({ spots }: Props) {
     };
   }, [filteredMovieGroups, loading]);
 
-  // 컨테이너 크기 변경 시 지도 relayout — center 보존
+  // 컨테이너 크기 변경 시: 항상 relayout, 사용자 조작 전이면 bounds 재적합 / 이후면 center 보존
   useEffect(() => {
     const el = mapWrapperRef.current;
     if (!el || !mapInstance) return;
     let frame = 0;
-    const relayout = () => {
+    const onResize = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const center = mapInstance.getCenter();
         mapInstance.relayout();
-        mapInstance.setCenter(center);
+        if (!userInteractedRef.current && visibleSpots.length > 0) {
+          const bounds = new kakao.maps.LatLngBounds();
+          visibleSpots.forEach((s) => bounds.extend(new kakao.maps.LatLng(s.lat, s.lng)));
+          lastProgrammaticFitTsRef.current = Date.now();
+          mapInstance.setBounds(bounds, 110, 40, 40, 40);
+        } else {
+          mapInstance.setCenter(center);
+        }
       });
     };
-    const observer = new ResizeObserver(relayout);
+    const observer = new ResizeObserver(onResize);
     observer.observe(el);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [mapInstance]);
+  }, [mapInstance, visibleSpots]);
 
   function scrollChips(dir: 'left' | 'right') {
     chipBarRef.current?.scrollBy({ left: dir === 'right' ? 150 : -150, behavior: 'smooth' });
