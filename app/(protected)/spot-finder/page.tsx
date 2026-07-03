@@ -8,7 +8,7 @@ export default async function SpotFinderPage() {
   return (
     <div>
       <SpotFinderHeader />
-      <div className="h-[calc(100vh-200px)] min-h-[440px]">
+      <div className="h-[calc(100vh_-_260px_-_env(safe-area-inset-bottom))] min-h-[440px] md:h-[calc(100vh-200px)]">
         <div
           className="relative h-full rounded-2xl overflow-hidden bg-white
                      shadow-[0_30px_80px_rgba(0,0,0,0.22),0_10px_24px_rgba(0,0,0,0.14)] appear-up"
