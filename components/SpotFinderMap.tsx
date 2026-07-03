@@ -48,16 +48,24 @@ export default function SpotFinderMap({ spots }: Props) {
     mapInstance.setBounds(bounds, 80, 40, 40, 40);
   }, [selectedMovieId, mapInstance]);
 
-  // 칩 바 넘침 감지
+  // 칩 바 넘침 감지 — 폰트 스왑 후 재측정 포함(Pretendard 로드 완료 시)
   useEffect(() => {
     const el = chipBarRef.current;
     if (!el) return;
-    const check = () => setShowArrows(el.scrollWidth > el.clientWidth);
+    let cancelled = false;
+    const check = () => {
+      if (cancelled) return;
+      setShowArrows(el.scrollWidth > el.clientWidth);
+    };
     check();
     const observer = new ResizeObserver(check);
     observer.observe(el);
-    return () => observer.disconnect();
-  }, [filteredMovieGroups]);
+    document.fonts?.ready?.then(check);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [filteredMovieGroups, loading]);
 
   // 컨테이너 크기 변경 시 지도 relayout — center 보존
   useEffect(() => {
@@ -89,8 +97,8 @@ export default function SpotFinderMap({ spots }: Props) {
   return (
     <div ref={mapWrapperRef} className="relative w-full h-full">
 
-      {/* 왼쪽 컨테이너: 검색창(항상) + 상세 패널(마커 클릭 시) */}
-      <div className="absolute top-3 left-3 z-[1000] w-72 flex flex-col gap-2">
+      {/* 좌측 컨테이너: 검색창 + 칩 줄 + 상세 패널(마커 클릭 시) */}
+      <div className="absolute top-3 left-3 right-3 md:right-auto md:w-96 z-[1000] flex flex-col gap-2">
         <input
           type="text"
           value={searchQuery}
@@ -98,6 +106,56 @@ export default function SpotFinderMap({ spots }: Props) {
           placeholder="작품명 검색"
           className="w-full rounded-xl px-4 py-2 text-sm border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 shadow-sm"
         />
+
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
+          {showArrows && (
+            <button
+              type="button"
+              aria-label="이전"
+              onClick={() => scrollChips('left')}
+              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-white text-[#1A1A1A] items-center justify-center shadow-sm hover:bg-slate-100 transition-colors"
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
+          <div ref={chipBarRef} className="flex-1 flex gap-2 overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setSelectedMovieId(null)}
+              className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
+                selectedMovieId === null
+                  ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
+                  : 'bg-white text-slate-700 border-slate-300'
+              }`}
+            >
+              전체 ({spots.length})
+            </button>
+            {filteredMovieGroups.map((g) => (
+              <button
+                type="button"
+                key={g.id}
+                onClick={() => setSelectedMovieId(g.id)}
+                className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
+                  selectedMovieId === g.id
+                    ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
+                    : 'bg-white text-slate-700 border-slate-300'
+                }`}
+              >
+                {g.title} ({g.count})
+              </button>
+            ))}
+          </div>
+          {showArrows && (
+            <button
+              type="button"
+              aria-label="다음"
+              onClick={() => scrollChips('right')}
+              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-white text-[#1A1A1A] items-center justify-center shadow-sm hover:bg-slate-100 transition-colors"
+            >
+              <ChevronRight size={14} />
+            </button>
+          )}
+        </div>
 
         {selectedSpot && (
           <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
@@ -162,57 +220,6 @@ export default function SpotFinderMap({ spots }: Props) {
               </div>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* 칩 바 + 화살표 — 검색창 오른쪽(left-80)부터 가로 펼침 */}
-      <div className="absolute top-3 left-80 right-3 z-[1000] flex items-center gap-2">
-        {showArrows && (
-          <button
-            type="button"
-            aria-label="이전"
-            onClick={() => scrollChips('left')}
-            className="shrink-0 w-7 h-7 rounded-full bg-white text-[#1A1A1A] flex items-center justify-center shadow-sm hover:bg-slate-100 transition-colors"
-          >
-            <ChevronLeft size={14} />
-          </button>
-        )}
-        <div ref={chipBarRef} className="flex-1 flex gap-2 overflow-x-auto min-w-0 pb-1 [&::-webkit-scrollbar]:hidden">
-          <button
-            type="button"
-            onClick={() => setSelectedMovieId(null)}
-            className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
-              selectedMovieId === null
-                ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-                : 'bg-white text-slate-700 border-slate-300'
-            }`}
-          >
-            전체 ({spots.length})
-          </button>
-          {filteredMovieGroups.map((g) => (
-            <button
-              type="button"
-              key={g.id}
-              onClick={() => setSelectedMovieId(g.id)}
-              className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
-                selectedMovieId === g.id
-                  ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-                  : 'bg-white text-slate-700 border-slate-300'
-              }`}
-            >
-              {g.title} ({g.count})
-            </button>
-          ))}
-        </div>
-        {showArrows && (
-          <button
-            type="button"
-            aria-label="다음"
-            onClick={() => scrollChips('right')}
-            className="shrink-0 w-7 h-7 rounded-full bg-white text-[#1A1A1A] flex items-center justify-center shadow-sm hover:bg-slate-100 transition-colors"
-          >
-            <ChevronRight size={14} />
-          </button>
         )}
       </div>
 
