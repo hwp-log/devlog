@@ -69,7 +69,7 @@ export function UserDropdown({ email, avatarUrl, nickname, isAdmin }: Props) {
             MyPlan
           </Link>
           <Link
-            href="/my-dots"
+            href="/my-story"
             role="menuitem"
             className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150"
             onClick={() => setOpen(false)}

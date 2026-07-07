@@ -9,7 +9,7 @@ import { getAvatarInfo } from '@/lib/avatar/generate';
 import { TagSearchBar } from '@/app/story/_components/TagSearchBar';
 import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
 
-export default async function MyDotsPage({
+export default async function MyStoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
@@ -90,7 +90,7 @@ export default async function MyDotsPage({
           </div>
         </div>
         <div className="appear-up w-full md:w-auto" style={{ animationDelay: '0.24s' }}>
-          <TagSearchBar q={keyword} basePath="/my-dots" tags={myTags} />
+          <TagSearchBar q={keyword} basePath="/my-story" tags={myTags} />
         </div>
       </div>
 
