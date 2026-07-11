@@ -48,6 +48,9 @@
   }
 }
 
+/* 화면별 다크 스코프 (A005 §8) — 레이아웃에 data-theme="dark" 부여 시 하위 전체 다크 */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 /* 실시간 폼 검증용 variant (user-valid/invalid, :has() 활용) */
 @custom-variant user-invalid (&:user-invalid);
 @custom-variant user-valid (&:user-valid);
@@ -64,6 +67,26 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Dotrip 디자인 토큰 — 값의 정본은 lib/theme.ts (layout.tsx가 CSS 변수 발행).
+     여기는 이름 매핑만: bg-bg / bg-card / text-fg / border-border / rounded-card 등 유틸 생성 */
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-heart-active: var(--heart-active);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-surface2: var(--surface2);
+  --color-fg: var(--fg);
+  --color-fg2: var(--fg2);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-work-dokkaebi: var(--work-dokkaebi);
+  --color-work-pachinko: var(--work-pachinko);
+  --color-work-poksak: var(--work-poksak);
+  /* bare `rounded`(0.25rem, 기존 7곳 사용)를 건드리지 않기 위해 역할명 rounded-card로 노출 */
+  --radius-card: var(--radius-base);
 }
 
 @media (prefers-color-scheme: dark) {
