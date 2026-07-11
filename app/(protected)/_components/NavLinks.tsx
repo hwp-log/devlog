@@ -21,8 +21,8 @@ export function NavLinks() {
             href={href}
             className={`text-sm transition-colors ${
               isActive
-                ? 'text-[#1A1A1A] font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-[#1A1A1A] dark:text-fg font-semibold'
+                : 'text-slate-500 hover:text-slate-800 dark:text-muted dark:hover:text-fg'
             }`}
           >
             {label}

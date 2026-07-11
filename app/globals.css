@@ -284,6 +284,17 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   }
 
+  /* SpotFinder 다크 스코프 (A005 §8) — 정본 --t7 다크값 rgba(21,23,24,0.95) = bg(#151718)의 95% 알파 */
+  [data-theme="dark"] .glass-header {
+    background: color-mix(in srgb, var(--bg) 95%, transparent);
+    border-bottom-color: var(--border);
+  }
+
+  /* 다크에서 흰 글래스 버튼 침강 — card 파생 (정본 근거 없음, 판단) */
+  [data-theme="dark"] .btn-soft {
+    background: color-mix(in srgb, var(--card) 80%, transparent);
+  }
+
   .appear-up {
     animation: planCardEnter 0.8s ease-out both;
   }

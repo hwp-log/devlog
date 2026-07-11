@@ -5,7 +5,7 @@ export function Logo() {
     <Link
       href="/story"
       aria-label="Dotrip"
-      className="text-lg font-bold text-[#1A1A1A]"
+      className="text-lg font-bold text-[#1A1A1A] dark:text-fg"
     >
       D
       <svg

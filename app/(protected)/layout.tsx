@@ -6,6 +6,7 @@ import { Logo } from '@/app/(protected)/_components/Logo';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
+import { ThemeScope } from '@/app/(protected)/_components/ThemeScope';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -23,10 +24,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
       />
-      <div
-        className="min-h-screen"
-        style={{ fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}
-      >
+      <ThemeScope>
         <header className="sticky top-0 z-10 glass-header">
           <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
             <Logo />
@@ -34,7 +32,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
               <NavLinks />
               <Link
                 href="/story/new"
-                className="hidden md:flex btn-soft items-center px-4 py-1.5 text-slate-600 text-sm"
+                className="hidden md:flex btn-soft items-center px-4 py-1.5 text-slate-600 dark:text-fg2 text-sm"
               >
                 <span className="relative z-[2] flex items-center gap-1.5">
                   <PenSquare size={14} />
@@ -54,7 +52,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           {children}
         </main>
         <BottomTabBar />
-      </div>
+      </ThemeScope>
     </>
   );
 }
