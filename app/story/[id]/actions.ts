@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
+import { extractStoragePath, resolvePhotoIntent } from '@/lib/story/photo-cleanup';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -43,6 +44,14 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
     if (!ALLOWED_TYPES.includes(value.type)) return { error: 'jpeg, png, webp만 허용됩니다' };
   }
 
+  // DB 스냅샷: 사진 비우기/교체 판정용 구 photoUrl (트랜잭션 전 확보)
+  const existingSpots = await prisma.spot.findMany({
+    where: { storyId },
+    select: { id: true, photoUrl: true },
+  });
+  const oldPhotoUrlById = new Map(existingSpots.map((s) => [s.id, s.photoUrl]));
+  const clearedPhotoPaths: string[] = [];
+
   // 트랜잭션: Story 업데이트 + Spots 동기화, 신규 spot real ID 획득
   const tmpToReal: Array<{ tmpId: string; realId: string }> = [];
 
@@ -76,6 +85,12 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       for (const [i, spot] of spotsData.entries()) {
         if (!spot.id.startsWith('tmp_')) {
           const hasPendingFile = formData.get(`spotPhoto_${spot.id}`) instanceof File;
+          // photoUrl:null + 파일 부재 = 비우기 의도의 파생 판정 (DB 스냅샷 vs 제출 payload의 diff 기반)
+          const oldUrl = oldPhotoUrlById.get(spot.id) ?? null;
+          if (resolvePhotoIntent(oldUrl, spot.photoUrl, hasPendingFile) === 'clear') {
+            const path = extractStoragePath(oldUrl!);
+            if (path) clearedPhotoPaths.push(path);
+          }
           await tx.spot.update({
             where: { id: spot.id },
             data: {
@@ -114,6 +129,11 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       return { error: '이미 다른 스토리에 연결된 플랜입니다.' };
     }
     throw e;
+  }
+
+  // 트랜잭션 바깥: 비운 사진의 Storage 파일 삭제 (DB null 확정 후 물리 삭제 — 부분 실패 허용)
+  if (clearedPhotoPaths.length > 0) {
+    await supabase.storage.from('story-photos').remove(clearedPhotoPaths);
   }
 
   // 트랜잭션 바깥: Storage 업로드 (부분 실패 허용)
@@ -155,6 +175,13 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       .getPublicUrl(uploadData.path);
 
     await prisma.spot.update({ where: { id: spot.id }, data: { photoUrl: publicUrl } });
+
+    // 교체 성공(업로드 + DB 갱신) 후에만 구 파일 삭제 — 업로드 실패 시 구 파일 보존
+    const oldUrl = oldPhotoUrlById.get(spot.id);
+    if (oldUrl) {
+      const oldPath = extractStoragePath(oldUrl);
+      if (oldPath) await supabase.storage.from('story-photos').remove([oldPath]);
+    }
   }
 
   redirect(`/story/${storyId}`);
