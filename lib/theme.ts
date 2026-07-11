@@ -43,6 +43,12 @@ export const theme = {
 
 export type SurfaceToken = keyof typeof theme.light;
 
+/** 토큰 hex(#rrggbb) → rgba 파생. 글로우 등 알파 변형 전용 — 새 색 정의 금지 (A005 글로우 표기 rgba(77,158,255,~)의 코드 표현) */
+export function withAlpha(hex: string, alpha: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 /** kebab-case 변환: bgDeep → bg-deep, heartActive → heart-active */
 function kebab(name: string): string {
   return name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);

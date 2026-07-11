@@ -1,8 +1,26 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
-import { useKakaoLoader, Map, MapMarker, MarkerClusterer } from 'react-kakao-maps-sdk';
+import { useKakaoLoader, Map, CustomOverlayMap, MarkerClusterer } from 'react-kakao-maps-sdk';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
+import { theme, withAlpha } from '@/lib/theme';
+
+const PRIMARY = theme.common.primary;
+
+// 클러스터 원: 클릭 영역 = 스타일 div 자체라 CLAUDE.md §5 터치 타겟 기준으로 44px (판단값)
+const CLUSTER_STYLES = [{
+  width: '44px',
+  height: '44px',
+  borderRadius: '9999px',
+  background: PRIMARY, // A005 "채움(+흰 글자)" — 개수 구간 없이 primary 단색 고정
+  border: '2px solid #fff',
+  color: '#fff',
+  fontSize: '12px',
+  fontWeight: '600',
+  textAlign: 'center',
+  lineHeight: '40px',
+  boxShadow: `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}`,
+}];
 
 type Props = { spots: SpotFinderSpot[] };
 
@@ -264,17 +282,61 @@ export default function SpotFinderMap({ spots }: Props) {
         className="w-full h-full"
         onCreate={setMapInstance}
       >
-        <MarkerClusterer averageCenter minLevel={10} minClusterSize={1}>
-          {visibleSpots.map((spot) => (
-            <MapMarker
-              key={spot.id}
-              position={{ lat: spot.lat, lng: spot.lng }}
-              onClick={() => {
-                setSelectedSpot(spot);
-                mapInstance?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng));
-              }}
-            />
-          ))}
+        <MarkerClusterer averageCenter minLevel={10} minClusterSize={1} styles={CLUSTER_STYLES}>
+          {visibleSpots.map((spot) => {
+            const selected = selectedSpot?.id === spot.id;
+            return (
+              <CustomOverlayMap
+                key={spot.id}
+                position={{ lat: spot.lat, lng: spot.lng }}
+                zIndex={selected ? 2 : 1}
+              >
+                {/* 히트 영역(44×44 투명)과 시각 점(14px) 분리 — CLAUDE.md §5 터치 타겟 */}
+                <div
+                  onClick={() => {
+                    setSelectedSpot(spot);
+                    mapInstance?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng));
+                  }}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 9999,
+                      background: PRIMARY,
+                      border: '2px solid #fff',
+                      // 선택 글로우 알파 0.15/0.08 = 정본 시안 링 실측값
+                      boxShadow: selected
+                        ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 4px rgba(0,0,0,0.3)`
+                        : '0 2px 4px rgba(0,0,0,0.3)',
+                    }}
+                  />
+                  {selected && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        width: 24,
+                        height: 24,
+                        borderRadius: 9999,
+                        background: withAlpha(PRIMARY, 0.4),
+                        animation: 'spot-pulse 0.6s ease-out forwards',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                </div>
+              </CustomOverlayMap>
+            );
+          })}
         </MarkerClusterer>
       </Map>
     </div>
