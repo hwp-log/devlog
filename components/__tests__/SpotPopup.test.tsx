@@ -1,18 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SpotPopup } from '../SpotPopup';
 import type { LocalSpot } from '@/lib/types';
-import { clearSpotPhoto } from '@/app/story/[id]/spots/actions';
 import { searchMoviesAction, submitMovie } from '@/app/movies/actions';
 
-jest.mock('@/app/story/[id]/spots/actions', () => ({
-  clearSpotPhoto: jest.fn(),
-}));
 jest.mock('@/app/movies/actions', () => ({
   searchMoviesAction: jest.fn(),
   submitMovie: jest.fn(),
 }));
 
-const mockClearSpotPhoto = clearSpotPhoto as jest.Mock;
 const mockSearchMovies = searchMoviesAction as jest.Mock;
 const mockSubmitMovie = submitMovie as jest.Mock;
 
@@ -204,16 +199,18 @@ describe('SpotPopup — 사진 저장', () => {
       expect(onFileSelect).toHaveBeenCalledWith(null);
       expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ photoUrl: null }));
     });
-    expect(mockClearSpotPhoto).not.toHaveBeenCalled();
   });
 
-  it('should call clearSpotPhoto server action when clearing photo on persisted spot', async () => {
-    mockClearSpotPhoto.mockResolvedValue({ ok: true });
+  it('should defer photo clearing on persisted spot — no server action, only intent to parent', async () => {
+    // 지연 반영 스펙: 영속 스팟도 임시 스팟과 동일하게 부모 전달만.
+    // 상단 "수정" 제출 전까지 DB 불변 — 팝업 저장은 어떤 서버 액션도 호출하지 않는다.
     const onUpdate = jest.fn();
+    const onFileSelect = jest.fn();
     render(
       <SpotPopup
         spot={{ ...baseSpot, photoUrl: 'https://img.example/1.png' }}
         onUpdate={onUpdate}
+        onFileSelect={onFileSelect}
       />
     );
     enterEditMode();
@@ -222,22 +219,14 @@ describe('SpotPopup — 사진 저장', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => {
-      expect(mockClearSpotPhoto).toHaveBeenCalledWith('spot_1');
+      expect(onFileSelect).toHaveBeenCalledWith(null);
       expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ photoUrl: null }));
     });
-  });
-
-  it('should show error message when clearSpotPhoto fails', async () => {
-    mockClearSpotPhoto.mockResolvedValue({ error: '사진 삭제에 실패했습니다' });
-    render(<SpotPopup spot={{ ...baseSpot, photoUrl: 'https://img.example/1.png' }} />);
-    enterEditMode();
-
-    fireEvent.click(screen.getByRole('button', { name: '비우기' }));
-    fireEvent.click(screen.getByRole('button', { name: '저장' }));
-
-    expect(await screen.findByText('사진 삭제에 실패했습니다')).toBeInTheDocument();
-    // 편집 모드 유지
-    expect(screen.getByRole('button', { name: '저장' })).toBeInTheDocument();
+    // 서버 액션 미호출 (팝업 저장 = 화면 임시 반영까지만)
+    expect(mockSearchMovies).not.toHaveBeenCalled();
+    expect(mockSubmitMovie).not.toHaveBeenCalled();
+    // 보기 모드 복귀
+    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument();
   });
 });
 

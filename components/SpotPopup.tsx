@@ -1,11 +1,10 @@
 'use client';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Trash2, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
-import { clearSpotPhoto } from '@/app/story/[id]/spots/actions';
 import { searchMoviesAction, submitMovie } from '@/app/movies/actions';
 import type { MovieSuggestion } from '@/lib/movie/queries';
 
@@ -44,13 +43,10 @@ const spotFormSchema = z.object({
 type SpotFormValues = z.infer<typeof spotFormSchema>;
 
 export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput }: SpotPopupProps) {
-  const isTemp = spot.id.startsWith('tmp_');
-
   // UI 상태만 useState 잔류 (movieSuggestions는 서버 검색 캐시 — Query 프로바이더 부재로 잔류)
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [movieSuggestions, setMovieSuggestions] = useState<MovieSuggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 저장 시 부모(onUpdate)로 넘긴 blob URL — cleanup revoke 대상에서 제외 (소유권 이전)
   const handedOffUrlRef = useRef<string | null>(null);
@@ -187,15 +183,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     const movieFields = { movieId: values.movieId, movieTitle: values.movieTitle || null };
 
     if (values.photoCleared) {
-      if (!isTemp) {
-        startTransition(async () => {
-          const result = await clearSpotPhoto(spot.id);
-          if ('error' in result) { setError('root.server', { message: result.error }); return; }
-          onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, ...movieFields });
-          setIsEditing(false);
-        });
-        return;
-      }
+      // 비우기 = 부모에 의도 전달까지만 (지연 반영) — DB·Storage 반영은 상단 "수정" 제출(updateStoryAction)이 담당
       onFileSelect?.(null);
       onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, ...movieFields });
       setIsEditing(false);
@@ -383,15 +371,14 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <button
             type="button"
             onClick={handleSubmit(onValid)}
-            disabled={isPending || !nameValue.trim()}
+            disabled={!nameValue.trim()}
             className="flex-1 py-1.5 rounded-lg text-sm font-medium bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isPending ? '저장 중...' : '저장'}
+            저장
           </button>
           <button
             type="button"
             onClick={cancelEdit}
-            disabled={isPending}
             className="flex-1 py-1.5 rounded-lg text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
           >
             취소
