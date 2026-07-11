@@ -6,11 +6,11 @@ export default async function SpotFinderPage() {
   const spots = await fetchSpotFinderSpots();
 
   return (
-    <div>
+    <div data-theme="dark" className="bg-bg-deep">
       <SpotFinderHeader />
       <div className="h-spot-finder-map min-h-[440px]">
         <div
-          className="relative h-full rounded-2xl overflow-hidden bg-white
+          className="relative h-full rounded-2xl overflow-hidden bg-card
                      shadow-[0_30px_80px_rgba(0,0,0,0.22),0_10px_24px_rgba(0,0,0,0.14)] appear-up"
           style={{ animationDelay: '0.24s' }}
         >

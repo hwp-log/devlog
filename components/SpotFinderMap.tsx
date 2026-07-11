@@ -121,7 +121,7 @@ export default function SpotFinderMap({ spots }: Props) {
     chipBarRef.current?.scrollBy({ left: dir === 'right' ? 150 : -150, behavior: 'smooth' });
   }
 
-  if (loading) return <div className="w-full h-full bg-slate-100 animate-pulse" />;
+  if (loading) return <div className="w-full h-full bg-card animate-pulse" />;
 
   return (
     <div ref={mapWrapperRef} className="relative w-full h-full">
@@ -133,16 +133,16 @@ export default function SpotFinderMap({ spots }: Props) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="작품명 검색"
-          className="w-full rounded-xl px-4 py-2 text-sm border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 shadow-sm"
+          className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted focus:outline-none focus:border-slate-400 shadow-sm"
         />
 
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
           {showArrows && (
             <button
               type="button"
               aria-label="이전"
               onClick={() => scrollChips('left')}
-              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-white text-[#1A1A1A] items-center justify-center shadow-sm hover:bg-slate-100 transition-colors"
+              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
@@ -153,8 +153,8 @@ export default function SpotFinderMap({ spots }: Props) {
               onClick={() => setSelectedMovieId(null)}
               className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
                 selectedMovieId === null
-                  ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-                  : 'bg-white text-slate-700 border-slate-300'
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-card text-fg2 border-border'
               }`}
             >
               전체 ({spots.length})
@@ -166,8 +166,8 @@ export default function SpotFinderMap({ spots }: Props) {
                 onClick={() => setSelectedMovieId(g.id)}
                 className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
                   selectedMovieId === g.id
-                    ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-                    : 'bg-white text-slate-700 border-slate-300'
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-card text-fg2 border-border'
                 }`}
               >
                 {g.title} ({g.count})
@@ -179,7 +179,7 @@ export default function SpotFinderMap({ spots }: Props) {
               type="button"
               aria-label="다음"
               onClick={() => scrollChips('right')}
-              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-white text-[#1A1A1A] items-center justify-center shadow-sm hover:bg-slate-100 transition-colors"
+              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
             >
               <ChevronRight size={14} />
             </button>
@@ -187,7 +187,7 @@ export default function SpotFinderMap({ spots }: Props) {
         </div>
 
         {selectedSpot && (
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
+          <div className="bg-card rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
             <div className="relative h-40 flex-shrink-0">
               {selectedSpot.photoUrl ? (
                 <img
@@ -196,41 +196,41 @@ export default function SpotFinderMap({ spots }: Props) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                  <span className="text-slate-400 text-sm">No Image</span>
+                <div className="w-full h-full bg-surface2 flex items-center justify-center">
+                  <span className="text-muted text-sm">No Image</span>
                 </div>
               )}
               <button
                 type="button"
                 aria-label="닫기"
                 onClick={() => setSelectedSpot(null)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/80 hover:bg-white flex items-center justify-center flex-shrink-0 transition-colors text-[#1A1A1A] shadow-sm"
+                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-card/80 hover:bg-card flex items-center justify-center flex-shrink-0 transition-colors text-fg shadow-sm"
               >
                 <X size={12} />
               </button>
             </div>
-            <div className="flex items-start gap-2 p-4 pb-3 border-b border-slate-100">
-              <h3 className="flex-1 text-base font-semibold text-[#1A1A1A] leading-snug">
+            <div className="flex items-start gap-2 p-4 pb-3 border-b border-border">
+              <h3 className="flex-1 text-base font-semibold text-fg leading-snug">
                 {selectedSpot.name}
               </h3>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-              <span className="self-start rounded-full bg-slate-100 text-slate-700 text-xs font-medium px-3 py-1 border border-slate-200">
+              <span className="self-start rounded-full bg-surface2 text-fg2 text-xs font-medium px-3 py-1 border border-border">
                 {selectedSpot.movie.title}
               </span>
 
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-1">촬영지 리뷰</p>
+                <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
                 {selectedSpot.review ? (
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedSpot.review}</p>
+                  <p className="text-sm text-fg2 whitespace-pre-wrap">{selectedSpot.review}</p>
                 ) : (
-                  <p className="text-sm text-slate-400">리뷰 없음</p>
+                  <p className="text-sm text-muted">리뷰 없음</p>
                 )}
               </div>
 
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-2">출처</p>
+                <p className="text-xs font-medium text-muted mb-2">출처</p>
                 <div className="flex items-center gap-2">
                   {selectedSpot.author.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -240,11 +240,11 @@ export default function SpotFinderMap({ spots }: Props) {
                       className="w-7 h-7 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-[#1A1A1A] text-white text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-fg text-bg text-xs font-semibold flex items-center justify-center flex-shrink-0">
                       {selectedSpot.author.nickname[0]}
                     </div>
                   )}
-                  <span className="text-sm text-slate-700">{selectedSpot.author.nickname}</span>
+                  <span className="text-sm text-fg2">{selectedSpot.author.nickname}</span>
                 </div>
               </div>
             </div>
@@ -253,9 +253,9 @@ export default function SpotFinderMap({ spots }: Props) {
       </div>
 
       {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
-      <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
-        <Info size={12} className="text-slate-500 shrink-0" />
-        <span className="text-xs text-slate-600">촬영지 정보는 국내만 제공됩니다</span>
+      <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
+        <Info size={12} className="text-muted shrink-0" />
+        <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
       </div>
 
       <Map
