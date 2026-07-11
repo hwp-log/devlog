@@ -24,6 +24,65 @@ const CLUSTER_STYLES = [{
 
 type Props = { spots: SpotFinderSpot[] };
 
+// 상세 콘텐츠 단일 정의 — 모바일 플로팅 카드와 데탑 우측 고정 패널이 공유 (내용·순서 동일)
+function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: () => void }) {
+  return (
+    <>
+      <div className="relative h-40 flex-shrink-0">
+        {spot.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={spot.photoUrl} alt={spot.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-surface2 flex items-center justify-center">
+            <span className="text-muted text-sm">No Image</span>
+          </div>
+        )}
+        <button
+          type="button"
+          aria-label="닫기"
+          onClick={onClose}
+          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-card/80 hover:bg-card flex items-center justify-center flex-shrink-0 transition-colors text-fg shadow-sm"
+        >
+          <X size={12} />
+        </button>
+      </div>
+      <div className="flex items-start gap-2 p-4 pb-3 border-b border-border">
+        <h3 className="flex-1 text-base font-semibold text-fg leading-snug">{spot.name}</h3>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        <span className="self-start rounded-full bg-surface2 text-fg2 text-xs font-medium px-3 py-1 border border-border">
+          {spot.movie.title}
+        </span>
+
+        <div>
+          <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
+          {spot.review ? (
+            <p className="text-sm text-fg2 whitespace-pre-wrap">{spot.review}</p>
+          ) : (
+            <p className="text-sm text-muted">리뷰 없음</p>
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-muted mb-2">출처</p>
+          <div className="flex items-center gap-2">
+            {spot.author.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={spot.author.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-fg text-bg text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                {spot.author.nickname[0]}
+              </div>
+            )}
+            <span className="text-sm text-fg2">{spot.author.nickname}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function SpotFinderMap({ spots }: Props) {
   const [loading] = useKakaoLoader({
     appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!,
@@ -142,9 +201,11 @@ export default function SpotFinderMap({ spots }: Props) {
   if (loading) return <div className="w-full h-full bg-card animate-pulse" />;
 
   return (
-    <div ref={mapWrapperRef} className="relative w-full h-full">
+    <div ref={mapWrapperRef} className="relative w-full h-full flex">
+      {/* 지도 영역 — 패널을 제외한 남은 폭 */}
+      <div className="relative flex-1 min-w-0">
 
-      {/* 좌측 컨테이너: 검색창 + 칩 줄 + 상세 패널(마커 클릭 시) */}
+      {/* 좌측 컨테이너: 검색창 + 칩 줄 + 상세 카드(모바일 전용, 마커 클릭 시) */}
       <div className="absolute top-3 left-3 right-3 md:right-auto md:w-96 z-[1000] flex flex-col gap-2">
         <input
           type="text"
@@ -205,67 +266,8 @@ export default function SpotFinderMap({ spots }: Props) {
         </div>
 
         {selectedSpot && (
-          <div className="bg-card rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
-            <div className="relative h-40 flex-shrink-0">
-              {selectedSpot.photoUrl ? (
-                <img
-                  src={selectedSpot.photoUrl}
-                  alt={selectedSpot.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-surface2 flex items-center justify-center">
-                  <span className="text-muted text-sm">No Image</span>
-                </div>
-              )}
-              <button
-                type="button"
-                aria-label="닫기"
-                onClick={() => setSelectedSpot(null)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-card/80 hover:bg-card flex items-center justify-center flex-shrink-0 transition-colors text-fg shadow-sm"
-              >
-                <X size={12} />
-              </button>
-            </div>
-            <div className="flex items-start gap-2 p-4 pb-3 border-b border-border">
-              <h3 className="flex-1 text-base font-semibold text-fg leading-snug">
-                {selectedSpot.name}
-              </h3>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-              <span className="self-start rounded-full bg-surface2 text-fg2 text-xs font-medium px-3 py-1 border border-border">
-                {selectedSpot.movie.title}
-              </span>
-
-              <div>
-                <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
-                {selectedSpot.review ? (
-                  <p className="text-sm text-fg2 whitespace-pre-wrap">{selectedSpot.review}</p>
-                ) : (
-                  <p className="text-sm text-muted">리뷰 없음</p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs font-medium text-muted mb-2">출처</p>
-                <div className="flex items-center gap-2">
-                  {selectedSpot.author.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={selectedSpot.author.avatarUrl}
-                      alt=""
-                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-fg text-bg text-xs font-semibold flex items-center justify-center flex-shrink-0">
-                      {selectedSpot.author.nickname[0]}
-                    </div>
-                  )}
-                  <span className="text-sm text-fg2">{selectedSpot.author.nickname}</span>
-                </div>
-              </div>
-            </div>
+          <div className="md:hidden bg-card rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
+            <SpotDetailContent spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
           </div>
         )}
       </div>
@@ -339,6 +341,23 @@ export default function SpotFinderMap({ spots }: Props) {
           })}
         </MarkerClusterer>
       </Map>
+      </div>
+
+      {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
+      <aside className="hidden md:flex w-[350px] shrink-0 flex-col bg-bg">
+        {selectedSpot ? (
+          <SpotDetailContent spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-5">
+            <div className="w-2 h-2 rounded-full bg-primary mb-2.5" />
+            <p className="text-xs text-muted leading-relaxed">
+              탐색할 촬영지가 있어요.
+              <br />
+              촬영지를 선택하면 상세 정보가 표시됩니다.
+            </p>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
