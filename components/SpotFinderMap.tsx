@@ -28,7 +28,7 @@ type Props = { spots: SpotFinderSpot[] };
 function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: () => void }) {
   return (
     <>
-      <div className="relative h-40 flex-shrink-0">
+      <div className="relative h-[210px] flex-shrink-0">
         {spot.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={spot.photoUrl} alt={spot.name} className="w-full h-full object-cover" />
@@ -37,6 +37,22 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
             <span className="text-muted text-sm">No Image</span>
           </div>
         )}
+        {/* 시안 실측 스크림 — 하단 제목 가독 + 상단 X 대비. No Image 폴백에도 동일 적용해 흰 제목 가독 보장 */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(to_top,rgba(13,13,20,0.85)_0%,rgba(13,13,20,0.15)_45%,rgba(13,13,20,0.35)_100%)]"
+        />
+        {/* 작품 배지 — 시안 실측 top12/left14, 중립 오버레이 배경(작품색 매핑 부재로 기판정 제외) */}
+        <div className="absolute top-3 left-3.5 flex">
+          <span className="rounded-full bg-white/[0.18] px-[7px] py-[2px] text-xs font-normal text-white whitespace-nowrap">
+            {spot.movie.title}
+          </span>
+        </div>
+        <div className="absolute left-4 right-4 bottom-[14px]">
+          <h2 className="text-[22px] font-semibold tracking-[-0.02em] leading-[1.3] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.60)]">
+            {spot.name}
+          </h2>
+        </div>
         <button
           type="button"
           aria-label="닫기"
@@ -46,15 +62,8 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           <X size={12} />
         </button>
       </div>
-      <div className="flex items-start gap-2 p-4 pb-3 border-b border-border">
-        <h3 className="flex-1 text-base font-semibold text-fg leading-snug">{spot.name}</h3>
-      </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-        <span className="self-start rounded-full bg-surface2 text-fg2 text-xs font-medium px-3 py-1 border border-border">
-          {spot.movie.title}
-        </span>
-
         <div>
           <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
           {spot.review ? (
