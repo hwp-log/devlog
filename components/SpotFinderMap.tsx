@@ -198,15 +198,18 @@ export default function SpotFinderMap({ spots }: Props) {
     chipBarRef.current?.scrollBy({ left: dir === 'right' ? 150 : -150, behavior: 'smooth' });
   }
 
+  // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
+  function handleSpotSelect(spot: SpotFinderSpot) {
+    setSelectedSpot(spot);
+    mapInstance?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng));
+  }
+
   if (loading) return <div className="w-full h-full bg-card animate-pulse" />;
 
   return (
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
-      {/* 지도 영역 — 패널을 제외한 남은 폭 */}
-      <div className="relative flex-1 min-w-0">
-
-      {/* 좌측 컨테이너: 검색창 + 칩 줄 + 상세 카드(모바일 전용, 마커 클릭 시) */}
-      <div className="absolute top-3 left-3 right-3 md:right-auto md:w-96 z-[1000] flex flex-col gap-2">
+      {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환) */}
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 md:static md:top-auto md:left-auto md:right-auto md:z-auto md:w-[320px] md:shrink-0 md:h-full md:bg-bg md:border-r md:border-border md:p-3">
         <input
           type="text"
           value={searchQuery}
@@ -270,7 +273,47 @@ export default function SpotFinderMap({ spots }: Props) {
             <SpotDetailContent spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
           </div>
         )}
+
+        {/* 스팟 리스트 (md 전용) — 시안 실측 구성: 썸네일 48 + 이름 + 배지 (메타줄은 데이터 부재로 생략) */}
+        <ul className="hidden md:flex flex-col gap-[7px] flex-1 overflow-y-auto min-h-0">
+          {visibleSpots.map((spot) => {
+            const selected = selectedSpot?.id === spot.id;
+            return (
+              <li key={spot.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSpotSelect(spot)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${
+                    selected
+                      ? 'border-primary bg-primary/[0.08]'
+                      : 'border-transparent hover:bg-card'
+                  }`}
+                >
+                  {spot.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={spot.photoUrl}
+                      alt=""
+                      className="w-12 h-12 rounded-[10px] object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-[10px] bg-surface2 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-fg truncate">{spot.name}</p>
+                    <span className="inline-block mt-1 rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border truncate max-w-full">
+                      {spot.movie.title}
+                    </span>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭 */}
+      <div className="relative flex-1 min-w-0">
 
       {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
       <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
@@ -295,10 +338,7 @@ export default function SpotFinderMap({ spots }: Props) {
               >
                 {/* 히트 영역(44×44 투명)과 시각 점(14px) 분리 — CLAUDE.md §5 터치 타겟 */}
                 <div
-                  onClick={() => {
-                    setSelectedSpot(spot);
-                    mapInstance?.panTo(new kakao.maps.LatLng(spot.lat, spot.lng));
-                  }}
+                  onClick={() => handleSpotSelect(spot)}
                   style={{
                     width: 44,
                     height: 44,
