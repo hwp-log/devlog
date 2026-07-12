@@ -6,7 +6,9 @@
  *
  * 팩토리 래핑 이유: 원본은 모듈 스코프에서 naver.maps.Util.ClassExtend를 즉시 호출해
  * SDK 로드 전 import 시 크래시한다. 최초 호출 시점(SDK ready 이후)에 평가되도록 지연.
- * 벤더 코드 본문은 수정하지 않는다 (@ts-nocheck / eslint-disable는 벤더 파일 한정).
+ * 벤더 코드 본문은 아래 패치 2건 외 무수정 (@ts-nocheck / eslint-disable는 벤더 파일 한정):
+ *   [벤더 패치 1건] onRemove의 원본 오타(_mapRelation → _mapRelations) 수정 — idle 리스너 잔존 버그
+ *   [벤더 패치 2건] _redraw 구성 불변 가드 — idle마다 마커 DOM 재부착(애니메이션 재시작·렌더 낭비) 방지
  */
 
 export type MarkerClusteringOptions = {
@@ -83,6 +85,7 @@ var MarkerClustering = function(options) {
 
 	this._mapRelations = null;
 	this._markerRelations = [];
+	this._redrawSignature = null; // [벤더 패치 2건] 구성 불변 가드 시그니처
 
 	this.setOptions(naver.maps.Util.extend({}, this.DEFAULT_OPTIONS, options), true);
 	this.setMap(options.map || null);
@@ -95,8 +98,9 @@ naver.maps.Util.ClassExtend(MarkerClustering, naver.maps.OverlayView, {
 		this._mapRelations = naver.maps.Event.addListener(map, 'idle', naver.maps.Util.bind(this._onIdle, this));
 
 		if (this.getMarkers().length > 0) {
-			this._createClusters();
-			this._updateClusters();
+			// [벤더 패치 2건] 최초 그리기도 _redraw 경유 — 시그니처가 저장되어야
+			// 직후 idle(선택 panTo 등)에서 불변 생략이 동작한다 (원본: 직접 호출)
+			this._redraw();
 		}
 	},
 
@@ -113,6 +117,7 @@ naver.maps.Util.ClassExtend(MarkerClustering, naver.maps.OverlayView, {
 
 		this._geoTree = null;
 		this._mapRelations = null;
+		this._redrawSignature = null; // [벤더 패치 2건] 해제 시 가드 무효화
 	},
 
 	/**
@@ -121,6 +126,8 @@ naver.maps.Util.ClassExtend(MarkerClustering, naver.maps.OverlayView, {
 	 */
 	setOptions: function(newOptions) {
 		var _this = this;
+
+		this._redrawSignature = null; // [벤더 패치 2건] 옵션 변경 시 가드 무효화 (다음 idle에 강제 재그리기)
 
 		if (typeof newOptions === 'string') {
 			var key = newOptions,
@@ -409,9 +416,31 @@ naver.maps.Util.ClassExtend(MarkerClustering, naver.maps.OverlayView, {
 	 * @private
 	 */
 	_redraw: function() {
+		// [벤더 패치 2건] 구성 불변 가드 — 원본은 idle마다 전량 파괴·재생성해 마커 DOM이
+		// 재부착되고 CSS 애니메이션(파장)이 재시작 + 렌더 낭비. 같은 줌 + 같은 뷰포트 내
+		// 마커 집합(+위치)이면 그리드 배정이 결정적으로 동일하므로(픽셀 거리 평행이동 불변)
+		// 재그리기를 생략한다. 시그니처 무효화는 생성자/onAdd/setOptions/onRemove 참조.
+		var signature = this._computeRedrawSignature();
+		if (signature !== null && signature === this._redrawSignature) return;
+		this._redrawSignature = signature;
+
 		this._clearClusters();
 		this._createClusters();
 		this._updateClusters();
+	},
+
+	// [벤더 패치 2건 부속] 구성 시그니처: 줌 + 뷰포트 내 마커(인덱스:위치) 목록
+	_computeRedrawSignature: function() {
+		var map = this.getMap();
+		if (!map) return null;
+		var bounds = map.getBounds(),
+			markers = this.getMarkers(),
+			parts = [];
+		for (var i = 0, ii = markers.length; i < ii; i++) {
+			var position = markers[i].getPosition();
+			if (bounds.hasLatLng(position)) parts.push(i + ':' + position.x + ',' + position.y);
+		}
+		return map.getZoom() + '|' + parts.join(';');
 	},
 
 	/**

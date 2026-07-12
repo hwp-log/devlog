@@ -11,18 +11,47 @@ const PRIMARY = theme.common.primary;
 // 국내 전용 지도 — 제주·독도 포함 한국 bbox (판단값, "국내만 제공" 배너와 정합)
 const KOREA_BOUNDS = { south: 32.5, west: 123.5, north: 39.5, east: 132.5 };
 
-// 점 마커 HTML — 카카오 CustomOverlayMap 마크업과 동일 값 (44px 히트 + 14px 점, CLAUDE.md §5)
-// 선택 글로우 알파 0.15/0.08 = 정본 시안 링 실측값
-function markerContent(selected: boolean): string {
+// 마커 본체 크기 상수 — anchor 파생 계산의 단일 소스 (라벨 높이는 translate -100%가 자동 흡수)
+const MARKER_DOT_SIZE = 11; // 미선택 점 (border-box)
+const MARKER_CARD_SIZE = 58; // 선택 썸네일 카드 (border-box)
+
+// HTML 문자열 아이콘에 들어가는 사용자 데이터 최소 이스케이프
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// 마커 HTML — 시안 2단계: 미선택 = 지명 라벨 pill + 11px 점 / 선택 = 58px 썸네일 카드 + primary pill.
+// 0-크기 외곽 + translate(-50%,-100%)로 "블록 하단 중앙 = 좌표" (시안 앵커 동일, 라벨 가변 폭 대응 — anchor는 Point(0,0))
+// 라벨 12px = CLAUDE.md §5 하한 준수 (시안 11px, 기존 눈썹·배지 판정 계열). 색은 토큰(var(--surface2)/var(--fg2)/var(--bg))
+function markerContent(spot: SpotFinderSpot, selected: boolean): string {
+  const name = escapeHtml(spot.name);
+  const pillBase = 'font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap;display:inline-block;position:relative;margin-bottom:4px;';
+  const pingAnim = `animation:spot-ping 1.8s cubic-bezier(0,0,0.2,1) infinite`;
+
+  // 스택형 구조 (선택 = 미선택 + 추가 레이어): [카드(선택+사진)] / [라벨] / [점 — 항상 좌표에 고정].
+  // 점이 살아 있으므로 발광(이중 링 + 핑)은 항상 점에서 발생 — 카드에 가려질 일이 없음 (radial 불필요).
+  // 간격은 시안 준용: 카드-라벨 4px(시안 카드 margin-bottom) / 라벨-점 4px(시안 미선택 간격)
   const dotShadow = selected
-    ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 4px rgba(0,0,0,0.3)`
-    : '0 2px 4px rgba(0,0,0,0.3)';
+    ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 6px rgba(0,0,0,0.5)`
+    : '0 2px 6px rgba(0,0,0,0.5)';
+  const pillColor = selected
+    ? `background:${PRIMARY};color:#fff;border:1px solid ${PRIMARY}`
+    : 'background:var(--surface2);color:var(--fg2);border:1px solid rgba(255,255,255,0.12)';
   const ping = selected
-    ? `<div style="position:absolute;width:24px;height:24px;border-radius:9999px;background:${withAlpha(PRIMARY, 0.4)};animation:spot-pulse 0.6s ease-out forwards;pointer-events:none"></div>`
+    ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
-  return `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative">
-    <div style="width:14px;height:14px;border-radius:9999px;background:${PRIMARY};border:2px solid #fff;box-shadow:${dotShadow}"></div>
-    ${ping}
+  const card = selected && spot.photoUrl
+    ? `<span style="display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:14px;border:2.5px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,0.55);margin:0 auto 4px;background-image:url('${escapeHtml(spot.photoUrl)}');background-size:cover;background-position:center;position:relative"></span>`
+    : '';
+  const inner = `${ping}
+      ${card}
+      <span style="${pillBase}${pillColor}">${name}</span>
+      <span style="display:block;width:${MARKER_DOT_SIZE}px;height:${MARKER_DOT_SIZE}px;border-radius:50%;border:2px solid var(--bg);box-shadow:${dotShadow};background:${PRIMARY};position:relative"></span>`;
+
+  // 점 중심 = 좌표 (항상): translate -100%(묶음 전체 — 카드·라벨 높이 자동 흡수) + 점높이/2 하향 보정.
+  // 선택 토글 시 점·라벨은 제자리 고정, 카드만 라벨 위에 나타났다 사라진다. 미선택 총높이 ≈ 47px ≥ 44px (§5 히트 타겟)
+  return `<div style="position:relative;width:0;height:0">
+    <div style="position:absolute;left:0;top:0;transform:translate(-50%, calc(-100% + ${MARKER_DOT_SIZE / 2}px));display:flex;flex-direction:column;align-items:center;min-width:44px;padding:6px 8px 0;cursor:pointer">${inner}</div>
   </div>`;
 }
 
@@ -211,9 +240,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       const marker = new naver.maps.Marker({
         // map 미지정 — 클러스터러가 클러스터 상태에 따라 부착/해제를 관리
         position: new naver.maps.LatLng(spot.lat, spot.lng),
-        // anchor(22,22) 필수 — 네이버 HtmlIcon은 좌상단 기준 (카카오는 자동 중앙, 누락 시 22px 드리프트)
-        icon: { content: markerContent(selected), anchor: new naver.maps.Point(22, 22) },
-        zIndex: selected ? 2 : 1,
+        // 0-크기 콘텐츠 + 내부 translate(-50%,-100%) 구조라 anchor는 (0,0) — 하단 중앙 = 좌표
+        icon: { content: markerContent(spot, selected), anchor: new naver.maps.Point(0, 0) },
+        zIndex: selected ? 10 : 1,
       });
       naver.maps.Event.addListener(marker, 'click', () => handleSpotSelectRef.current(spot));
       markerIndex.set(spot.id, marker);
@@ -250,20 +279,21 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     const prevId = prevSelectedIdRef.current;
     if (prevId && prevId !== selectedSpot?.id) {
       const prev = markersRef.current.get(prevId);
-      if (prev) {
-        prev.setIcon({ content: markerContent(false), anchor: new naver.maps.Point(22, 22) });
+      const prevSpot = spots.find((s) => s.id === prevId);
+      if (prev && prevSpot) {
+        prev.setIcon({ content: markerContent(prevSpot, false), anchor: new naver.maps.Point(0, 0) });
         prev.setZIndex(1);
       }
     }
     if (selectedSpot) {
       const next = markersRef.current.get(selectedSpot.id);
       if (next) {
-        next.setIcon({ content: markerContent(true), anchor: new naver.maps.Point(22, 22) });
-        next.setZIndex(2);
+        next.setIcon({ content: markerContent(selectedSpot, true), anchor: new naver.maps.Point(0, 0) });
+        next.setZIndex(10);
       }
     }
     prevSelectedIdRef.current = selectedSpot?.id ?? null;
-  }, [selectedSpot]);
+  }, [selectedSpot, spots]);
 
 
   // 칩 클릭 시 자동 줌 — visibleSpots 대신 selectedMovieId 의존으로 무한루프 방지
