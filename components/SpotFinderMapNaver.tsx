@@ -469,8 +469,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   return (
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
-      {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환) */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 md:static md:top-auto md:left-auto md:right-auto md:z-auto md:w-[320px] md:shrink-0 md:h-full md:bg-bg md:border-r md:border-border md:p-3">
+      {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환).
+          열 구분선 0.12 = 시안 --t15 실측값 — 시안 t13(0.08)과 동일값이었으나 체감 보강으로 상위 단계 채택 (구분선 한정, border 토큰 무변) */}
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 md:static md:top-auto md:left-auto md:right-auto md:z-auto md:w-[320px] md:shrink-0 md:h-full md:bg-bg md:border-r md:border-[rgba(255,255,255,0.12)] md:p-3">
         {/* 데탑 전용 헤더 — 시안 실측 18/20/10, 칼럼 md:p-3(12)+gap-2(8) 보정. 눈썹은 하한 준수 12px(시안 11px) */}
         <div className="hidden md:block pt-1.5 px-2 pb-0.5">
           <p className="text-xs font-normal tracking-widest text-primary">SpotFinder</p>
@@ -578,7 +579,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       </div>
 
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
-      <div className="relative flex-1 min-w-0 md:border-r md:border-border">
+      <div className="relative flex-1 min-w-0 md:border-r md:border-[rgba(255,255,255,0.12)]">
 
         {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
         <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
