@@ -60,25 +60,32 @@ function clusterIconContent(): string {
   return `<div style="width:44px;height:44px;border-radius:9999px;background:${PRIMARY};border:2px solid #fff;color:#fff;font-size:12px;font-weight:600;text-align:center;line-height:40px;cursor:pointer;box-shadow:0 0 0 6px ${withAlpha(PRIMARY, 0.15)}">1</div>`;
 }
 
-// naver LatLngBounds는 빈 생성자가 없어 첫 좌표로 시드 (카카오와 다름)
-function buildBounds(spots: SpotFinderSpot[]): naver.maps.LatLngBounds {
-  const first = new naver.maps.LatLng(spots[0].lat, spots[0].lng);
-  const bounds = new naver.maps.LatLngBounds(first, first);
-  spots.forEach((s) => bounds.extend(new naver.maps.LatLng(s.lat, s.lng)));
-  return bounds;
-}
+// 3단계형 내비게이션: 프로그램 이동(칩·클러스터 클릭·리사이즈 재적합)의 종착은 항상
+// ② 분해 조망 — ③ 개별 확대는 사용자 휠·핀치 전용 (프로그램 경로 없음)
+const STAGE2_MAX_ZOOM = 11; // ② 상한 = 클러스터러 분해 임계와 단일 소스 공유
+const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정 (판단값)
 
-// 단일 스팟의 퇴화 bounds(면적 0)는 GL fitBounds가 무시함(실측) — setCenter+setZoom 분기
-const SINGLE_SPOT_ZOOM = 14; // 동네 스케일 (카카오 setBounds 단일점 결과와 유사)
-function fitMapToSpots(map: naver.maps.Map, spots: SpotFinderSpot[]) {
-  if (spots.length === 1) {
-    // 순서 중요: 줌인 먼저 — 광역 줌에서 setCenter를 먼저 하면 maxBounds가 뷰포트를
-    // 클램프해 중심이 엉뚱한 곳으로 밀린 채 줌인된다 (실측)
-    map.setZoom(SINGLE_SPOT_ZOOM);
-    map.setCenter(new naver.maps.LatLng(spots[0].lat, spots[0].lng));
+function moveToStage2(map: naver.maps.Map, points: naver.maps.LatLng[]) {
+  if (points.length === 0) return;
+  let minLat = points[0].lat(), maxLat = minLat, minLng = points[0].lng(), maxLng = minLng;
+  points.forEach((p) => {
+    minLat = Math.min(minLat, p.lat()); maxLat = Math.max(maxLat, p.lat());
+    minLng = Math.min(minLng, p.lng()); maxLng = Math.max(maxLng, p.lng());
+  });
+  if (Math.max(maxLat - minLat, maxLng - minLng) < DEGENERATE_SPAN_DEG) {
+    // 퇴화 스팬: GL fitBounds가 무시함(실측) + 분해 무의미 → ② 상한 직행.
+    // 순서 중요: 줌인 먼저 — 광역 줌에서 setCenter 먼저 하면 maxBounds 클램프로 중심이 밀림 (실측)
+    map.setZoom(STAGE2_MAX_ZOOM);
+    map.setCenter(points[0]);
     return;
   }
-  map.fitBounds(buildBounds(spots), { top: 110, right: 40, bottom: 40, left: 40 });
+  const bounds = new naver.maps.LatLngBounds(points[0], points[0]); // 빈 생성자 없음 — 첫 좌표 시드
+  points.forEach((p) => bounds.extend(p));
+  map.fitBounds(bounds, { top: 110, right: 40, bottom: 40, left: 40, maxZoom: STAGE2_MAX_ZOOM });
+}
+
+function fitMapToSpots(map: naver.maps.Map, spots: SpotFinderSpot[]) {
+  moveToStage2(map, spots.map((s) => new naver.maps.LatLng(s.lat, s.lng)));
 }
 
 type Props = { spots: SpotFinderSpot[] };
@@ -253,9 +260,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       markers,
       averageCenter: true,
       minClusterSize: 1,
-      maxZoom: 11, // 카카오 minLevel 10 상응 (zoom ≈ 20 − level) — 경계감은 검증 때 튜닝
+      maxZoom: STAGE2_MAX_ZOOM, // 분해 임계 = 프로그램 이동 상한 (단일 소스)
       gridSize: 120,
       disableClickZoom: false,
+      // 클러스터 클릭 = 멤버 bounds로 분해 스냅 (벤더 패치 3건 위임).
+      // 멤버가 사실상 1지점이면 moveToStage2의 퇴화 경로가 ② 상한 직행으로 자연 분기
+      onClusterClick: (members: naver.maps.Marker[]) => {
+        moveToStage2(mapInstance, members.map((m) => m.getPosition() as naver.maps.LatLng));
+      },
       icons: [{ content: clusterIconContent(), size: new naver.maps.Size(44, 44), anchor: new naver.maps.Point(22, 22) }],
       indexGenerator: [Infinity], // 단일 아이콘 — 카카오 CLUSTER_STYLES 1개와 동일
       stylingFunction: (clusterMarker, count) => {

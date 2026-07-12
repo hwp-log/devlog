@@ -9,6 +9,7 @@
  * 벤더 코드 본문은 아래 패치 2건 외 무수정 (@ts-nocheck / eslint-disable는 벤더 파일 한정):
  *   [벤더 패치 1건] onRemove의 원본 오타(_mapRelation → _mapRelations) 수정 — idle 리스너 잔존 버그
  *   [벤더 패치 2건] _redraw 구성 불변 가드 — idle마다 마커 DOM 재부착(애니메이션 재시작·렌더 낭비) 방지
+ *   [벤더 패치 3건] onClusterClick 옵션 — 클러스터 클릭 동작을 앱 콜백에 위임 (기본 +1줌 하위호환 유지)
  */
 
 export type MarkerClusteringOptions = {
@@ -22,6 +23,8 @@ export type MarkerClusteringOptions = {
   indexGenerator?: number[] | ((count: number) => number);
   averageCenter?: boolean;
   stylingFunction?: (clusterMarker: naver.maps.Marker, count: number) => void;
+  // [벤더 패치 3건] 클러스터 클릭 위임 — 멤버 마커 목록 전달
+  onClusterClick?: (members: naver.maps.Marker[], event?: unknown) => void;
 };
 
 export type MarkerClusteringInstance = {
@@ -65,6 +68,8 @@ var MarkerClustering = function(options) {
 		markers: [],
 		// 클러스터 마커 클릭 시 줌 동작 여부입니다.
 		disableClickZoom: true,
+		// [벤더 패치 3건] 클러스터 클릭 위임 콜백 (기본 null = 원본 +1줌 동작)
+		onClusterClick: null,
 		// 클러스터를 구성할 최소 마커 수입니다.
 		minClusterSize: 2,
 		// 클러스터 마커로 표현할 최대 줌 레벨입니다. 해당 줌 레벨보다 높으면, 클러스터를 구성하고 있는 마커를 노출합니다.
@@ -598,6 +603,13 @@ Cluster.prototype = {
 		var map = this._markerClusterer.getMap();
 
 		this._relation = naver.maps.Event.addListener(this._clusterMarker, 'click', naver.maps.Util.bind(function(e) {
+			// [벤더 패치 3건] onClusterClick 옵션 — 지정 시 기본 +1줌(morph) 대신 앱 콜백에
+			// 멤버 마커 목록을 넘겨 위임 (미지정 시 원본 동작 그대로 — 하위호환)
+			var handler = this._markerClusterer.getOptions('onClusterClick');
+			if (handler) {
+				handler(this._clusterMember.slice(), e);
+				return;
+			}
 			map.morph(e.coord, map.getZoom() + 1);
 		}, this));
 	},
