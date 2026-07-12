@@ -210,6 +210,13 @@ export default function SpotFinderMap({ spots }: Props) {
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
       {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환) */}
       <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 md:static md:top-auto md:left-auto md:right-auto md:z-auto md:w-[320px] md:shrink-0 md:h-full md:bg-bg md:border-r md:border-border md:p-3">
+        {/* 데탑 전용 헤더 — 시안 실측 18/20/10, 칼럼 md:p-3(12)+gap-2(8) 보정. 눈썹은 하한 준수 12px(시안 11px) */}
+        <div className="hidden md:block pt-1.5 px-2 pb-0.5">
+          <p className="text-xs font-normal tracking-widest text-primary">SpotFinder</p>
+          <h1 className="mt-1 text-base font-semibold tracking-[-0.02em] text-fg break-keep">
+            영화·드라마 촬영지 검색
+          </h1>
+        </div>
         <input
           type="text"
           value={searchQuery}

@@ -7,6 +7,7 @@ import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
 import { ThemeScope } from '@/app/(protected)/_components/ThemeScope';
+import { ProtectedMain } from '@/app/(protected)/_components/ProtectedMain';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -48,9 +49,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             </div>
           </div>
         </header>
-        <main className="max-w-7xl mx-auto px-6 pt-8 pb-24 md:pb-8">
-          {children}
-        </main>
+        <ProtectedMain>{children}</ProtectedMain>
         <BottomTabBar />
       </ThemeScope>
     </>

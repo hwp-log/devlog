@@ -104,14 +104,18 @@ body {
 }
 
 /* SpotFinder 지도 높이 — svh 기본 + vh 폴백(캐스케이드).
-   모바일: 100vh - 260px - safe-area / 데스크톱: 100vh - 200px
+   모바일: 100vh - 260px - safe-area (0153-0156 산정 유지)
+   md+: 100svh - 57px = 헤더 h-14(56) + glass-header border-bottom(0.5,
+   dpr1에서 1px로 렌더 — 57 미차감 시 1px 오버플로 스크롤 실측).
+   dpr2에선 0.5px 슬리버가 남지만 다크 배경이라 비가시.
+   — 풀블리드 전환으로 pt/SpotFinderHeader/pb 차감분(구 200px) 소멸
    v4 커스텀 유틸리티는 @utility 디렉티브 사용 (@layer utilities는 v3 문법) */
 @utility h-spot-finder-map {
   height: calc(100vh - 260px - env(safe-area-inset-bottom));
   height: calc(100svh - 260px - env(safe-area-inset-bottom));
   @media (min-width: 768px) {
-    height: calc(100vh - 200px);
-    height: calc(100svh - 200px);
+    height: calc(100vh - 57px);
+    height: calc(100svh - 57px);
   }
 }
 
