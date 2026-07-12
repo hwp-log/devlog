@@ -13,7 +13,9 @@ const KOREA_BOUNDS = { south: 32.5, west: 123.5, north: 39.5, east: 132.5 };
 
 // 마커 본체 크기 상수 — anchor 파생 계산의 단일 소스 (라벨 높이는 translate -100%가 자동 흡수)
 const MARKER_DOT_SIZE = 11; // 미선택 점 (border-box)
-const MARKER_CARD_SIZE = 58; // 선택 썸네일 카드 (border-box)
+// 선택 카드 72.5 = 시안 58의 1.25배 (사용자 체감 조정 — 2.0/1.5/1.3/1.2배 시도 후 수렴) — 초기 자동
+// 선택으로 카드가 첫인상 중심이 된 데 따른 확대. 가림은 선택 1개 한정·z 최상위 기존 위계·팬줌 회피 가능
+const MARKER_CARD_SIZE = 72.5; // 선택 썸네일 카드 (border-box)
 
 // HTML 문자열 아이콘에 들어가는 사용자 데이터 최소 이스케이프
 function escapeHtml(s: string): string {
@@ -25,7 +27,11 @@ function escapeHtml(s: string): string {
 // 라벨 12px = CLAUDE.md §5 하한 준수 (시안 11px, 기존 눈썹·배지 판정 계열). 색은 토큰(var(--surface2)/var(--fg2)/var(--bg))
 function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   const name = escapeHtml(spot.name);
-  const pillBase = 'font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap;display:inline-block;position:relative;margin-bottom:4px;';
+  // 라벨 크기 분기: 선택 22px(히어로 제목 동급 — 24px는 위계 역전이라 기각, 판단값) / 미선택 12px 무변
+  const pillSize = selected
+    ? 'font-size:15px;padding:4px 11px;'
+    : 'font-size:12px;padding:3px 9px;';
+  const pillBase = `${pillSize}border-radius:999px;white-space:nowrap;display:inline-block;position:relative;margin-bottom:4px;`;
   const pingAnim = `animation:spot-ping 1.8s cubic-bezier(0,0,0.2,1) infinite`;
 
   // 스택형 구조 (선택 = 미선택 + 추가 레이어): [카드(선택+사진)] / [라벨] / [점 — 항상 좌표에 고정].
@@ -41,7 +47,7 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
   const card = selected && spot.photoUrl
-    ? `<span style="display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:14px;border:2.5px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,0.55);margin:0 auto 4px;background-image:url('${escapeHtml(spot.photoUrl)}');background-size:cover;background-position:center;position:relative"></span>`
+    ? `<span style="display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:17.5px;border:3px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,0.55);margin:0 auto 5px;background-image:url('${escapeHtml(spot.photoUrl)}');background-size:cover;background-position:center;position:relative"></span>`
     : '';
   const inner = `${ping}
       ${card}
