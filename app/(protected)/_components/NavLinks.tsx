@@ -19,13 +19,19 @@ export function NavLinks() {
           <Link
             key={href}
             href={href}
-            className={`text-sm transition-colors ${
+            className={`relative text-sm transition-colors ${
               isActive
-                ? 'text-[#1A1A1A] dark:text-fg font-semibold'
+                ? 'text-[#1A1A1A] dark:text-fg'
                 : 'text-slate-500 hover:text-slate-800 dark:text-muted dark:hover:text-fg'
             }`}
           >
             {label}
+            {isActive && (
+              <span
+                aria-hidden
+                className="absolute left-1/2 -translate-x-1/2 -bottom-2.5 w-1 h-1 rounded-full bg-primary"
+              />
+            )}
           </Link>
         );
       })}
