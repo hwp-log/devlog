@@ -479,8 +479,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         </ul>
       </div>
 
-      {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭 */}
-      <div className="relative flex-1 min-w-0">
+      {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
+      <div className="relative flex-1 min-w-0 md:border-r md:border-border">
 
       {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
       <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
