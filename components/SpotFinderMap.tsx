@@ -230,7 +230,7 @@ export default function SpotFinderMap({ spots }: Props) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="작품명 검색"
+          placeholder="드라마·영화 검색"
           className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted focus:outline-none focus:border-slate-400 shadow-sm"
         />
 
@@ -315,9 +315,9 @@ export default function SpotFinderMap({ spots }: Props) {
                   ) : (
                     <div className="w-12 h-12 rounded-[10px] bg-surface2 shrink-0" />
                   )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-fg truncate">{spot.name}</p>
-                    <span className="inline-block mt-1 rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border truncate max-w-full">
+                  <div className="min-w-0 flex items-center gap-1.5">
+                    <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
+                    <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
                       {spot.movie.title}
                     </span>
                   </div>
