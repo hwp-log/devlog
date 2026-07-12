@@ -16,6 +16,7 @@ export type SpotFinderSpot = {
 export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
   const spots = await prisma.spot.findMany({
     where: { movieId: { not: null } },
+    orderBy: { createdAt: 'desc' }, // 리스트 최신순 — 순서는 소스에서 단일 결정 (클라 재정렬 금지)
     select: {
       id: true,
       name: true,
