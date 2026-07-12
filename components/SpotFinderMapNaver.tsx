@@ -196,7 +196,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
-  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(null);
+  // 초기 자동 선택: 최신 스팟(spots[0] — 쿼리 최신순 정렬) = 상호작용 안내용 첫 화면.
+  // handleSpotSelect(클릭 경로)를 타지 않는 state 초기값이라 지도 이동(panTo)이 구조적으로 없음
+  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(spots[0] ?? null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
