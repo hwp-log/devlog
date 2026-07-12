@@ -218,14 +218,25 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     selectedSpotRef.current = selectedSpot;
   }, [selectedSpot]);
 
-  // 작품별 그룹핑 — JS 내장 Map과 지도 컴포넌트 Map 이름 충돌 방지
+  // 작품별 그룹핑 + 칩 정렬 — 이미 전량 내려온 spots의 파생 집계 (별도 집계 쿼리는 이중 소스라 기각)
   const movieGroups = useMemo(() => {
-    const acc = spots.reduce<Record<string, { title: string; count: number }>>((rec, s) => {
-      if (rec[s.movie.id]) rec[s.movie.id].count++;
-      else rec[s.movie.id] = { title: s.movie.title, count: 1 };
-      return rec;
-    }, {});
-    return Object.entries(acc).map(([id, v]) => ({ id, ...v }));
+    const acc = spots.reduce<Record<string, { title: string; count: number; latestAt: number }>>(
+      (rec, s) => {
+        const t = new Date(s.createdAt).getTime();
+        if (rec[s.movie.id]) {
+          rec[s.movie.id].count++;
+          rec[s.movie.id].latestAt = Math.max(rec[s.movie.id].latestAt, t);
+        } else {
+          rec[s.movie.id] = { title: s.movie.title, count: 1, latestAt: t };
+        }
+        return rec;
+      },
+      {}
+    );
+    return Object.entries(acc)
+      .map(([id, v]) => ({ id, ...v }))
+      // 정렬 규칙: ① 스팟 수 내림차순 → ② 최근 스팟 등록 시각 내림차순 ("전체" 칩은 별도 버튼 — 항상 맨 앞)
+      .sort((a, b) => b.count - a.count || b.latestAt - a.latestAt);
   }, [spots]);
 
   const filteredMovieGroups = useMemo(() => {
