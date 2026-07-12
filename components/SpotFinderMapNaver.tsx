@@ -60,10 +60,24 @@ function clusterIconContent(): string {
   return `<div style="width:44px;height:44px;border-radius:9999px;background:${PRIMARY};border:2px solid #fff;color:#fff;font-size:12px;font-weight:600;text-align:center;line-height:40px;cursor:pointer;box-shadow:0 0 0 6px ${withAlpha(PRIMARY, 0.15)}">1</div>`;
 }
 
+// 초기 뷰: 서울 확대 고정 시작 — 첫 화면에 개별 발광 마커+라벨이 보이게 (흥미 유발).
+// 시딩 후 "최고 밀도 지역"으로 바꿀 땐 이 두 상수만 수정.
+// 값 근거(실측): 중심 = 서울 4스팟 bbox 중점(평균이 아님 — 390px 뷰포트 폭 0.117°에
+// 서쪽 끝 스팟이 들어오는 중심), 줌 11 = 1280px에서 4개 마커+라벨 전부 가시인 유일 줌(11.5부터 3/4)
+const INITIAL_CENTER = { lat: 37.5658, lng: 126.94746 };
+const INITIAL_ZOOM = 11;
+
 // 3단계형 내비게이션: 프로그램 이동(칩·클러스터 클릭·리사이즈 재적합)의 종착은 항상
 // ② 분해 조망 — ③ 개별 확대는 사용자 휠·핀치 전용 (프로그램 경로 없음)
 const STAGE2_MAX_ZOOM = 11; // ② 상한 = 클러스터러 분해 임계와 단일 소스 공유
 const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정 (판단값)
+
+// 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
+// easing 'easeOutCubic' = SDK TransitionOptions 기본값(@types 주석 명시, 런타임 실측 확증)
+const STAGE2_TRANSITION = { duration: 1200, easing: 'easeOutCubic' }; // duration 1000 = 사용자 체감 조정값
+
+// fitBounds가 주던 마진 그대로 (top 110 = 모바일 플로팅 검색/칩 가림 보정)
+const FIT_MARGIN = { top: 110, right: 40, bottom: 40, left: 40 };
 
 function moveToStage2(map: naver.maps.Map, points: naver.maps.LatLng[]) {
   if (points.length === 0) return;
@@ -73,15 +87,34 @@ function moveToStage2(map: naver.maps.Map, points: naver.maps.LatLng[]) {
     minLng = Math.min(minLng, p.lng()); maxLng = Math.max(maxLng, p.lng());
   });
   if (Math.max(maxLat - minLat, maxLng - minLng) < DEGENERATE_SPAN_DEG) {
-    // 퇴화 스팬: GL fitBounds가 무시함(실측) + 분해 무의미 → ② 상한 직행.
-    // 순서 중요: 줌인 먼저 — 광역 줌에서 setCenter 먼저 하면 maxBounds 클램프로 중심이 밀림 (실측)
-    map.setZoom(STAGE2_MAX_ZOOM);
-    map.setCenter(points[0]);
+    // 퇴화 스팬: GL fitBounds가 무시함(실측) + 분해 무의미 → ② 상한으로 morph.
+    // setZoom+setCenter는 0ms 점프(실측)라 기각. morph는 중심·줌 원자 전환이라 클램프 함정 없음
+    map.morph(points[0], STAGE2_MAX_ZOOM, STAGE2_TRANSITION);
     return;
   }
-  const bounds = new naver.maps.LatLngBounds(points[0], points[0]); // 빈 생성자 없음 — 첫 좌표 시드
-  points.forEach((p) => bounds.extend(p));
-  map.fitBounds(bounds, { top: 110, right: 40, bottom: 40, left: 40, maxZoom: STAGE2_MAX_ZOOM });
+
+  // fitBounds 대체: 줌·중심을 직접 산출해 morph — fitBounds는 duration/easing 노브가 없어
+  // (내장 ~500ms 고정, 실측) 질감 통일 불가. Mercator 상수 하드코딩 대신 SDK 프로젝션에
+  // 위임 (GL의 도/픽셀 비가 표준 256 기반 예측과 어긋났던 실측 이력 — 프로젝션은 정의상 일치)
+  const proj = map.getProjection();
+  const pSW = proj.fromCoordToOffset(new naver.maps.LatLng(minLat, minLng));
+  const pNE = proj.fromCoordToOffset(new naver.maps.LatLng(maxLat, maxLng));
+  const dx = Math.abs(pNE.x - pSW.x);
+  const dy = Math.abs(pNE.y - pSW.y);
+  const size = map.getSize();
+  const availW = size.width - FIT_MARGIN.left - FIT_MARGIN.right;
+  const availH = size.height - FIT_MARGIN.top - FIT_MARGIN.bottom;
+  const currentZoom = map.getZoom();
+  // 두 축이 모두 마진 안쪽에 담기는 최대 확대량
+  const dz = Math.log2(Math.min(availW / dx, availH / dy));
+  const targetZoom = Math.min(Math.max(currentZoom + dz, map.getMinZoom()), STAGE2_MAX_ZOOM);
+  const s = Math.pow(2, targetZoom - currentZoom); // 캡 반영 후 실제 배율
+  // 비대칭 마진 보정: bounds 중심이 마진 안쪽 사각형의 중앙에 오도록 (target px → 현재 줌 px 환산 = ÷s)
+  const center = proj.fromOffsetToCoord(new naver.maps.Point(
+    (pSW.x + pNE.x) / 2 - (FIT_MARGIN.left - FIT_MARGIN.right) / 2 / s,
+    (pSW.y + pNE.y) / 2 - (FIT_MARGIN.top - FIT_MARGIN.bottom) / 2 / s,
+  ));
+  map.morph(center, targetZoom, STAGE2_TRANSITION);
 }
 
 function fitMapToSpots(map: naver.maps.Map, spots: SpotFinderSpot[]) {
@@ -171,12 +204,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const userInteractedRef = useRef(false);
   const lastSizeRef = useRef({ w: 0, h: 0 });
+  const prevMovieIdRef = useRef<string | null>(null); // Effect A 마운트 발화 차단용 이전 칩 값
+  const hasFitRef = useRef(false); // 프로그램 fit 이력 — 리사이즈 재적합의 초기 뷰 점프 방지
   // 명령형 마커 관리 — 마커 리빌드 없이 최신 선택/핸들러 참조 유지
   const markersRef = useRef(new Map<string, naver.maps.Marker>());
   const clustererRef = useRef<MarkerClusteringInstance | null>(null);
   const selectedSpotRef = useRef<SpotFinderSpot | null>(null);
   const prevSelectedIdRef = useRef<string | null>(null);
-  const handleSpotSelectRef = useRef<(s: SpotFinderSpot) => void>(() => {});
+  const handleSpotSelectRef = useRef<(s: SpotFinderSpot) => void>(() => { });
 
   // 렌더 중 ref 쓰기 금지(react-hooks 규칙) — 커밋 후 동기화. 마커 effect보다 먼저 선언되어 같은 커밋 내 선행 실행
   useEffect(() => {
@@ -213,8 +248,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     const supportsGl = !!document.createElement('canvas').getContext('webgl');
     if (!supportsGl) console.warn('[SpotFinderMapNaver] WebGL 미지원 — 래스터 폴백 (커스텀 스타일 미적용)');
     const map = new naver.maps.Map(mapDivRef.current, {
-      center: new naver.maps.LatLng(36.5, 127.8),
-      zoom: 7, // 카카오 level 13 상응 — 마운트 직후 fitBounds가 덮으므로 코스메틱
+      center: new naver.maps.LatLng(INITIAL_CENTER.lat, INITIAL_CENTER.lng),
+      zoom: INITIAL_ZOOM, // 초기 뷰 = 서울 확대 (전체 fitBounds 시작 폐지 — Effect A 마운트 발화 가드 참조)
       minZoom: 6,
       maxBounds: new naver.maps.LatLngBounds(
         new naver.maps.LatLng(KOREA_BOUNDS.south, KOREA_BOUNDS.west),
@@ -308,9 +343,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   }, [selectedSpot, spots]);
 
 
-  // 칩 클릭 시 자동 줌 — visibleSpots 대신 selectedMovieId 의존으로 무한루프 방지
+  // 칩 클릭 시 자동 줌 — visibleSpots 대신 selectedMovieId 의존으로 무한루프 방지.
+  // 이전 값 비교 가드: 마운트·지도 재생성 시(null===null) 발화하지 않아 초기 서울 뷰가 유지된다
+  // (구 "초기 전체 fitBounds"의 실체가 이 마운트 발화였음). "전체" 칩은 여전히 전국 조망 복귀.
   useEffect(() => {
     if (!mapInstance || visibleSpots.length === 0) return;
+    if (selectedMovieId === prevMovieIdRef.current) return;
+    prevMovieIdRef.current = selectedMovieId;
+    hasFitRef.current = true;
     fitMapToSpots(mapInstance, visibleSpots);
   }, [selectedMovieId, mapInstance]);
 
@@ -369,10 +409,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       frame = requestAnimationFrame(() => {
         const center = mapInstance.getCenter();
         mapInstance.autoResize(); // 카카오 relayout() 상응
-        if (!userInteractedRef.current && visibleSpots.length > 0) {
+        if (!userInteractedRef.current && hasFitRef.current && visibleSpots.length > 0) {
           fitMapToSpots(mapInstance, visibleSpots);
         } else {
-          mapInstance.setCenter(center);
+          mapInstance.setCenter(center); // 초기 서울 뷰·사용자 조작 후 = 중심 보존 (전체 fit 점프 방지)
         }
       });
     };
@@ -442,11 +482,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             <button
               type="button"
               onClick={() => setSelectedMovieId(null)}
-              className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
-                selectedMovieId === null
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-card text-fg2 border-border'
-              }`}
+              className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${selectedMovieId === null
+                ? 'bg-primary text-white border-primary'
+                : 'bg-card text-fg2 border-border'
+                }`}
             >
               전체 ({spots.length})
             </button>
@@ -455,11 +494,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                 type="button"
                 key={g.id}
                 onClick={() => setSelectedMovieId(g.id)}
-                className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${
-                  selectedMovieId === g.id
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-card text-fg2 border-border'
-                }`}
+                className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${selectedMovieId === g.id
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-card text-fg2 border-border'
+                  }`}
               >
                 {g.title} ({g.count})
               </button>
@@ -492,11 +530,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                 <button
                   type="button"
                   onClick={() => handleSpotSelect(spot)}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${
-                    selected
-                      ? 'border-primary bg-primary/[0.08]'
-                      : 'border-transparent hover:bg-card'
-                  }`}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${selected
+                    ? 'border-primary bg-primary/[0.08]'
+                    : 'border-transparent hover:bg-card'
+                    }`}
                 >
                   {spot.photoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -524,14 +561,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
       <div className="relative flex-1 min-w-0 md:border-r md:border-border">
 
-      {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
-      <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
-        <Info size={12} className="text-muted shrink-0" />
-        <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
-      </div>
+        {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
+        <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
+          <Info size={12} className="text-muted shrink-0" />
+          <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
+        </div>
 
-      {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비) */}
-      <div ref={mapDivRef} className="w-full h-full" />
+        {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비) */}
+        <div ref={mapDivRef} className="w-full h-full" />
       </div>
 
       {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
