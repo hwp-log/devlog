@@ -266,8 +266,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     // WebGL 미지원 환경(구형 기기·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
     const supportsGl = !!document.createElement('canvas').getContext('webgl');
     if (!supportsGl) console.warn('[SpotFinderMapNaver] WebGL 미지원 — 래스터 폴백 (커스텀 스타일 미적용)');
+    // 초기 중심 = 초기 자동 선택 스팟(spots[0], 최신순) — 선택 마커가 화면 크기와 무관하게 정중앙 시작.
+    // spots가 비면 INITIAL_CENTER(서울 bbox 중점) 폴백. 생성 옵션만 — 렌더 후 이동 없음(0172 원칙)
+    const first = spots[0];
     const map = new naver.maps.Map(mapDivRef.current, {
-      center: new naver.maps.LatLng(INITIAL_CENTER.lat, INITIAL_CENTER.lng),
+      center: new naver.maps.LatLng(first?.lat ?? INITIAL_CENTER.lat, first?.lng ?? INITIAL_CENTER.lng),
       zoom: INITIAL_ZOOM, // 초기 뷰 = 서울 확대 (전체 fitBounds 시작 폐지 — Effect A 마운트 발화 가드 참조)
       minZoom: 6,
       maxBounds: new naver.maps.LatLngBounds(
@@ -288,6 +291,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       setMapInstance(null);
       map.destroy();
     };
+    // spots를 deps에 넣지 않음(의도): RSC prop이라 router.refresh/revalidate 시 새 참조로 내려와
+    // 지도가 파괴·재생성됨(뷰·줌 소실). init effect는 1회 생성이 의도 — spots[0]은 최초 마운트 값만 사용
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
   // 마커·클러스터 구축 — visibleSpots 변경 시 파괴·재생성 (공식 유틸에 setMarkers 없음).
