@@ -54,8 +54,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   const clearedPhotoPaths: string[] = [];
 
   // 교통 기준점 자동 계산 — 트랜잭션 전 전처리 (외부 API를 tx 안에서 호출하면 tx 홀딩).
-  // 수동 입력 우선: 폼 값이 있으면 건드리지 않음. null(미입력/지움 미구분 — v1 판정)이면 재계산.
-  // 실패는 null로 흡수 — 저장을 절대 막지 않음
+  // 기저장 값 재사용: 수정 흐름은 DB 값을 폼 payload로 되돌려 보냄(StoryWriteForm) —
+  // 이 분기가 없으면 수정 저장마다 전 스팟 재계산. 실패는 null로 흡수 — 저장을 절대 막지 않음
   for (const spot of spotsData) {
     if (spot.nearestStation != null || spot.transitMinutes != null) continue;
     const auto = await findNearestTransit(spot.lat, spot.lng);

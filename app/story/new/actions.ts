@@ -42,7 +42,8 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
   }
 
   // 교통 기준점 자동 계산 — 트랜잭션 전 전처리 (외부 API를 tx 안에서 호출하면 tx 홀딩).
-  // 수동 입력 우선: 폼 값이 있으면 건드리지 않음. 실패는 null로 흡수 — 저장을 절대 막지 않음
+  // 기저장 값 재사용: 값이 실려 오면 재계산 회피 (신규 흐름은 항상 미전달 — 방어 겸 수정 액션과 대칭).
+  // 실패는 null로 흡수 — 저장을 절대 막지 않음
   for (const spot of spotsData) {
     if (spot.nearestStation != null || spot.transitMinutes != null) continue;
     const auto = await findNearestTransit(spot.lat, spot.lng);
