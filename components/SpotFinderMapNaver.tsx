@@ -508,7 +508,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="드라마·영화·장소 검색"
+          placeholder="작품명·촬영지를 입력하세요"
           className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted focus:outline-none focus:border-slate-400 shadow-sm"
         />
 
