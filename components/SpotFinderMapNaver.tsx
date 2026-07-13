@@ -5,6 +5,7 @@ import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
 import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
 import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/naver/MarkerClustering';
+import { openNaverDirections } from '@/lib/naver/directionsUrl';
 
 const PRIMARY = theme.common.primary;
 
@@ -582,6 +583,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             );
           })}
         </ul>
+
+        {/* 길찾기 딥링크 — 열 flex-col + 리스트 flex-1 구조라 자연 하단 고정. 모바일은 플로팅
+            스택 하단(앱 스킴 경로). 스타일 = 기존 primary 버튼 문법(Write) 재사용 + w-full */}
+        {selectedSpot && (
+          <button
+            type="button"
+            onClick={() => openNaverDirections(selectedSpot)}
+            className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+          >
+            &quot;{selectedSpot.name}&quot; 길찾기
+          </button>
+        )}
       </div>
 
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
