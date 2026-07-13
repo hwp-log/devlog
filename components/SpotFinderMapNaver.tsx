@@ -249,17 +249,34 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       .sort((a, b) => b.count - a.count || b.latestAt - a.latestAt);
   }, [spots]);
 
+  // 검색 매칭의 단일 소스 — 작품명 OR 스팟명 (주소·지역 비지원 = 서비스 정체성, 촬영지 탐색).
+  // 소비자는 칩·리스트만 — 지도 마커(visibleSpots)에 태우면 키스트로크마다 클러스터 전체
+  // 파괴·재생성이라 제외 (검색 = 찾기 도구, 칩·리스트 클릭 = 필터·이동 도구 역할 분리)
+  const spotMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+    return (s: SpotFinderSpot) =>
+      s.name.toLowerCase().includes(q) || s.movie.title.toLowerCase().includes(q);
+  }, [searchQuery]);
+
   const filteredMovieGroups = useMemo(() => {
-    if (!searchQuery.trim()) return movieGroups;
-    const q = searchQuery.toLowerCase();
-    return movieGroups.filter((g) => g.title.toLowerCase().includes(q));
-  }, [movieGroups, searchQuery]);
+    if (!spotMatches) return movieGroups;
+    // 칩 = 매칭 스팟을 보유한 작품 (작품명 매치 시 전 스팟이 매치 — 현행 결과 완전 포함).
+    // 카운트는 작품 전체 스팟 수 유지 (movieGroups 집계 그대로)
+    return movieGroups.filter((g) => spots.some((s) => s.movie.id === g.id && spotMatches(s)));
+  }, [movieGroups, spots, spotMatches]);
 
   const visibleSpots = useMemo(
     () => selectedMovieId
       ? spots.filter((s) => s.movie.id === selectedMovieId)
       : spots,
     [spots, selectedMovieId]
+  );
+
+  // 리스트 전용 검색 적용 — 지도 마커는 visibleSpots 그대로 (위 주석의 역할 분리)
+  const listSpots = useMemo(
+    () => (spotMatches ? visibleSpots.filter(spotMatches) : visibleSpots),
+    [visibleSpots, spotMatches]
   );
 
   // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제)
@@ -491,7 +508,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="드라마·영화 검색"
+          placeholder="드라마·영화·장소 검색"
           className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted focus:outline-none focus:border-slate-400 shadow-sm"
         />
 
@@ -551,7 +568,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
         {/* 스팟 리스트 (md 전용) — 시안 실측 구성: 썸네일 48 + 이름 + 배지 (메타줄은 데이터 부재로 생략) */}
         <ul className="hidden md:flex flex-col gap-[7px] flex-1 overflow-y-auto min-h-0">
-          {visibleSpots.map((spot) => {
+          {listSpots.map((spot) => {
             const selected = selectedSpot?.id === spot.id;
             return (
               <li key={spot.id}>
