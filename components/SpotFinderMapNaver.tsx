@@ -48,8 +48,8 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
-  const card = selected && spot.photoUrl
-    ? `<span style="display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:17.5px;border:3px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,0.55);margin:0 auto 5px;background-image:url('${escapeHtml(spot.photoUrl)}');background-size:cover;background-position:center;position:relative"></span>`
+  const card = selected && spot.thumbnailUrl
+    ? `<span style="display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:17.5px;border:3px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,0.55);margin:0 auto 5px;background-image:url('${escapeHtml(spot.thumbnailUrl)}');background-size:cover;background-position:center;position:relative"></span>`
     : '';
   const inner = `${ping}
       ${card}
@@ -136,9 +136,9 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
   return (
     <>
       <div className="relative h-[210px] flex-shrink-0">
-        {spot.photoUrl ? (
+        {spot.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={spot.photoUrl} alt={spot.name} className="w-full h-full object-cover" />
+          <img src={spot.thumbnailUrl} alt={spot.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-surface2 flex items-center justify-center">
             <span className="text-muted text-sm">No Image</span>
@@ -152,7 +152,7 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
         {/* 작품 배지 — 시안 실측 top12/left14, 중립 오버레이 배경(작품색 매핑 부재로 기판정 제외) */}
         <div className="absolute top-3 left-3.5 flex">
           <span className="rounded-full bg-white/[0.18] px-[7px] py-[2px] text-xs font-normal text-white whitespace-nowrap">
-            {spot.movie.title}
+            {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
           </span>
         </div>
         <div className="absolute left-4 right-4 bottom-[14px]">
@@ -191,7 +191,9 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
                 {spot.author.nickname[0]}
               </div>
             )}
-            <span className="text-sm text-fg2">{spot.author.nickname}</span>
+            <span className="text-sm text-fg2">
+              {spot.author.nickname}{spot.extraAuthorCount > 0 ? ` 외 ${spot.extraAuthorCount}명` : ''}
+            </span>
           </div>
         </div>
       </div>
@@ -228,16 +230,19 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     selectedSpotRef.current = selectedSpot;
   }, [selectedSpot]);
 
-  // 작품별 그룹핑 + 칩 정렬 — 이미 전량 내려온 spots의 파생 집계 (별도 집계 쿼리는 이중 소스라 기각)
+  // 작품별 그룹핑 + 칩 정렬 — 이미 전량 내려온 spots의 파생 집계 (별도 집계 쿼리는 이중 소스라 기각).
+  // S2: 한 스팟이 복수 작품에 속하므로 s.movies 순회 (스팟은 각 소속 작품 그룹에 카운트)
   const movieGroups = useMemo(() => {
     const acc = spots.reduce<Record<string, { title: string; count: number; latestAt: number }>>(
       (rec, s) => {
         const t = new Date(s.createdAt).getTime();
-        if (rec[s.movie.id]) {
-          rec[s.movie.id].count++;
-          rec[s.movie.id].latestAt = Math.max(rec[s.movie.id].latestAt, t);
-        } else {
-          rec[s.movie.id] = { title: s.movie.title, count: 1, latestAt: t };
+        for (const m of s.movies) {
+          if (rec[m.id]) {
+            rec[m.id].count++;
+            rec[m.id].latestAt = Math.max(rec[m.id].latestAt, t);
+          } else {
+            rec[m.id] = { title: m.title, count: 1, latestAt: t };
+          }
         }
         return rec;
       },
@@ -256,19 +261,19 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return null;
     return (s: SpotFinderSpot) =>
-      s.name.toLowerCase().includes(q) || s.movie.title.toLowerCase().includes(q);
+      s.name.toLowerCase().includes(q) || s.movies.some((m) => m.title.toLowerCase().includes(q));
   }, [searchQuery]);
 
   const filteredMovieGroups = useMemo(() => {
     if (!spotMatches) return movieGroups;
     // 칩 = 매칭 스팟을 보유한 작품 (작품명 매치 시 전 스팟이 매치 — 현행 결과 완전 포함).
     // 카운트는 작품 전체 스팟 수 유지 (movieGroups 집계 그대로)
-    return movieGroups.filter((g) => spots.some((s) => s.movie.id === g.id && spotMatches(s)));
+    return movieGroups.filter((g) => spots.some((s) => s.movies.some((m) => m.id === g.id) && spotMatches(s)));
   }, [movieGroups, spots, spotMatches]);
 
   const visibleSpots = useMemo(
     () => selectedMovieId
-      ? spots.filter((s) => s.movie.id === selectedMovieId)
+      ? spots.filter((s) => s.movies.some((m) => m.id === selectedMovieId))
       : spots,
     [spots, selectedMovieId]
   );
@@ -580,10 +585,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     : 'border-transparent hover:bg-card'
                     }`}
                 >
-                  {spot.photoUrl ? (
+                  {spot.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={spot.photoUrl}
+                      src={spot.thumbnailUrl}
                       alt=""
                       className="w-12 h-12 rounded-[10px] object-cover shrink-0"
                     />
@@ -594,7 +599,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     <div className="flex items-center gap-1.5">
                       <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
                       <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
-                        {spot.movie.title}
+                        {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
                       </span>
                     </div>
                     {/* 교통 메타줄 — 시안 위치(이름 아래, mt 3px, muted). 12px = 하한 준수(시안 11px). 두 값 모두 있을 때만 */}
