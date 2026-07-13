@@ -138,6 +138,26 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });
       }
+
+      // dual-write (S1): 이 story의 최종 spots로부터 story_spots·spot_movies 재도출 (멱등).
+      // photoUrl은 tx 밖 업로드/교체 시 별도 미러 (아래). 삭제된 spot의 조인은 spot FK CASCADE로 이미 제거됨
+      const derived = await tx.spot.findMany({
+        where: { storyId },
+        select: { id: true, order: true, review: true, photoUrl: true, movieId: true },
+      });
+      await tx.storySpot.deleteMany({ where: { storyId } });
+      if (derived.length > 0) {
+        await tx.storySpot.createMany({
+          data: derived.map((r) => ({ storyId, spotId: r.id, order: r.order, review: r.review, photoUrl: r.photoUrl })),
+        });
+      }
+      await tx.spotMovie.deleteMany({ where: { spotId: { in: derived.map((r) => r.id) } } });
+      const withMovie = derived.filter((r) => r.movieId);
+      if (withMovie.length > 0) {
+        await tx.spotMovie.createMany({
+          data: withMovie.map((r) => ({ spotId: r.id, movieId: r.movieId! })),
+        });
+      }
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -169,6 +189,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       .getPublicUrl(uploadData.path);
 
     await prisma.spot.update({ where: { id: realId }, data: { photoUrl: publicUrl } });
+    // dual-write (S1): story_spots.photoUrl 미러
+    await prisma.storySpot.updateMany({ where: { storyId, spotId: realId }, data: { photoUrl: publicUrl } });
   }
 
   // real spot 사진 교체 (부분 실패 허용)
@@ -190,6 +212,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       .getPublicUrl(uploadData.path);
 
     await prisma.spot.update({ where: { id: spot.id }, data: { photoUrl: publicUrl } });
+    // dual-write (S1): story_spots.photoUrl 미러
+    await prisma.storySpot.updateMany({ where: { storyId, spotId: spot.id }, data: { photoUrl: publicUrl } });
 
     // 교체 성공(업로드 + DB 갱신) 후에만 구 파일 삭제 — 업로드 실패 시 구 파일 보존
     const oldUrl = oldPhotoUrlById.get(spot.id);

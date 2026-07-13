@@ -91,6 +91,14 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
           },
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });
+
+        // dual-write (S1): story_spots(per-visit) + spot_movies 미러. photoUrl은 tx 밖 업로드 후 갱신
+        await tx.storySpot.create({
+          data: { storyId: s.id, spotId: created.id, order: i + 1, review: spot.review ?? null, photoUrl: null },
+        });
+        if (spot.movieId) {
+          await tx.spotMovie.create({ data: { spotId: created.id, movieId: spot.movieId } });
+        }
       }
 
       return s;
@@ -120,6 +128,8 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
       .getPublicUrl(uploadData.path);
 
     await prisma.spot.update({ where: { id: realId }, data: { photoUrl: publicUrl } });
+    // dual-write (S1): story_spots.photoUrl 미러
+    await prisma.storySpot.updateMany({ where: { storyId: story.id, spotId: realId }, data: { photoUrl: publicUrl } });
   }
 
   redirect(`/story/${story.id}`);

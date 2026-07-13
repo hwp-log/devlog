@@ -62,11 +62,12 @@ model Story {
 
   planId    String?  @unique @map("plan_id")
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan      MyPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
-  tags      Tag[]
-  spots     Spot[]
-  likes     Like[]
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan       MyPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
+  tags       Tag[]
+  spots      Spot[]
+  storySpots StorySpot[]
+  likes      Like[]
 
   @@map("stories")
   @@index([userId])
@@ -75,8 +76,8 @@ model Story {
 
 model Spot {
   id          String   @id @default(cuid())
-  storyId     String   @map("story_id")
-  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyId     String?  @map("story_id") // S1: 공유 준비로 nullable화. S4에서 story_spots로 대체·제거
+  story       Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
   order       Int
   name        String
   description String?
@@ -92,10 +93,49 @@ model Spot {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  storySpots  StorySpot[] // 스토리↔장소 (per-visit). S2 읽기 전환 대상
+  spotMovies  SpotMovie[] // 장소↔작품 다대다. "이 장소의 작품 N편"
+
   @@map("spots")
   @@index([storyId])
   @@index([storyId, order])
   @@index([movieId])
+}
+
+// S1 expand: 스토리↔장소 조인 (per-visit 기록: order/review/photoUrl 이관처)
+model StorySpot {
+  id        String   @id @default(cuid())
+  storyId   String   @map("story_id")
+  spotId    String   @map("spot_id")
+  order     Int
+  review    String?
+  photoUrl  String?  @map("photo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  spot  Spot  @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@map("story_spots")
+  @@unique([storyId, spotId])
+  @@index([storyId, order])
+  @@index([spotId])
+}
+
+// S1 expand: 장소↔작품 다대다 조인
+model SpotMovie {
+  id        String   @id @default(cuid())
+  spotId    String   @map("spot_id")
+  movieId   String   @map("movie_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  spot  Spot  @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@map("spot_movies")
+  @@unique([spotId, movieId])
+  @@index([movieId])
+  @@index([spotId])
 }
 
 model Movie {
@@ -105,7 +145,8 @@ model Movie {
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
 
-  spots     Spot[]
+  spots      Spot[]
+  spotMovies SpotMovie[]
 
   @@map("movies")
 }

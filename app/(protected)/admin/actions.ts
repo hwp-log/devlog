@@ -56,6 +56,8 @@ export async function rejectMovie(id: string): Promise<ActionResult> {
       where: { movieId: id },
       data: { movieId: null },
     });
+    // dual-write (S1): spot_movies에서 해당 작품 링크 제거 (movie 삭제 시 FK CASCADE로도 제거되나 대칭 위해 명시)
+    await tx.spotMovie.deleteMany({ where: { movieId: id } });
     await tx.movie.delete({ where: { id } });
   });
 
@@ -88,6 +90,16 @@ export async function mergeMovie(
       where: { movieId: pendingId },
       data: { movieId: targetId },
     });
+    // dual-write (S1): spot_movies 재지정 pending → target.
+    // 이미 target을 가진 spot은 @@unique(spotId,movieId) 충돌 → 해당 pending 행 삭제로 흡수, 나머지 이관.
+    // (movie.delete가 pending 링크를 CASCADE 삭제하므로 반드시 delete 전에 수행)
+    const targetSpotIds = (
+      await tx.spotMovie.findMany({ where: { movieId: targetId }, select: { spotId: true } })
+    ).map((r) => r.spotId);
+    if (targetSpotIds.length > 0) {
+      await tx.spotMovie.deleteMany({ where: { movieId: pendingId, spotId: { in: targetSpotIds } } });
+    }
+    await tx.spotMovie.updateMany({ where: { movieId: pendingId }, data: { movieId: targetId } });
     await tx.movie.delete({ where: { id: pendingId } });
   });
 

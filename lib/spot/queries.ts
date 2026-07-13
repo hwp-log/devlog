@@ -45,6 +45,6 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
     nearestStation: s.nearestStation,
     transitMinutes: s.transitMinutes,
     movie: s.movie!,
-    author: s.story.user,
+    author: s.story!.user, // S1: storyId nullable화 타입 파급 — movieId not null 스팟은 전부 story 보유 (s.movie! 대칭)
   }));
 }
