@@ -509,7 +509,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="작품명·촬영지를 입력하세요"
-          className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted focus:outline-none focus:border-slate-400 shadow-sm"
+          className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted shadow-sm transition-[color,border-color,box-shadow] duration-200 ease-out hover:border-muted focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
         />
 
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
