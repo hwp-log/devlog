@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Info, Heart } from 'lucide-react';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
 import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
@@ -9,6 +9,12 @@ import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { formatTransit } from '@/lib/spot/transit';
 
 const PRIMARY = theme.common.primary;
+
+// 작성일 표기 YYYY.MM.DD — 외부 날짜 유틸 없어 이 파일 로컬 (다녀온 이야기 카드 전용)
+function formatYmd(d: Date | string): string {
+  const dt = new Date(d);
+  return `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}`;
+}
 
 // 국내 전용 지도 — 제주·독도 포함 한국 bbox (판단값, "국내만 제공" 배너와 정합)
 const KOREA_BOUNDS = { south: 32.5, west: 123.5, north: 39.5, east: 132.5 };
@@ -180,22 +186,51 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           )}
         </div>
 
-        <div>
-          <p className="text-xs font-medium text-muted mb-2">출처</p>
-          <div className="flex items-center gap-2">
-            {spot.author.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={spot.author.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-fg text-bg text-xs font-semibold flex items-center justify-center flex-shrink-0">
-                {spot.author.nickname[0]}
-              </div>
-            )}
-            <span className="text-sm text-fg2">
-              {spot.author.nickname}{spot.extraAuthorCount > 0 ? ` 외 ${spot.extraAuthorCount}명` : ''}
-            </span>
-          </div>
+        {/* 메타 — 스키마 있는 값만 (작품 N편 / 스토리 N편). 시안 "1/4 촬영지·사진 N장"류 미도입(스키마 부재) */}
+        <div className="flex flex-col gap-1 border-t border-border pt-4">
+          <p className="text-xs text-fg2">작품 {spot.movieCount}편 · 이 장소에서 촬영</p>
+          <p className="text-xs text-fg2">스토리 {spot.storyCount}편 · 다녀온 기록</p>
         </div>
+
+        {/* 이 장소의 작품 — 제목만 (썸네일·에피소드·년도·날짜 없음. B2 별점 미표시 — 자리 자체 없음) */}
+        <div>
+          <p className="text-xs font-medium text-muted mb-2">이 장소의 작품</p>
+          <ul className="flex flex-col gap-1.5">
+            {spot.movies.map((m) => (
+              <li key={m.id} className="text-sm text-fg">{m.title}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 다녀온 이야기 — 그 스토리 자신의 사진 + 발췌 + 작성자 + 작성일 + 좋아요 수 */}
+        {spot.stories.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted mb-2">다녀온 이야기</p>
+            <ul className="flex flex-col gap-3">
+              {spot.stories.map((story) => (
+                <li key={story.id} className="flex gap-3">
+                  {story.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={story.photoUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-[10px] bg-surface2 shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-fg2 line-clamp-2 break-keep">{story.excerpt}</p>
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                      <span className="truncate">{story.author.nickname}</span>
+                      <span className="shrink-0">·</span>
+                      <span className="shrink-0">{formatYmd(story.createdAt)}</span>
+                      <span className="shrink-0 ml-auto flex items-center gap-0.5">
+                        <Heart size={11} /> {story.likeCount}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </>
   );
