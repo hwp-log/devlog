@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 import { extractStoragePath, resolvePhotoIntent } from '@/lib/story/photo-cleanup';
+import { findNearestTransit } from '@/lib/spot/autoTransit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -51,6 +52,16 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   });
   const oldPhotoUrlById = new Map(existingSpots.map((s) => [s.id, s.photoUrl]));
   const clearedPhotoPaths: string[] = [];
+
+  // 교통 기준점 자동 계산 — 트랜잭션 전 전처리 (외부 API를 tx 안에서 호출하면 tx 홀딩).
+  // 수동 입력 우선: 폼 값이 있으면 건드리지 않음. null(미입력/지움 미구분 — v1 판정)이면 재계산.
+  // 실패는 null로 흡수 — 저장을 절대 막지 않음
+  for (const spot of spotsData) {
+    if (spot.nearestStation != null || spot.transitMinutes != null) continue;
+    const auto = await findNearestTransit(spot.lat, spot.lng);
+    spot.nearestStation = auto?.nearestStation ?? null;
+    spot.transitMinutes = auto?.transitMinutes ?? null;
+  }
 
   // 트랜잭션: Story 업데이트 + Spots 동기화, 신규 spot real ID 획득
   const tmpToReal: Array<{ tmpId: string; realId: string }> = [];

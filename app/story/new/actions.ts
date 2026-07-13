@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
+import { findNearestTransit } from '@/lib/spot/autoTransit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -38,6 +39,15 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
     if (!key.startsWith('spotPhoto_') || !(value instanceof File)) continue;
     if (value.size > MAX_SIZE) return { error: '파일 크기는 5MB 이하여야 합니다' };
     if (!ALLOWED_TYPES.includes(value.type)) return { error: 'jpeg, png, webp만 허용됩니다' };
+  }
+
+  // 교통 기준점 자동 계산 — 트랜잭션 전 전처리 (외부 API를 tx 안에서 호출하면 tx 홀딩).
+  // 수동 입력 우선: 폼 값이 있으면 건드리지 않음. 실패는 null로 흡수 — 저장을 절대 막지 않음
+  for (const spot of spotsData) {
+    if (spot.nearestStation != null || spot.transitMinutes != null) continue;
+    const auto = await findNearestTransit(spot.lat, spot.lng);
+    spot.nearestStation = auto?.nearestStation ?? null;
+    spot.transitMinutes = auto?.transitMinutes ?? null;
   }
 
   // 트랜잭션: Story + Spots 생성, real spotId 획득

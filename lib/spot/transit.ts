@@ -4,5 +4,6 @@
 // transitMode enum 필드 추가로 전환 (파생 불가능해지는 순간 저장이 정당해짐).
 export function formatTransit(nearestStation: string, transitMinutes: number): string {
   const mode = nearestStation.endsWith('공항') ? '차로' : '도보';
-  return `${nearestStation}에서 ${mode} ${transitMinutes}분`;
+  // "약" = 직선거리 기반 추정치의 정직 표기 (자동 계산 v1 — 실경로 API 미사용)
+  return `${nearestStation}에서 ${mode} 약 ${transitMinutes}분`;
 }
