@@ -186,10 +186,36 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           )}
         </div>
 
-        {/* 메타 — 스키마 있는 값만 (작품 N편 / 스토리 N편). 시안 "1/4 촬영지·사진 N장"류 미도입(스키마 부재) */}
-        <div className="flex flex-col gap-1 border-t border-border pt-4">
-          <p className="text-xs text-fg2">작품 {spot.movieCount}편 · 이 장소에서 촬영</p>
-          <p className="text-xs text-fg2">스토리 {spot.storyCount}편 · 다녀온 기록</p>
+        {/* 메타 — 아이콘 카드 2열 그리드 (시안 실측). 교통/작품/스토리 3칸 → 2열이라 4번째 셀은 빈 칸
+            (B2 별점 자리 — 플레이스홀더 금지). 새 색 토큰 없음. 부제 11px는 CLAUDE.md §5 하한(12px)으로 클램프 */}
+        <div className="grid grid-cols-2 gap-[11px] border-b border-border pb-[15px]">
+          {spot.nearestStation && spot.transitMinutes != null && (
+            <div className="flex items-start gap-[9px]">
+              <div className="w-[30px] h-[30px] rounded-[9px] bg-surface2 border border-border flex items-center justify-center shrink-0">
+                <span className="text-[12.5px] leading-none">🚉</span>
+              </div>
+              {/* 주 문구 = 좌측 리스트 메타줄과 동일(formatTransit 단일 소스). 수단(도보/차로)이 이미 담겨 부제 생략(§8② 중복 회피) */}
+              <span className="block text-[12.5px] font-normal text-fg break-keep">{formatTransit(spot.nearestStation, spot.transitMinutes)}</span>
+            </div>
+          )}
+          <div className="flex items-start gap-[9px]">
+            <div className="w-[30px] h-[30px] rounded-[9px] bg-surface2 border border-border flex items-center justify-center shrink-0">
+              <span className="text-[12.5px] leading-none">🎬</span>
+            </div>
+            <div className="min-w-0">
+              <span className="block text-[12.5px] font-normal text-fg">작품 {spot.movieCount}편</span>
+              <span className="block text-xs text-muted">이 장소에서 촬영</span>
+            </div>
+          </div>
+          <div className="flex items-start gap-[9px]">
+            <div className="w-[30px] h-[30px] rounded-[9px] bg-surface2 border border-border flex items-center justify-center shrink-0">
+              <span className="text-[12.5px] leading-none">✍️</span>
+            </div>
+            <div className="min-w-0">
+              <span className="block text-[12.5px] font-normal text-fg">스토리 {spot.storyCount}편</span>
+              <span className="block text-xs text-muted">다녀온 기록</span>
+            </div>
+          </div>
         </div>
 
         {/* 이 장소의 작품 — 제목만 (썸네일·에피소드·년도·날짜 없음. B2 별점 미표시 — 자리 자체 없음) */}
