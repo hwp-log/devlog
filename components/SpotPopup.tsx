@@ -7,6 +7,7 @@ import { Trash2, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
 import { searchMoviesAction, submitMovie } from '@/app/movies/actions';
 import type { MovieSuggestion } from '@/lib/movie/queries';
+import { formatTransit } from '@/lib/spot/transit';
 
 function normalizeTitle(s: string) {
   return s.toLowerCase().replace(/\s+/g, '');
@@ -17,7 +18,7 @@ type SpotPopupProps = {
   onDelete?: () => void;
   onClose?: () => void;
   readOnly?: boolean;
-  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null; movieId?: string | null; movieTitle?: string | null }) => void;
+  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null; movieId?: string | null; movieTitle?: string | null; nearestStation?: string | null; transitMinutes?: number | null }) => void;
   onFileSelect?: (file: File | null) => void;
   initialEditing?: boolean;
   initialNameInput?: string;
@@ -33,6 +34,9 @@ const spotFormSchema = z.object({
   movieQuery: z.string(),
   movieId: z.string().nullable(),
   movieTitle: z.string(),
+  // 교통 기준점 (선택 입력) — 분은 폼에선 문자열, 저장 시 숫자 변환 (빈값 = null)
+  nearestStation: z.string(),
+  transitMinutes: z.string().regex(/^\d*$/, '숫자만 입력하세요'),
   photoFile: z
     .instanceof(File)
     .nullable()
@@ -68,6 +72,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       movieQuery: '',
       movieId: spot.movieId ?? null,
       movieTitle: spot.movieTitle ?? '',
+      nearestStation: spot.nearestStation ?? '',
+      transitMinutes: spot.transitMinutes != null ? String(spot.transitMinutes) : '',
       photoFile: null,
       photoCleared: false,
     },
@@ -101,6 +107,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       movieQuery: '',
       movieId: spot.movieId ?? null,
       movieTitle: spot.movieTitle ?? '',
+      nearestStation: spot.nearestStation ?? '',
+      transitMinutes: spot.transitMinutes != null ? String(spot.transitMinutes) : '',
       photoFile: null,
       photoCleared: false,
     });
@@ -181,11 +189,16 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     const updatedName = values.name;
     const updatedReview = values.review;
     const movieFields = { movieId: values.movieId, movieTitle: values.movieTitle || null };
+    // 교통 기준점: 빈값 = null (선택 입력 — 리스트 메타줄 미표시)
+    const transitFields = {
+      nearestStation: values.nearestStation.trim() || null,
+      transitMinutes: values.transitMinutes.trim() ? parseInt(values.transitMinutes, 10) : null,
+    };
 
     if (values.photoCleared) {
       // 비우기 = 부모에 의도 전달까지만 (지연 반영) — DB·Storage 반영은 상단 "수정" 제출(updateStoryAction)이 담당
       onFileSelect?.(null);
-      onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, ...movieFields });
+      onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, ...movieFields, ...transitFields });
       setIsEditing(false);
       return;
     }
@@ -202,6 +215,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       review: updatedReview,
       ...(updatedPhotoUrl !== undefined && { photoUrl: updatedPhotoUrl }),
       ...movieFields,
+      ...transitFields,
     });
     setIsEditing(false);
   }
@@ -303,6 +317,38 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                 리뷰 작성...
               </p>
             ) : null}
+          </div>
+        </>
+      )}
+
+      {/* 교통 기준점 (선택 입력) — 표시 문구는 formatTransit 파생 (mode 저장 없음) */}
+      {(isEditing || (spot.nearestStation && spot.transitMinutes != null)) && (
+        <>
+          <div className="border-t border-slate-100 mx-4" />
+          <div className="p-4">
+            <span className="text-sm font-medium text-slate-700 block mb-2">교통 기준점</span>
+            {isEditing ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  {...register('nearestStation')}
+                  placeholder="기준점 (예: 강릉역, 제주공항)"
+                  className="flex-1 border border-black/20 rounded px-2 py-1 text-sm focus:outline-none"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  {...register('transitMinutes')}
+                  placeholder="분"
+                  className="w-20 border border-black/20 rounded px-2 py-1 text-sm focus:outline-none"
+                />
+              </div>
+            ) : spot.nearestStation && spot.transitMinutes != null ? (
+              <p className="text-sm text-slate-600">{formatTransit(spot.nearestStation, spot.transitMinutes)}</p>
+            ) : null}
+            {isEditing && errors.transitMinutes && (
+              <p className="mt-1 text-xs text-red-500">{errors.transitMinutes.message}</p>
+            )}
           </div>
         </>
       )}

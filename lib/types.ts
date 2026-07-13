@@ -10,4 +10,6 @@ export type LocalSpot = {
   description?: string | null;
   movieId?: string | null;
   movieTitle?: string | null;
+  nearestStation?: string | null; // 교통 기준점 이름 (수동 입력 v1)
+  transitMinutes?: number | null; // 기준점에서 소요 분
 };

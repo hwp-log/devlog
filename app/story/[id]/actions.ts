@@ -99,6 +99,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
               review: spot.review ?? null,
               photoUrl: hasPendingFile ? undefined : (spot.photoUrl ?? null),
               movieId: spot.movieId ?? null,
+              nearestStation: spot.nearestStation ?? null,
+              transitMinutes: spot.transitMinutes ?? null,
             },
           });
         }
@@ -119,6 +121,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
             description: spot.description ?? null,
             photoUrl: null,
             movieId: spot.movieId ?? null,
+            nearestStation: spot.nearestStation ?? null,
+            transitMinutes: spot.transitMinutes ?? null,
           },
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });

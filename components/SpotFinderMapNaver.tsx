@@ -6,6 +6,7 @@ import { theme, withAlpha } from '@/lib/theme';
 import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
 import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/naver/MarkerClustering';
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
+import { formatTransit } from '@/lib/spot/transit';
 
 const PRIMARY = theme.common.primary;
 
@@ -572,11 +573,19 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                   ) : (
                     <div className="w-12 h-12 rounded-[10px] bg-surface2 shrink-0" />
                   )}
-                  <div className="min-w-0 flex items-center gap-1.5">
-                    <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
-                    <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
-                      {spot.movie.title}
-                    </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
+                      <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
+                        {spot.movie.title}
+                      </span>
+                    </div>
+                    {/* 교통 메타줄 — 시안 위치(이름 아래, mt 3px, muted). 12px = 하한 준수(시안 11px). 두 값 모두 있을 때만 */}
+                    {spot.nearestStation && spot.transitMinutes != null && (
+                      <p className="mt-[3px] text-xs text-muted truncate">
+                        {formatTransit(spot.nearestStation, spot.transitMinutes)}
+                      </p>
+                    )}
                   </div>
                 </button>
               </li>

@@ -55,6 +55,8 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
     photoUrl: s.photoUrl, review: s.review, address: s.address, description: s.description,
     movieId: s.movieId ?? null,
     movieTitle: s.movie?.title ?? null,
+    nearestStation: s.nearestStation ?? null,
+    transitMinutes: s.transitMinutes ?? null,
   })), []);
 
   const [spotsJson, setSpotsJson] = useState(() => JSON.stringify(initialLocalSpots));

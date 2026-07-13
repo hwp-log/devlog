@@ -87,6 +87,8 @@ model Spot {
   address     String?  @map("address")
   movieId     String?  @map("movie_id")
   movie       Movie?   @relation(fields: [movieId], references: [id], onDelete: SetNull)
+  nearestStation String? @map("nearest_station") // 교통 기준점 이름 ("강릉역"/"제주공항") — 수동 입력 v1
+  transitMinutes Int?    @map("transit_minutes") // 기준점에서 소요 분 — 자동 계산은 시딩 후 별도
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

@@ -9,6 +9,8 @@ export type SpotFinderSpot = {
   review: string | null;
   photoUrl: string | null;
   createdAt: Date; // 칩 정렬 2차 기준(작품별 최근 등록) 집계용 — RSC가 Date 직렬화 지원
+  nearestStation: string | null; // 교통 기준점 (수동 입력 v1)
+  transitMinutes: number | null;
   movie: { id: string; title: string };
   author: { nickname: string; avatarUrl: string | null };
 };
@@ -25,6 +27,8 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       review: true,
       photoUrl: true,
       createdAt: true,
+      nearestStation: true,
+      transitMinutes: true,
       movie: { select: { id: true, title: true } },
       story: { select: { user: { select: { nickname: true, avatarUrl: true } } } },
     },
@@ -38,6 +42,8 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
     review: s.review,
     photoUrl: s.photoUrl,
     createdAt: s.createdAt,
+    nearestStation: s.nearestStation,
+    transitMinutes: s.transitMinutes,
     movie: s.movie!,
     author: s.story.user,
   }));
