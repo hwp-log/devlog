@@ -46,6 +46,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
   // 기저장 값 재사용: 값이 실려 오면 재계산 회피 (신규 흐름은 항상 미전달 — 방어 겸 수정 액션과 대칭).
   // 실패는 null로 흡수 — 저장을 절대 막지 않음
   for (const spot of spotsData) {
+    if (spot.reusedSpotId) continue; // 재사용: 공유 Spot의 교통값 그대로 — 재계산·저장 안 함
     if (spot.nearestStation != null || spot.transitMinutes != null) continue;
     const auto = await findNearestTransit(spot.lat, spot.lng);
     spot.nearestStation = auto?.nearestStation ?? null;
@@ -53,8 +54,8 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
     spot.transitMode = auto?.transitMode ?? null;
   }
 
-  // 트랜잭션: Story + Spots 생성, real spotId 획득
-  const tmpToReal: Array<{ tmpId: string; realId: string }> = [];
+  // 트랜잭션: Story + Spots 생성, real spotId 획득. reused = 재사용 스팟(공유 Spot이라 사진 미러 시 Spot 미수정)
+  const tmpToReal: Array<{ tmpId: string; realId: string; reused: boolean }> = [];
 
   let story;
   try {
@@ -76,31 +77,43 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
       });
 
       for (const [i, spot] of spotsData.entries()) {
-        const created = await tx.spot.create({
-          data: {
-            storyId: s.id,
-            name: spot.name,
-            lat: spot.lat,
-            lng: spot.lng,
-            order: i + 1,
-            review: spot.review ?? null,
-            address: spot.address ?? null,
-            description: spot.description ?? null,
-            photoUrl: null,
-            movieId: spot.movieId ?? null,
-            nearestStation: spot.nearestStation ?? null,
-            transitMinutes: spot.transitMinutes ?? null,
-            transitMode: spot.transitMode ?? null,
-          },
-        });
-        tmpToReal.push({ tmpId: spot.id, realId: created.id });
+        // S3-a: 재사용이면 기존 공유 Spot 참조(생성 안 함), 아니면 신규 Spot 생성.
+        let targetSpotId: string;
+        if (spot.reusedSpotId) {
+          targetSpotId = spot.reusedSpotId;
+        } else {
+          const created = await tx.spot.create({
+            data: {
+              storyId: s.id,
+              name: spot.name,
+              lat: spot.lat,
+              lng: spot.lng,
+              order: i + 1,
+              review: spot.review ?? null,
+              address: spot.address ?? null,
+              description: spot.description ?? null,
+              photoUrl: null,
+              movieId: spot.movieId ?? null,
+              nearestStation: spot.nearestStation ?? null,
+              transitMinutes: spot.transitMinutes ?? null,
+              transitMode: spot.transitMode ?? null,
+            },
+          });
+          targetSpotId = created.id;
+        }
+        tmpToReal.push({ tmpId: spot.id, realId: targetSpotId, reused: !!spot.reusedSpotId });
 
-        // dual-write (S1): story_spots(per-visit) + spot_movies 미러. photoUrl은 tx 밖 업로드 후 갱신
+        // dual-write (S1): story_spots(per-visit) + spot_movies. photoUrl은 tx 밖 업로드 후 갱신.
+        // 재사용 스팟도 방문 기록(StorySpot)·작품 링크는 추가 — 단 SpotMovie는 upsert(기존 링크 충돌·description 보존).
         await tx.storySpot.create({
-          data: { storyId: s.id, spotId: created.id, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
+          data: { storyId: s.id, spotId: targetSpotId, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
         });
         if (spot.movieId) {
-          await tx.spotMovie.create({ data: { spotId: created.id, movieId: spot.movieId } });
+          await tx.spotMovie.upsert({
+            where: { spotId_movieId: { spotId: targetSpotId, movieId: spot.movieId } },
+            create: { spotId: targetSpotId, movieId: spot.movieId },
+            update: {},
+          });
         }
       }
 
@@ -114,7 +127,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
   }
 
   // 트랜잭션 바깥: Storage 업로드 (부분 실패 허용)
-  for (const { tmpId, realId } of tmpToReal) {
+  for (const { tmpId, realId, reused } of tmpToReal) {
     const file = formData.get(`spotPhoto_${tmpId}`);
     if (!(file instanceof File)) continue;
 
@@ -130,8 +143,10 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
       .from('story-photos')
       .getPublicUrl(uploadData.path);
 
-    await prisma.spot.update({ where: { id: realId }, data: { photoUrl: publicUrl } });
-    // dual-write (S1): story_spots.photoUrl 미러
+    // 재사용 스팟은 공유 Spot.photoUrl을 건드리지 않음 — 이 방문 사진은 story_spots.photoUrl(per-visit)에만.
+    if (!reused) {
+      await prisma.spot.update({ where: { id: realId }, data: { photoUrl: publicUrl } });
+    }
     await prisma.storySpot.updateMany({ where: { storyId: story.id, spotId: realId }, data: { photoUrl: publicUrl } });
   }
 

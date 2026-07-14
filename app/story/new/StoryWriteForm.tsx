@@ -6,7 +6,14 @@ import { MapPin } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 
-type SpotWithMovie = Spot & { movie: { title: string } | null; storySpots?: { rating: number | null }[] };
+// 편집 로드: story_spots 기준(재사용 스팟 포함). spot=공유 Spot, per-visit(review/photo/rating/order)=story_spot.
+type LoadedStorySpot = {
+  order: number;
+  review: string | null;
+  photoUrl: string | null;
+  rating: number | null;
+  spot: Spot & { spotMovies: { movie: { id: string; title: string } }[] };
+};
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 type ActionState = { error: string } | null;
@@ -35,13 +42,13 @@ interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initialData?: { title: string; content: string; tags: string[] };
   userId: string;
-  spots?: SpotWithMovie[];
+  storySpots?: LoadedStorySpot[];
   storyId?: string;
   availablePlans?: PlanWithCosts[];
   initialPlanId?: string | null;
 }
 
-export function StoryWriteForm({ action, initialData, userId, spots = [], availablePlans = [], initialPlanId }: StoryWriteFormProps) {
+export function StoryWriteForm({ action, initialData, userId, storyId, storySpots = [], availablePlans = [], initialPlanId }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [, startTransition] = useTransition();
   const [content, setContent] = useState(initialData?.content ?? '');
@@ -50,16 +57,30 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(initialPlanId ?? null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const initialLocalSpots = useMemo(() => spots.map((s): LocalSpot => ({
-    id: s.id, name: s.name, lat: s.lat, lng: s.lng, order: s.order,
-    photoUrl: s.photoUrl, review: s.review, address: s.address, description: s.description,
-    movieId: s.movieId ?? null,
-    movieTitle: s.movie?.title ?? null,
-    nearestStation: s.nearestStation ?? null,
-    transitMinutes: s.transitMinutes ?? null,
-    transitMode: s.transitMode ?? null, // 편집 재사용 시 mode 보존 (payload 왕복 — 없으면 저장 시 null로 지워짐)
-    rating: s.storySpots?.[0]?.rating ?? null, // per-visit 별점 왕복 보존 (StorySpot에서 로드)
-  })), []);
+  // 재사용 스팟(sp.storyId !== 이 스토리)은 per-visit을 story_spot에서·공유 정보는 spot에서, reusedSpotId 세팅.
+  // owned 스팟은 기존대로(spot 필드). movie는 공유 spot 사실이라 재사용 스팟은 라운드트립 안 함(MVP).
+  const initialLocalSpots = useMemo(() => storySpots.map((ss): LocalSpot => {
+    const sp = ss.spot;
+    const reused = storyId != null && sp.storyId !== storyId;
+    // 작품: spot_movies 최신 연결순(0185 대표) → 대표 + extraMovieCount. 재사용 스팟도 그 작품이 뜸.
+    // 편집 picker는 단수(대표) — 저장 시 owned는 movieId dual-write, 재사용은 SpotMovie upsert(추가, 공유 미삭제).
+    const movies = sp.spotMovies.map((sm) => sm.movie);
+    return {
+      id: sp.id,
+      name: sp.name, lat: sp.lat, lng: sp.lng, order: ss.order,
+      review: reused ? ss.review : (sp.review ?? null),
+      photoUrl: reused ? ss.photoUrl : (sp.photoUrl ?? null),
+      rating: ss.rating ?? null,
+      address: sp.address, description: sp.description,
+      movieId: movies[0]?.id ?? null,
+      movieTitle: movies[0]?.title ?? null,
+      extraMovieCount: Math.max(0, movies.length - 1),
+      nearestStation: sp.nearestStation ?? null,
+      transitMinutes: sp.transitMinutes ?? null,
+      transitMode: sp.transitMode ?? null,
+      reusedSpotId: reused ? sp.id : null,
+    };
+  }), []);
 
   const [spotsJson, setSpotsJson] = useState(() => JSON.stringify(initialLocalSpots));
   const [pendingPhotos, setPendingPhotos] = useState<Map<string, File>>(new Map());

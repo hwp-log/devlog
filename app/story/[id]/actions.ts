@@ -58,6 +58,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   // 기저장 값 재사용: 수정 흐름은 DB 값을 폼 payload로 되돌려 보냄(StoryWriteForm) —
   // 이 분기가 없으면 수정 저장마다 전 스팟 재계산. 실패는 null로 흡수 — 저장을 절대 막지 않음
   for (const spot of spotsData) {
+    if (spot.reusedSpotId) continue; // 재사용: 공유 Spot의 교통값 그대로 — 재계산·저장 안 함
     if (spot.nearestStation != null || spot.transitMinutes != null) continue;
     const auto = await findNearestTransit(spot.lat, spot.lng);
     spot.nearestStation = auto?.nearestStation ?? null;
@@ -86,17 +87,19 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
         },
       });
 
-      // 제출된 목록에서 실제 DB ID(tmp_ 아닌 것)만 추출
-      const realIds = spotsData
-        .filter((s) => !s.id.startsWith('tmp_'))
+      // S3-a 분류: reused(reusedSpotId 有)=공유 Spot 참조(생성·수정·삭제 안 함) /
+      //   owned(non-tmp, non-reused)=이 스토리 소유(수정) / new(tmp_, non-reused)=생성.
+      // owned real id만 추출 — 재사용 real id를 owned로 오인하면 공유 스팟 삭제·수정됨.
+      const ownedRealIds = spotsData
+        .filter((s) => !s.id.startsWith('tmp_') && !s.reusedSpotId)
         .map((s) => s.id);
 
-      // 제출 목록에 없는 기존 spot 삭제
-      await tx.spot.deleteMany({ where: { storyId, id: { notIn: realIds } } });
+      // 제출 목록에 없는 이 스토리의 owned spot 삭제 (재사용 스팟은 owned가 아니라 미접촉)
+      await tx.spot.deleteMany({ where: { storyId, id: { notIn: ownedRealIds } } });
 
-      // 기존 spot order/name/review/photoUrl 업데이트
+      // 기존 owned spot 업데이트 (재사용 스팟은 수정 안 함 — 공유 행 오염 방지)
       for (const [i, spot] of spotsData.entries()) {
-        if (!spot.id.startsWith('tmp_')) {
+        if (!spot.id.startsWith('tmp_') && !spot.reusedSpotId) {
           const hasPendingFile = formData.get(`spotPhoto_${spot.id}`) instanceof File;
           // photoUrl:null + 파일 부재 = 비우기 의도의 파생 판정 (DB 스냅샷 vs 제출 payload의 diff 기반)
           const oldUrl = oldPhotoUrlById.get(spot.id) ?? null;
@@ -120,9 +123,9 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
         }
       }
 
-      // 새 spot 추가 (tmp_ ID) — create 루프로 real ID 획득
+      // 새 spot 추가 (tmp_ ID, 재사용 아님) — create 루프로 real ID 획득
       for (const [i, spot] of spotsData.entries()) {
-        if (!spot.id.startsWith('tmp_')) continue;
+        if (!spot.id.startsWith('tmp_') || spot.reusedSpotId) continue;
         const created = await tx.spot.create({
           data: {
             storyId,
@@ -153,12 +156,14 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       // 제거된 스팟의 story_spots는 spot FK CASCADE(위 spot deleteMany)로 이미 삭제되나, 자기완결·방어적으로 명시 삭제.
       // 표지: 스팟 수만큼 순차 upsert(N쿼리). 현재 스토리당 스팟 소수라 무해 — 많아지면 Promise.all/raw SQL ON CONFLICT 검토.
       const derivedSpotIds = derived.map((r) => r.id);
-      await tx.storySpot.deleteMany({ where: { storyId, spotId: { notIn: derivedSpotIds } } });
+      // S3-a: 재사용 스팟 target id — story_spots deleteMany의 notIn에 합쳐 재사용 조인이 편집마다 안 지워지게.
+      const reusedSpotIds = spotsData.filter((s) => s.reusedSpotId).map((s) => s.reusedSpotId!);
+      await tx.storySpot.deleteMany({ where: { storyId, spotId: { notIn: [...derivedSpotIds, ...reusedSpotIds] } } });
       // rating은 Spot 컬럼이 아니라 StorySpot에만 존재 → derived(Spot 조회)로 안 흐름.
-      // payload(spotsData)에서 실 spotId(신규는 tmpToReal 경유)로 매핑해 upsert에 스레딩.
+      // payload(spotsData)에서 실 spotId(재사용=reusedSpotId / 신규=tmpToReal / owned=id)로 매핑해 upsert에 스레딩.
       const ratingBySpotId = new Map<string, number | null>();
       for (const sp of spotsData) {
-        const realId = sp.id.startsWith('tmp_') ? tmpToReal.find((t) => t.tmpId === sp.id)?.realId : sp.id;
+        const realId = sp.reusedSpotId ?? (sp.id.startsWith('tmp_') ? tmpToReal.find((t) => t.tmpId === sp.id)?.realId : sp.id);
         if (realId) ratingBySpotId.set(realId, clampRating(sp.rating));
       }
       for (const r of derived) {
@@ -169,15 +174,30 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
           create: { storyId, spotId: r.id, order: r.order, review: r.review, photoUrl: r.photoUrl, rating },
         });
       }
-      // spot_movies는 재도출(delete→create) 유지 — 검증상 story 편집이 description을 손상하지 않음
-      // (description은 seed 스팟[storyId=null]에만 있고, 이 재도출은 storyId=this 스팟만 스코프).
-      // 표지(S3): 스팟 공유로 storyId=null이 되면 seed/story 구분이 사라져 description 소실 가능 → 그때 upsert 재검토.
+      // spot_movies (owned+new): delete→create 유지 — derived(storyId=this)만 스코프라 재사용 시딩 스팟 description 무접촉.
+      // 표지(S3): 스팟 공유로 storyId=null이 되면 이 스코프가 깨질 수 있음 → 그때 upsert 재검토(S3-b).
       await tx.spotMovie.deleteMany({ where: { spotId: { in: derivedSpotIds } } });
       const withMovie = derived.filter((r) => r.movieId);
       if (withMovie.length > 0) {
         await tx.spotMovie.createMany({
           data: withMovie.map((r) => ({ spotId: r.id, movieId: r.movieId! })),
         });
+      }
+      // S3-a 재사용 스팟: 방문 기록(StorySpot)·작품 링크만 upsert — 공유 Spot·기존 spot_movies(description) 미접촉.
+      for (const [i, spot] of spotsData.entries()) {
+        if (!spot.reusedSpotId) continue;
+        await tx.storySpot.upsert({
+          where: { storyId_spotId: { storyId, spotId: spot.reusedSpotId } },
+          update: { order: i + 1, review: spot.review ?? null, rating: clampRating(spot.rating) },
+          create: { storyId, spotId: spot.reusedSpotId, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
+        });
+        if (spot.movieId) {
+          await tx.spotMovie.upsert({
+            where: { spotId_movieId: { spotId: spot.reusedSpotId, movieId: spot.movieId } },
+            create: { spotId: spot.reusedSpotId, movieId: spot.movieId },
+            update: {},
+          });
+        }
       }
     });
   } catch (e) {
@@ -214,9 +234,9 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
     await prisma.storySpot.updateMany({ where: { storyId, spotId: realId }, data: { photoUrl: publicUrl } });
   }
 
-  // real spot 사진 교체 (부분 실패 허용)
+  // real spot 사진 교체 (부분 실패 허용). 재사용 스팟은 공유 Spot.photoUrl 미수정 (per-visit 사진은 S3-b)
   for (const spot of spotsData) {
-    if (spot.id.startsWith('tmp_')) continue;
+    if (spot.id.startsWith('tmp_') || spot.reusedSpotId) continue;
     const file = formData.get(`spotPhoto_${spot.id}`);
     if (!(file instanceof File)) continue;
 

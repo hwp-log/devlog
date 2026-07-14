@@ -6,6 +6,7 @@ import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
+import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
 
 const LONG_DISTANCE_KM = 50;
@@ -85,13 +86,21 @@ export default function SpotMap({
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState<kakao.maps.services.PlacesSearchResultItem[]>([]);
   const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
+  // S3-a: 마커 추가 시 근처 기존 촬영지 후보(있으면 재사용 선택 UI)
+  const [nearbyChooser, setNearbyChooser] = useState<{ spotId: string; candidates: NearbySpot[] } | null>(null);
 
   // modeRef·addSpotFromMapRef를 렌더마다 최신값으로 갱신 (stale closure 방지)
   modeRef.current = mode;
-  addSpotFromMapRef.current = (lng: number, lat: number) => {
+  addSpotFromMapRef.current = async (lng: number, lat: number) => {
     const id = addSpot('', lng, lat);
-    setActiveSpot({ id, name: '', lat, lng, order: localSpots.length + 1 });
-    setMode('edit');
+    // S3-a: 근처 기존 촬영지 후보 조회 → 있으면 chooser(재사용/새등록 판단), 없으면 바로 편집
+    const candidates = await findNearbySpots(lat, lng);
+    if (candidates.length > 0) {
+      setNearbyChooser({ spotId: id, candidates });
+    } else {
+      setActiveSpot({ id, name: '', lat, lng, order: localSpots.length + 1 });
+      setMode('edit');
+    }
   };
 
   // initialCenter props: [lng, lat] 순서 → 카카오 {lat, lng}로 변환 ★★★
@@ -196,16 +205,22 @@ export default function SpotMap({
     });
   }
 
-  function handlePlaceSelect(place: kakao.maps.services.PlacesSearchResultItem) {
+  async function handlePlaceSelect(place: kakao.maps.services.PlacesSearchResultItem) {
     const lng = parseFloat(place.x); // x = 경도(lng) ★★★
     const lat = parseFloat(place.y); // y = 위도(lat) ★★★
     const id = addSpot(place.place_name, lng, lat);
-    setActiveSpot({ id, name: place.place_name, lat, lng, order: localSpots.length + 1 });
-    setMode('edit');
     // @ts-expect-error kakao.maps.d.ts 커뮤니티 타입에 jump 누락 (공식 API)
     mapInstance?.jump(new kakao.maps.LatLng(lat, lng), 3);
     setMapCenter({ lat, lng });
     setMapLevel(3);
+    // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집
+    const candidates = await findNearbySpots(lat, lng);
+    if (candidates.length > 0) {
+      setNearbyChooser({ spotId: id, candidates });
+    } else {
+      setActiveSpot({ id, name: place.place_name, lat, lng, order: localSpots.length + 1 });
+      setMode('edit');
+    }
   }
 
   function addSpot(name: string, lng: number, lat: number): string {
@@ -215,6 +230,27 @@ export default function SpotMap({
     setLocalSpots(next);
     onSpotsChange?.(next);
     return id;
+  }
+
+  // S3-a: 근처 기존 스팟 선택 → 새 Spot 안 만들고 그 spotId 참조(reusedSpotId). 이름도 기존값으로.
+  function chooseNearby(candidate: NearbySpot) {
+    if (!nearbyChooser) return;
+    const targetId = nearbyChooser.spotId;
+    const next = localSpots.map((s) =>
+      s.id === targetId ? { ...s, reusedSpotId: candidate.spotId, name: candidate.name } : s,
+    );
+    setLocalSpots(next);
+    onSpotsChange?.(next);
+    setActiveSpot(next.find((s) => s.id === targetId) ?? null);
+    setMode('edit');
+    setNearbyChooser(null);
+  }
+  // 새 장소로 등록 → 현행 신규 흐름(reusedSpotId 없음)
+  function chooseNewPlace() {
+    if (!nearbyChooser) return;
+    setActiveSpot(localSpots.find((s) => s.id === nearbyChooser.spotId) ?? null);
+    setMode('edit');
+    setNearbyChooser(null);
   }
 
   const appkey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
@@ -256,6 +292,44 @@ export default function SpotMap({
                   />
                 )}
               </div>
+            </div>
+          ) : nearbyChooser ? (
+            <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200 p-5 flex flex-col gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">근처에 이런 촬영지가 있어요</p>
+                <p className="mt-0.5 text-xs text-slate-400">같은 곳이면 선택(중복 방지), 다르면 새 장소로 등록하세요.</p>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {nearbyChooser.candidates.map((c) => (
+                  <li key={c.spotId}>
+                    <button
+                      type="button"
+                      onClick={() => chooseNearby(c)}
+                      className="w-full text-left rounded-lg border border-slate-200 hover:bg-slate-50 px-3 py-2 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 text-sm font-medium text-slate-800 truncate">{c.name}</span>
+                        <span className="shrink-0 text-xs text-slate-400">{c.distanceM}m</span>
+                      </div>
+                      {c.movies.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {c.movies.map((m) => (
+                            <span key={m} className="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">{m}</span>
+                          ))}
+                        </div>
+                      )}
+                      {c.storyCount > 0 && <p className="mt-1 text-xs text-slate-400">스토리 {c.storyCount}편</p>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={chooseNewPlace}
+                className="mt-1 w-full rounded-lg bg-slate-900 text-white text-sm py-2 hover:bg-slate-700 transition-colors"
+              >
+                새 장소로 등록
+              </button>
             </div>
           ) : activeSpot ? (
             <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200">

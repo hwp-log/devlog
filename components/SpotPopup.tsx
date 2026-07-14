@@ -406,7 +406,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                 </div>
               )
             ) : spot.movieId ? (
-              <p className="text-sm text-slate-600">{spot.movieTitle}</p>
+              <p className="text-sm text-slate-600">{spot.movieTitle}{spot.extraMovieCount ? ` +${spot.extraMovieCount}` : ''}</p>
             ) : !readOnly ? (
               <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
                 작품 연결...

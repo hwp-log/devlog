@@ -9,7 +9,18 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
 
   const story = await prisma.story.findUnique({
     where: { id },
-    include: { tags: true, spots: { include: { movie: { select: { title: true } }, storySpots: { where: { storyId: id }, select: { rating: true } } }, orderBy: { order: 'asc' } } },
+    // 편집 로드: story_spots 기준(재사용 스팟 포함 — owned만인 story.spots로는 재사용 스팟이 안 잡힘).
+    include: {
+      tags: true,
+      storySpots: {
+        orderBy: { order: 'asc' },
+        select: {
+          order: true, review: true, photoUrl: true, rating: true,
+          // 작품은 spot_movies 조인(복수) — 재사용 seed 스팟은 레거시 movieId가 null이라 조인에서 도출.
+          spot: { include: { spotMovies: { orderBy: { createdAt: 'desc' }, select: { movie: { select: { id: true, title: true } } } } } },
+        },
+      },
+    },
   });
   if (!story) notFound();
 
@@ -41,7 +52,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
         action={boundAction}
         initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}
         userId={user.id}
-        spots={story.spots}
+        storySpots={story.storySpots}
         storyId={story.id}
         availablePlans={availablePlans}
         initialPlanId={story.planId}
