@@ -71,6 +71,18 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   const oldPhotoUrlById = new Map(existingSpots.map((s) => [s.id, s.photoUrl]));
   const clearedPhotoPaths: string[] = [];
 
+  // 재사용 스팟 per-visit 구 사진 스냅샷(replace/clear 시 구 storage 파일 삭제용).
+  // oldPhotoUrlById는 where:{storyId}의 Spot.photoUrl 기반이라 storyId≠this인 공유 스팟은 못 담음 → StorySpot에서 별도 확보.
+  const reusedIds = spotsData.filter((s) => s.reusedSpotId).map((s) => s.reusedSpotId!);
+  const oldReusedPhotoBySpotId = new Map<string, string | null>();
+  if (reusedIds.length > 0) {
+    const rows = await prisma.storySpot.findMany({
+      where: { storyId, spotId: { in: reusedIds } },
+      select: { spotId: true, photoUrl: true },
+    });
+    rows.forEach((r) => oldReusedPhotoBySpotId.set(r.spotId, r.photoUrl));
+  }
+
   // 교통 기준점 자동 계산 — 트랜잭션 전 전처리 (외부 API를 tx 안에서 호출하면 tx 홀딩).
   // 기저장 값 재사용: 수정 흐름은 DB 값을 폼 payload로 되돌려 보냄(StoryWriteForm) —
   // 이 분기가 없으면 수정 저장마다 전 스팟 재계산. 실패는 null로 흡수 — 저장을 절대 막지 않음
@@ -267,7 +279,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
     await prisma.storySpot.updateMany({ where: { storyId, spotId: realId }, data: { photoUrl: publicUrl } });
   }
 
-  // real spot 사진 교체 (부분 실패 허용). 재사용 스팟은 공유 Spot.photoUrl 미수정 (per-visit 사진은 S3-b)
+  // real spot 사진 교체 (부분 실패 허용). 재사용 스팟은 공유 Spot.photoUrl 미수정 (per-visit 사진은 story_spots.photoUrl에 별도 미러 — 아래 재사용 루프, 0214)
   for (const spot of spotsData) {
     if (spot.id.startsWith('tmp_') || spot.reusedSpotId) continue;
     const file = formData.get(`spotPhoto_${spot.id}`);
@@ -293,6 +305,36 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
     const oldUrl = oldPhotoUrlById.get(spot.id);
     if (oldUrl) {
       const oldPath = extractStoragePath(oldUrl);
+      if (oldPath) await supabase.storage.from('story-photos').remove([oldPath]);
+    }
+  }
+
+  // 0214: 재사용 스팟 per-visit 사진 — 공유 Spot.photoUrl 미수정, story_spots.photoUrl에만 기록(NEW:151 대칭).
+  //       replace/clear 판정은 owned와 동일(resolvePhotoIntent). keep은 무동작 — 재사용 upsert가 update에서 photoUrl 생략해 기존값 보존.
+  for (const spot of spotsData) {
+    if (!spot.reusedSpotId) continue;
+    const reusedId = spot.reusedSpotId;
+    const file = formData.get(`spotPhoto_${spot.id}`);
+    const oldUrl = oldReusedPhotoBySpotId.get(reusedId) ?? null;
+    const intent = resolvePhotoIntent(oldUrl, spot.photoUrl, file instanceof File);
+
+    if (intent === 'replace') {
+      const ext = (file as File).name.split('.').pop() ?? 'jpg';
+      const path = `${user.id}/spot/${reusedId}/${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('story-photos')
+        .upload(path, file as File, { upsert: true });
+      if (uploadError) continue;
+      const { data: { publicUrl } } = supabase.storage.from('story-photos').getPublicUrl(uploadData.path);
+      await prisma.storySpot.updateMany({ where: { storyId, spotId: reusedId }, data: { photoUrl: publicUrl } });
+      // 교체 성공 후에만 구 per-visit 파일 삭제
+      if (oldUrl) {
+        const oldPath = extractStoragePath(oldUrl);
+        if (oldPath) await supabase.storage.from('story-photos').remove([oldPath]);
+      }
+    } else if (intent === 'clear') {
+      await prisma.storySpot.updateMany({ where: { storyId, spotId: reusedId }, data: { photoUrl: null } });
+      const oldPath = extractStoragePath(oldUrl!);
       if (oldPath) await supabase.storage.from('story-photos').remove([oldPath]);
     }
   }
