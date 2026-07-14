@@ -17,6 +17,19 @@ const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '');
 const adminSuffix = /[동읍면리가구시군]$/;
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// 로드 검증 게이트 — 실제 200 + content-type: image/* 인 URL만 통과 ("저장됨 ≠ 표시됨" 방지).
+// PhotoGallery cms2/website 트리처럼 죽은 URL(404 text/html)을 저장 전에 차단. 경로 패턴이 아닌 HTTP 실검증.
+async function isLoadableImage(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(8000) });
+    const ct = res.headers.get('content-type') || '';
+    await res.arrayBuffer(); // 본문 소비로 커넥션 정리
+    return res.status === 200 && ct.startsWith('image/');
+  } catch {
+    return false;
+  }
+}
+
 type KorItem = { title: string; dist: string; firstimage?: string; firstimage2?: string; contentid?: string };
 
 // 등급: 3 완전, 2 이름(title⊇name 또는 name의 구별부분 포함), 1 핵심토큰(specific), 0 광역(거부), -1 무매칭
@@ -95,6 +108,13 @@ async function main() {
     }
 
     const coverUrl = best.firstimage!.replace(/^http:\/\//, 'https://');
+    // 로드 검증 게이트: 실제 표시 가능한 이미지만 저장
+    if (!(await isLoadableImage(coverUrl))) {
+      rejected.push({ name: s.name, reason: '이미지 로드 실패(404 등)', title: best.title, dist: dist! });
+      console.log(`  ✗ ${s.name} → skip (이미지 로드 실패)`);
+      await delay(250);
+      continue;
+    }
     await prisma.spot.update({ where: { id: s.id }, data: { coverUrl } });
     updatedIds.push(s.id);
     accepted.push({ name: s.name, grade: GRADE_NAME[bestGrade], title: best.title, dist: dist! });
