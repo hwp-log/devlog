@@ -87,9 +87,19 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   </div>`;
 }
 
-// 클러스터 원: 카카오 CLUSTER_STYLES 동등 값 — 44px 터치 타겟, primary 채움(+흰 글자)
+// 클러스터 핀 — Logo.tsx 기하 참조(머리 원 + 삼각 꼬리 + 바닥 그림자). 흰 구멍은 제거(0220) — 숫자는 흰 글씨로 머리에 직접.
+// viewBox 0 0 18 25, 36×50 렌더(k=2.0 균일): 머리 r8(⌀32) / tip(9,21)=좌표. 핀은 0220과 동일 좌표 — 캔버스 바닥에 1unit(2px)만 추가.
+// 그림자 cy23.6(tip 아래 3px 띄움 — 0221, 입체감) rx3.2 ry1.1 PRIMARY. 바닥 여백은 그림자 안착용 투명 공간뿐(핀 크기·tip 위치 불변).
+// C(세 자리 대비): 100+는 머리에 안 들어감 — 그때 "99+" 축약 필요. 지금은 미구현.
 function clusterIconContent(): string {
-  return `<div style="width:44px;height:44px;border-radius:9999px;background:${PRIMARY};border:2px solid #fff;color:#fff;font-size:12px;font-weight:600;text-align:center;line-height:40px;cursor:pointer;box-shadow:0 0 0 6px ${withAlpha(PRIMARY, 0.15)}">1</div>`;
+  return `<div style="position:relative;width:36px;height:50px;cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">
+    <svg viewBox="0 0 18 25" width="36" height="50" style="display:block">
+      <ellipse cx="9" cy="23.6" rx="3.2" ry="1.1" fill="${PRIMARY}" opacity="0.55"/>
+      <circle cx="9" cy="9" r="8" fill="${PRIMARY}"/>
+      <polygon points="2,13 16,13 9,21" fill="${PRIMARY}"/>
+    </svg>
+    <span data-count style="position:absolute;left:0;top:0;width:36px;height:${(9 / 25) * 50 * 2}px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;line-height:1;transform:translateY(1px)">1</span>
+  </div>`;
 }
 
 // 초기 뷰: 서울 확대 고정 시작 — 첫 화면에 개별 발광 마커+라벨이 보이게 (흥미 유발).
@@ -104,10 +114,13 @@ const FEATURED_SPOT_NAME = '롯데월드몰';
 // 실측상 lat 33.51(제주공항)~35.35(동부마을) 공백이라 34.0은 안전한 경계. 마커·목록엔 영향 없음(bounds 계산 전용).
 const MAINLAND_LAT_MIN = 34.0;
 
-// 3단계형 내비게이션: 프로그램 이동(칩·클러스터 클릭·리사이즈 재적합)의 종착은 항상
-// ② 분해 조망 — ③ 개별 확대는 사용자 휠·핀치 전용 (프로그램 경로 없음)
-const STAGE2_MAX_ZOOM = 11; // ② 상한 = 클러스터러 분해 임계와 단일 소스 공유
+// 3단계형 내비게이션: 칩 fitBounds·클러스터 클릭·리사이즈 재적합의 종착은 ② 분해 조망.
+// 예외 — 스팟 클릭(handleSpotSelect)은 ③ 골목 단위(SPOT_CLICK_ZOOM) 착지(0218). 그 외 프로그램 이동은 ② 유지.
+const STAGE2_MAX_ZOOM = 11; // ② 상한 = 클러스터러 분해 임계와 단일 소스 공유 (분해 "시작" 지점)
 const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정 (판단값)
+// 0218: 스팟 클릭 전용 목표 줌 — 골목 단위(z16)까지 확대해 도심 라벨 겹침 해소.
+// 분해 임계(11)와 분리: 11=분해 시작 / 16=클릭 착지(>11이라 분해 확정, 벤더 checkByZoomAndMinClusterSize).
+const SPOT_CLICK_ZOOM = 11;
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
 // easing 'easeOutCubic' = SDK TransitionOptions 기본값(@types 주석 명시, 런타임 실측 확증)
@@ -484,11 +497,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       onClusterClick: (members: naver.maps.Marker[]) => {
         moveToStage2(mapInstance, members.map((m) => m.getPosition() as naver.maps.LatLng));
       },
-      icons: [{ content: clusterIconContent(), size: new naver.maps.Size(44, 44), anchor: new naver.maps.Point(22, 22) }],
+      icons: [{ content: clusterIconContent(), size: new naver.maps.Size(36, 50), anchor: new naver.maps.Point(18, 42) }], // 핀 tip(18,42)이 좌표 (캔버스 50, 바닥 2px는 그림자용)
       indexGenerator: [Infinity], // 단일 아이콘 — 카카오 CLUSTER_STYLES 1개와 동일
       stylingFunction: (clusterMarker, count) => {
         const root = (clusterMarker as unknown as { getElement(): HTMLElement | null }).getElement();
-        const el = root?.querySelector('div');
+        const el = root?.querySelector('[data-count]'); // SVG 아닌 count 전용 요소만 갱신
         if (el) el.textContent = String(count);
       },
     });
@@ -613,10 +626,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
     if (!mapInstance) return;
-    // 0215: 프로그램 이동 종착은 항상 ② 분해 조망(단일 지점 = 124-126 퇴화 선례와 동일).
-    // panTo(중심만)로는 줌 아웃 시 클러스터가 안 풀림 → morph로 중심·줌(STAGE2_MAX_ZOOM) 원자 전환.
-    // 첫 진입 화면(INITIAL_ZOOM=STAGE2_MAX_ZOOM=11)과 동일 뷰 재현. 초기 선택은 이 경로를 안 타므로 0172 불변.
-    mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), STAGE2_MAX_ZOOM, STAGE2_TRANSITION);
+    // 0218: 스팟 클릭은 ③ 골목 단위(SPOT_CLICK_ZOOM=16) 착지 — 도심 라벨 겹침 해소. >11이라 클러스터 분해 확정.
+    // panTo(중심만)로는 줌 아웃 시 안 풀림 → morph로 중심·줌 원자 전환. 초기 선택은 이 경로를 안 타므로 0172 불변.
+    mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), SPOT_CLICK_ZOOM, STAGE2_TRANSITION);
   }
 
   // 마커 클릭 리스너의 스테일 클로저 방지 — 매 커밋 최신 핸들러 동기화 (렌더 중 ref 쓰기 금지 규칙 준수)
