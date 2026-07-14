@@ -64,7 +64,7 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
     : '0 2px 6px rgba(0,0,0,0.5)';
   const pillColor = selected
     ? `background:${PRIMARY};color:#fff;border:1px solid ${PRIMARY}`
-    : 'background:var(--surface2);color:var(--fg2);border:1px solid rgba(255,255,255,0.12)';
+    : 'background:var(--surface2);color:var(--fg2);border:1px solid rgba(255,255,255,0.3)';
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
