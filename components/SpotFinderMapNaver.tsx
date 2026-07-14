@@ -16,6 +16,19 @@ function formatYmd(d: Date | string): string {
   return `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}`;
 }
 
+// 커버 미보유 플레이스홀더 — 중성 그라디언트 + 🎬 (PRIMARY 미사용: wayfinding 색과 의미 분리).
+// 작품별 색 매핑이 없어 작품색은 전부 동일 sky라 정보가 없음 → 중성 채택(0192). 작품명은 히어로만.
+function SpotCoverPlaceholder({ variant, movieTitle }: { variant: 'hero' | 'list'; movieTitle?: string }) {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-[linear-gradient(135deg,var(--surface2),var(--card))]">
+      <span aria-hidden className={variant === 'hero' ? 'text-4xl opacity-80' : 'text-lg opacity-70'}>🎬</span>
+      {variant === 'hero' && movieTitle && (
+        <span className="px-4 text-center text-xs text-muted break-keep line-clamp-1">{movieTitle}</span>
+      )}
+    </div>
+  );
+}
+
 // 국내 전용 지도 — 제주·독도 포함 한국 bbox (판단값, "국내만 제공" 배너와 정합)
 const KOREA_BOUNDS = { south: 32.5, west: 123.5, north: 39.5, east: 132.5 };
 
@@ -54,8 +67,12 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
-  const card = selected && spot.thumbnailUrl
-    ? `<span style="display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:17.5px;border:3px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,0.55);margin:0 auto 5px;background-image:url('${escapeHtml(spot.thumbnailUrl)}');background-size:cover;background-position:center;position:relative"></span>`
+  // 선택 시 항상 카드 표시 — 사진 있으면 이미지, 없으면 중성 🎬 플레이스홀더(27개 미보유 스팟도 눌러 카드 확인 가능)
+  const cardBase = `display:block;width:${MARKER_CARD_SIZE}px;height:${MARKER_CARD_SIZE}px;border-radius:17.5px;border:3px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,0.55);margin:0 auto 5px;position:relative`;
+  const card = selected
+    ? spot.thumbnailUrl
+      ? `<span style="${cardBase};background-image:url('${escapeHtml(spot.thumbnailUrl)}');background-size:cover;background-position:center"></span>`
+      : `<span style="${cardBase};background:linear-gradient(135deg,var(--surface2),var(--card));display:flex;align-items:center;justify-content:center;font-size:30px">🎬</span>`
     : '';
   const inner = `${ping}
       ${card}
@@ -146,9 +163,7 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={spot.thumbnailUrl} alt={spot.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-surface2 flex items-center justify-center">
-            <span className="text-muted text-sm">No Image</span>
-          </div>
+          <SpotCoverPlaceholder variant="hero" movieTitle={spot.primaryMovie.title} />
         )}
         {/* 시안 실측 스크림 — 하단 제목 가독 + 상단 X 대비. No Image 폴백에도 동일 적용해 흰 제목 가독 보장 */}
         <div
@@ -660,7 +675,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                       className="w-12 h-12 rounded-[10px] object-cover shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-[10px] bg-surface2 shrink-0" />
+                    <div className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0">
+                      <SpotCoverPlaceholder variant="list" />
+                    </div>
                   )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
