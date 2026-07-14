@@ -8,6 +8,7 @@ import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
 import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/naver/MarkerClustering';
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { formatTransit } from '@/lib/spot/transit';
+import { haversineM } from '@/lib/spot/geo';
 
 const PRIMARY = theme.common.primary;
 
@@ -115,12 +116,15 @@ const FEATURED_SPOT_NAME = '롯데월드몰';
 const MAINLAND_LAT_MIN = 34.0;
 
 // 3단계형 내비게이션: 칩 fitBounds·클러스터 클릭·리사이즈 재적합의 종착은 ② 분해 조망.
-// 예외 — 스팟 클릭(handleSpotSelect)은 ③ 골목 단위(SPOT_CLICK_ZOOM) 착지(0218). 그 외 프로그램 이동은 ② 유지.
+// 예외 — 스팟 클릭(handleSpotSelect)은 최근접<1km면 z15(밀집)/그외 z11(한적)로 분기(0222). 그 외 프로그램 이동은 ② 유지.
 const STAGE2_MAX_ZOOM = 11; // ② 상한 = 클러스터러 분해 임계와 단일 소스 공유 (분해 "시작" 지점)
 const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정 (판단값)
-// 0218: 스팟 클릭 전용 목표 줌 — 골목 단위(z16)까지 확대해 도심 라벨 겹침 해소.
-// 분해 임계(11)와 분리: 11=분해 시작 / 16=클릭 착지(>11이라 분해 확정, 벤더 checkByZoomAndMinClusterSize).
-const SPOT_CLICK_ZOOM = 11;
+// 0222: 스팟 클릭 목표 줌을 최근접 이웃 거리로 분기.
+// 임계 1km = 최근접 분포 자연 경계(도심·구룡포·월정사 클러스터 포착). z15 = 349m↑ 쌍 겹침 해소(도심 대부분).
+// z14(697m)는 종로 미해소·z16(175m)은 맥락 상실이라 기각. z11 = 한적 맥락 유지. (둘 다 ≥maxZoom(11)이라 분해 확정.)
+const DENSE_NEARBY_M = 1000;
+const CLICK_ZOOM_DENSE = 13;
+const CLICK_ZOOM_SPARSE = 11;
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
 // easing 'easeOutCubic' = SDK TransitionOptions 기본값(@types 주석 명시, 런타임 실측 확증)
@@ -626,9 +630,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
     if (!mapInstance) return;
-    // 0218: 스팟 클릭은 ③ 골목 단위(SPOT_CLICK_ZOOM=16) 착지 — 도심 라벨 겹침 해소. >11이라 클러스터 분해 확정.
-    // panTo(중심만)로는 줌 아웃 시 안 풀림 → morph로 중심·줌 원자 전환. 초기 선택은 이 경로를 안 타므로 0172 불변.
-    mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), SPOT_CLICK_ZOOM, STAGE2_TRANSITION);
+    // 0222: 목표 줌을 최근접 이웃 거리로 분기 — 밀집(라벨 겹침)은 z15로 벌리고, 한적은 z11로 맥락 유지.
+    // 비교 대상 = visibleSpots(렌더되는 마커) — 라벨 겹침은 그려진 마커 사이에서만 발생. 매 클릭 O(n) haversine(n≤65) 무해.
+    let nearest = Infinity;
+    for (const other of visibleSpots) {
+      if (other.id === spot.id) continue;
+      const d = haversineM(spot.lat, spot.lng, other.lat, other.lng);
+      if (d < nearest) nearest = d;
+    }
+    // 구룡포 가옥거리↔계단(4m) 등 <349m 초밀집 쌍은 z15로도 라벨이 안 벌어짐 — 완전 분리엔 z16↑ 필요하나 맥락 상실로 보류(주석만).
+    const targetZoom = nearest < DENSE_NEARBY_M ? CLICK_ZOOM_DENSE : CLICK_ZOOM_SPARSE;
+    // morph로 중심·줌 원자 전환(panTo는 줌 미변경). z15·z11 모두 ≥maxZoom(11)이라 클러스터 분해. 초기 선택은 이 경로 미경유(0172 불변).
+    mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), targetZoom, STAGE2_TRANSITION);
   }
 
   // 마커 클릭 리스너의 스테일 클로저 방지 — 매 커밋 최신 핸들러 동기화 (렌더 중 ref 쓰기 금지 규칙 준수)
