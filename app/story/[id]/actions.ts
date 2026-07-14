@@ -14,6 +14,23 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 type ActionState = { error: string } | null;
 
+// S3-a 후속: owned 스팟 삭제 전, "다른 스토리(storyId≠this)의 story_spots가 참조 중"인 spotId를 찾는다.
+// 참조 있으면 하드삭제 대신 storyId=null로 orphan(공유 스팟 편입) — Spot→StorySpot Cascade로 타 스토리
+// 여행동선이 사라지는 소실 방지. (반환된 id는 삭제 대신 storyId=null 처리 대상.)
+async function findSharedOwnedSpotIds(
+  tx: Prisma.TransactionClient,
+  ownedSpotIds: string[],
+  thisStoryId: string,
+): Promise<string[]> {
+  if (ownedSpotIds.length === 0) return [];
+  const refs = await tx.storySpot.findMany({
+    where: { spotId: { in: ownedSpotIds }, storyId: { not: thisStoryId } },
+    select: { spotId: true },
+    distinct: ['spotId'],
+  });
+  return refs.map((r) => r.spotId);
+}
+
 export async function updateStoryAction(storyId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -94,7 +111,14 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
         .filter((s) => !s.id.startsWith('tmp_') && !s.reusedSpotId)
         .map((s) => s.id);
 
-      // 제출 목록에 없는 이 스토리의 owned spot 삭제 (재사용 스팟은 owned가 아니라 미접촉)
+      // 제출 목록에서 빠진 owned spot 중 "다른 스토리가 재사용 중"인 것은 삭제 대신 orphan(storyId=null).
+      // orphan은 아래 deleteMany({storyId})·재도출 derived(storyId) 스코프에서 자동 제외(실측 확인) → 타 스토리 조인·spot_movies 보존.
+      const removedOwned = await tx.spot.findMany({ where: { storyId, id: { notIn: ownedRealIds } }, select: { id: true } });
+      const sharedRemoved = await findSharedOwnedSpotIds(tx, removedOwned.map((s) => s.id), storyId);
+      if (sharedRemoved.length > 0) {
+        await tx.spot.updateMany({ where: { id: { in: sharedRemoved } }, data: { storyId: null } });
+      }
+      // 제출 목록에 없는 이 스토리의 owned spot 삭제 (재사용 스팟·orphan된 스팟은 미접촉)
       await tx.spot.deleteMany({ where: { storyId, id: { notIn: ownedRealIds } } });
 
       // 기존 owned spot 업데이트 (재사용 스팟은 수정 안 함 — 공유 행 오염 방지)
@@ -302,7 +326,16 @@ export async function deleteStoryAction(storyId: string): Promise<void> {
   const story = await prisma.story.findUnique({ where: { id: storyId } });
   if (!story || story.userId !== user.id) redirect(`/story/${storyId}`);
 
-  await prisma.story.delete({ where: { id: storyId } });
+  // owned 스팟 중 "다른 스토리가 재사용 중"인 것은 story.delete cascade 전에 orphan(storyId=null)으로 전환해
+  // Spot→StorySpot Cascade로 타 스토리 여행동선이 사라지는 것을 방지. 전환은 반드시 delete보다 먼저(같은 tx).
+  await prisma.$transaction(async (tx) => {
+    const owned = await tx.spot.findMany({ where: { storyId }, select: { id: true } });
+    const shared = await findSharedOwnedSpotIds(tx, owned.map((s) => s.id), storyId);
+    if (shared.length > 0) {
+      await tx.spot.updateMany({ where: { id: { in: shared } }, data: { storyId: null } });
+    }
+    await tx.story.delete({ where: { id: storyId } });
+  });
 
   redirect('/story');
 }
