@@ -314,7 +314,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <div className="border-t border-slate-100 mx-4" />
           <div className="p-4">
             <span className="text-sm font-medium text-slate-700 block mb-2">교통 기준점</span>
-            <p className="text-sm text-slate-600">{formatTransit(spot.nearestStation, spot.transitMinutes)}</p>
+            <p className="text-sm text-slate-600">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</p>
           </div>
         </>
       )}

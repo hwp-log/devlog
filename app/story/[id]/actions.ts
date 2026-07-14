@@ -61,6 +61,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
     const auto = await findNearestTransit(spot.lat, spot.lng);
     spot.nearestStation = auto?.nearestStation ?? null;
     spot.transitMinutes = auto?.transitMinutes ?? null;
+    spot.transitMode = auto?.transitMode ?? null;
   }
 
   // 트랜잭션: Story 업데이트 + Spots 동기화, 신규 spot real ID 획득
@@ -112,6 +113,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
               movieId: spot.movieId ?? null,
               nearestStation: spot.nearestStation ?? null,
               transitMinutes: spot.transitMinutes ?? null,
+              transitMode: spot.transitMode ?? null,
             },
           });
         }
@@ -134,6 +136,7 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
             movieId: spot.movieId ?? null,
             nearestStation: spot.nearestStation ?? null,
             transitMinutes: spot.transitMinutes ?? null,
+            transitMode: spot.transitMode ?? null,
           },
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });

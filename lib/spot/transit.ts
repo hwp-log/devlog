@@ -1,9 +1,14 @@
-// 교통 기준점 표시 파생 — 이동수단(mode)은 저장하지 않고 이름에서 파생 (단일 소스 + 파생 원칙).
-// 규칙: 기준점 이름이 "공항"으로 끝나면 차로, 그 외(역 등) 도보.
-// 한계: 버스터미널·선착장 등 차로/기타 수단 기준점이 등장하면 오표기 — 그 시점에
-// transitMode enum 필드 추가로 전환 (파생 불가능해지는 순간 저장이 정당해짐).
-export function formatTransit(nearestStation: string, transitMinutes: number): string {
-  const mode = nearestStation.endsWith('공항') ? '차로' : '도보';
+// 교통 기준점 표시 — 이동수단(mode)은 저장된 transitMode 우선.
+// 거리 기반 판정 도입으로 이름 파생이 불가능해져("강릉역" 차로 vs "시청역" 도보 구분 불가)
+// 저장이 정당해진 시점 (원 주석이 예고한 전환). 레거시 행(transitMode=null)은 기존 이름 규칙 폴백.
+export function formatTransit(
+  nearestStation: string,
+  transitMinutes: number,
+  transitMode?: string | null,
+): string {
+  const mode = transitMode
+    ? transitMode === 'car' ? '차로' : '도보'
+    : nearestStation.endsWith('공항') ? '차로' : '도보'; // 폴백: 저장값 없는 기존 행
   // "약" = 직선거리 기반 추정치의 정직 표기 (자동 계산 v1 — 실경로 API 미사용)
   return `${nearestStation}에서 ${mode} 약 ${transitMinutes}분`;
 }

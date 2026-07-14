@@ -21,6 +21,7 @@ export type SpotFinderSpot = {
   createdAt: Date; // 리스트/칩 정렬 기준 — 순서는 소스에서 단일 결정 (클라 재정렬 금지)
   nearestStation: string | null; // 교통 기준점 (수동 입력 v1)
   transitMinutes: number | null;
+  transitMode: string | null; // 'walk'|'car' — formatTransit 수단 표기 (없으면 이름 규칙 폴백)
   thumbnailUrl: string | null; // 도출: 사진 있는 최신 스토리의 story_spots.photo_url (좌측·마커·히어로 공용)
   movies: { id: string; title: string; description: string | null }[]; // 최신 연결순 (spot_movies.created_at desc). description = per-link 촬영 장면 설명
   primaryMovie: { id: string; title: string }; // 대표 = movies[0]. where 보장으로 항상 존재
@@ -47,6 +48,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       createdAt: true,
       nearestStation: true,
       transitMinutes: true,
+      transitMode: true,
       spotMovies: {
         orderBy: { createdAt: 'desc' }, // 최신 연결순 (S1 백필서 created_at 승계 → 결정적)
         select: { description: true, movie: { select: { id: true, title: true } } },
@@ -90,6 +92,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       createdAt: s.createdAt,
       nearestStation: s.nearestStation,
       transitMinutes: s.transitMinutes,
+      transitMode: s.transitMode,
       thumbnailUrl,
       movies,
       primaryMovie: movies[0],

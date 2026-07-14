@@ -49,6 +49,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
     const auto = await findNearestTransit(spot.lat, spot.lng);
     spot.nearestStation = auto?.nearestStation ?? null;
     spot.transitMinutes = auto?.transitMinutes ?? null;
+    spot.transitMode = auto?.transitMode ?? null;
   }
 
   // 트랜잭션: Story + Spots 생성, real spotId 획득
@@ -88,6 +89,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
             movieId: spot.movieId ?? null,
             nearestStation: spot.nearestStation ?? null,
             transitMinutes: spot.transitMinutes ?? null,
+            transitMode: spot.transitMode ?? null,
           },
         });
         tmpToReal.push({ tmpId: spot.id, realId: created.id });

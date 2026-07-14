@@ -12,6 +12,12 @@ const TIMEOUT_MS = 3000;
 const WALK = { mPerMin: 67, detour: 1.3 };
 const DRIVE = { mPerMin: 667, detour: 1.4 };
 
+// 도보/차로 경계 = 지하철 검색 반경(2km "도보권") 재사용 — 단일 소스. ≤2km 도보, 초과 차로.
+const WALK_MAX_M = 2000;
+// 비현실 컷오프: 차로 환산 90분(≈43km) 초과면 "가장 가까운 교통"이 무의미 → 포기(null).
+// "잘못된 정보보다 없는 정보가 낫다" (0178 실패=null 허용 원칙). 도보는 ≤2km라 이 선에 안 걸림.
+const MAX_TRANSIT_MIN = 90;
+
 // 공항은 검색이 아니라 정적 목록 (실측 근거: 카카오 키워드 "공항"/"국제공항" 상위 15개가
 // 중개사·렌터카·공항주차장 등으로 채워져 공항 본체가 안 잡힘 — 국내 민간 공항은 15곳,
 // 수십 년 단위 변동이라 정적 데이터가 정확·안정·API 0콜)
@@ -67,29 +73,49 @@ function toMinutes(distanceMeters: number, { mPerMin, detour }: { mPerMin: numbe
 export async function findNearestTransit(
   lat: number,
   lng: number
-): Promise<{ nearestStation: string; transitMinutes: number } | null> {
+): Promise<{ nearestStation: string; transitMinutes: number; transitMode: 'walk' | 'car' } | null> {
   const xy = { x: String(lng), y: String(lat) };
   try {
+    // 기준점 이름 + 직선거리를 캐스케이드로 확정 → 수단·소요분은 거리에서 파생 (아래 공통 처리)
+    let station: string;
+    let distanceM: number;
+
     // 1) 지하철역 (SW8) 반경 2km = 도보권. place_name의 노선 접미사("서울역 GTX-A") 제거 (실측 정제)
     const subway = (await kakaoSearch('category.json', { ...xy, category_group_code: 'SW8', radius: '2000' }))[0];
     if (subway) {
-      return { nearestStation: subway.place_name.split(' ')[0], transitMinutes: toMinutes(Number(subway.distance), WALK) };
+      station = subway.place_name.split(' ')[0];
+      distanceM = Number(subway.distance);
+    } else {
+      // 2) 기차역 키워드 반경 20km (KTX역 등은 SW8 미포함 — 강릉역류).
+      // 오탐·비승객역 제외 (실측 근거): category_name에 기차/철도 포함 AND 폐역 제외,
+      // place_name에 화물·신호장·조차장·예정 미포함 (화물역은 category가 일반 기차역과 동일 → 이름으로만 구분)
+      const rail = (await kakaoSearch('keyword.json', { ...xy, query: '기차역', radius: '20000' }))
+        .find((p) =>
+          (p.category_name.includes('기차') || p.category_name.includes('철도')) &&
+          !p.category_name.includes('폐역') &&
+          !/화물|신호장|조차장|예정/.test(p.place_name));
+      if (rail) {
+        station = rail.place_name;
+        distanceM = Number(rail.distance);
+      } else {
+        // 3) 공항 — 정적 목록에서 하버사인 최근접 (상단 AIRPORTS 주석 참조, API 미사용)
+        let nearest = AIRPORTS[0];
+        let nearestDist = haversineM(lat, lng, nearest.lat, nearest.lng);
+        for (const a of AIRPORTS) {
+          const d = haversineM(lat, lng, a.lat, a.lng);
+          if (d < nearestDist) { nearest = a; nearestDist = d; }
+        }
+        station = nearest.name;
+        distanceM = nearestDist;
+      }
     }
-    // 2) 기차역 키워드 반경 20km (KTX역 등은 SW8 미포함 — 강릉역류).
-    // 키워드 오탐 방지: category_name("교통,수송 > 기차,철도 …") 필터 (실측 근거)
-    const rail = (await kakaoSearch('keyword.json', { ...xy, query: '기차역', radius: '20000' }))
-      .find((p) => p.category_name.includes('기차') || p.category_name.includes('철도'));
-    if (rail) {
-      return { nearestStation: rail.place_name, transitMinutes: toMinutes(Number(rail.distance), WALK) };
-    }
-    // 3) 공항 — 정적 목록에서 하버사인 최근접 (상단 AIRPORTS 주석 참조, API 미사용)
-    let nearest = AIRPORTS[0];
-    let nearestDist = haversineM(lat, lng, nearest.lat, nearest.lng);
-    for (const a of AIRPORTS) {
-      const d = haversineM(lat, lng, a.lat, a.lng);
-      if (d < nearestDist) { nearest = a; nearestDist = d; }
-    }
-    return { nearestStation: nearest.name, transitMinutes: toMinutes(nearestDist, DRIVE) };
+
+    // 거리 기반 도보/차로 판정 (경계 2km) — 20km 기차역에 도보 계수를 먹여 "도보 250분"이 나오던 버그 차단
+    const transitMode: 'walk' | 'car' = distanceM <= WALK_MAX_M ? 'walk' : 'car';
+    const transitMinutes = toMinutes(distanceM, transitMode === 'walk' ? WALK : DRIVE);
+    // 비현실 컷오프: 폐역·화물역 제외 후에도 남는 원거리(섬·오지)는 포기 — 잘못된 정보보다 null
+    if (transitMinutes > MAX_TRANSIT_MIN) return null;
+    return { nearestStation: station, transitMinutes, transitMode };
   } catch (e) {
     // 실패 허용: API 오류·타임아웃은 로그만 — 저장 흐름 무방해
     console.error('[autoTransit] 기준점 검색 실패', e);

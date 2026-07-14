@@ -195,7 +195,7 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
                 <span className="text-[12.5px] leading-none">🚉</span>
               </div>
               {/* 주 문구 = 좌측 리스트 메타줄과 동일(formatTransit 단일 소스). 수단(도보/차로)이 이미 담겨 부제 생략(§8② 중복 회피) */}
-              <span className="block text-[12.5px] font-normal text-fg break-keep">{formatTransit(spot.nearestStation, spot.transitMinutes)}</span>
+              <span className="block text-[12.5px] font-normal text-fg break-keep">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</span>
             </div>
           )}
           <div className="flex items-start gap-[9px]">
@@ -672,7 +672,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     {/* 교통 메타줄 — 시안 위치(이름 아래, mt 3px, muted). 12px = 하한 준수(시안 11px). 두 값 모두 있을 때만 */}
                     {spot.nearestStation && spot.transitMinutes != null && (
                       <p className="mt-[3px] text-xs text-muted truncate">
-                        {formatTransit(spot.nearestStation, spot.transitMinutes)}
+                        {formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}
                       </p>
                     )}
                   </div>

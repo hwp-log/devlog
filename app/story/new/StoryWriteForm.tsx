@@ -57,6 +57,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
     movieTitle: s.movie?.title ?? null,
     nearestStation: s.nearestStation ?? null,
     transitMinutes: s.transitMinutes ?? null,
+    transitMode: s.transitMode ?? null, // 편집 재사용 시 mode 보존 (payload 왕복 — 없으면 저장 시 null로 지워짐)
   })), []);
 
   const [spotsJson, setSpotsJson] = useState(() => JSON.stringify(initialLocalSpots));
