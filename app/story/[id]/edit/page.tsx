@@ -9,7 +9,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
 
   const story = await prisma.story.findUnique({
     where: { id },
-    include: { tags: true, spots: { include: { movie: { select: { title: true } } }, orderBy: { order: 'asc' } } },
+    include: { tags: true, spots: { include: { movie: { select: { title: true } }, storySpots: { where: { storyId: id }, select: { rating: true } } }, orderBy: { order: 'asc' } } },
   });
   if (!story) notFound();
 

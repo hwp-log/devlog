@@ -201,8 +201,8 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           )}
         </div>
 
-        {/* 메타 — 아이콘 카드 2열 그리드 (시안 실측). 교통/작품/스토리 3칸 → 2열이라 4번째 셀은 빈 칸
-            (B2 별점 자리 — 플레이스홀더 금지). 새 색 토큰 없음. 부제 11px는 CLAUDE.md §5 하한(12px)으로 클램프 */}
+        {/* 메타 — 아이콘 카드 2열 그리드 (시안 실측). 교통·별점·작품·스토리 (별점은 rating 있을 때만 → 2×2 완성).
+            별점 없으면 미렌더(빈 별·0.0 금지). 새 색 토큰 없음. 부제 11px는 CLAUDE.md §5 하한(12px)으로 클램프 */}
         <div className="grid grid-cols-2 gap-[11px] border-b border-border pb-[15px]">
           {spot.nearestStation && spot.transitMinutes != null && (
             <div className="flex items-start gap-[9px]">
@@ -211,6 +211,18 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
               </div>
               {/* 주 문구 = 좌측 리스트 메타줄과 동일(formatTransit 단일 소스). 수단(도보/차로)이 이미 담겨 부제 생략(§8② 중복 회피) */}
               <span className="block text-[12.5px] font-normal text-fg break-keep">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</span>
+            </div>
+          )}
+          {/* 별점 — rating 있을 때만(평균 파생). 순서: 교통 다음, 작품 앞 → 2×2 (교통·별점·작품·스토리) */}
+          {spot.rating != null && (
+            <div className="flex items-start gap-[9px]">
+              <div className="w-[30px] h-[30px] rounded-[9px] bg-surface2 border border-border flex items-center justify-center shrink-0">
+                <span className="text-[12.5px] leading-none">⭐</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block text-[12.5px] font-normal text-fg">{spot.rating.toFixed(1)}</span>
+                <span className="block text-xs text-muted">평점 {spot.ratingCount}개</span>
+              </div>
             </div>
           )}
           <div className="flex items-start gap-[9px]">

@@ -6,7 +6,7 @@ import { MapPin } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 
-type SpotWithMovie = Spot & { movie: { title: string } | null };
+type SpotWithMovie = Spot & { movie: { title: string } | null; storySpots?: { rating: number | null }[] };
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 
 type ActionState = { error: string } | null;
@@ -58,6 +58,7 @@ export function StoryWriteForm({ action, initialData, userId, spots = [], availa
     nearestStation: s.nearestStation ?? null,
     transitMinutes: s.transitMinutes ?? null,
     transitMode: s.transitMode ?? null, // 편집 재사용 시 mode 보존 (payload 왕복 — 없으면 저장 시 null로 지워짐)
+    rating: s.storySpots?.[0]?.rating ?? null, // per-visit 별점 왕복 보존 (StorySpot에서 로드)
   })), []);
 
   const [spotsJson, setSpotsJson] = useState(() => JSON.stringify(initialLocalSpots));

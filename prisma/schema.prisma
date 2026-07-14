@@ -112,6 +112,7 @@ model StorySpot {
   order     Int
   review    String?
   photoUrl  String?  @map("photo_url")
+  rating    Int? // per-visit 별점 1~5 (B2). Spot의 ★는 이 값들의 평균(파생). 범위는 앱단 검증
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

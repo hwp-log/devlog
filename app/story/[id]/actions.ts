@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 import { extractStoragePath, resolvePhotoIntent } from '@/lib/story/photo-cleanup';
 import { findNearestTransit } from '@/lib/spot/autoTransit';
+import { clampRating } from '@/lib/spot/rating';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -153,11 +154,19 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       // 표지: 스팟 수만큼 순차 upsert(N쿼리). 현재 스토리당 스팟 소수라 무해 — 많아지면 Promise.all/raw SQL ON CONFLICT 검토.
       const derivedSpotIds = derived.map((r) => r.id);
       await tx.storySpot.deleteMany({ where: { storyId, spotId: { notIn: derivedSpotIds } } });
+      // rating은 Spot 컬럼이 아니라 StorySpot에만 존재 → derived(Spot 조회)로 안 흐름.
+      // payload(spotsData)에서 실 spotId(신규는 tmpToReal 경유)로 매핑해 upsert에 스레딩.
+      const ratingBySpotId = new Map<string, number | null>();
+      for (const sp of spotsData) {
+        const realId = sp.id.startsWith('tmp_') ? tmpToReal.find((t) => t.tmpId === sp.id)?.realId : sp.id;
+        if (realId) ratingBySpotId.set(realId, clampRating(sp.rating));
+      }
       for (const r of derived) {
+        const rating = ratingBySpotId.get(r.id) ?? null; // update에 포함 → 편집 시 별점 갱신 가능(정정)
         await tx.storySpot.upsert({
           where: { storyId_spotId: { storyId, spotId: r.id } },
-          update: { order: r.order, review: r.review, photoUrl: r.photoUrl },
-          create: { storyId, spotId: r.id, order: r.order, review: r.review, photoUrl: r.photoUrl },
+          update: { order: r.order, review: r.review, photoUrl: r.photoUrl, rating },
+          create: { storyId, spotId: r.id, order: r.order, review: r.review, photoUrl: r.photoUrl, rating },
         });
       }
       // spot_movies는 재도출(delete→create) 유지 — 검증상 story 편집이 description을 손상하지 않음

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Trash2, X } from 'lucide-react';
+import { Star, Trash2, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
 import { searchMoviesAction, submitMovie } from '@/app/movies/actions';
 import type { MovieSuggestion } from '@/lib/movie/queries';
@@ -18,7 +18,7 @@ type SpotPopupProps = {
   onDelete?: () => void;
   onClose?: () => void;
   readOnly?: boolean;
-  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null; movieId?: string | null; movieTitle?: string | null }) => void;
+  onUpdate?: (fields: { name?: string; review?: string; photoUrl?: string | null; movieId?: string | null; movieTitle?: string | null; rating?: number | null }) => void;
   onFileSelect?: (file: File | null) => void;
   initialEditing?: boolean;
   initialNameInput?: string;
@@ -31,6 +31,7 @@ const MAX_SIZE = 5 * 1024 * 1024;
 const spotFormSchema = z.object({
   name: z.string().trim().min(1),
   review: z.string(),
+  rating: z.number().int().min(1).max(5).nullable(),
   movieQuery: z.string(),
   movieId: z.string().nullable(),
   movieTitle: z.string(),
@@ -66,6 +67,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     defaultValues: {
       name: initialNameInput ?? spot.name,
       review: spot.review ?? '',
+      rating: spot.rating ?? null,
       movieQuery: '',
       movieId: spot.movieId ?? null,
       movieTitle: spot.movieTitle ?? '',
@@ -75,6 +77,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
   });
 
   const nameValue = watch('name');
+  const rating = watch('rating');
   const photoFile = watch('photoFile');
   const photoCleared = watch('photoCleared');
   const movieQuery = watch('movieQuery');
@@ -99,6 +102,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     reset({
       name: spot.name,
       review: spot.review ?? '',
+      rating: spot.rating ?? null,
       movieQuery: '',
       movieId: spot.movieId ?? null,
       movieTitle: spot.movieTitle ?? '',
@@ -186,7 +190,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     if (values.photoCleared) {
       // 비우기 = 부모에 의도 전달까지만 (지연 반영) — DB·Storage 반영은 상단 "수정" 제출(updateStoryAction)이 담당
       onFileSelect?.(null);
-      onUpdate?.({ name: updatedName, review: updatedReview, photoUrl: null, ...movieFields });
+      onUpdate?.({ name: updatedName, review: updatedReview, rating: values.rating, photoUrl: null, ...movieFields });
       setIsEditing(false);
       return;
     }
@@ -201,6 +205,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     onUpdate?.({
       name: updatedName,
       review: updatedReview,
+      rating: values.rating,
       ...(updatedPhotoUrl !== undefined && { photoUrl: updatedPhotoUrl }),
       ...movieFields,
     });
@@ -303,6 +308,40 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
               <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
                 리뷰 작성...
               </p>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {/* 별점 — per-visit (1~5, 같은 별 재클릭 시 취소). 편집=선택 / 보기=채운 별. rating 없으면 readOnly에서 미표시 */}
+      {(!readOnly || spot.rating != null) && (
+        <>
+          <div className="border-t border-slate-100 mx-4" />
+          <div className="p-4">
+            <span className="text-sm font-medium text-slate-700 block mb-2">별점</span>
+            {isEditing ? (
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setValue('rating', i === rating ? null : i)}
+                    className="p-0.5"
+                    aria-label={`${i}점`}
+                  >
+                    <Star size={22} className={i <= (rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'} />
+                  </button>
+                ))}
+                {rating != null && <span className="ml-1 text-sm text-slate-500">{rating}점</span>}
+              </div>
+            ) : spot.rating != null ? (
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Star key={i} size={18} className={i <= spot.rating! ? 'fill-amber-400 text-amber-400' : 'text-slate-300'} />
+                ))}
+              </div>
+            ) : !readOnly ? (
+              <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>별점 매기기...</p>
             ) : null}
           </div>
         </>

@@ -22,6 +22,8 @@ export type SpotFinderSpot = {
   nearestStation: string | null; // 교통 기준점 (수동 입력 v1)
   transitMinutes: number | null;
   transitMode: string | null; // 'walk'|'car' — formatTransit 수단 표기 (없으면 이름 규칙 폴백)
+  rating: number | null; // 파생: rating 있는 StorySpot 평균(소수1). 없으면 null → 별점 셀 미렌더
+  ratingCount: number; // rating 있는 방문(StorySpot) 수
   thumbnailUrl: string | null; // 도출: 사진 있는 최신 스토리의 story_spots.photo_url (좌측·마커·히어로 공용)
   movies: { id: string; title: string; description: string | null }[]; // 최신 연결순 (spot_movies.created_at desc). description = per-link 촬영 장면 설명
   primaryMovie: { id: string; title: string }; // 대표 = movies[0]. where 보장으로 항상 존재
@@ -58,6 +60,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
         orderBy: { story: { createdAt: 'desc' } }, // 최신 스토리 우선 (to-one 정렬). 파생은 아래 JS 정렬로 재보장 — 이 DB 정렬에 비의존
         select: {
           photoUrl: true,
+          rating: true,
           story: {
             select: {
               id: true,
@@ -84,6 +87,10 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
     const thumbnailUrl = storySpots.find((ss) => ss.photoUrl)?.photoUrl ?? s.coverUrl ?? null;
     const latestAuthor = storySpots[0]?.story.user ?? null;
     const authorCount = new Set(storySpots.map((ss) => ss.story.user.id)).size;
+    // 별점 평균 — rating 있는 방문만 집계(null 제외). 하나도 없으면 null → 우측 패널 별점 셀 미렌더.
+    const ratings = storySpots.map((ss) => ss.rating).filter((r): r is number => r != null);
+    const ratingCount = ratings.length;
+    const rating = ratingCount > 0 ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratingCount) * 10) / 10 : null;
 
     return {
       id: s.id,
@@ -95,6 +102,8 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       nearestStation: s.nearestStation,
       transitMinutes: s.transitMinutes,
       transitMode: s.transitMode,
+      rating,
+      ratingCount,
       thumbnailUrl,
       movies,
       primaryMovie: movies[0],

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 import { findNearestTransit } from '@/lib/spot/autoTransit';
+import { clampRating } from '@/lib/spot/rating';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -96,7 +97,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
 
         // dual-write (S1): story_spots(per-visit) + spot_movies 미러. photoUrl은 tx 밖 업로드 후 갱신
         await tx.storySpot.create({
-          data: { storyId: s.id, spotId: created.id, order: i + 1, review: spot.review ?? null, photoUrl: null },
+          data: { storyId: s.id, spotId: created.id, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
         });
         if (spot.movieId) {
           await tx.spotMovie.create({ data: { spotId: created.id, movieId: spot.movieId } });
