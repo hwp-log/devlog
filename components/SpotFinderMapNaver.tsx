@@ -600,7 +600,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
-    mapInstance?.panTo(new naver.maps.LatLng(spot.lat, spot.lng));
+    if (!mapInstance) return;
+    // 0215: 프로그램 이동 종착은 항상 ② 분해 조망(단일 지점 = 124-126 퇴화 선례와 동일).
+    // panTo(중심만)로는 줌 아웃 시 클러스터가 안 풀림 → morph로 중심·줌(STAGE2_MAX_ZOOM) 원자 전환.
+    // 첫 진입 화면(INITIAL_ZOOM=STAGE2_MAX_ZOOM=11)과 동일 뷰 재현. 초기 선택은 이 경로를 안 타므로 0172 불변.
+    mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), STAGE2_MAX_ZOOM, STAGE2_TRANSITION);
   }
 
   // 마커 클릭 리스너의 스테일 클로저 방지 — 매 커밋 최신 핸들러 동기화 (렌더 중 ref 쓰기 금지 규칙 준수)
