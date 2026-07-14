@@ -182,6 +182,14 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
       const derivedSpotIds = derived.map((r) => r.id);
       // S3-a: 재사용 스팟 target id — story_spots deleteMany의 notIn에 합쳐 재사용 조인이 편집마다 안 지워지게.
       const reusedSpotIds = spotsData.filter((s) => s.reusedSpotId).map((s) => s.reusedSpotId!);
+      // 0208: 이 스토리에서 떨어져 나갈 storySpot의 spotId를 deleteMany 전에 캡처 (참조 0 청소 후보).
+      const droppedRefSpotIds = (
+        await tx.storySpot.findMany({
+          where: { storyId, spotId: { notIn: [...derivedSpotIds, ...reusedSpotIds] } },
+          select: { spotId: true },
+          distinct: ['spotId'],
+        })
+      ).map((r) => r.spotId);
       await tx.storySpot.deleteMany({ where: { storyId, spotId: { notIn: [...derivedSpotIds, ...reusedSpotIds] } } });
       // rating은 Spot 컬럼이 아니라 StorySpot에만 존재 → derived(Spot 조회)로 안 흐름.
       // payload(spotsData)에서 실 spotId(재사용=reusedSpotId / 신규=tmpToReal / owned=id)로 매핑해 upsert에 스레딩.
@@ -215,6 +223,13 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
           where: { storyId_spotId: { storyId, spotId: spot.reusedSpotId } },
           update: { order: i + 1, review: spot.review ?? null, rating: clampRating(spot.rating) },
           create: { storyId, spotId: spot.reusedSpotId, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
+        });
+      }
+      // 0208: 모든 storySpot 재도출 뒤 마지막에 실행. 편집에서 빠져 참조 0이 된 user orphan 스팟만 삭제.
+      // seed·타 스토리 참조(방금 재사용 포함, story_spots none 판정)·소유 스팟은 조건에서 탈락.
+      if (droppedRefSpotIds.length > 0) {
+        await tx.spot.deleteMany({
+          where: { id: { in: droppedRefSpotIds }, storyId: null, source: 'user', storySpots: { none: {} } },
         });
       }
     });
@@ -334,7 +349,20 @@ export async function deleteStoryAction(storyId: string): Promise<void> {
     if (shared.length > 0) {
       await tx.spot.updateMany({ where: { id: { in: shared } }, data: { storyId: null } });
     }
+    // 0208: 청소 후보 = 이 스토리가 참조하던 spotId. story.delete cascade로 story_spots가 0이 될 수 있어 delete 전 캡처.
+    const refSpotIds = (
+      await tx.storySpot.findMany({ where: { storyId }, select: { spotId: true }, distinct: ['spotId'] })
+    ).map((r) => r.spotId);
+
     await tx.story.delete({ where: { id: storyId } });
+
+    // 0208: orphan 전환·cascade 뒤에만 실행. 참조 0(story_spots none) + 주인 없음(storyId null) + user 인 후보만 삭제.
+    // seed 촬영지·타 스토리 참조 스팟은 조건에서 탈락. 조인·작품은 Spot FK Cascade로 자동 정리.
+    if (refSpotIds.length > 0) {
+      await tx.spot.deleteMany({
+        where: { id: { in: refSpotIds }, storyId: null, source: 'user', storySpots: { none: {} } },
+      });
+    }
   });
 
   redirect('/story');
