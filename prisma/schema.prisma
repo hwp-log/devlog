@@ -125,9 +125,10 @@ model StorySpot {
 // S1 expand: 장소↔작품 다대다 조인
 model SpotMovie {
   id        String   @id @default(cuid())
-  spotId    String   @map("spot_id")
-  movieId   String   @map("movie_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  spotId      String   @map("spot_id")
+  movieId     String   @map("movie_id")
+  description String?  // per-link 촬영 장면 설명 (RELATE_PLACE_DC). 같은 장소라도 작품마다 다름
+  createdAt   DateTime @default(now()) @map("created_at")
 
   spot  Spot  @relation(fields: [spotId], references: [id], onDelete: Cascade)
   movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)

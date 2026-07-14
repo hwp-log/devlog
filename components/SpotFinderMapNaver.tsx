@@ -221,9 +221,15 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
         {/* 이 장소의 작품 — 제목만 (썸네일·에피소드·년도·날짜 없음. B2 별점 미표시 — 자리 자체 없음) */}
         <div>
           <p className="text-xs font-medium text-muted mb-2">이 장소의 작품</p>
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-2.5">
             {spot.movies.map((m) => (
-              <li key={m.id} className="text-sm text-fg">{m.title}</li>
+              <li key={m.id}>
+                <p className="text-sm text-fg">{m.title}</p>
+                {/* per-link 촬영 장면 설명 — null이면 요소 자체 미렌더(빈 줄·플레이스홀더 금지) */}
+                {m.description && (
+                  <p className="mt-0.5 text-xs text-muted line-clamp-2 break-keep">{m.description}</p>
+                )}
+              </li>
             ))}
           </ul>
         </div>
@@ -692,10 +698,13 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
       <div className="relative flex-1 min-w-0 md:border-r md:border-[rgba(255,255,255,0.12)]">
 
-        {/* 우하단 안내 배너 — 정보 표시용 (지도 드래그 방해 X) */}
-        <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-center gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
-          <Info size={12} className="text-muted shrink-0" />
-          <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
+        {/* 우하단 안내 배너 — 제공 범위 + 공공데이터 출처 표기(의무). 2행 스택, items-start로 아이콘 상단 정렬 */}
+        <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
+          <Info size={12} className="mt-0.5 text-muted shrink-0" />
+          <div className="flex flex-col leading-snug">
+            <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
+            <span className="text-xs text-muted">출처: 한국문화정보원 미디어콘텐츠</span>
+          </div>
         </div>
 
         {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비) */}

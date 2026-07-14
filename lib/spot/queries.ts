@@ -22,7 +22,7 @@ export type SpotFinderSpot = {
   nearestStation: string | null; // 교통 기준점 (수동 입력 v1)
   transitMinutes: number | null;
   thumbnailUrl: string | null; // 도출: 사진 있는 최신 스토리의 story_spots.photo_url (좌측·마커·히어로 공용)
-  movies: { id: string; title: string }[]; // 최신 연결순 (spot_movies.created_at desc)
+  movies: { id: string; title: string; description: string | null }[]; // 최신 연결순 (spot_movies.created_at desc). description = per-link 촬영 장면 설명
   primaryMovie: { id: string; title: string }; // 대표 = movies[0]. where 보장으로 항상 존재
   extraMovieCount: number; // 배지 "+N"
   movieCount: number;
@@ -49,7 +49,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       transitMinutes: true,
       spotMovies: {
         orderBy: { createdAt: 'desc' }, // 최신 연결순 (S1 백필서 created_at 승계 → 결정적)
-        select: { movie: { select: { id: true, title: true } } },
+        select: { description: true, movie: { select: { id: true, title: true } } },
       },
       storySpots: {
         orderBy: { story: { createdAt: 'desc' } }, // 최신 스토리 우선 (to-one 정렬). 파생은 아래 JS 정렬로 재보장 — 이 DB 정렬에 비의존
@@ -70,7 +70,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
   });
 
   return rows.map((s) => {
-    const movies = s.spotMovies.map((sm) => sm.movie);
+    const movies = s.spotMovies.map((sm) => ({ ...sm.movie, description: sm.description }));
     // 파생이 DB 정렬에 의존하지 않도록 코드가 최신순을 보장 — S3 다중 스토리에서 Prisma 정렬 누락 시
     // "엉뚱한 썸네일·대표 작성자"로 조용히 틀리는 것을 차단. 스팟 내부 배열 정렬(리스트 재정렬 아님).
     const storySpots = [...s.storySpots].sort(
