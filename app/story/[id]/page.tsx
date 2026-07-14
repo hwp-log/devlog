@@ -22,7 +22,15 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       where: { id },
       include: {
         tags: true,
-        spots: { include: { movie: { select: { title: true } } }, orderBy: { order: 'asc' } },
+        // S2 미전환분 수정: story_spots 조인 기준 (S3-a 재사용 스팟은 owned Spot이 없어 story.spots로는 안 잡힘).
+        storySpots: {
+          orderBy: { order: 'asc' },
+          select: {
+            order: true, review: true, photoUrl: true, rating: true,
+            // 작품은 spot_movies 조인(복수) — 레거시 spot.movie(단수)는 재사용 seed 스팟에서 null이라 누락됨.
+            spot: { include: { spotMovies: { orderBy: { createdAt: 'desc' }, select: { movie: { select: { id: true, title: true } } } } } },
+          },
+        },
         plan: {
           select: {
             isPublic: true,
@@ -44,12 +52,19 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
   ]);
   if (!story) notFound();
 
-  const localSpots: LocalSpot[] = story.spots.map((s) => ({
-    id: s.id, name: s.name, lat: s.lat, lng: s.lng, order: s.order,
-    photoUrl: s.photoUrl, review: s.review, address: s.address, description: s.description,
-    movieId: s.movieId ?? null,
-    movieTitle: s.movie?.title ?? null,
-  }));
+  // per-visit(order/review/photoUrl/rating)은 story_spot 조인에서, per-place(name/좌표/작품/주소)는 spot에서.
+  // 작품: spot_movies 최신 연결순(0185 대표 규칙) → 대표 1개 + extraMovieCount("+N"). SpotFinder와 동일 정책.
+  const localSpots: LocalSpot[] = story.storySpots.map((ss) => {
+    const movies = ss.spot.spotMovies.map((sm) => sm.movie);
+    return {
+      id: ss.spot.id, name: ss.spot.name, lat: ss.spot.lat, lng: ss.spot.lng, order: ss.order,
+      photoUrl: ss.photoUrl, review: ss.review, address: ss.spot.address, description: ss.spot.description,
+      movieId: movies[0]?.id ?? null,
+      movieTitle: movies[0]?.title ?? null,
+      extraMovieCount: Math.max(0, movies.length - 1),
+      rating: ss.rating ?? null,
+    };
+  });
 
   const isOwner = currentUser?.id === story.userId;
 
@@ -111,7 +126,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           />
         </div>
       </div>
-      {story.spots.length > 0 && (
+      {story.storySpots.length > 0 && (
         <div className="mt-6">
           <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
             <MapPin size={16} />
