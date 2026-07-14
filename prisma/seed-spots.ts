@@ -71,6 +71,7 @@ async function main() {
           address: seed.address,
           lat: seed.lat,
           lng: seed.lng,
+          source: "seed", // 0207: 시딩 프로비넌스. 청소 로직(0208) 보호 대상 표식
           order: 0, // Spot.order NOT NULL. 리스트 정렬축은 createdAt이라 미사용 — 0 고정(교통·사진 0191/0192)
           // storyId 생략(null) / movieId 생략(null) / nearestStation·transitMinutes·photoUrl 미기입
         },

@@ -35,6 +35,12 @@ enum UserRole {
   ADMIN
 }
 
+// 0207: Spot 프로비넌스. 'seed'=시딩 촬영지(청소 보호)/'user'=사용자 생성. 0208 청소 로직 분기축
+enum SpotSource {
+  seed
+  user
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
@@ -92,6 +98,7 @@ model Spot {
   nearestStation String? @map("nearest_station") // 교통 기준점 이름 ("강릉역"/"제주공항") — 수동 입력 v1
   transitMinutes Int?    @map("transit_minutes") // 기준점에서 소요 분 — 자동 계산은 시딩 후 별도
   transitMode    String? @map("transit_mode") // 'walk'|'car'. 거리 기반 판정으로 이름 파생 불가 → 저장(transit.ts 주석 예고 시점)
+  source      SpotSource @default(user) // 0207: 프로비넌스. 청소/보호 분기(0208)의 단일 소스. 이번 커밋은 읽지 않음
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
