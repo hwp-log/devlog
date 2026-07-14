@@ -183,7 +183,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
           data: withMovie.map((r) => ({ spotId: r.id, movieId: r.movieId! })),
         });
       }
-      // S3-a 재사용 스팟: 방문 기록(StorySpot)·작품 링크만 upsert — 공유 Spot·기존 spot_movies(description) 미접촉.
+      // S3-a 재사용 스팟: 방문 기록(StorySpot)만 upsert. 작품(SpotMovie)은 안 씀 — 공유 자산이라
+      // 방문 스토리가 공유 장소의 작품을 바꾸면 전원에 영향(작품 편집 불가 정책). 공유 Spot·spot_movies 미접촉.
       for (const [i, spot] of spotsData.entries()) {
         if (!spot.reusedSpotId) continue;
         await tx.storySpot.upsert({
@@ -191,13 +192,6 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
           update: { order: i + 1, review: spot.review ?? null, rating: clampRating(spot.rating) },
           create: { storyId, spotId: spot.reusedSpotId, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
         });
-        if (spot.movieId) {
-          await tx.spotMovie.upsert({
-            where: { spotId_movieId: { spotId: spot.reusedSpotId, movieId: spot.movieId } },
-            create: { spotId: spot.reusedSpotId, movieId: spot.movieId },
-            update: {},
-          });
-        }
       }
     });
   } catch (e) {

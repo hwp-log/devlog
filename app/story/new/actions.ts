@@ -108,7 +108,8 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
         await tx.storySpot.create({
           data: { storyId: s.id, spotId: targetSpotId, order: i + 1, review: spot.review ?? null, photoUrl: null, rating: clampRating(spot.rating) },
         });
-        if (spot.movieId) {
+        // 재사용(공유) 스팟은 작품을 쓰지 않음 — 공유 자산 오염 방지(작품 편집 불가 정책). 신규/owned만 기록.
+        if (spot.movieId && !spot.reusedSpotId) {
           await tx.spotMovie.upsert({
             where: { spotId_movieId: { spotId: targetSpotId, movieId: spot.movieId } },
             create: { spotId: targetSpotId, movieId: spot.movieId },
