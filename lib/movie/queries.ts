@@ -27,9 +27,9 @@ export async function searchMovies(
   const rows = await prisma.$queryRaw<
     Array<{ id: string; title: string; spot_count: bigint }>
   >`
-    SELECT m.id, m.title, COUNT(s.id) AS spot_count
+    SELECT m.id, m.title, COUNT(DISTINCT sm.spot_id) AS spot_count
     FROM movies m
-    LEFT JOIN spots s ON s.movie_id = m.id
+    LEFT JOIN spot_movies sm ON sm.movie_id = m.id
     WHERE m.status = 'APPROVED'
       AND REPLACE(LOWER(m.title), ' ', '') LIKE ${pattern}
     GROUP BY m.id
@@ -71,9 +71,9 @@ export async function findMergeCandidates(
   const rows = await prisma.$queryRaw<
     Array<{ id: string; title: string; spot_count: bigint }>
   >`
-    SELECT m.id, m.title, COUNT(s.id) AS spot_count
+    SELECT m.id, m.title, COUNT(DISTINCT sm.spot_id) AS spot_count
     FROM movies m
-    LEFT JOIN spots s ON s.movie_id = m.id
+    LEFT JOIN spot_movies sm ON sm.movie_id = m.id
     WHERE m.status = 'APPROVED'
       AND REPLACE(LOWER(m.title), ' ', '') LIKE ${pattern}
     GROUP BY m.id

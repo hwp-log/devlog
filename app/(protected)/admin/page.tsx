@@ -7,12 +7,12 @@ export default async function AdminPage() {
   const [pending, approved] = await Promise.all([
     prisma.movie.findMany({
       where: { status: 'PENDING' },
-      include: { _count: { select: { spots: true } } },
+      include: { _count: { select: { spotMovies: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.movie.findMany({
       where: { status: 'APPROVED' },
-      include: { _count: { select: { spots: true } } },
+      include: { _count: { select: { spotMovies: true } } },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
@@ -45,7 +45,7 @@ export default async function AdminPage() {
               key={m.id}
               id={m.id}
               title={m.title}
-              spotCount={m._count.spots}
+              spotCount={m._count.spotMovies}
               createdAt={m.createdAt}
               candidates={m.candidates}
             />
@@ -67,7 +67,7 @@ export default async function AdminPage() {
               key={m.id}
               id={m.id}
               title={m.title}
-              spotCount={m._count.spots}
+              spotCount={m._count.spotMovies}
               createdAt={m.createdAt}
             />
           ))
