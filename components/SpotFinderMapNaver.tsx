@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { X, ChevronLeft, ChevronRight, Info, Heart } from 'lucide-react';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
@@ -270,8 +271,9 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
               {spot.stories.map((story) => (
                 <li key={story.id}>
                   {/* 카드 배경 surface2 — 모바일 플로팅(bg-card)·데탑 aside(bg-bg) 양쪽에서 보이는 유일 surface.
-                      hover는 lighter 토큰 부재로 opacity solidify(휴지 /80 → hover 100%). 클릭 이동은 0201. */}
-                  <div className="flex items-center gap-3 rounded-[13px] bg-surface2/80 px-3 py-2.5 transition-colors hover:bg-surface2">
+                      hover는 lighter 토큰 부재로 opacity solidify(휴지 /80 → hover 100%).
+                      0210: Link로 스토리 상세 이동(같은 탭). story.id는 이미 내려옴 — 추가 쿼리 없음. */}
+                  <Link href={`/story/${story.id}`} className="flex items-center gap-3 rounded-[13px] bg-surface2/80 px-3 py-2.5 transition-colors hover:bg-surface2">
                     {story.photoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={story.photoUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
@@ -289,7 +291,7 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
                       </div>
                     </div>
                     <ChevronRight size={16} className="text-muted shrink-0" />
-                  </div>
+                  </Link>
                 </li>
               ))}
             </ul>
