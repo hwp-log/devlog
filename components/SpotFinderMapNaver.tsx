@@ -261,29 +261,34 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           </ul>
         </div>
 
-        {/* 다녀온 이야기 — 그 스토리 자신의 사진 + 발췌 + 작성자 + 작성일 + 좋아요 수 */}
+        {/* 다녀온 이야기 — 카드형(시안): 사진(방문 증거) + 인용 발췌 + 메타(작성자·♥·날짜) + › .
+            작품↔이야기 구분선은 이 래퍼의 border-t (조건부라 이야기 없으면 라인도 없음 — dangling 방지). */}
         {spot.stories.length > 0 && (
-          <div>
+          <div className="border-t border-border pt-4">
             <p className="text-xs font-medium text-muted mb-2">다녀온 이야기</p>
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-2">
               {spot.stories.map((story) => (
-                <li key={story.id} className="flex gap-3">
-                  {story.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={story.photoUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-[10px] bg-surface2 shrink-0" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-fg2 line-clamp-2 break-keep">{story.excerpt}</p>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                      <span className="truncate">{story.author.nickname}</span>
-                      <span className="shrink-0">·</span>
-                      <span className="shrink-0">{formatYmd(story.createdAt)}</span>
-                      <span className="shrink-0 ml-auto flex items-center gap-0.5">
-                        <Heart size={11} /> {story.likeCount}
-                      </span>
+                <li key={story.id}>
+                  {/* 카드 배경 surface2 — 모바일 플로팅(bg-card)·데탑 aside(bg-bg) 양쪽에서 보이는 유일 surface.
+                      hover는 lighter 토큰 부재로 opacity solidify(휴지 /80 → hover 100%). 클릭 이동은 0201. */}
+                  <div className="flex items-center gap-3 rounded-[13px] bg-surface2/80 px-3 py-2.5 transition-colors hover:bg-surface2">
+                    {story.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={story.photoUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-[10px] bg-surface2 shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12.5px] leading-[1.6] text-fg2 line-clamp-2 break-keep">&ldquo;{story.excerpt}&rdquo;</p>
+                      <div className="mt-1.5 flex items-center gap-2 text-xs text-muted">
+                        <span className="truncate">{story.author.nickname}</span>
+                        <span className="shrink-0 flex items-center gap-0.5">
+                          <Heart size={11} /> {story.likeCount}
+                        </span>
+                        <span className="shrink-0">{formatYmd(story.createdAt)}</span>
+                      </div>
                     </div>
+                    <ChevronRight size={16} className="text-muted shrink-0" />
                   </div>
                 </li>
               ))}
