@@ -100,6 +100,9 @@ const INITIAL_CENTER = { lat: 37.5658, lng: 126.94746 };
 const INITIAL_ZOOM = 11;
 // 0213: 포트폴리오 시연용 첫 화면 고정 스팟(seed=source='seed', 0208 청소 보호). 이름 기반 — id는 환경마다 다름(0207)
 const FEATURED_SPOT_NAME = '롯데월드몰';
+// 0217: 전체 뷰 fitBounds에서 제주(33도대) 제외 — 육지 최남단(해남 34.29)과 제주 최북(33.56) 사이.
+// 실측상 lat 33.51(제주공항)~35.35(동부마을) 공백이라 34.0은 안전한 경계. 마커·목록엔 영향 없음(bounds 계산 전용).
+const MAINLAND_LAT_MIN = 34.0;
 
 // 3단계형 내비게이션: 프로그램 이동(칩·클러스터 클릭·리사이즈 재적합)의 종착은 항상
 // ② 분해 조망 — ③ 개별 확대는 사용자 휠·핀치 전용 (프로그램 경로 없음)
@@ -393,6 +396,15 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     [visibleSpots, spotMatches]
   );
 
+  // 0217: fitBounds 입력 — "전체" 칩(selectedMovieId=null)일 때만 제주 제외(과축소·흔들림 제거).
+  // 작품 칩은 visibleSpots 그대로(무변경). 전부 제주면(작품 칩 아닌 한 불가) visibleSpots로 폴백.
+  // 마커·목록(visibleSpots/listSpots)은 무영향 — 제주는 계속 노출.
+  const boundsSpots = useMemo(() => {
+    if (selectedMovieId !== null) return visibleSpots;
+    const mainland = visibleSpots.filter((s) => s.lat >= MAINLAND_LAT_MIN);
+    return mainland.length > 0 ? mainland : visibleSpots;
+  }, [visibleSpots, selectedMovieId]);
+
   // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제)
   useEffect(() => {
     if (!ready || !mapDivRef.current) return;
@@ -520,7 +532,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     if (selectedMovieId === prevMovieIdRef.current) return;
     prevMovieIdRef.current = selectedMovieId;
     hasFitRef.current = true;
-    fitMapToSpots(mapInstance, visibleSpots);
+    fitMapToSpots(mapInstance, boundsSpots); // 0217: 전체 칩 시 제주 제외된 육지 bounds
   }, [selectedMovieId, mapInstance]);
 
   // 사용자 조작 감지 — 순수 제스처만 신뢰 (dragstart/pinchstart/dblclick + DOM wheel).
@@ -579,7 +591,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         const center = mapInstance.getCenter();
         mapInstance.autoResize(); // 카카오 relayout() 상응
         if (!userInteractedRef.current && hasFitRef.current && visibleSpots.length > 0) {
-          fitMapToSpots(mapInstance, visibleSpots);
+          fitMapToSpots(mapInstance, boundsSpots); // 0217: 전체 상태 리사이즈 재적합도 제주 제외 유지
         } else {
           mapInstance.setCenter(center); // 초기 서울 뷰·사용자 조작 후 = 중심 보존 (전체 fit 점프 방지)
         }
@@ -591,7 +603,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [mapInstance, visibleSpots]);
+  }, [mapInstance, boundsSpots]);
 
   function scrollChips(dir: 'left' | 'right') {
     chipBarRef.current?.scrollBy({ left: dir === 'right' ? 150 : -150, behavior: 'smooth' });
