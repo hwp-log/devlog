@@ -361,7 +361,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       )}
 
       {/* 촬영 작품 */}
-      {(!readOnly || (isEditing ? movieId : spot.movieId)) && (
+      {(!readOnly || (isEditing ? movieId : spot.movieTitle)) && (
         <>
           <div className="border-t border-slate-100 mx-4" />
           <div className="p-4 relative">
@@ -414,7 +414,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                   )}
                 </div>
               )
-            ) : spot.movieId ? (
+            ) : spot.movieTitle ? (
               <p className="text-sm text-slate-600">{spot.movieTitle}{spot.extraMovieCount ? ` +${spot.extraMovieCount}` : ''}</p>
             ) : !readOnly ? (
               <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
