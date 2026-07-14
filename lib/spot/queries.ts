@@ -49,6 +49,7 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
       nearestStation: true,
       transitMinutes: true,
       transitMode: true,
+      coverUrl: true,
       spotMovies: {
         orderBy: { createdAt: 'desc' }, // 최신 연결순 (S1 백필서 created_at 승계 → 결정적)
         select: { description: true, movie: { select: { id: true, title: true } } },
@@ -78,8 +79,9 @@ export async function fetchSpotFinderSpots(): Promise<SpotFinderSpot[]> {
     const storySpots = [...s.storySpots].sort(
       (a, b) => b.story.createdAt.getTime() - a.story.createdAt.getTime(),
     );
-    // 사진 있는 최신 스토리 (정렬 최신순 → find가 곧 폴백 체인). 전부 없으면 null → 플레이스홀더
-    const thumbnailUrl = storySpots.find((ss) => ss.photoUrl)?.photoUrl ?? null;
+    // 사진 있는 최신 스토리(정렬 최신순 → find가 곧 폴백 체인) ?? 좌표 기반 커버(coverUrl) ?? null.
+    // 사용자 스토리 사진 우선(다녀와 찍은 per-visit), 없으면 API 대표 커버, 그래도 없으면 플레이스홀더.
+    const thumbnailUrl = storySpots.find((ss) => ss.photoUrl)?.photoUrl ?? s.coverUrl ?? null;
     const latestAuthor = storySpots[0]?.story.user ?? null;
     const authorCount = new Set(storySpots.map((ss) => ss.story.user.id)).size;
 

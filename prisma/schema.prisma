@@ -84,6 +84,7 @@ model Spot {
   lat         Float
   lng         Float
   photoUrl    String?  @map("photo_url")
+  coverUrl    String?  @map("cover_url") // 좌표 기반 촬영지 대표 커버 (KorService2 locationBasedList2). thumbnailUrl 폴백 소스
   review      String?  @map("review")
   address     String?  @map("address")
   movieId     String?  @map("movie_id")
