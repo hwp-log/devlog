@@ -148,13 +148,22 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
         where: { storyId },
         select: { id: true, order: true, review: true, photoUrl: true, movieId: true },
       });
-      await tx.storySpot.deleteMany({ where: { storyId } });
-      if (derived.length > 0) {
-        await tx.storySpot.createMany({
-          data: derived.map((r) => ({ storyId, spotId: r.id, order: r.order, review: r.review, photoUrl: r.photoUrl })),
+      // story_spots: (storyId, spotId) upsert — 기존 행·id 보존 (편집 시 per-visit 필드[미래 rating] 소실 방지).
+      // 제거된 스팟의 story_spots는 spot FK CASCADE(위 spot deleteMany)로 이미 삭제되나, 자기완결·방어적으로 명시 삭제.
+      // 표지: 스팟 수만큼 순차 upsert(N쿼리). 현재 스토리당 스팟 소수라 무해 — 많아지면 Promise.all/raw SQL ON CONFLICT 검토.
+      const derivedSpotIds = derived.map((r) => r.id);
+      await tx.storySpot.deleteMany({ where: { storyId, spotId: { notIn: derivedSpotIds } } });
+      for (const r of derived) {
+        await tx.storySpot.upsert({
+          where: { storyId_spotId: { storyId, spotId: r.id } },
+          update: { order: r.order, review: r.review, photoUrl: r.photoUrl },
+          create: { storyId, spotId: r.id, order: r.order, review: r.review, photoUrl: r.photoUrl },
         });
       }
-      await tx.spotMovie.deleteMany({ where: { spotId: { in: derived.map((r) => r.id) } } });
+      // spot_movies는 재도출(delete→create) 유지 — 검증상 story 편집이 description을 손상하지 않음
+      // (description은 seed 스팟[storyId=null]에만 있고, 이 재도출은 storyId=this 스팟만 스코프).
+      // 표지(S3): 스팟 공유로 storyId=null이 되면 seed/story 구분이 사라져 description 소실 가능 → 그때 upsert 재검토.
+      await tx.spotMovie.deleteMany({ where: { spotId: { in: derivedSpotIds } } });
       const withMovie = derived.filter((r) => r.movieId);
       if (withMovie.length > 0) {
         await tx.spotMovie.createMany({
