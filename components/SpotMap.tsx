@@ -236,8 +236,17 @@ export default function SpotMap({
   function chooseNearby(candidate: NearbySpot) {
     if (!nearbyChooser) return;
     const targetId = nearbyChooser.spotId;
+    // 작품은 표시 전용으로 실음(0203 잠금 유지·저장 경로 무접촉). candidate.movies는 title 배열 → 대표+N만 표시.
     const next = localSpots.map((s) =>
-      s.id === targetId ? { ...s, reusedSpotId: candidate.spotId, name: candidate.name } : s,
+      s.id === targetId
+        ? {
+            ...s,
+            reusedSpotId: candidate.spotId,
+            name: candidate.name,
+            movieTitle: candidate.movies[0] ?? null,
+            extraMovieCount: Math.max(0, candidate.movies.length - 1),
+          }
+        : s,
     );
     setLocalSpots(next);
     onSpotsChange?.(next);

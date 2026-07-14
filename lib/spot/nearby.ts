@@ -32,7 +32,7 @@ export async function findNearbySpots(
       name: true,
       lat: true,
       lng: true,
-      spotMovies: { select: { movie: { select: { title: true } } } },
+      spotMovies: { orderBy: { createdAt: 'desc' }, select: { movie: { select: { title: true } } } }, // 최신 연결 대표(0185)와 정합
       _count: { select: { storySpots: true } },
     },
   });
