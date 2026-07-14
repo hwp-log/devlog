@@ -213,6 +213,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
   }
 
   const showPhotoPreview = !!(photoFile || (spot.photoUrl && !photoCleared));
+  // 재사용(공유) 스팟은 작품 편집 불가 — 공유 자산이라 한 사용자 편집이 전원에 영향(시딩=공공데이터 출처). 표시만.
+  const movieLocked = !!spot.reusedSpotId;
   const errorMessage = errors.photoFile?.message ?? errors.root?.server?.message;
 
   return (
@@ -365,7 +367,14 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <div className="p-4 relative">
             <span className="text-sm font-medium text-slate-700 block mb-2">촬영 작품</span>
             {isEditing ? (
-              movieId ? (
+              movieLocked ? (
+                <div>
+                  <div className="flex items-center gap-2 border border-slate-200 bg-slate-50 rounded px-2 py-1 text-sm text-slate-500">
+                    <span className="flex-1 truncate">{spot.movieTitle ? `${spot.movieTitle}${spot.extraMovieCount ? ` +${spot.extraMovieCount}` : ''}` : '연결된 작품 없음'}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">공유 촬영지의 작품 정보는 수정할 수 없습니다</p>
+                </div>
+              ) : movieId ? (
                 <div className="flex items-center gap-2 border border-black/20 rounded px-2 py-1 text-sm">
                   <span className="flex-1 truncate">{movieTitle}</span>
                   <button type="button" onClick={clearMovie} className="text-slate-400 hover:text-slate-600">
