@@ -88,6 +88,14 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   </div>`;
 }
 
+// 0223: 미선택 라벨(pill) 폭 px 근사 — markerContent의 pill 파라미터 미러(font 12px, padding 9+9, border 1+1).
+// 한글 12px(1em)·라틴/숫자 6.7·공백 4. 클릭 줌 계산의 겹침 폭에만 쓰임(렌더에는 무영향).
+function labelWidthPx(name: string): number {
+  let g = 0;
+  for (const ch of name) g += ch === ' ' ? 4 : /[가-힣]/.test(ch) ? 12 : /[0-9A-Za-z]/.test(ch) ? 6.7 : 8;
+  return g + 18 + 2;
+}
+
 // 클러스터 핀 — Logo.tsx 기하 참조(머리 원 + 삼각 꼬리 + 바닥 그림자). 흰 구멍은 제거(0220) — 숫자는 흰 글씨로 머리에 직접.
 // viewBox 0 0 18 25, 36×50 렌더(k=2.0 균일): 머리 r8(⌀32) / tip(9,21)=좌표. 핀은 0220과 동일 좌표 — 캔버스 바닥에 1unit(2px)만 추가.
 // 그림자 cy23.6(tip 아래 3px 띄움 — 0221, 입체감) rx3.2 ry1.1 PRIMARY. 바닥 여백은 그림자 안착용 투명 공간뿐(핀 크기·tip 위치 불변).
@@ -116,15 +124,14 @@ const FEATURED_SPOT_NAME = '롯데월드몰';
 const MAINLAND_LAT_MIN = 34.0;
 
 // 3단계형 내비게이션: 칩 fitBounds·클러스터 클릭·리사이즈 재적합의 종착은 ② 분해 조망.
-// 예외 — 스팟 클릭(handleSpotSelect)은 최근접<1km면 z15(밀집)/그외 z11(한적)로 분기(0222). 그 외 프로그램 이동은 ② 유지.
+// 예외 — 스팟 클릭(handleSpotSelect)은 최근접 거리에서 비겹침 최소 줌을 연속 계산(z11~z16, 0223). 그 외 프로그램 이동은 ② 유지.
 const STAGE2_MAX_ZOOM = 11; // ② 상한 = 클러스터러 분해 임계와 단일 소스 공유 (분해 "시작" 지점)
 const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정 (판단값)
-// 0222: 스팟 클릭 목표 줌을 최근접 이웃 거리로 분기.
-// 임계 1km = 최근접 분포 자연 경계(도심·구룡포·월정사 클러스터 포착). z15 = 349m↑ 쌍 겹침 해소(도심 대부분).
-// z14(697m)는 종로 미해소·z16(175m)은 맥락 상실이라 기각. z11 = 한적 맥락 유지. (둘 다 ≥maxZoom(11)이라 분해 확정.)
-const DENSE_NEARBY_M = 1000;
-const CLICK_ZOOM_DENSE = 13;
-const CLICK_ZOOM_SPARSE = 11;
+// 0223: 클릭 목표 줌을 최근접 이웃 거리에서 연속 계산(단계·임계 제거).
+// z = round(log2(156543·cos(lat)·gapPx / D)), [z11, z16] 클램프. (줌 1↑ = 비겹침 거리 절반)
+const SPOT_CLICK_ZOOM_MIN = 11; // = STAGE2_MAX_ZOOM (하한·분해 임계·맥락). 계산값 <11이면 11.
+const SPOT_CLICK_ZOOM_MAX = 16; // 상한 — z16 비겹침 175m로 실 도심 전부 분리. 그 이하(구룡포 4m·중복좌표)는 불가, 여기서 멈춤.
+const EQUATOR_MPP_Z0 = 156543; // z0 적도 m/px (Web Mercator). mpp(z) = EQUATOR·cos(lat)/2^z
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
 // easing 'easeOutCubic' = SDK TransitionOptions 기본값(@types 주석 명시, 런타임 실측 확증)
@@ -630,17 +637,24 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
     if (!mapInstance) return;
-    // 0222: 목표 줌을 최근접 이웃 거리로 분기 — 밀집(라벨 겹침)은 z15로 벌리고, 한적은 z11로 맥락 유지.
-    // 비교 대상 = visibleSpots(렌더되는 마커) — 라벨 겹침은 그려진 마커 사이에서만 발생. 매 클릭 O(n) haversine(n≤65) 무해.
-    let nearest = Infinity;
+    // 0223: 최근접 이웃까지 거리에서 "라벨이 안 겹치는 최소 줌"을 연속 계산. 비교 대상 = visibleSpots(렌더 마커). 매 클릭 O(n) 무해.
+    let nearest = Infinity, nearestSpot: SpotFinderSpot | null = null;
     for (const other of visibleSpots) {
       if (other.id === spot.id) continue;
       const d = haversineM(spot.lat, spot.lng, other.lat, other.lng);
-      if (d < nearest) nearest = d;
+      if (d < nearest) { nearest = d; nearestSpot = other; }
     }
-    // 구룡포 가옥거리↔계단(4m) 등 <349m 초밀집 쌍은 z15로도 라벨이 안 벌어짐 — 완전 분리엔 z16↑ 필요하나 맥락 상실로 보류(주석만).
-    const targetZoom = nearest < DENSE_NEARBY_M ? CLICK_ZOOM_DENSE : CLICK_ZOOM_SPARSE;
-    // morph로 중심·줌 원자 전환(panTo는 줌 미변경). z15·z11 모두 ≥maxZoom(11)이라 클러스터 분해. 초기 선택은 이 경로 미경유(0172 불변).
+    let targetZoom = SPOT_CLICK_ZOOM_MIN; // 이웃 없음 → 하한(z11) 맥락
+    if (nearestSpot) {
+      // 비겹침: 중심거리(px) ≥ 두 라벨 half폭 합 = (Wa+Wb)/2. px = m/mpp, mpp = 156543·cos(lat)/2^z.
+      // ⇒ z = log2(156543·cos(lat)·gapPx / D). 라벨 폭은 실제 이름 길이(긴 이름 = 더 넓은 간격 필요).
+      const gapPx = (labelWidthPx(spot.name) + labelWidthPx(nearestSpot.name)) / 2;
+      const mppZ0 = EQUATOR_MPP_Z0 * Math.cos((spot.lat * Math.PI) / 180);
+      const zReq = Math.log2((mppZ0 * gapPx) / nearest); // nearest=0(중복좌표) → +Inf → 상한 클램프
+      targetZoom = Math.max(SPOT_CLICK_ZOOM_MIN, Math.min(SPOT_CLICK_ZOOM_MAX, Math.round(zReq)));
+    }
+    // 구룡포(4m)·중복좌표 등 어떤 줌으로도 안 풀리는 초밀집은 상한(z16)에서 멈춤 — 완전 분리 불가(별건).
+    // morph로 중심·줌 원자 전환(panTo는 줌 미변경). 계산 줌 모두 ≥maxZoom(11)이라 클러스터 분해. 초기 선택은 이 경로 미경유(0172 불변).
     mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), targetZoom, STAGE2_TRANSITION);
   }
 
