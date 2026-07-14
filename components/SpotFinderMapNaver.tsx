@@ -98,6 +98,8 @@ function clusterIconContent(): string {
 // 서쪽 끝 스팟이 들어오는 중심), 줌 11 = 1280px에서 4개 마커+라벨 전부 가시인 유일 줌(11.5부터 3/4)
 const INITIAL_CENTER = { lat: 37.5658, lng: 126.94746 };
 const INITIAL_ZOOM = 11;
+// 0213: 포트폴리오 시연용 첫 화면 고정 스팟(seed=source='seed', 0208 청소 보호). 이름 기반 — id는 환경마다 다름(0207)
+const FEATURED_SPOT_NAME = '롯데월드몰';
 
 // 3단계형 내비게이션: 프로그램 이동(칩·클러스터 클릭·리사이즈 재적합)의 종착은 항상
 // ② 분해 조망 — ③ 개별 확대는 사용자 휠·핀치 전용 (프로그램 경로 없음)
@@ -307,9 +309,13 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
-  // 초기 자동 선택: 최신 스팟(spots[0] — 쿼리 최신순 정렬) = 상호작용 안내용 첫 화면.
+  // 초기 자동 선택: 시연 고정 스팟(FEATURED_SPOT_NAME) ?? spots[0](최신순 폴백) = 상호작용 안내용 첫 화면.
   // handleSpotSelect(클릭 경로)를 타지 않는 state 초기값이라 지도 이동(panTo)이 구조적으로 없음
-  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(spots[0] ?? null);
+  const featuredSpot = useMemo(
+    () => spots.find((s) => s.name === FEATURED_SPOT_NAME) ?? spots[0] ?? null,
+    [spots],
+  );
+  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
@@ -391,9 +397,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     // WebGL 미지원 환경(구형 기기·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
     const supportsGl = !!document.createElement('canvas').getContext('webgl');
     if (!supportsGl) console.warn('[SpotFinderMapNaver] WebGL 미지원 — 래스터 폴백 (커스텀 스타일 미적용)');
-    // 초기 중심 = 초기 자동 선택 스팟(spots[0], 최신순) — 선택 마커가 화면 크기와 무관하게 정중앙 시작.
-    // spots가 비면 INITIAL_CENTER(서울 bbox 중점) 폴백. 생성 옵션만 — 렌더 후 이동 없음(0172 원칙)
-    const first = spots[0];
+    // 초기 중심 = 초기 선택 스팟(featuredSpot — 시연 고정 ?? spots[0]) — 선택 마커가 화면 크기와 무관하게 정중앙 시작.
+    // 못 찾거나 spots가 비면 INITIAL_CENTER(서울 bbox 중점) 폴백. 생성 옵션만 — 렌더 후 이동 없음(0172 원칙)
+    const first = featuredSpot;
     const map = new naver.maps.Map(mapDivRef.current, {
       center: new naver.maps.LatLng(first?.lat ?? INITIAL_CENTER.lat, first?.lng ?? INITIAL_CENTER.lng),
       zoom: INITIAL_ZOOM, // 초기 뷰 = 서울 확대 (전체 fitBounds 시작 폐지 — Effect A 마운트 발화 가드 참조)
