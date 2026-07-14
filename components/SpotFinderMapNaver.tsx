@@ -316,6 +316,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     [spots],
   );
   const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
+  const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
+  const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
   const [searchQuery, setSearchQuery] = useState('');
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
@@ -424,6 +426,17 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     };
     // spots를 deps에 넣지 않음(의도): RSC prop이라 router.refresh/revalidate 시 새 참조로 내려와
     // 지도가 파괴·재생성됨(뷰·줌 소실). init effect는 1회 생성이 의도 — spots[0]은 최초 마운트 값만 사용
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  // 0214: 첫 진입 시 좌측 목록을 선택 스팟(featuredSpot)으로 스크롤 — 선택 카드가 화면 중앙에 보이게.
+  // 리스트는 ready 이후에만 렌더(605)라 [ready]에 발화 + 1회 가드. 폴백(=맨 위)·featured 부재 시 스킵(불필요 스크롤 방지).
+  useEffect(() => {
+    if (!ready || didInitialScrollRef.current) return;
+    didInitialScrollRef.current = true;
+    if (featuredSpot && listSpots[0]?.id !== featuredSpot.id) {
+      selectedItemRef.current?.scrollIntoView({ block: 'center', behavior: 'auto' }); // 즉시 위치, 애니메이션 없음
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
@@ -683,7 +696,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           {listSpots.map((spot) => {
             const selected = selectedSpot?.id === spot.id;
             return (
-              <li key={spot.id}>
+              <li key={spot.id} ref={selected ? selectedItemRef : undefined}>
                 <button
                   type="button"
                   onClick={() => handleSpotSelect(spot)}
