@@ -352,7 +352,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     () => spots.find((s) => s.name === FEATURED_SPOT_NAME) ?? spots[0] ?? null,
     [spots],
   );
-  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
+  // 첫 진입 자동 선택은 데스크탑만 — 모바일은 미선택 시트(목록)로 시작(0242).
+  // ssr:false 클라 전용이라 초기화에서 matchMedia 안전. featuredSpot은 위 useMemo(선언 순서 OK).
+  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(
+    () => (typeof window !== 'undefined' && window.matchMedia(MOBILE_MQ).matches) ? null : featuredSpot,
+  );
   const [detailOpen, setDetailOpen] = useState(false); // 0224: 모바일 상세 풀스크린 모달(?detail=id, 네이티브 history)
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
