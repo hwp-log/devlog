@@ -885,18 +885,17 @@ export default function SpotFinderMapNaver({ spots }: Props) {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="min-w-0 text-sm font-semibold text-fg truncate break-keep">{selectedSpot.name}</p>
-                <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
-                  {selectedSpot.primaryMovie.title}{selectedSpot.extraMovieCount > 0 ? ` +${selectedSpot.extraMovieCount}` : ''}
-                </span>
-              </div>
+              <p className="text-sm font-semibold text-fg truncate break-keep">{selectedSpot.name}</p>
               {selectedSpot.nearestStation && selectedSpot.transitMinutes != null && (
                 <p className="mt-[3px] text-xs text-muted truncate">
                   {formatTransit(selectedSpot.nearestStation, selectedSpot.transitMinutes, selectedSpot.transitMode)}
                 </p>
               )}
-              <p className="mt-[3px] text-xs text-muted">스토리 {selectedSpot.storyCount}편</p>
+              <div className="mt-[3px]">
+                <span className="whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
+                  {selectedSpot.primaryMovie.title}{selectedSpot.extraMovieCount > 0 ? ` +${selectedSpot.extraMovieCount}` : ''}
+                </span>
+              </div>
             </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <button
