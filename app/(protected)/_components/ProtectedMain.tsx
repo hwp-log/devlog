@@ -13,7 +13,7 @@ export function ProtectedMain({ children }: { children: React.ReactNode }) {
     <main
       className={
         fullBleed
-          ? 'max-w-7xl mx-auto px-6 pt-8 pb-24 lg:max-w-none lg:px-0 lg:pt-0 lg:pb-0'
+          ? 'max-w-none' // 0225: 풀블리드 라우트(SpotFinder)는 전 폭 edge-to-edge — 모바일도 풀스크린 지도
           : 'max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8'
       }
     >

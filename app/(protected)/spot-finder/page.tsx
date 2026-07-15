@@ -1,27 +1,19 @@
 import { fetchSpotFinderSpots } from '@/lib/spot/queries';
 import SpotFinderMapWrapper from '@/components/SpotFinderMapWrapper';
-import { SpotFinderHeader } from './_components/SpotFinderHeader';
 
 export default async function SpotFinderPage() {
   const spots = await fetchSpotFinderSpots();
 
   return (
     <div data-theme="dark" className="bg-bg-deep">
-      <div className="md:hidden">
-        <SpotFinderHeader />
-      </div>
+      {/* 0225: 모바일 풀스크린 지도 배경(칩·카드 floating). 데스크탑은 rounded 없이 lg:overflow-hidden으로 3열 클립.
+          lg:overflow-hidden — 모바일은 clip 없음(fixed 카드/모달이 appear-up transform 조상에 클리핑되지 않게). */}
       <div className="h-spot-finder-map min-h-[440px]">
         <div
-          className="relative h-full rounded-2xl md:rounded-none overflow-hidden bg-card
-                     shadow-[0_30px_80px_rgba(0,0,0,0.22),0_10px_24px_rgba(0,0,0,0.14)] md:shadow-none appear-up"
+          className="relative h-full rounded-none bg-card lg:overflow-hidden appear-up"
           style={{ animationDelay: '0.24s' }}
         >
           <SpotFinderMapWrapper spots={spots} />
-          <div
-            aria-hidden
-            className="md:hidden pointer-events-none absolute inset-0 rounded-2xl
-                       shadow-[inset_0_4px_8px_rgba(255,255,255,0.6),inset_0_-14px_28px_rgba(0,0,0,0.16),inset_0_0_0_1px_rgba(0,0,0,0.05)]"
-          />
         </div>
       </div>
     </div>
