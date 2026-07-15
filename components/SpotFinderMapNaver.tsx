@@ -330,6 +330,12 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
             </ul>
           </div>
         )}
+
+        {/* 0240: 출처 표기(공공누리 출처표시) — 상세뷰에만 노출(지도·시트에선 제거). */}
+        <div className="flex items-start gap-1.5">
+          <Info size={12} className="mt-0.5 text-muted shrink-0" />
+          <span className="text-xs text-muted">출처: 한국문화정보원 미디어콘텐츠</span>
+        </div>
       </div>
     </>
   );
@@ -705,18 +711,6 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     );
   }
 
-  // 0239: 출처 표기(공공데이터 의무) 내용 — 데스크탑 지도 배너·모바일 시트 하단이 공유. 래퍼만 각자.
-  function renderSourceNote() {
-    return (
-      <>
-        <Info size={12} className="mt-0.5 text-muted shrink-0" />
-        <div className="flex flex-col leading-snug">
-          <span className="text-xs text-muted">출처: 한국문화정보원 미디어콘텐츠</span>
-        </div>
-      </>
-    );
-  }
-
   // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
@@ -884,11 +878,6 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
       <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
-        {/* 우하단 안내 배너 — 제공 범위 + 공공데이터 출처 표기(의무). 2행 스택, items-start로 아이콘 상단 정렬 */}
-        <div className="hidden lg:flex absolute right-3 z-[40] bottom-[calc(70px+env(safe-area-inset-bottom)+12px)] lg:bottom-6 lg:z-[1000] pointer-events-none items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
-          {renderSourceNote()}
-        </div>
-
         {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비) */}
         <div ref={mapDivRef} className="w-full h-full" />
       </div>
@@ -1015,10 +1004,6 @@ export default function SpotFinderMapNaver({ spots }: Props) {
               </li>
             ))}
           </ul>
-          {/* 0239: 출처 표기(의무) — 시트 하단 고정, 우측 정렬. 미선택 시트 안이라 자동으로 !selectedSpot일 때만 노출(0229 정합). */}
-          <div className="mt-2 flex items-start justify-end gap-1.5">
-            {renderSourceNote()}
-          </div>
         </div>
       )}
 
