@@ -924,6 +924,26 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         );
       })()}
 
+      {/* 0233: 모바일 미선택 하단 시트 (lg:hidden, 바닥밀착). 선택되면 위 선택 카드로 전환(배타). */}
+      {!selectedSpot && (
+        <div className="lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl max-h-[50svh] pt-4 px-4 pb-[calc(78px+env(safe-area-inset-bottom))]">
+          {/* 제목 + 총 N곳 (제목 텍스트·스타일 = 데탑 좌측 칼럼 헤더 준용, 카운트 = listSpots.length) */}
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-base font-semibold tracking-[-0.02em] text-fg break-keep">영화·드라마 촬영지 검색</h1>
+            <span className="shrink-0 text-xs text-muted">총 {listSpots.length}곳</span>
+          </div>
+          {/* 검색창 — searchQuery/onChange 재사용(신규 상태 없음). 모바일 16px(§5 iOS 자동 확대 방지) */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="작품명·촬영지를 입력하세요"
+            className="mt-3 w-full rounded-xl px-4 py-2.5 text-base border border-border bg-card text-fg placeholder:text-muted shadow-sm focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
+          />
+          {/* S3: 작품 칩 / S4: 스팟 목록 자리 (이번 범위 아님) */}
+        </div>
+      )}
+
       {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존. */}
       {detailOpen && selectedSpot && (
         <div className="lg:hidden fixed inset-0 z-[60] bg-bg overflow-y-auto" style={{ height: '100svh' }}>
