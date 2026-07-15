@@ -21,7 +21,7 @@ export function BottomTabBar() {
 
   return (
     <div
-      className="fixed left-[14px] right-[14px] bottom-[calc(14px+env(safe-area-inset-bottom))] z-40 lg:hidden overflow-hidden rounded-[22px] border border-slate-200/50 dark:border-white/15 bg-card/90 backdrop-blur-sm shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]"
+      className="fixed left-[14px] right-[14px] bottom-[calc(14px+env(safe-area-inset-bottom))] z-40 lg:hidden overflow-hidden rounded-[22px] border border-slate-200/50 dark:border-white/25 bg-card/90 backdrop-blur-sm shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]"
     >
       <nav aria-label="주요 메뉴" className="flex items-stretch h-14">
         {TABS.map(({ href, label, Icon }) => {
