@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { X, ChevronLeft, ChevronRight, Info, Heart } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, Heart } from 'lucide-react';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
 import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
@@ -356,7 +356,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
   const [detailOpen, setDetailOpen] = useState(false); // 0224: 모바일 상세 풀스크린 모달(?detail=id, 네이티브 history)
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
+  const mobileSelectedItemRef = useRef<HTMLLIElement | null>(null); // 0245: 모바일 시트 목록의 선택 li (0214와 동일 역할)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
+  const [sheetExpanded, setSheetExpanded] = useState(false); // 0245: 모바일 시트 반높이↔전체높이 탭 토글
   const [searchQuery, setSearchQuery] = useState('');
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
@@ -485,11 +487,13 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   // 0214: 첫 진입 시 좌측 목록을 선택 스팟(featuredSpot)으로 스크롤 — 선택 카드가 화면 중앙에 보이게.
   // 리스트는 ready 이후에만 렌더(605)라 [ready]에 발화 + 1회 가드. 폴백(=맨 위)·featured 부재 시 스킵(불필요 스크롤 방지).
+  // 0245: 모바일 시트 목록도 동일 처리 — display:none 쪽(반대 브레이크포인트)은 scrollIntoView가 no-op이라 분기 불필요.
   useEffect(() => {
     if (!ready || didInitialScrollRef.current) return;
     didInitialScrollRef.current = true;
     if (featuredSpot && listSpots[0]?.id !== featuredSpot.id) {
       selectedItemRef.current?.scrollIntoView({ block: 'center', behavior: 'auto' }); // 즉시 위치, 애니메이션 없음
+      mobileSelectedItemRef.current?.scrollIntoView({ block: 'center', behavior: 'auto' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
@@ -899,8 +903,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         )}
       </aside>
 
-      {/* 0233: 모바일 하단 시트 (lg:hidden, 바닥밀착). 0244: 선택과 무관하게 항상 목록 유지(선택 카드 배타 전환 폐지) — 선택은 행 하이라이트로 표시. */}
-      <div className="lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl max-h-[50svh] pt-4 px-4 pb-[calc(78px+env(safe-area-inset-bottom))]">
+      {/* 0233: 모바일 하단 시트 (lg:hidden, 바닥밀착). 0244: 선택과 무관하게 항상 목록 유지(선택 카드 배타 전환 폐지) — 선택은 행 하이라이트로 표시.
+          0245: 그래버 탭으로 반높이(58svh)↔전체높이(88svh) 토글 — max-height 전환(목록 50행이라 실높이가 max-h를 따라감. 콘텐츠가 짧으면 전환할 것이 없어 무변) */}
+      <div className={`lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl transition-[max-height] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${sheetExpanded ? 'max-h-[88svh]' : 'max-h-[58svh]'} pt-1 px-4 pb-[calc(78px+env(safe-area-inset-bottom))]`}>
+        {/* 0245: 높이 토글 그래버 — 히트 44×64(§5), 시각 chevron 18(0236 전례). 반높이=∧(펼치기)/전체=∨(접기) */}
+        <button
+          type="button"
+          aria-label={sheetExpanded ? '시트 접기' : '시트 펼치기'}
+          onClick={() => setSheetExpanded((v) => !v)}
+          className="self-center flex h-11 w-16 shrink-0 items-center justify-center text-muted hover:text-fg2 transition-colors"
+        >
+          {sheetExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+        </button>
         {/* 제목 + 총 N곳 (제목 텍스트·스타일 = 데탑 좌측 칼럼 헤더 준용, 카운트 = listSpots.length) */}
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-base font-semibold tracking-[-0.02em] text-fg break-keep">영화·드라마 촬영지 검색</h1>
@@ -914,8 +928,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           placeholder="작품명·촬영지를 입력하세요"
           className="mt-3 w-full rounded-xl px-4 py-2.5 text-base border border-border bg-card text-fg placeholder:text-muted shadow-sm focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
         />
-        {/* 0237: 작품 칩 — 데스크탑 칩과 selectedMovieId 공유. 모바일은 터치 가로 스크롤(‹›화살표 없음). */}
-        <div className="mt-3 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+        {/* 0237: 작품 칩 — 데스크탑 칩과 selectedMovieId 공유. 모바일은 터치 가로 스크롤(‹›화살표 없음).
+            0245: shrink-0 — overflow-x-auto는 flex 자동 최소 크기가 0이라 시트가 max-h에 걸리면 이 행만 0까지 압축됨(칩 가림의 근본 원인) */}
+        <div className="mt-3 shrink-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
           {renderMovieChips()}
         </div>
         {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤(flex-1). 행 본문=selectSpot, [상세]=openDetail.
@@ -924,7 +939,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           {listSpots.map((spot) => {
             const selected = selectedSpot?.id === spot.id;
             return (
-              <li key={spot.id}>
+              <li key={spot.id} ref={selected ? mobileSelectedItemRef : undefined}>
                 <div className={`flex items-center gap-2 p-2.5 rounded-xl border transition-colors ${selected
                   ? 'border-primary bg-primary/[0.08]'
                   : 'border-transparent'
