@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { X, ChevronLeft, ChevronRight, Info, Heart } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ChevronDown, Info, Heart } from 'lucide-react';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
 import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
@@ -683,6 +683,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     handleSpotSelectRef.current = selectSpot; // 마커 클릭도 디스패처 경유(모바일 pan-only / 데스크탑 확대)
   });
 
+  // 0236: 모바일 지도 빈 곳 탭 → 선택 해제(미선택 시트로 복귀). 마커 클릭은 별도 오버레이 이벤트라 map 'click' 미발화(네이버 v3) → 충돌 없음.
+  // 데스크탑은 3열이라 해제 동선 별개 → MOBILE_MQ 가드(데스크탑 map click 동작 무변경, 현재 없음).
+  useEffect(() => {
+    if (!mapInstance) return;
+    const onMapClick = () => {
+      if (!window.matchMedia(MOBILE_MQ).matches) return;
+      setSelectedSpot(null);
+    };
+    const l = naver.maps.Event.addListener(mapInstance, 'click', onMapClick);
+    return () => naver.maps.Event.removeListener(l);
+  }, [mapInstance]);
+
   // 0224: 모바일 지도 하단 패딩 — 선택 스팟이 하단 카드에 안 가리게 시각 중심 상향(줌 무영향, 네이티브 padding MapOption).
   useEffect(() => {
     if (!mapInstance) return;
@@ -879,46 +891,57 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         const n = visibleSpots.length;
         const go = (delta: number) => { if (n > 1 && idx >= 0) selectSpot(visibleSpots[(idx + delta + n) % n]); };
         return (
-          <div className="lg:hidden fixed inset-x-0 z-30 bottom-0 flex items-center gap-3 rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl pt-3 px-3 pb-[calc(78px+env(safe-area-inset-bottom))]">
-            {selectedSpot.thumbnailUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={selectedSpot.thumbnailUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
-            ) : (
-              <div className="w-14 h-14 rounded-[10px] overflow-hidden shrink-0">
-                <SpotCoverPlaceholder variant="list" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-fg truncate break-keep">{selectedSpot.name}</p>
-              {selectedSpot.nearestStation && selectedSpot.transitMinutes != null && (
-                <p className="mt-[3px] text-xs text-muted truncate">
-                  {formatTransit(selectedSpot.nearestStation, selectedSpot.transitMinutes, selectedSpot.transitMode)}
-                </p>
-              )}
-              <div className="mt-[3px]">
-                <span className="whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
-                  {selectedSpot.primaryMovie.title}{selectedSpot.extraMovieCount > 0 ? ` +${selectedSpot.extraMovieCount}` : ''}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => openDetail(selectedSpot)}
-                className="min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
-              >
-                상세
-              </button>
-              {n > 1 && (
-                <div className="flex items-center gap-1">
-                  <button type="button" aria-label="이전 스팟" onClick={() => go(-1)} className="w-11 h-11 flex items-center justify-center rounded-full text-fg2 hover:bg-surface2 transition-colors">
-                    <ChevronLeft size={18} />
-                  </button>
-                  <button type="button" aria-label="다음 스팟" onClick={() => go(1)} className="w-11 h-11 flex items-center justify-center rounded-full text-fg2 hover:bg-surface2 transition-colors">
-                    <ChevronRight size={18} />
-                  </button>
+          <div className="lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl pt-2 px-3 pb-[calc(78px+env(safe-area-inset-bottom))]">
+            {/* 0236: 바닥밀착 시트 dismiss 그래버 — 탭 시 선택 해제(미선택 시트로 복귀). 히트 44px(§5), 시각 chevron 18. */}
+            <button
+              type="button"
+              aria-label="선택 해제"
+              onClick={() => setSelectedSpot(null)}
+              className="self-center flex min-h-[44px] w-11 items-center justify-center text-muted hover:text-fg2 transition-colors"
+            >
+              <ChevronDown size={18} />
+            </button>
+            <div className="flex items-center gap-3">
+              {selectedSpot.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selectedSpot.thumbnailUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-[10px] overflow-hidden shrink-0">
+                  <SpotCoverPlaceholder variant="list" />
                 </div>
               )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-fg truncate break-keep">{selectedSpot.name}</p>
+                {selectedSpot.nearestStation && selectedSpot.transitMinutes != null && (
+                  <p className="mt-[3px] text-xs text-muted truncate">
+                    {formatTransit(selectedSpot.nearestStation, selectedSpot.transitMinutes, selectedSpot.transitMode)}
+                  </p>
+                )}
+                <div className="mt-[3px]">
+                  <span className="whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
+                    {selectedSpot.primaryMovie.title}{selectedSpot.extraMovieCount > 0 ? ` +${selectedSpot.extraMovieCount}` : ''}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => openDetail(selectedSpot)}
+                  className="min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
+                >
+                  상세
+                </button>
+                {n > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button type="button" aria-label="이전 스팟" onClick={() => go(-1)} className="w-11 h-11 flex items-center justify-center rounded-full text-fg2 hover:bg-surface2 transition-colors">
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button type="button" aria-label="다음 스팟" onClick={() => go(1)} className="w-11 h-11 flex items-center justify-center rounded-full text-fg2 hover:bg-surface2 transition-colors">
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
