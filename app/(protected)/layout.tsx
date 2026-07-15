@@ -5,6 +5,7 @@ import { Logo } from '@/app/(protected)/_components/Logo';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
+import { HeaderGate } from '@/app/(protected)/_components/HeaderGate';
 import { ThemeScope } from '@/app/(protected)/_components/ThemeScope';
 import { ProtectedMain } from '@/app/(protected)/_components/ProtectedMain';
 
@@ -25,6 +26,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
       />
       <ThemeScope>
+        <HeaderGate>
         <header className="sticky top-0 z-10 glass-header">
           <div className="px-6 h-14 grid grid-cols-[1fr_auto_1fr] items-center">
             <div className="justify-self-start">
@@ -48,6 +50,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             </div>
           </div>
         </header>
+        </HeaderGate>
         <ProtectedMain>{children}</ProtectedMain>
         <BottomTabBar />
       </ThemeScope>

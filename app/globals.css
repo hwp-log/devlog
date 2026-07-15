@@ -109,13 +109,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* SpotFinder 지도 높이 — sticky 헤더(h-14=56 + glass-header border 1px = 57)만 차감, 전 폭 동일.
-   0225: 모바일 풀스크린 전환으로 구 모바일 차감(260px = SpotFinderHeader+pt-8+pb-24)이 소멸.
-   헤더는 모바일도 sticky로 flow 점유(56px)하므로 헤더+지도(100svh-57)=100svh → 무스크롤.
-   svh 기본 + vh 폴백(캐스케이드, iOS 주소창 노출 기준 안전). @utility = v4 문법. */
+/* SpotFinder 지도 높이.
+   0226: 모바일은 헤더 제거(HeaderGate) → 100svh 풀블리드(노치·홈바 아래 배경, 칩/카드는 safe-area로 회피).
+   데스크탑(≥lg)은 헤더 유지 → sticky 헤더(h-14=56 + border 1px = 57) 차감으로 100svh-57.
+   svh 기본 + vh 폴백(iOS 주소창 노출 기준 안전). @utility = v4 문법. */
 @utility h-spot-finder-map {
-  height: calc(100vh - 57px);
-  height: calc(100svh - 57px);
+  height: 100vh;
+  height: 100svh;
+  @media (min-width: 1024px) {
+    height: calc(100vh - 57px);
+    height: calc(100svh - 57px);
+  }
 }
 
 @layer utilities {
