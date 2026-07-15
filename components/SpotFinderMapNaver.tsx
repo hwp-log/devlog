@@ -875,7 +875,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         const n = visibleSpots.length;
         const go = (delta: number) => { if (n > 1 && idx >= 0) selectSpot(visibleSpots[(idx + delta + n) % n]); };
         return (
-          <div className="lg:hidden fixed inset-x-3 z-[45] bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] flex items-center gap-3 rounded-2xl border border-border bg-card shadow-lg p-3">
+          <div className="lg:hidden fixed inset-x-4 z-[45] bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] flex items-center gap-3 rounded-2xl border border-border bg-card/90 backdrop-blur-sm shadow-2xl p-3">
             {selectedSpot.thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={selectedSpot.thumbnailUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
