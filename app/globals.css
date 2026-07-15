@@ -119,7 +119,7 @@ body {
 @utility h-spot-finder-map {
   height: calc(100vh - 260px - env(safe-area-inset-bottom));
   height: calc(100svh - 260px - env(safe-area-inset-bottom));
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     height: calc(100vh - 57px);
     height: calc(100svh - 57px);
   }

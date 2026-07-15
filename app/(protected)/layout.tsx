@@ -35,7 +35,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             <div className="col-start-3 justify-self-end flex items-center gap-3">
               <Link
                 href="/story/new"
-                className="hidden md:inline-flex items-center rounded-full bg-primary px-[17px] py-[7px] text-[12.5px] font-semibold text-white hover:bg-primary/90 transition-colors"
+                className="hidden lg:inline-flex items-center rounded-full bg-primary px-[17px] py-[7px] text-[12.5px] font-semibold text-white hover:bg-primary/90 transition-colors"
               >
                 Write
               </Link>

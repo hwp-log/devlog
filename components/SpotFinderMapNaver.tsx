@@ -132,6 +132,10 @@ const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정
 const SPOT_CLICK_ZOOM_MIN = 11; // = STAGE2_MAX_ZOOM (하한·분해 임계·맥락). 계산값 <11이면 11.
 const SPOT_CLICK_ZOOM_MAX = 16; // 상한 — z16 비겹침 175m로 실 도심 전부 분리. 그 이하(구룡포 4m·중복좌표)는 불가, 여기서 멈춤.
 const EQUATOR_MPP_Z0 = 156543; // z0 적도 m/px (Web Mercator). mpp(z) = EQUATOR·cos(lat)/2^z
+// 0224: 모바일 지도 하단 뷰포트 패딩(px) — 하단 카드/탭바만큼 시각 중심을 위로(줌 무영향). ~카드높이·2 (중심은 pad/2 상승).
+const MOBILE_MAP_PAD_BOTTOM = 300;
+const MOBILE_MQ = '(max-width: 1023px)'; // lg(1024) 미만 = 모바일 뷰
+
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
 // easing 'easeOutCubic' = SDK TransitionOptions 기본값(@types 주석 명시, 런타임 실측 확증)
@@ -343,6 +347,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     [spots],
   );
   const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
+  const [detailOpen, setDetailOpen] = useState(false); // 0224: 모바일 상세 풀스크린 모달(?detail=id, 네이티브 history)
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
   const [searchQuery, setSearchQuery] = useState('');
@@ -658,10 +663,43 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), targetZoom, STAGE2_TRANSITION);
   }
 
+  // 0224: 선택 디스패처 — 모바일은 pan-only(줌 유지, Airbnb 표준: 과확대 않고 ‹›로 옆 스팟 맥락 유지),
+  // 데스크탑은 handleSpotSelect(0223 거리기반 확대) 그대로. 마커·카드·페이저 전부 이 경로 공유. handleSpotSelect 무수정.
+  function selectSpot(spot: SpotFinderSpot) {
+    if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MQ).matches) {
+      setSelectedSpot(spot);
+      mapInstance?.panTo(new naver.maps.LatLng(spot.lat, spot.lng), STAGE2_TRANSITION); // 줌 미변경, 하단 패딩 반영해 카드 위 중앙
+      return;
+    }
+    handleSpotSelect(spot);
+  }
+
   // 마커 클릭 리스너의 스테일 클로저 방지 — 매 커밋 최신 핸들러 동기화 (렌더 중 ref 쓰기 금지 규칙 준수)
   useEffect(() => {
-    handleSpotSelectRef.current = handleSpotSelect;
+    handleSpotSelectRef.current = selectSpot; // 마커 클릭도 디스패처 경유(모바일 pan-only / 데스크탑 확대)
   });
+
+  // 0224: 모바일 지도 하단 패딩 — 선택 스팟이 하단 카드에 안 가리게 시각 중심 상향(줌 무영향, 네이티브 padding MapOption).
+  useEffect(() => {
+    if (!mapInstance) return;
+    const mq = window.matchMedia(MOBILE_MQ);
+    const apply = () => mapInstance.setOptions('padding', { bottom: mq.matches ? MOBILE_MAP_PAD_BOTTOM : 0 });
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [mapInstance]);
+
+  // 0224: 상세 모달 열기 — ?detail=id를 네이티브 history로 push(Next 라우터 미경유 → 지도 재마운트·선택·중심·줌 보존).
+  function openDetail(spot: SpotFinderSpot) {
+    window.history.pushState({ detail: spot.id }, '', '?detail=' + spot.id);
+    setDetailOpen(true);
+  }
+  // 뒤로가기(popstate) → 모달만 닫음. 페이지 이탈 없음.
+  useEffect(() => {
+    const onPop = () => setDetailOpen(false);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   if (error) {
     return (
@@ -676,9 +714,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
       {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환).
           열 구분선 0.12 = 시안 --t15 실측값 — 시안 t13(0.08)과 동일값이었으나 체감 보강으로 상위 단계 채택 (구분선 한정, border 토큰 무변) */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 md:static md:top-auto md:left-auto md:right-auto md:z-auto md:w-[320px] md:shrink-0 md:h-full md:bg-bg md:border-r md:border-[rgba(255,255,255,0.12)] md:p-3">
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 lg:static lg:top-auto lg:left-auto lg:right-auto lg:z-auto lg:w-[320px] lg:shrink-0 lg:h-full lg:bg-bg lg:border-r lg:border-[rgba(255,255,255,0.12)] lg:p-3">
         {/* 데탑 전용 헤더 — 시안 실측 18/20/10, 칼럼 md:p-3(12)+gap-2(8) 보정. 눈썹은 하한 준수 12px(시안 11px) */}
-        <div className="hidden md:block pt-1.5 px-2 pb-0.5">
+        <div className="hidden lg:block pt-1.5 px-2 pb-0.5">
           <p className="text-xs font-normal tracking-widest text-primary">SpotFinder</p>
           <h1 className="mt-1 text-base font-semibold tracking-[-0.02em] text-fg break-keep">
             영화·드라마 촬영지 검색
@@ -698,7 +736,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
               type="button"
               aria-label="이전"
               onClick={() => scrollChips('left')}
-              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
+              className="hidden lg:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
@@ -733,21 +771,15 @@ export default function SpotFinderMapNaver({ spots }: Props) {
               type="button"
               aria-label="다음"
               onClick={() => scrollChips('right')}
-              className="hidden md:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
+              className="hidden lg:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
             >
               <ChevronRight size={14} />
             </button>
           )}
         </div>
 
-        {selectedSpot && (
-          <div className="md:hidden bg-card rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
-            <SpotDetailContent spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
-          </div>
-        )}
-
-        {/* 스팟 리스트 (md 전용) — 시안 실측 구성: 썸네일 48 + 이름 + 배지 (메타줄은 데이터 부재로 생략) */}
-        <ul className="hidden md:flex flex-col gap-[7px] flex-1 overflow-y-auto min-h-0">
+        {/* 스팟 리스트 (lg 전용) — 시안 실측 구성: 썸네일 48 + 이름 + 배지 (메타줄은 데이터 부재로 생략) */}
+        <ul className="hidden lg:flex flex-col gap-[7px] flex-1 overflow-y-auto min-h-0">
           {listSpots.map((spot) => {
             const selected = selectedSpot?.id === spot.id;
             return (
@@ -798,7 +830,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           <button
             type="button"
             onClick={() => openNaverDirections(selectedSpot)}
-            className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+            className="hidden lg:block w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
           >
             &quot;{selectedSpot.name}&quot; 길찾기
           </button>
@@ -806,7 +838,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       </div>
 
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
-      <div className="relative flex-1 min-w-0 md:border-r md:border-[rgba(255,255,255,0.12)]">
+      <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
         {/* 우하단 안내 배너 — 제공 범위 + 공공데이터 출처 표기(의무). 2행 스택, items-start로 아이콘 상단 정렬 */}
         <div className="absolute bottom-6 right-3 z-[1000] pointer-events-none flex items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
@@ -822,7 +854,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       </div>
 
       {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
-      <aside className="hidden md:flex w-[350px] shrink-0 flex-col bg-bg">
+      <aside className="hidden lg:flex w-[350px] shrink-0 flex-col bg-bg">
         {selectedSpot ? (
           <SpotDetailContent spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
         ) : (
@@ -836,6 +868,65 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           </div>
         )}
       </aside>
+
+      {/* 0224: 모바일 하단 선택 카드 (lg:hidden, 지도 위 floating). 탭바(h-14=56) 위에 안착. */}
+      {selectedSpot && (() => {
+        const idx = visibleSpots.findIndex((s) => s.id === selectedSpot.id);
+        const n = visibleSpots.length;
+        const go = (delta: number) => { if (n > 1 && idx >= 0) selectSpot(visibleSpots[(idx + delta + n) % n]); };
+        return (
+          <div className="lg:hidden fixed inset-x-3 z-[45] bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] flex items-center gap-3 rounded-2xl border border-border bg-card shadow-lg p-3">
+            {selectedSpot.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={selectedSpot.thumbnailUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded-[10px] overflow-hidden shrink-0">
+                <SpotCoverPlaceholder variant="list" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="min-w-0 text-sm font-semibold text-fg truncate break-keep">{selectedSpot.name}</p>
+                <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
+                  {selectedSpot.primaryMovie.title}{selectedSpot.extraMovieCount > 0 ? ` +${selectedSpot.extraMovieCount}` : ''}
+                </span>
+              </div>
+              {selectedSpot.nearestStation && selectedSpot.transitMinutes != null && (
+                <p className="mt-[3px] text-xs text-muted truncate">
+                  {formatTransit(selectedSpot.nearestStation, selectedSpot.transitMinutes, selectedSpot.transitMode)}
+                </p>
+              )}
+              <p className="mt-[3px] text-xs text-muted">스토리 {selectedSpot.storyCount}편</p>
+            </div>
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => openDetail(selectedSpot)}
+                className="min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
+              >
+                상세
+              </button>
+              {n > 1 && (
+                <div className="flex items-center gap-1">
+                  <button type="button" aria-label="이전 스팟" onClick={() => go(-1)} className="w-11 h-11 flex items-center justify-center rounded-full text-fg2 hover:bg-surface2 transition-colors">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button type="button" aria-label="다음 스팟" onClick={() => go(1)} className="w-11 h-11 flex items-center justify-center rounded-full text-fg2 hover:bg-surface2 transition-colors">
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존. */}
+      {detailOpen && selectedSpot && (
+        <div className="lg:hidden fixed inset-0 z-[60] bg-bg overflow-y-auto" style={{ height: '100svh' }}>
+          <SpotDetailContent spot={selectedSpot} onClose={() => window.history.back()} />
+        </div>
+      )}
     </div>
   );
 }

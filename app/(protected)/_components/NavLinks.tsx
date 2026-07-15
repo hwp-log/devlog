@@ -12,7 +12,7 @@ export function NavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav className="hidden md:flex items-center gap-6">
+    <nav className="hidden lg:flex items-center gap-6">
       {BASE_NAV.map(({ href, label }) => {
         const isActive = pathname.startsWith(href);
         return (

@@ -13,8 +13,8 @@ export function ProtectedMain({ children }: { children: React.ReactNode }) {
     <main
       className={
         fullBleed
-          ? 'max-w-7xl mx-auto px-6 pt-8 pb-24 md:max-w-none md:px-0 md:pt-0 md:pb-0'
-          : 'max-w-7xl mx-auto px-6 pt-8 pb-24 md:pb-8'
+          ? 'max-w-7xl mx-auto px-6 pt-8 pb-24 lg:max-w-none lg:px-0 lg:pt-0 lg:pb-0'
+          : 'max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8'
       }
     >
       {children}

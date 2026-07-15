@@ -21,7 +21,7 @@ export function BottomTabBar() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden glass-header border-t border-slate-200/50 dark:border-border"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden glass-header border-t border-slate-200/50 dark:border-border"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <nav aria-label="주요 메뉴" className="flex items-stretch h-14">
