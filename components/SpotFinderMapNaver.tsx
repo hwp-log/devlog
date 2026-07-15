@@ -455,6 +455,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       // 두 컨트롤은 각각 독립 배치라 같은 코너면 겹칠 수 있어 좌/우 분리
       logoControlOptions: { position: naver.maps.Position.TOP_LEFT },
       mapDataControlOptions: { position: naver.maps.Position.TOP_RIGHT },
+      // 0239: 축척 바 제거 — 표기 의무 아님(v3). 로고·저작권은 위 무변경(의무).
+      scaleControl: false,
       // customStyleId는 GL(벡터) 전용. STYLE_VERSION env는 JS SDK에 대응 옵션이 없음 —
       // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지)
       ...(supportsGl
@@ -703,6 +705,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     );
   }
 
+  // 0239: 출처 표기(공공데이터 의무) 내용 — 데스크탑 지도 배너·모바일 시트 하단이 공유. 래퍼만 각자.
+  function renderSourceNote() {
+    return (
+      <>
+        <Info size={12} className="mt-0.5 text-muted shrink-0" />
+        <div className="flex flex-col leading-snug">
+          <span className="text-xs text-muted">출처: 한국문화정보원 미디어콘텐츠</span>
+        </div>
+      </>
+    );
+  }
+
   // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
@@ -871,12 +885,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
         {/* 우하단 안내 배너 — 제공 범위 + 공공데이터 출처 표기(의무). 2행 스택, items-start로 아이콘 상단 정렬 */}
-        <div className={`absolute right-3 z-[40] bottom-[calc(70px+env(safe-area-inset-bottom)+12px)] lg:bottom-6 lg:z-[1000] pointer-events-none ${selectedSpot ? 'hidden lg:flex' : 'flex'} items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm`}>
-          <Info size={12} className="mt-0.5 text-muted shrink-0" />
-          <div className="flex flex-col leading-snug">
-            <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
-            <span className="text-xs text-muted">출처: 한국문화정보원 미디어콘텐츠</span>
-          </div>
+        <div className="hidden lg:flex absolute right-3 z-[40] bottom-[calc(70px+env(safe-area-inset-bottom)+12px)] lg:bottom-6 lg:z-[1000] pointer-events-none items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
+          {renderSourceNote()}
         </div>
 
         {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비) */}
@@ -1005,6 +1015,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
               </li>
             ))}
           </ul>
+          {/* 0239: 출처 표기(의무) — 시트 하단 고정, 우측 정렬. 미선택 시트 안이라 자동으로 !selectedSpot일 때만 노출(0229 정합). */}
+          <div className="mt-2 flex items-start justify-end gap-1.5">
+            {renderSourceNote()}
+          </div>
         </div>
       )}
 
