@@ -211,9 +211,9 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           aria-hidden
           className="absolute inset-0 bg-[linear-gradient(to_top,rgba(13,13,20,0.85)_0%,rgba(13,13,20,0.15)_45%,rgba(13,13,20,0.35)_100%)]"
         />
-        {/* 작품 배지 — 시안 실측 top12/left14, 중립 오버레이 배경(작품색 매핑 부재로 기판정 제외) */}
-        <div className="absolute top-3 left-3.5 flex">
-          <span className="rounded-full bg-white/[0.18] px-[7px] py-[2px] text-xs font-normal text-white whitespace-nowrap">
+        {/* 작품 배지 — 데탑 시안 실측 top12/left14. 0249: 모바일 모달은 y=0부터라 노치 대응(safe-area+38, ✕와 중심 정렬) + 1.2배(14px/8·2, 1.5→1.3→1.2 체감 조정) */}
+        <div className="absolute top-[calc(env(safe-area-inset-top)+38px)] lg:top-3 left-3.5 flex">
+          <span className="rounded-full bg-white/[0.18] px-2 py-[2px] text-sm lg:px-[7px] lg:text-xs font-normal text-white whitespace-nowrap">
             {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
           </span>
         </div>
@@ -222,13 +222,17 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
             {spot.name}
           </h2>
         </div>
+        {/* 0249: ✕ 모바일 히트 44×44(§5 최소 타겟 — 기존 24 미달)·가장자리 16px 이격·노치 대응.
+            시각 원·아이콘은 1.2배(29px/14px) — 히트와 분리(투명 버튼 + 내부 시각 원). 데탑은 lg: 원복(원 24 = 버튼 크기와 동일) */}
         <button
           type="button"
           aria-label="닫기"
           onClick={onClose}
-          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-card/80 hover:bg-card flex items-center justify-center flex-shrink-0 transition-colors text-fg shadow-sm"
+          className="absolute top-[calc(env(safe-area-inset-top)+28px)] right-4 w-11 h-11 lg:top-2 lg:right-2 lg:w-6 lg:h-6 flex items-center justify-center flex-shrink-0 group"
         >
-          <X size={12} />
+          <span className="w-[29px] h-[29px] lg:w-6 lg:h-6 rounded-full bg-card/80 group-hover:bg-card flex items-center justify-center transition-colors text-fg shadow-sm">
+            <X className="w-3.5 h-3.5 lg:w-3 lg:h-3" />
+          </span>
         </button>
       </div>
 
