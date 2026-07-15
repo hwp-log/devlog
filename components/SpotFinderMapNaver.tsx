@@ -508,6 +508,27 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // 0250: 선택 변경 시 모바일 목록을 해당 행으로 스크롤 — 마커 탭이 주 대상(행이 스크롤 밖일 수 있음).
+  // 'nearest'라 행 탭(이미 가시)에는 no-op. 데탑은 display:none이라 no-op(0245 동일 원리).
+  // 첫 진입은 skeleton 시점(행 미렌더)이라 no-op — 초기 center 스크롤은 위 0214/0245 effect가 담당.
+  // peek(목록 높이 0)에선 스킵 — 0높이 스크롤포트에 'nearest'가 하단 정렬돼 half 복귀 시 행이 위로 벗어남(실측).
+  // 대신 sheetLevel 의존으로 펼칠 때 재실행. 단 그 시점엔 max-height 전환이 막 시작돼 ul이 아직 0높이(실측)
+  // → 전환 종료(320ms, 시트 duration과 동기) 후 지연 스크롤. 데탑은 display:none이라 어느 경로든 no-op.
+  useEffect(() => {
+    if (sheetLevel === 'peek') return;
+    const li = mobileSelectedItemRef.current;
+    if (!li) return;
+    if ((li.closest('ul')?.clientHeight ?? 0) > 0) {
+      li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
+    const t = setTimeout(
+      () => mobileSelectedItemRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+      340, // 시트 전환 320ms + 여유
+    );
+    return () => clearTimeout(t);
+  }, [selectedSpot, sheetLevel]);
+
   // 마커·클러스터 구축 — visibleSpots 변경 시 파괴·재생성 (공식 유틸에 setMarkers 없음).
   // 칩 fitBounds effect보다 먼저 선언 필수: 애니메이션 시작 후 오버레이 대량 탈부착이 겹치면 GL 지도 이동이 동결됨 (실측)
   useEffect(() => {
