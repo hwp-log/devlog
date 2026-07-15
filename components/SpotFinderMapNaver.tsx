@@ -926,9 +926,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           <div className="mt-3 shrink-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
             {renderMovieChips()}
           </div>
-          {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤(flex-1). 행 본문=handleSpotSelect(0248), [상세]=openDetail.
-              0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08]) */}
-          <ul className="mt-3 flex-1 flex flex-col gap-[7px] overflow-y-auto min-h-0">
+          {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
+              0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08])
+              0251: basis 0%(flex-1)는 iOS Safari가 중첩 flex(클립 래퍼) 안에서 높이를 오계산해 행이 밀림(실기기) → auto + min-h-0 조합이 Safari-safe */}
+          <ul className="mt-3 flex-[1_1_auto] flex flex-col gap-[7px] overflow-y-auto min-h-0">
             {listSpots.map((spot) => {
               const selected = selectedSpot?.id === spot.id;
               return (
