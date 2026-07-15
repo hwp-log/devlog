@@ -841,7 +841,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
         {/* 우하단 안내 배너 — 제공 범위 + 공공데이터 출처 표기(의무). 2행 스택, items-start로 아이콘 상단 정렬 */}
-        <div className="absolute right-3 z-[40] bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] lg:bottom-6 lg:z-[1000] pointer-events-none flex items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
+        <div className="absolute right-3 z-[40] bottom-[calc(70px+env(safe-area-inset-bottom)+12px)] lg:bottom-6 lg:z-[1000] pointer-events-none flex items-start gap-1.5 rounded-xl border border-border bg-card/80 backdrop-blur-sm px-3 py-1.5 shadow-sm">
           <Info size={12} className="mt-0.5 text-muted shrink-0" />
           <div className="flex flex-col leading-snug">
             <span className="text-xs text-fg2">촬영지 정보는 국내만 제공됩니다</span>
@@ -875,7 +875,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         const n = visibleSpots.length;
         const go = (delta: number) => { if (n > 1 && idx >= 0) selectSpot(visibleSpots[(idx + delta + n) % n]); };
         return (
-          <div className="lg:hidden fixed inset-x-4 z-[45] bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] flex items-center gap-3 rounded-2xl border border-border bg-card/90 backdrop-blur-sm shadow-2xl p-3">
+          <div className="lg:hidden fixed inset-x-0 z-30 bottom-0 flex items-center gap-3 rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl pt-3 px-3 pb-[calc(78px+env(safe-area-inset-bottom))]">
             {selectedSpot.thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={selectedSpot.thumbnailUrl} alt="" className="w-14 h-14 rounded-[10px] object-cover shrink-0" />

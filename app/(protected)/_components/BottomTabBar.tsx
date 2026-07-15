@@ -21,8 +21,7 @@ export function BottomTabBar() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden glass-header border-t border-slate-200/50 dark:border-border"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="fixed left-[14px] right-[14px] bottom-[calc(14px+env(safe-area-inset-bottom))] z-40 lg:hidden overflow-hidden rounded-[22px] border border-slate-200/50 dark:border-border bg-card/90 backdrop-blur-sm shadow-2xl"
     >
       <nav aria-label="주요 메뉴" className="flex items-stretch h-14">
         {TABS.map(({ href, label, Icon }) => {
