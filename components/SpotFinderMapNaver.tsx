@@ -674,6 +674,35 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     );
   }
 
+  // 0238: 스팟 행 필드(썸네일·이름·배지·교통) — 데스크탑 <ul>·모바일 시트 목록 공유. 래퍼/핸들러는 각자.
+  function renderSpotRowFields(spot: SpotFinderSpot) {
+    return (
+      <>
+        {spot.thumbnailUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={spot.thumbnailUrl} alt="" className="w-12 h-12 rounded-[10px] object-cover shrink-0" />
+        ) : (
+          <div className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0">
+            <SpotCoverPlaceholder variant="list" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
+              {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
+            </span>
+          </div>
+          {spot.nearestStation && spot.transitMinutes != null && (
+            <p className="mt-[3px] text-xs text-muted truncate">
+              {formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}
+            </p>
+          )}
+        </div>
+      </>
+    );
+  }
+
   // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
@@ -818,32 +847,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     : 'border-transparent hover:bg-card'
                     }`}
                 >
-                  {spot.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={spot.thumbnailUrl}
-                      alt=""
-                      className="w-12 h-12 rounded-[10px] object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-[10px] overflow-hidden shrink-0">
-                      <SpotCoverPlaceholder variant="list" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
-                      <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
-                        {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
-                      </span>
-                    </div>
-                    {/* 교통 메타줄 — 시안 위치(이름 아래, mt 3px, muted). 12px = 하한 준수(시안 11px). 두 값 모두 있을 때만 */}
-                    {spot.nearestStation && spot.transitMinutes != null && (
-                      <p className="mt-[3px] text-xs text-muted truncate">
-                        {formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}
-                      </p>
-                    )}
-                  </div>
+                  {renderSpotRowFields(spot)}
                 </button>
               </li>
             );
@@ -977,7 +981,30 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           <div className="mt-3 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
             {renderMovieChips()}
           </div>
-          {/* S4: 스팟 목록 자리 (이번 범위 아님) */}
+          {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤(flex-1). 행 본문=selectSpot, [상세]=openDetail. */}
+          <ul className="mt-3 flex-1 flex flex-col gap-[7px] overflow-y-auto min-h-0">
+            {listSpots.map((spot) => (
+              <li key={spot.id}>
+                <div className="flex items-center gap-2 p-2.5 rounded-xl border border-transparent">
+                  <button
+                    type="button"
+                    onClick={() => selectSpot(spot)}
+                    className="min-w-0 flex-1 flex items-center gap-3 text-left"
+                  >
+                    {renderSpotRowFields(spot)}
+                  </button>
+                  {/* 목록은 !selectedSpot이라 selectSpot로 selectedSpot 세팅 후 모달(모달은 selectedSpot 렌더) */}
+                  <button
+                    type="button"
+                    onClick={() => { selectSpot(spot); openDetail(spot); }}
+                    className="shrink-0 min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
+                  >
+                    상세
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
