@@ -132,8 +132,9 @@ const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정
 const SPOT_CLICK_ZOOM_MIN = 11; // = STAGE2_MAX_ZOOM (하한·분해 임계·맥락). 계산값 <11이면 11.
 const SPOT_CLICK_ZOOM_MAX = 16; // 상한 — z16 비겹침 175m로 실 도심 전부 분리. 그 이하(구룡포 4m·중복좌표)는 불가, 여기서 멈춤.
 const EQUATOR_MPP_Z0 = 156543; // z0 적도 m/px (Web Mercator). mpp(z) = EQUATOR·cos(lat)/2^z
-// 0224: 모바일 지도 하단 뷰포트 패딩(px) — 하단 카드/탭바만큼 시각 중심을 위로(줌 무영향). ~카드높이·2 (중심은 pad/2 상승).
-const MOBILE_MAP_PAD_BOTTOM = 300;
+// 0243: 모바일 지도 하단 패딩(px) — 선택 스팟이 카드 위 가시영역 중앙에 오게 ≈카드높이(C).
+// 중심 상승 = P/2 = C/2 (기존 300 ≈1.5C는 과보정으로 스팟이 위로 치우침). 실기기 조정 여지.
+const MOBILE_MAP_PAD_BOTTOM = 200;
 const MOBILE_MQ = '(max-width: 1023px)'; // lg(1024) 미만 = 모바일 뷰
 
 
@@ -352,11 +353,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     () => spots.find((s) => s.name === FEATURED_SPOT_NAME) ?? spots[0] ?? null,
     [spots],
   );
-  // 첫 진입 자동 선택은 데스크탑만 — 모바일은 미선택 시트(목록)로 시작(0242).
-  // ssr:false 클라 전용이라 초기화에서 matchMedia 안전. featuredSpot은 위 useMemo(선언 순서 OK).
-  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(
-    () => (typeof window !== 'undefined' && window.matchMedia(MOBILE_MQ).matches) ? null : featuredSpot,
-  );
+  const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
   const [detailOpen, setDetailOpen] = useState(false); // 0224: 모바일 상세 풀스크린 모달(?detail=id, 네이티브 history)
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
