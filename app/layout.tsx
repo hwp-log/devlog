@@ -37,6 +37,12 @@ export default function RootLayout({
         {/* 디자인 토큰 발행 — 값의 정본은 lib/theme.ts (A005 §2·§3) */}
         <style id="dotrip-theme">{buildThemeCss()}</style>
         {children}
+        {/* 0241: 모바일 가로 차단 안내 — 세로 전용 앱(PWA 아님이라 CSS 오버레이). 표시 조건은 globals.css 미디어쿼리. */}
+        <div className="landscape-blocker" role="alert">
+          <span className="landscape-blocker__icon" aria-hidden>📱</span>
+          <p className="landscape-blocker__title">세로로 돌려주세요</p>
+          <p className="landscape-blocker__sub">이 화면은 세로 모드에 최적화되어 있어요</p>
+        </div>
       </body>
     </html>
   );
