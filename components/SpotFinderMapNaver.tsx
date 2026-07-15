@@ -642,6 +642,38 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     chipBarRef.current?.scrollBy({ left: dir === 'right' ? 150 : -150, behavior: 'smooth' });
   }
 
+  // 0237: 작품 칩 버튼 목록 — 데스크탑 좌측 칼럼·모바일 시트가 공유(selectedMovieId 단일 상태). 스크롤 컨테이너는 각자.
+  // py-2 lg:py-1 = 데스크탑 렌더 동일(회귀 없음), 모바일만 터치 여유.
+  function renderMovieChips() {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setSelectedMovieId(null)}
+          className={`shrink-0 rounded-full px-3 py-2 lg:py-1 text-sm font-medium border transition-colors ${selectedMovieId === null
+            ? 'bg-primary text-white border-primary'
+            : 'bg-card text-fg2 border-border'
+            }`}
+        >
+          전체 ({spots.length})
+        </button>
+        {filteredMovieGroups.map((g) => (
+          <button
+            type="button"
+            key={g.id}
+            onClick={() => setSelectedMovieId(g.id)}
+            className={`shrink-0 rounded-full px-3 py-2 lg:py-1 text-sm font-medium border transition-colors ${selectedMovieId === g.id
+              ? 'bg-primary text-white border-primary'
+              : 'bg-card text-fg2 border-border'
+              }`}
+          >
+            {g.title} ({g.count})
+          </button>
+        ))}
+      </>
+    );
+  }
+
   // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
@@ -758,29 +790,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             </button>
           )}
           <div ref={chipBarRef} className="flex-1 flex gap-2 overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden">
-            <button
-              type="button"
-              onClick={() => setSelectedMovieId(null)}
-              className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${selectedMovieId === null
-                ? 'bg-primary text-white border-primary'
-                : 'bg-card text-fg2 border-border'
-                }`}
-            >
-              전체 ({spots.length})
-            </button>
-            {filteredMovieGroups.map((g) => (
-              <button
-                type="button"
-                key={g.id}
-                onClick={() => setSelectedMovieId(g.id)}
-                className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium border transition-colors ${selectedMovieId === g.id
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-card text-fg2 border-border'
-                  }`}
-              >
-                {g.title} ({g.count})
-              </button>
-            ))}
+            {renderMovieChips()}
           </div>
           {showArrows && (
             <button
@@ -963,7 +973,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             placeholder="작품명·촬영지를 입력하세요"
             className="mt-3 w-full rounded-xl px-4 py-2.5 text-base border border-border bg-card text-fg placeholder:text-muted shadow-sm focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
           />
-          {/* S3: 작품 칩 / S4: 스팟 목록 자리 (이번 범위 아님) */}
+          {/* 0237: 작품 칩 — 데스크탑 칩과 selectedMovieId 공유. 모바일은 터치 가로 스크롤(‹›화살표 없음). */}
+          <div className="mt-3 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            {renderMovieChips()}
+          </div>
+          {/* S4: 스팟 목록 자리 (이번 범위 아님) */}
         </div>
       )}
 
