@@ -136,12 +136,11 @@ const EQUATOR_MPP_Z0 = 156543; // z0 적도 m/px (Web Mercator). mpp(z) = EQUATO
 // 중심 상승 = P/2 = C/2 (기존 300 ≈1.5C는 과보정으로 스팟이 위로 치우침). 실기기 조정 여지.
 const MOBILE_MAP_PAD_BOTTOM = 200;
 const MOBILE_MQ = '(max-width: 1023px)'; // lg(1024) 미만 = 모바일 뷰
-// 0246: 모바일 시트 3단 max-h (애플·구글 지도 표준 detent). half/full은 0245 값 무변.
+// 0246→0247: 모바일 시트 2단 max-h (full 88svh는 시트가 지도를 가려 행 탭 시 이동 결과가 안 보여 제거).
 // peek 156 = border2 + pt4 + 그래버44 + 제목24 + 여유4 + pb78 (제목까지 노출, 검색은 mt12 아래라 가림). 완전한 리터럴 → Tailwind JIT 스캔 OK.
 const SHEET_MAX_H = {
   peek: 'max-h-[calc(156px+env(safe-area-inset-bottom))]',
   half: 'max-h-[58svh]',
-  full: 'max-h-[88svh]',
 } as const;
 
 
@@ -365,7 +364,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
   const mobileSelectedItemRef = useRef<HTMLLIElement | null>(null); // 0245: 모바일 시트 목록의 선택 li (0214와 동일 역할)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
-  const [sheetLevel, setSheetLevel] = useState<'peek' | 'half' | 'full'>('half'); // 0246: 모바일 시트 3단 (0245 2단 토글 확장)
+  const [sheetLevel, setSheetLevel] = useState<'peek' | 'half'>('half'); // 0247: 모바일 시트 2단 (full 제거 — 시트가 지도 가림)
   const [searchQuery, setSearchQuery] = useState('');
   const [showArrows, setShowArrows] = useState(false);
   const chipBarRef = useRef<HTMLDivElement>(null);
@@ -911,34 +910,20 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       </aside>
 
       {/* 0233: 모바일 하단 시트 (lg:hidden, 바닥밀착). 0244: 선택과 무관하게 항상 목록 유지(선택 카드 배타 전환 폐지) — 선택은 행 하이라이트로 표시.
-          0245→0246: 그래버 탭으로 3단(peek/half/full) 전환 — max-height 전환(목록 50행이라 실높이가 max-h를 따라감. 콘텐츠가 짧으면 전환할 것이 없어 무변) */}
+          0245→0247: 그래버 탭으로 2단(peek/half) 전환 — max-height 전환(목록 50행이라 실높이가 max-h를 따라감. 콘텐츠가 짧으면 전환할 것이 없어 무변) */}
       <div className={`lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl transition-[max-height] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${SHEET_MAX_H[sheetLevel]} pt-1 px-4 pb-[calc(78px+env(safe-area-inset-bottom))]`}>
         {/* 0246: peek 클립 래퍼 — 루트 overflow-hidden은 padding box 클립이라 하단 pb 존(플로팅 탭바 주변)에
             검색·칩이 비침. 콘텐츠 박스 경계(탭바 위)에서 가리도록 래퍼에 클립. half/full에선 레이아웃 등가. */}
         <div className="flex min-h-0 flex-col overflow-hidden">
-          {/* 0246: 그래버 ∧(한 단계 위)·∨(한 단계 아래) — 끝 단계에선 해당 방향만(peek=∧, full=∨). 히트 각 44×64·간격 8(§5), 시각 chevron 18(0236 전례) */}
-          <div className="self-center flex gap-2 shrink-0">
-            {sheetLevel !== 'full' && (
-              <button
-                type="button"
-                aria-label="시트 펼치기"
-                onClick={() => setSheetLevel((l) => (l === 'peek' ? 'half' : 'full'))}
-                className="flex h-11 w-16 items-center justify-center text-muted hover:text-fg2 transition-colors"
-              >
-                <ChevronUp size={18} />
-              </button>
-            )}
-            {sheetLevel !== 'peek' && (
-              <button
-                type="button"
-                aria-label="시트 접기"
-                onClick={() => setSheetLevel((l) => (l === 'full' ? 'half' : 'peek'))}
-                className="flex h-11 w-16 items-center justify-center text-muted hover:text-fg2 transition-colors"
-              >
-                <ChevronDown size={18} />
-              </button>
-            )}
-          </div>
+          {/* 0247: 그래버 — peek=∧(→half)/half=∨(→peek) 토글 버튼 1개. 히트 44×64(§5), 시각 chevron 18(0236 전례) */}
+          <button
+            type="button"
+            aria-label={sheetLevel === 'peek' ? '시트 펼치기' : '시트 접기'}
+            onClick={() => setSheetLevel((l) => (l === 'peek' ? 'half' : 'peek'))}
+            className="self-center flex h-11 w-16 shrink-0 items-center justify-center text-muted hover:text-fg2 transition-colors"
+          >
+            {sheetLevel === 'peek' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
           {/* 제목 + 총 N곳 (제목 텍스트·스타일 = 데탑 좌측 칼럼 헤더 준용, 카운트 = listSpots.length) */}
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-base font-semibold tracking-[-0.02em] text-fg break-keep">영화·드라마 촬영지 검색</h1>
