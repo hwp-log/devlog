@@ -722,7 +722,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     );
   }
 
-  // 스팟 선택 단일 정의 — 마커·좌측 리스트가 공유 (규율 5)
+  // 스팟 선택 단일 정의 — 마커·데탑 리스트·모바일 시트 목록이 공유 (규율 5).
+  // 0248: 모바일 pan-only 디스패처(0224) 폐지 — 근거였던 ‹› 페이저가 0244에서 사라져 모바일도 이 확대 룰 단일 경로.
   function handleSpotSelect(spot: SpotFinderSpot) {
     setSelectedSpot(spot);
     if (!mapInstance) return;
@@ -747,33 +748,12 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), targetZoom, STAGE2_TRANSITION);
   }
 
-  // 0224: 선택 디스패처 — 모바일은 pan-only(줌 유지, Airbnb 표준: 과확대 않고 ‹›로 옆 스팟 맥락 유지),
-  // 데스크탑은 handleSpotSelect(0223 거리기반 확대) 그대로. 마커·카드·페이저 전부 이 경로 공유. handleSpotSelect 무수정.
-  function selectSpot(spot: SpotFinderSpot) {
-    if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MQ).matches) {
-      setSelectedSpot(spot);
-      mapInstance?.panTo(new naver.maps.LatLng(spot.lat, spot.lng), STAGE2_TRANSITION); // 줌 미변경, 하단 패딩 반영해 카드 위 중앙
-      return;
-    }
-    handleSpotSelect(spot);
-  }
-
   // 마커 클릭 리스너의 스테일 클로저 방지 — 매 커밋 최신 핸들러 동기화 (렌더 중 ref 쓰기 금지 규칙 준수)
   useEffect(() => {
-    handleSpotSelectRef.current = selectSpot; // 마커 클릭도 디스패처 경유(모바일 pan-only / 데스크탑 확대)
+    handleSpotSelectRef.current = handleSpotSelect; // 0248: 마커 클릭도 확대 룰 직결 (디스패처 폐지)
   });
 
-  // 0236: 모바일 지도 빈 곳 탭 → 선택 해제(미선택 시트로 복귀). 마커 클릭은 별도 오버레이 이벤트라 map 'click' 미발화(네이버 v3) → 충돌 없음.
-  // 데스크탑은 3열이라 해제 동선 별개 → MOBILE_MQ 가드(데스크탑 map click 동작 무변경, 현재 없음).
-  useEffect(() => {
-    if (!mapInstance) return;
-    const onMapClick = () => {
-      if (!window.matchMedia(MOBILE_MQ).matches) return;
-      setSelectedSpot(null);
-    };
-    const l = naver.maps.Event.addListener(mapInstance, 'click', onMapClick);
-    return () => naver.maps.Event.removeListener(l);
-  }, [mapInstance]);
+  // 0248: 0236의 "모바일 지도 빈 곳 탭 → 선택 해제" 리스너 제거 — 목록 상시(0244)라 전환은 행 탭으로 충분, 데탑도 빈 곳 탭 해제 없음(정합).
 
   // 0224: 모바일 지도 하단 패딩 — 선택 스팟이 하단 카드에 안 가리게 시각 중심 상향(줌 무영향, 네이티브 padding MapOption).
   useEffect(() => {
@@ -942,7 +922,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           <div className="mt-3 shrink-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
             {renderMovieChips()}
           </div>
-          {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤(flex-1). 행 본문=selectSpot, [상세]=openDetail.
+          {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤(flex-1). 행 본문=handleSpotSelect(0248), [상세]=openDetail.
               0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08]) */}
           <ul className="mt-3 flex-1 flex flex-col gap-[7px] overflow-y-auto min-h-0">
             {listSpots.map((spot) => {
@@ -955,15 +935,15 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     }`}>
                     <button
                       type="button"
-                      onClick={() => selectSpot(spot)}
+                      onClick={() => handleSpotSelect(spot)}
                       className="min-w-0 flex-1 flex items-center gap-3 text-left"
                     >
                       {renderSpotRowFields(spot)}
                     </button>
-                    {/* [상세]는 selectSpot로 selectedSpot 선행 세팅 후 모달(모달은 selectedSpot 렌더) */}
+                    {/* [상세]는 handleSpotSelect로 selectedSpot 선행 세팅 후 모달(모달은 selectedSpot 렌더) */}
                     <button
                       type="button"
-                      onClick={() => { selectSpot(spot); openDetail(spot); }}
+                      onClick={() => { handleSpotSelect(spot); openDetail(spot); }}
                       className="shrink-0 min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
                     >
                       상세
