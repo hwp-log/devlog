@@ -451,6 +451,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         new naver.maps.LatLng(KOREA_BOUNDS.south, KOREA_BOUNDS.west),
         new naver.maps.LatLng(KOREA_BOUNDS.north, KOREA_BOUNDS.east),
       ),
+      // 0232: 로고·저작권을 지도 상단으로(모바일 상단 검색·칩 제거로 비워진 공간). 약관상 표기 유지 — 숨김 아님, position만.
+      // 두 컨트롤은 각각 독립 배치라 같은 코너면 겹칠 수 있어 좌/우 분리
+      logoControlOptions: { position: naver.maps.Position.TOP_LEFT },
+      mapDataControlOptions: { position: naver.maps.Position.TOP_RIGHT },
       // customStyleId는 GL(벡터) 전용. STYLE_VERSION env는 JS SDK에 대응 옵션이 없음 —
       // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지)
       ...(supportsGl
@@ -727,10 +731,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="작품명·촬영지를 입력하세요"
-          className="w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted shadow-sm transition-[color,border-color,box-shadow] duration-200 ease-out hover:border-muted focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
+          className="hidden lg:block w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted shadow-sm transition-[color,border-color,box-shadow] duration-200 ease-out hover:border-muted focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
         />
 
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
+        <div className="hidden lg:flex items-center gap-2 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
           {showArrows && (
             <button
               type="button"
