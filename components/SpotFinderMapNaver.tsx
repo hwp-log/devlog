@@ -209,6 +209,23 @@ function fitMapToSpots(map: naver.maps.Map, spots: SpotFinderSpot[]) {
   moveToStage2(map, spots.map((s) => new naver.maps.LatLng(s.lat, s.lng)));
 }
 
+// 0261: 목록 정렬 스크롤 — scrollIntoView 금지(조상 순회가 0250 revert 원인), 좌표는 rect 기반(offsetParent가 시트 루트라 offsetTop 함정 — 실측).
+// hiddenBottom = 스크롤포트 하단의 비가시 존(모바일 pill 뒤 72+env) — ul의 computed paddingBottom에서 읽음(env는 JS로 못 읽지만 computed엔 해석됨. 데탑 0·peek 0 자동).
+// 가시 게이트: 행이 가시영역에 온전히 보이면 no-op(행 탭 무점프). 정렬: center(데탑)/top(모바일 — 0257 걸침 보존).
+// 상한 클램프는 scrollTop 대입의 브라우저 표준 동작에 위임, 하한만 0. 즉시 이동(대입) — 시트 전환(320ms)·구형 iOS smooth 편차와 경합 없음.
+// display:none 쪽(반대 브레이크포인트)은 rect 전부 0 → 현재 scrollTop 재대입 = no-op(분기 불요).
+function alignRowInList(li: HTMLLIElement | null, align: 'top' | 'center') {
+  const ul = li?.closest('ul');
+  if (!li || !ul) return;
+  const ulR = ul.getBoundingClientRect();
+  const liR = li.getBoundingClientRect();
+  const rowTop = liR.top - ulR.top + ul.scrollTop;
+  const hiddenBottom = parseFloat(getComputedStyle(ul).paddingBottom) || 0;
+  const visibleH = ul.clientHeight - hiddenBottom;
+  if (visibleH > 0 && rowTop >= ul.scrollTop && rowTop + liR.height <= ul.scrollTop + visibleH) return;
+  ul.scrollTop = Math.max(0, align === 'center' ? rowTop - (visibleH - liR.height) / 2 : rowTop);
+}
+
 type Props = { spots: SpotFinderSpot[] };
 
 // 상세 콘텐츠 단일 정의 — 모바일 플로팅 카드와 데탑 우측 고정 패널이 공유 (내용·순서 동일)
@@ -528,6 +545,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  // 0261: 선택 변경 시 목록 정렬(0250 재구현 — 직접 scrollTop) — 데탑 center(가시 ~6.8행, 맥락)/모바일 top(가시 ~1.4행 — 0257 걸침 보존).
+  // sheetLevel 의존: peek(0높이)에서 선택된 경우 half 복귀 때 재정렬(꼬리 행 클램프 어긋남 보정 포함).
+  // 첫 진입은 skeleton(행 미렌더) 시점이라 no-op — 초기 center 스크롤은 위 0214/0245 effect가 그대로 담당(공존, ready 후 deps 불변이라 재발화 없음).
+  useEffect(() => {
+    alignRowInList(selectedItemRef.current, 'center'); // 데탑 (0214 ref 재사용)
+    alignRowInList(mobileSelectedItemRef.current, 'top'); // 모바일 (0245 ref 재사용)
+  }, [selectedSpot, sheetLevel]);
 
   // 마커·클러스터 구축 — visibleSpots 변경 시 파괴·재생성 (공식 유틸에 setMarkers 없음).
   // 칩 fitBounds effect보다 먼저 선언 필수: 애니메이션 시작 후 오버레이 대량 탈부착이 겹치면 GL 지도 이동이 동결됨 (실측)
