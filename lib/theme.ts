@@ -9,6 +9,8 @@ export const theme = {
     primary: '#4d9eff', // 로고 점·눈썹 라벨·활성 칩/탭·채움 버튼·링크. 작품과 무관하게 고정
     accent: '#f0c040', // 별점 전용
     heartActive: '#e24b4a', // 하트 버튼 활성 채움 (A005 §3 ①)
+    markerLabel: '#ffb84d', // 0267: 미선택 스팟 라벨 pill 배경 — 다크 지도 웨이파인딩. accent(별점)·works와 역할 분리, CTA 침범 금지
+    markerLabelInk: '#2b1d00', // 0267: markerLabel 위 글자 잉크 — 대비 ≈9:1(12px AA 충족). markerLabel 전용
     radius: '10px', // 카드·입력·버튼
   },
   // 마커·작품 배지 한정 — CTA·별점·링크 침범 금지 (A005 §2)

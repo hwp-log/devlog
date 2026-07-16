@@ -63,9 +63,10 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   const dotShadow = selected
     ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 6px rgba(0,0,0,0.5)`
     : '0 2px 6px rgba(0,0,0,0.5)';
+  // 0267: 미선택 = 앰버 토큰(--marker-label/-ink) — 다크 지도에서 촬영지가 지명과 구분되게. 선택 = primary 파랑(위계 유지)
   const pillColor = selected
     ? `background:${PRIMARY};color:#fff;border:1px solid ${PRIMARY}`
-    : 'background:var(--surface2);color:var(--fg2);border:1px solid rgba(255,255,255,0.3)';
+    : 'background:var(--marker-label);color:var(--marker-label-ink);border:1px solid rgba(255,255,255,0.3)';
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
