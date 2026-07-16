@@ -252,7 +252,12 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      {/* 0260: 상세 본문 = 유일한 스크롤러. 높이는 명시 calc(부모 100% − 히어로 210, 위 h-[210px]와 짝) —
+          flex grow 배제(0253 원칙: iOS/iPad Safari 중첩 flex grow 미계산 재발 방지).
+          기존 이중 스크롤러(모달 루트 overflow + 스크롤할 게 없는 body overflow)에선 실기기 iOS에서
+          body에서 시작한 터치가 바깥 스크롤러로 체이닝되지 않아 스크롤 불가(0260 버그).
+          모바일 pb 88+env: 탭바 pill이 모달 위에 그려짐(변환 조상 스태킹 — 기존 사항) → 스크롤 끝 출처가 pill 위로 오게 보정. 데탑은 lg:pb-4 원복. */}
+      <div className="h-[calc(100%-210px)] overflow-y-auto p-4 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-4 flex flex-col gap-4">
         <div>
           <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
           {spot.review ? (
@@ -986,9 +991,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[calc(88px+env(safe-area-inset-bottom))] bg-[linear-gradient(to_bottom,transparent,var(--card))]" />
       </div>
 
-      {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존. */}
+      {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존.
+          0260: 루트 overflow 제거 — 스크롤러는 본문(SpotDetailContent body) 하나. 히어로·✕는 상단 고정(데탑 aside와 동작 통일). */}
       {detailOpen && selectedSpot && (
-        <div className="lg:hidden fixed inset-0 z-[60] bg-bg overflow-y-auto" style={{ height: '100svh' }}>
+        <div className="lg:hidden fixed inset-0 z-[60] bg-bg" style={{ height: '100svh' }}>
           <SpotDetailContent spot={selectedSpot} onClose={() => window.history.back()} />
         </div>
       )}
