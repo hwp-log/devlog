@@ -150,11 +150,11 @@ const SHEET_MAX_H = {
 // 58svh = SHEET_MAX_H.half와 동기. 254 = border2 + pt4 + 그래버44 + 제목24 + (mt8+검색46) + (mt8+칩38) + ul mt8 + pb72 (0256: mt12→8 셋 + pb78→72 압축).
 // pb 72 = 탭바 실측(pill h58 + 하단 이격 14) — 콘텐츠 끝 = pill top 정확 일치(겹침 0).
 // safe-area 항: pb가 72+env라 노치 기기에선 그만큼 가용 공간이 줄어듦(빼지 않으면 마지막 행이 클립에 가림).
-// 0258: ul = 시트 높이 − 174 (174 = border2 + pt4 + 고정스택168 — 시트 상단에서 ul 시작까지).
+// 0258→0259: ul = 시트 높이 − 182 (182 = border2 + pt4 + 고정스택168 + ul mt8 — 시트 상단에서 ul 박스 시작까지).
 // ul이 시트 하단(pill 뒤)까지 내려가 행이 이어져 보임 — 걸침 신호를 스크롤 위치와 무관하게 유지.
-// 스크롤 끝은 ul 내부 pb(72+env)가 마지막 행을 pill 위로 보정. floor 185 = half 하한 359 − 174
-// (0257의 가시 목록 105 + pt8 + pill존 72의 등가 변환 — pill 위 가시값은 0257과 동일).
-const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-174px),calc(185px+env(safe-area-inset-bottom)))]';
+// 스크롤 끝은 ul 내부 pb(72+env)가 마지막 행을 pill 위로 보정. floor 177 = half 하한 359 − 182
+// (0257의 가시 목록 105 + pill존 72의 등가 변환 — pill 위 가시값은 0257과 동일).
+const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-182px),calc(177px+env(safe-area-inset-bottom)))]';
 // 0258: 고정 스택(그래버·제목·검색·칩) 래퍼의 레벨별 클립 높이 — flex 수축 의존 제거(0253 명시 높이 원칙).
 // peek 72 = 그래버44 + 제목24 + 여유4 (기존 peek 클립과 동일) / half 168 = +mt8+검색46+mt8+칩38.
 const SHEET_STACK_MAX_H = { peek: 'max-h-[72px]', half: 'max-h-[168px]' } as const;
@@ -947,9 +947,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08])
             0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
             0258: 래퍼 밖(루트 직속) — 루트는 클립하지 않아 pill 뒤까지 행이 이어져 보임(걸침 신호 상시).
-            mt-2→pt-2 내부화. peek은 max-h-0 + 패딩도 0 — border-box 높이는 패딩 합 이하로 못 내려가(실측 80px 잔존, 행 조각이 pill 주변에 비침) 패딩까지 접고 전환 속성에 포함해 동기.
+            0259: mt-2 = 칩과 클립 경계 사이 고정 여백(내부 pt는 스크롤에 밀려 행이 칩에 붙음 — 박스 밖 margin은 페인트 없어 peek 잔존 무해).
+            peek은 max-h-0 + pb-0 — border-box 높이는 패딩 합 이하로 못 내려가(실측 80px 잔존) 패딩까지 접고 전환 속성에 포함해 동기.
             내부 pb = 스크롤 끝에서 마지막 행을 pill 위로. */}
-        <ul className={`${sheetLevel === 'peek' ? 'max-h-0 pt-0 pb-0' : `pt-2 pb-[calc(72px+env(safe-area-inset-bottom))] ${SHEET_LIST_MAX_H}`} shrink-0 flex flex-col gap-[7px] overflow-y-auto transition-[max-height,padding] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)]`}>
+        <ul className={`mt-2 ${sheetLevel === 'peek' ? 'max-h-0 pb-0' : `pb-[calc(72px+env(safe-area-inset-bottom))] ${SHEET_LIST_MAX_H}`} shrink-0 flex flex-col gap-[7px] overflow-y-auto transition-[max-height,padding] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)]`}>
           {listSpots.map((spot) => {
             const selected = selectedSpot?.id === spot.id;
             return (
@@ -978,6 +979,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             );
           })}
         </ul>
+        {/* 0259: 하단 페이드 — pill 뒤 비침(걸침 신호)은 남기고 바닥으로 갈수록 시트 배경으로 잦아들게(애플 지도식).
+            h = pill존(72+env) + 16(pill 상단 위 시작), pill top 지점 불투명도 ≈18%라 비침 유지·바닥 100%로 잘린 텍스트 소멸.
+            끝색은 불투명 var(--card) — 시트 bg(card/90)로 끝내면 바닥에 텍스트 10%가 남음. 토큰 기반이라 라이트/다크 자동.
+            DOM 순서로 목록 위, 시트 z-30 컨텍스트 안이라 탭바(z-40) 아래. pointer-events-none — 스크롤·pill 터치 통과. */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[calc(88px+env(safe-area-inset-bottom))] bg-[linear-gradient(to_bottom,transparent,var(--card))]" />
       </div>
 
       {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존. */}
