@@ -403,6 +403,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   );
   const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
   const [detailOpen, setDetailOpen] = useState(false); // 0224: 모바일 상세 풀스크린 모달(?detail=id, 네이티브 history)
+  const [detailClosing, setDetailClosing] = useState(false); // 0264: ✕ 슬라이드 다운 재생 중 (popstate 닫힘은 즉시라 미경유)
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
   const mobileSelectedItemRef = useRef<HTMLLIElement | null>(null); // 0245: 모바일 시트 목록의 선택 li (0214와 동일 역할)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
@@ -825,13 +826,31 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   }, [mapInstance]);
 
   // 0224: 상세 모달 열기 — ?detail=id를 네이티브 history로 push(Next 라우터 미경유 → 지도 재마운트·선택·중심·줌 보존).
+  // 0264: closing 중 재열기 무시 — 모달이 내려가며 시트가 노출·탭 가능해지는 320ms 동안 이중 pushState/이중 back 차단(선택 변경만 통과, 무해).
   function openDetail(spot: SpotFinderSpot) {
+    if (detailClosing) return;
     window.history.pushState({ detail: spot.id }, '', '?detail=' + spot.id);
     setDetailOpen(true);
   }
-  // 뒤로가기(popstate) → 모달만 닫음. 페이지 이탈 없음.
+  // 0264: ✕ 닫기 완료(공용 — animationend·타임아웃 폴백). closing 해제 후 back() → popstate가 detailOpen을 끔(현행 경로 재사용).
+  function finishCloseDetail() {
+    setDetailClosing(false);
+    window.history.back();
+  }
+  // 0264: animationend 미발화(백그라운드 탭 등) 대비 폴백 400ms(320+여유). closing 해제 시 cleanup이 타이머 취소 —
+  // popstate로 먼저 닫힌 경우 이중 back(페이지 이탈!) 방지의 핵심.
   useEffect(() => {
-    const onPop = () => setDetailOpen(false);
+    if (!detailClosing) return;
+    const t = setTimeout(finishCloseDetail, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailClosing]);
+  // 뒤로가기(popstate) → 모달만 닫음(즉시 — 0264에서도 애니메이션 없음 유지). 페이지 이탈 없음. closing 리셋 동반.
+  useEffect(() => {
+    const onPop = () => {
+      setDetailOpen(false);
+      setDetailClosing(false);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -1030,10 +1049,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
       {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존.
           0260: 루트 overflow 제거 — 스크롤러는 본문(SpotDetailContent body) 하나. 히어로·✕는 상단 고정(데탑 aside와 동작 통일).
-          0263: 슬라이드 업 — 조건부 마운트라 transition 불가, @keyframes(detail-up)가 마운트 시 자동 재생. 닫힘은 즉시 언마운트(현행). */}
+          0263: 슬라이드 업 — 조건부 마운트라 transition 불가, @keyframes(detail-up)가 마운트 시 자동 재생.
+          0264: ✕는 detailClosing → detail-down(forwards — 종료~언마운트 프레임 되튐 방지) → animationend/폴백에서 back().
+          animationName 검사 = detail-up 종료·자손 버블 오발화 차단. popstate 닫힘은 즉시(현행). */}
       {detailOpen && selectedSpot && (
-        <div className="lg:hidden fixed inset-0 z-[60] bg-bg animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]" style={{ height: '100svh' }}>
-          <SpotDetailContent spot={selectedSpot} onClose={() => window.history.back()} />
+        <div
+          className={`lg:hidden fixed inset-0 z-[60] bg-bg ${detailClosing
+            ? 'animate-[detail-down_320ms_cubic-bezier(0.32,0.72,0,1)_forwards]'
+            : 'animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]'}`}
+          style={{ height: '100svh' }}
+          onAnimationEnd={(e) => { if (detailClosing && e.animationName === 'detail-down') finishCloseDetail(); }}
+        >
+          <SpotDetailContent spot={selectedSpot} onClose={() => { if (!detailClosing) setDetailClosing(true); }} />
         </div>
       )}
     </div>
