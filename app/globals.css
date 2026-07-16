@@ -42,6 +42,13 @@
   }
 }
 
+/* 0263: 모바일 상세 모달 슬라이드 업 — 불투명 슬라이드(iOS 시트 표준). duration·easing은 사용처에서 지정(시트 0245와 동기).
+   ph-enter 재사용 기각: TagSearchBar 롤링 전용 + opacity 포함이라 의미 결합·질감 상이 */
+@keyframes detail-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 @keyframes planCardEnter {
   from {
     transform: translateY(10px);

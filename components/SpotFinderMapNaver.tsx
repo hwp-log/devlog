@@ -1029,9 +1029,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       </div>
 
       {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존.
-          0260: 루트 overflow 제거 — 스크롤러는 본문(SpotDetailContent body) 하나. 히어로·✕는 상단 고정(데탑 aside와 동작 통일). */}
+          0260: 루트 overflow 제거 — 스크롤러는 본문(SpotDetailContent body) 하나. 히어로·✕는 상단 고정(데탑 aside와 동작 통일).
+          0263: 슬라이드 업 — 조건부 마운트라 transition 불가, @keyframes(detail-up)가 마운트 시 자동 재생. 닫힘은 즉시 언마운트(현행). */}
       {detailOpen && selectedSpot && (
-        <div className="lg:hidden fixed inset-0 z-[60] bg-bg" style={{ height: '100svh' }}>
+        <div className="lg:hidden fixed inset-0 z-[60] bg-bg animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]" style={{ height: '100svh' }}>
           <SpotDetailContent spot={selectedSpot} onClose={() => window.history.back()} />
         </div>
       )}
