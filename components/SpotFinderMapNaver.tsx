@@ -140,13 +140,16 @@ const MOBILE_MQ = '(max-width: 1023px)'; // lg(1024) 미만 = 모바일 뷰
 // peek 156 = border2 + pt4 + 그래버44 + 제목24 + 여유4 + pb78 (제목까지 노출, 검색은 mt12 아래라 가림). 완전한 리터럴 → Tailwind JIT 스캔 OK.
 const SHEET_MAX_H = {
   peek: 'max-h-[calc(156px+env(safe-area-inset-bottom))]',
-  half: 'max-h-[58svh]',
+  // 0254: half 하한 462 = 고정부 272 + 목록 하한 190 — 실기기 Safari는 svh가 주소창·툴바만큼 축소돼
+  // 58svh만으론 목록이 1행 남짓. 하한은 아래 SHEET_LIST_MAX_H의 190과 짝(pair) — 한쪽만 바꾸면 클립 잘림.
+  half: 'max-h-[max(58svh,calc(462px+env(safe-area-inset-bottom)))]',
 } as const;
 // 0252: 목록 ul 명시 max-h — iOS Safari가 중첩 flex(클립 래퍼) 안에서 grow를 계산하지 않아
 // ul이 한 줄(48px)로 붕괴(실기기 Web Inspector 실측) → flex 사이징 배제, 높이 = min(콘텐츠, calc).
 // 58svh = SHEET_MAX_H.half와 동기. 272 = border2 + pt4 + 그래버44 + 제목24 + (mt12+검색46) + (mt12+칩38) + ul mt12 + pb78.
 // safe-area 항: pb가 78+env라 노치 기기에선 그만큼 가용 공간이 줄어듦(빼지 않으면 마지막 행이 클립에 가림).
-const SHEET_LIST_MAX_H = 'max-h-[calc(58svh-272px-env(safe-area-inset-bottom))]';
+// 0254: 하한 190 = 행68×2 + gap7×2 + 여유(최소 2행 온전 + 3행째 걸침). half 하한 462(=272+190)와 짝 — 검산: 하한 발동 시 272+env+190 = half 하한과 정확 일치.
+const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-272px-env(safe-area-inset-bottom)),190px)]';
 
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
