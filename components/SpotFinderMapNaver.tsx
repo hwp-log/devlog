@@ -232,7 +232,10 @@ type Props = { spots: SpotFinderSpot[] };
 function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: () => void }) {
   return (
     <>
-      <div className="relative h-[210px] flex-shrink-0">
+      {/* 0266: 히어로가 노치/상태바 뒤까지 차오르게 safe-area만큼 확장(viewport-fit=cover 0226 전제) — 상태바 존이
+          모달 배경(검정 띠)으로 남던 실기기 증상 해소. 배지·✕는 safe-area 기준 offset(0249)이라 무수정으로 노치 아래 유지.
+          아래 본문 h-calc의 210·env 항과 짝 — 한쪽만 바꾸면 본문이 모달 밖으로 넘침. 데탑(lg)은 노치 없음 — 210 원복. */}
+      <div className="relative h-[calc(210px+env(safe-area-inset-top))] lg:h-[210px] flex-shrink-0">
         {spot.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={spot.thumbnailUrl} alt={spot.name} className="w-full h-full object-cover" />
@@ -269,12 +272,12 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
         </button>
       </div>
 
-      {/* 0260: 상세 본문 = 유일한 스크롤러. 높이는 명시 calc(부모 100% − 히어로 210, 위 h-[210px]와 짝) —
+      {/* 0260: 상세 본문 = 유일한 스크롤러. 높이는 명시 calc(부모 100% − 히어로, 위 히어로 h와 짝 — 0266: env 항 포함) —
           flex grow 배제(0253 원칙: iOS/iPad Safari 중첩 flex grow 미계산 재발 방지).
           기존 이중 스크롤러(모달 루트 overflow + 스크롤할 게 없는 body overflow)에선 실기기 iOS에서
           body에서 시작한 터치가 바깥 스크롤러로 체이닝되지 않아 스크롤 불가(0260 버그).
           모바일 pb 88+env: 탭바 pill이 모달 위에 그려짐(변환 조상 스태킹 — 기존 사항) → 스크롤 끝 출처가 pill 위로 오게 보정. 데탑은 lg:pb-4 원복. */}
-      <div className="h-[calc(100%-210px)] overflow-y-auto p-4 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-4 flex flex-col gap-4">
+      <div className="h-[calc(100%-210px-env(safe-area-inset-top))] lg:h-[calc(100%-210px)] overflow-y-auto p-4 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-4 flex flex-col gap-4">
         <div>
           <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
           {spot.review ? (
