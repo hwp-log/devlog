@@ -63,10 +63,13 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   const dotShadow = selected
     ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 6px rgba(0,0,0,0.5)`
     : '0 2px 6px rgba(0,0,0,0.5)';
-  // 0267: 미선택 = 앰버 토큰(--marker-label/-ink) — 다크 지도에서 촬영지가 지명과 구분되게. 선택 = primary 파랑(위계 유지)
+  // 0269 확정: 미선택 = 회색 pill(목업 스펙) — 밝은 테두리(흰 0.5)+상단 inset 하이라이트가 다크 지도 지명과의 구분을 담당
+  // (앰버 0267~0268은 실기기 비교로 기각 — 토큰도 삭제). 선택 = primary 파랑, 그림자 문법만 통일.
+  // 그라데이션 밝은 톤 #33383d 리터럴 근거: surface2(#26292b)의 흰색 혼합 파생으로는 목업의 청색 성분(+5B)이 재현 안 됨
+  // — color-mix 파생(0268 관례) 불가 판정, 목업 확정값을 그대로 사용.
   const pillColor = selected
-    ? `background:${PRIMARY};color:#fff;border:1px solid ${PRIMARY}`
-    : 'background:var(--marker-label);color:var(--marker-label-ink);border:1px solid rgba(255,255,255,0.3)';
+    ? `background:linear-gradient(to bottom,color-mix(in srgb,${PRIMARY} 82%,#fff),${PRIMARY});color:#fff;border:1px solid ${PRIMARY};box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),0 2px 6px rgba(0,0,0,0.4);`
+    : 'background:linear-gradient(to bottom,#33383d,var(--surface2));color:var(--fg2);border:1px solid rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 2px 6px rgba(0,0,0,0.4);';
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
