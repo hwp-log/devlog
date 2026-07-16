@@ -404,7 +404,6 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   const [selectedSpot, setSelectedSpot] = useState<SpotFinderSpot | null>(featuredSpot);
   const [detailOpen, setDetailOpen] = useState(false); // 0224: 모바일 상세 풀스크린 모달(?detail=id, 네이티브 history)
   const [detailClosing, setDetailClosing] = useState(false); // 0264: ✕ 슬라이드 다운 재생 중 (popstate 닫힘은 즉시라 미경유)
-  const detailModalRef = useRef<HTMLDivElement | null>(null); // 0265: 닫힘 animationend 네이티브 리스너 대상 (합성 이벤트 미수신 우회)
   const selectedItemRef = useRef<HTMLLIElement | null>(null); // 0214: 첫 진입 스크롤 대상(선택 li)
   const mobileSelectedItemRef = useRef<HTMLLIElement | null>(null); // 0245: 모바일 시트 목록의 선택 li (0214와 동일 역할)
   const didInitialScrollRef = useRef(false); // 0214: 첫 진입 1회 가드
@@ -838,21 +837,12 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     setDetailClosing(false);
     window.history.back();
   }
-  // 0264→0265: 닫힘 감지 = 모달 요소 "직접" 네이티브 animationend + 폴백 400ms 통합(React 위임 의존 제거 — 방어적 단순화).
-  // 0265 실측 정정: 크롬·WebKit 모두 원래 animationend 경로로 닫히고 있었음(폴백 2000ms 실험으로 확정).
-  // 실기기 "멈칫"의 실원인은 모달 height:100svh 잔여 스트립(모달 렌더 주석 참조) — end→popstate 사이
-  // back 지연(크롬 실측 39ms) 동안 잔여 ~80px이 forwards로 정지 노출된 것.
-  // closing 해제 시 cleanup이 리스너·타이머 동시 해제 — popstate 선행 닫힘의 이중 back(페이지 이탈!) 방지 유지.
+  // 0264: animationend 미발화(백그라운드 탭 등) 대비 폴백 400ms(320+여유). closing 해제 시 cleanup이 타이머 취소 —
+  // popstate로 먼저 닫힌 경우 이중 back(페이지 이탈!) 방지의 핵심.
   useEffect(() => {
     if (!detailClosing) return;
-    const el = detailModalRef.current;
-    const onEnd = (e: AnimationEvent) => { if (e.animationName === 'detail-down') finishCloseDetail(); };
-    el?.addEventListener('animationend', onEnd);
     const t = setTimeout(finishCloseDetail, 400);
-    return () => {
-      el?.removeEventListener('animationend', onEnd);
-      clearTimeout(t);
-    };
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailClosing]);
   // 뒤로가기(popstate) → 모달만 닫음(즉시 — 0264에서도 애니메이션 없음 유지). 페이지 이탈 없음. closing 리셋 동반.
@@ -1060,17 +1050,15 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존.
           0260: 루트 overflow 제거 — 스크롤러는 본문(SpotDetailContent body) 하나. 히어로·✕는 상단 고정(데탑 aside와 동작 통일).
           0263: 슬라이드 업 — 조건부 마운트라 transition 불가, @keyframes(detail-up)가 마운트 시 자동 재생.
-          0264: ✕는 detailClosing → detail-down(forwards — 종료~언마운트 프레임 되튐 방지) → 네이티브 animationend/폴백에서 back(). popstate 닫힘은 즉시(현행).
-          0265: height 100svh 제거 — inset-0의 bottom:0을 height가 무력화(over-constrained)해 실기기 svh 과소 시
-          모달이 화면보다 ~80px 짧음 → ① 상단/하단 경계 노출 ② translateY(100%)=자기높이만큼 하강이라 종료 후에도
-          하단 스트립이 남아 back 지연 동안 "멈칫"으로 보임 — 두 실기기 증상의 공통 원인. inset-0 단독 = 컨테이너
-          완전 채움(본문 calc(100%-210px)도 성립, dvh 불요). animationend는 ref 네이티브 리스너 — closing effect 참조. */}
+          0264: ✕는 detailClosing → detail-down(forwards — 종료~언마운트 프레임 되튐 방지) → animationend/폴백에서 back().
+          animationName 검사 = detail-up 종료·자손 버블 오발화 차단. popstate 닫힘은 즉시(현행). */}
       {detailOpen && selectedSpot && (
         <div
-          ref={detailModalRef}
           className={`lg:hidden fixed inset-0 z-[60] bg-bg ${detailClosing
             ? 'animate-[detail-down_320ms_cubic-bezier(0.32,0.72,0,1)_forwards]'
             : 'animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]'}`}
+          style={{ height: '100svh' }}
+          onAnimationEnd={(e) => { if (detailClosing && e.animationName === 'detail-down') finishCloseDetail(); }}
         >
           <SpotDetailContent spot={selectedSpot} onClose={() => { if (!detailClosing) setDetailClosing(true); }} />
         </div>
