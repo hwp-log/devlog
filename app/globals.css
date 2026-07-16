@@ -49,12 +49,6 @@
   to { transform: translateY(0); }
 }
 
-/* 0264: 상세 모달 ✕ 닫기 슬라이드 다운 (detail-up의 짝 — 사용처에서 forwards 필수: 종료~언마운트 프레임 사이 되튐 방지) */
-@keyframes detail-down {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
-}
-
 @keyframes planCardEnter {
   from {
     transform: translateY(10px);
