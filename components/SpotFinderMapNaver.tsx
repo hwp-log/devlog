@@ -137,20 +137,21 @@ const EQUATOR_MPP_Z0 = 156543; // z0 적도 m/px (Web Mercator). mpp(z) = EQUATO
 const MOBILE_MAP_PAD_BOTTOM = 200;
 const MOBILE_MQ = '(max-width: 1023px)'; // lg(1024) 미만 = 모바일 뷰
 // 0246→0247: 모바일 시트 2단 max-h (full 88svh는 시트가 지도를 가려 행 탭 시 이동 결과가 안 보여 제거).
-// peek 156 = border2 + pt4 + 그래버44 + 제목24 + 여유4 + pb78 (제목까지 노출, 검색은 mt12 아래라 가림). 완전한 리터럴 → Tailwind JIT 스캔 OK.
+// peek 150 = border2 + pt4 + 그래버44 + 제목24 + 여유4 + pb72 (제목까지 노출, 검색은 mt 아래라 가림) — 0256: pb 78→72 동기. 완전한 리터럴 → Tailwind JIT 스캔 OK.
 const SHEET_MAX_H = {
-  peek: 'max-h-[calc(156px+env(safe-area-inset-bottom))]',
-  // 0254→0255: half 하한 415 = 고정부 272 + 목록 하한 143 — 실기기 Safari는 svh가 주소창·툴바만큼 축소돼
+  peek: 'max-h-[calc(150px+env(safe-area-inset-bottom))]',
+  // 0254→0256: half 하한 397 = 고정부 254 + 목록 하한 143 — 실기기 Safari는 svh가 주소창·툴바만큼 축소돼
   // 58svh만으론 목록이 1행 남짓. 하한은 아래 SHEET_LIST_MAX_H의 143과 짝(pair) — 한쪽만 바꾸면 클립 잘림.
-  // (0254의 190/462는 실기기에서 시트 과점 → 2행 수준으로 완화)
-  half: 'max-h-[max(58svh,calc(415px+env(safe-area-inset-bottom)))]',
+  // (이력: 0254 190/462 과점 → 0255 143/415 → 0256 고정부 압축으로 143/397)
+  half: 'max-h-[max(58svh,calc(397px+env(safe-area-inset-bottom)))]',
 } as const;
 // 0252: 목록 ul 명시 max-h — iOS Safari가 중첩 flex(클립 래퍼) 안에서 grow를 계산하지 않아
 // ul이 한 줄(48px)로 붕괴(실기기 Web Inspector 실측) → flex 사이징 배제, 높이 = min(콘텐츠, calc).
-// 58svh = SHEET_MAX_H.half와 동기. 272 = border2 + pt4 + 그래버44 + 제목24 + (mt12+검색46) + (mt12+칩38) + ul mt12 + pb78.
-// safe-area 항: pb가 78+env라 노치 기기에선 그만큼 가용 공간이 줄어듦(빼지 않으면 마지막 행이 클립에 가림).
-// 0254→0255: 하한 143 = 행68×2 + gap7 (2행 온전 — 190은 실기기 시트 과점이라 완화). half 하한 415(=272+143)와 짝 — 검산: 하한 발동 시 272+env+143 = half 하한과 정확 일치.
-const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-272px-env(safe-area-inset-bottom)),143px)]';
+// 58svh = SHEET_MAX_H.half와 동기. 254 = border2 + pt4 + 그래버44 + 제목24 + (mt8+검색46) + (mt8+칩38) + ul mt8 + pb72 (0256: mt12→8 셋 + pb78→72 압축).
+// pb 72 = 탭바 실측(pill h58 + 하단 이격 14) — 콘텐츠 끝 = pill top 정확 일치(겹침 0).
+// safe-area 항: pb가 72+env라 노치 기기에선 그만큼 가용 공간이 줄어듦(빼지 않으면 마지막 행이 클립에 가림).
+// 0254→0255: 하한 143 = 행68×2 + gap7 (2행 온전 — 190은 실기기 시트 과점이라 완화). half 하한 397(=254+143)와 짝 — 검산: 하한 발동 시 254+env+143 = half 하한과 정확 일치.
+const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-254px-env(safe-area-inset-bottom)),143px)]';
 
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
@@ -904,7 +905,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
       {/* 0233: 모바일 하단 시트 (lg:hidden, 바닥밀착). 0244: 선택과 무관하게 항상 목록 유지(선택 카드 배타 전환 폐지) — 선택은 행 하이라이트로 표시.
           0245→0247: 그래버 탭으로 2단(peek/half) 전환 — max-height 전환(목록 50행이라 실높이가 max-h를 따라감. 콘텐츠가 짧으면 전환할 것이 없어 무변) */}
-      <div className={`lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl transition-[max-height] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${SHEET_MAX_H[sheetLevel]} pt-1 px-4 pb-[calc(78px+env(safe-area-inset-bottom))]`}>
+      <div className={`lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl transition-[max-height] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${SHEET_MAX_H[sheetLevel]} pt-1 px-4 pb-[calc(72px+env(safe-area-inset-bottom))]`}>
         {/* 0246: peek 클립 래퍼 — 루트 overflow-hidden은 padding box 클립이라 하단 pb 존(플로팅 탭바 주변)에
             검색·칩이 비침. 콘텐츠 박스 경계(탭바 위)에서 가리도록 래퍼에 클립. half/full에선 레이아웃 등가. */}
         <div className="flex min-h-0 flex-col overflow-hidden">
@@ -928,18 +929,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="작품명·촬영지를 입력하세요"
-            className="mt-3 w-full rounded-xl px-4 py-2.5 text-base border border-border bg-card text-fg placeholder:text-muted shadow-sm focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
+            className="mt-2 w-full rounded-xl px-4 py-2.5 text-base border border-border bg-card text-fg placeholder:text-muted shadow-sm focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
           />
           {/* 0237: 작품 칩 — 데스크탑 칩과 selectedMovieId 공유. 모바일은 터치 가로 스크롤(‹›화살표 없음).
               0245: shrink-0 — overflow-x-auto는 flex 자동 최소 크기가 0이라 시트가 max-h에 걸리면 이 행만 0까지 압축됨(칩 가림의 근본 원인) */}
-          <div className="mt-3 shrink-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 shrink-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
             {renderMovieChips()}
           </div>
           {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
               0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08])
               0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
               shrink-0: peek에선 이 높이를 유지한 채 클립 래퍼 overflow-hidden이 가림(기존과 시각 동일) */}
-          <ul className={`mt-3 ${SHEET_LIST_MAX_H} shrink-0 flex flex-col gap-[7px] overflow-y-auto`}>
+          <ul className={`mt-2 ${SHEET_LIST_MAX_H} shrink-0 flex flex-col gap-[7px] overflow-y-auto`}>
             {listSpots.map((spot) => {
               const selected = selectedSpot?.id === spot.id;
               return (
