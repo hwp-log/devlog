@@ -150,9 +150,14 @@ const SHEET_MAX_H = {
 // 58svh = SHEET_MAX_H.half와 동기. 254 = border2 + pt4 + 그래버44 + 제목24 + (mt8+검색46) + (mt8+칩38) + ul mt8 + pb72 (0256: mt12→8 셋 + pb78→72 압축).
 // pb 72 = 탭바 실측(pill h58 + 하단 이격 14) — 콘텐츠 끝 = pill top 정확 일치(겹침 0).
 // safe-area 항: pb가 72+env라 노치 기기에선 그만큼 가용 공간이 줄어듦(빼지 않으면 마지막 행이 클립에 가림).
-// 0257: 하한 105 = 행68 + gap7 + 걸침30 (1행 온전 + 다음 행 썸네일 상단 20px 걸침 — 스크롤 어포던스, 2행 온전 143은 시트 과점이라 축소).
-// half 하한 359(=254+105)와 짝 — 검산: 하한 발동 시 254+env+105 = half 하한과 정확 일치. 하한은 최소 보장선 — svh가 이기는 뷰포트에선 목록이 더 보임(무해).
-const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-254px-env(safe-area-inset-bottom)),105px)]';
+// 0258: ul = 시트 높이 − 174 (174 = border2 + pt4 + 고정스택168 — 시트 상단에서 ul 시작까지).
+// ul이 시트 하단(pill 뒤)까지 내려가 행이 이어져 보임 — 걸침 신호를 스크롤 위치와 무관하게 유지.
+// 스크롤 끝은 ul 내부 pb(72+env)가 마지막 행을 pill 위로 보정. floor 185 = half 하한 359 − 174
+// (0257의 가시 목록 105 + pt8 + pill존 72의 등가 변환 — pill 위 가시값은 0257과 동일).
+const SHEET_LIST_MAX_H = 'max-h-[max(calc(58svh-174px),calc(185px+env(safe-area-inset-bottom)))]';
+// 0258: 고정 스택(그래버·제목·검색·칩) 래퍼의 레벨별 클립 높이 — flex 수축 의존 제거(0253 명시 높이 원칙).
+// peek 72 = 그래버44 + 제목24 + 여유4 (기존 peek 클립과 동일) / half 168 = +mt8+검색46+mt8+칩38.
+const SHEET_STACK_MAX_H = { peek: 'max-h-[72px]', half: 'max-h-[168px]' } as const;
 
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
@@ -907,9 +912,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 0233: 모바일 하단 시트 (lg:hidden, 바닥밀착). 0244: 선택과 무관하게 항상 목록 유지(선택 카드 배타 전환 폐지) — 선택은 행 하이라이트로 표시.
           0245→0247: 그래버 탭으로 2단(peek/half) 전환 — max-height 전환(목록 50행이라 실높이가 max-h를 따라감. 콘텐츠가 짧으면 전환할 것이 없어 무변) */}
       <div className={`lg:hidden fixed inset-x-0 z-30 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl transition-[max-height] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${SHEET_MAX_H[sheetLevel]} pt-1 px-4 pb-[calc(72px+env(safe-area-inset-bottom))]`}>
-        {/* 0246: peek 클립 래퍼 — 루트 overflow-hidden은 padding box 클립이라 하단 pb 존(플로팅 탭바 주변)에
-            검색·칩이 비침. 콘텐츠 박스 경계(탭바 위)에서 가리도록 래퍼에 클립. half/full에선 레이아웃 등가. */}
-        <div className="flex min-h-0 flex-col overflow-hidden">
+        {/* 0246→0258: 고정 스택(그래버·제목·검색·칩) 전용 클립 래퍼 — 목록(ul)은 pill 뒤까지 내려가도록 밖으로 분리.
+            레벨별 명시 max-h(SHEET_STACK_MAX_H)로 peek 가림 유지(flex 수축 의존 제거). 전환은 루트와 동일 질감으로 동기. */}
+        <div className={`${SHEET_STACK_MAX_H[sheetLevel]} shrink-0 flex flex-col overflow-hidden transition-[max-height] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)]`}>
           {/* 0247: 그래버 — peek=∧(→half)/half=∨(→peek) 토글 버튼 1개. 히트 44×64(§5), 시각 chevron 18(0236 전례) */}
           <button
             type="button"
@@ -937,40 +942,42 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           <div className="mt-2 shrink-0 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
             {renderMovieChips()}
           </div>
-          {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
-              0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08])
-              0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
-              shrink-0: peek에선 이 높이를 유지한 채 클립 래퍼 overflow-hidden이 가림(기존과 시각 동일) */}
-          <ul className={`mt-2 ${SHEET_LIST_MAX_H} shrink-0 flex flex-col gap-[7px] overflow-y-auto`}>
-            {listSpots.map((spot) => {
-              const selected = selectedSpot?.id === spot.id;
-              return (
-                <li key={spot.id} ref={selected ? mobileSelectedItemRef : undefined}>
-                  <div className={`flex items-center gap-2 p-2.5 rounded-xl border transition-colors ${selected
-                    ? 'border-primary bg-primary/[0.08]'
-                    : 'border-transparent'
-                    }`}>
-                    <button
-                      type="button"
-                      onClick={() => handleSpotSelect(spot)}
-                      className="min-w-0 flex-1 flex items-center gap-3 text-left"
-                    >
-                      {renderSpotRowFields(spot)}
-                    </button>
-                    {/* [상세]는 handleSpotSelect로 selectedSpot 선행 세팅 후 모달(모달은 selectedSpot 렌더) */}
-                    <button
-                      type="button"
-                      onClick={() => { handleSpotSelect(spot); openDetail(spot); }}
-                      className="shrink-0 min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
-                    >
-                      상세
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
         </div>
+        {/* 0238: 스팟 목록 — listSpots 재사용. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
+            0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08])
+            0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
+            0258: 래퍼 밖(루트 직속) — 루트는 클립하지 않아 pill 뒤까지 행이 이어져 보임(걸침 신호 상시).
+            mt-2→pt-2 내부화. peek은 max-h-0 + 패딩도 0 — border-box 높이는 패딩 합 이하로 못 내려가(실측 80px 잔존, 행 조각이 pill 주변에 비침) 패딩까지 접고 전환 속성에 포함해 동기.
+            내부 pb = 스크롤 끝에서 마지막 행을 pill 위로. */}
+        <ul className={`${sheetLevel === 'peek' ? 'max-h-0 pt-0 pb-0' : `pt-2 pb-[calc(72px+env(safe-area-inset-bottom))] ${SHEET_LIST_MAX_H}`} shrink-0 flex flex-col gap-[7px] overflow-y-auto transition-[max-height,padding] duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)]`}>
+          {listSpots.map((spot) => {
+            const selected = selectedSpot?.id === spot.id;
+            return (
+              <li key={spot.id} ref={selected ? mobileSelectedItemRef : undefined}>
+                <div className={`flex items-center gap-2 p-2.5 rounded-xl border transition-colors ${selected
+                  ? 'border-primary bg-primary/[0.08]'
+                  : 'border-transparent'
+                  }`}>
+                  <button
+                    type="button"
+                    onClick={() => handleSpotSelect(spot)}
+                    className="min-w-0 flex-1 flex items-center gap-3 text-left"
+                  >
+                    {renderSpotRowFields(spot)}
+                  </button>
+                  {/* [상세]는 handleSpotSelect로 selectedSpot 선행 세팅 후 모달(모달은 selectedSpot 렌더) */}
+                  <button
+                    type="button"
+                    onClick={() => { handleSpotSelect(spot); openDetail(spot); }}
+                    className="shrink-0 min-h-[44px] rounded-full bg-primary px-4 text-sm font-semibold text-white"
+                  >
+                    상세
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       {/* 0224: 모바일 상세 풀스크린 모달 (?detail=id, 탭바까지 덮음). 지도 인스턴스 유지 → 뒤로가기/X로 선택·위치·줌 보존. */}
