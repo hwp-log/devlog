@@ -142,6 +142,11 @@ const SHEET_MAX_H = {
   peek: 'max-h-[calc(156px+env(safe-area-inset-bottom))]',
   half: 'max-h-[58svh]',
 } as const;
+// 0252: 목록 ul 명시 max-h — iOS Safari가 중첩 flex(클립 래퍼) 안에서 grow를 계산하지 않아
+// ul이 한 줄(48px)로 붕괴(실기기 Web Inspector 실측) → flex 사이징 배제, 높이 = min(콘텐츠, calc).
+// 58svh = SHEET_MAX_H.half와 동기. 272 = border2 + pt4 + 그래버44 + 제목24 + (mt12+검색46) + (mt12+칩38) + ul mt12 + pb78.
+// safe-area 항: pb가 78+env라 노치 기기에선 그만큼 가용 공간이 줄어듦(빼지 않으면 마지막 행이 클립에 가림).
+const SHEET_LIST_MAX_H = 'max-h-[calc(58svh-272px-env(safe-area-inset-bottom))]';
 
 
 // 전환 질감 단일 소스 — 모든 프로그램 이동(퇴화·일반 분해·칩)이 공유. 조정은 여기 한 곳.
@@ -928,8 +933,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           </div>
           {/* 0238: 스팟 목록 — listSpots 재사용. 시트 max-h 안에서 목록만 스크롤. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
               0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법(border-primary bg-primary/[0.08])
-              0251: basis 0%(flex-1)는 iOS Safari가 중첩 flex(클립 래퍼) 안에서 높이를 오계산해 행이 밀림(실기기) → auto + min-h-0 조합이 Safari-safe */}
-          <ul className="mt-3 flex-[1_1_auto] flex flex-col gap-[7px] overflow-y-auto min-h-0">
+              0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
+              shrink-0: peek에선 이 높이를 유지한 채 클립 래퍼 overflow-hidden이 가림(기존과 시각 동일) */}
+          <ul className={`mt-3 ${SHEET_LIST_MAX_H} shrink-0 flex flex-col gap-[7px] overflow-y-auto`}>
             {listSpots.map((spot) => {
               const selected = selectedSpot?.id === spot.id;
               return (
