@@ -80,14 +80,16 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
       ? `<span style="${cardBase};background-image:url('${escapeHtml(spot.thumbnailUrl)}');background-size:cover;background-position:center"></span>`
       : `<span style="${cardBase};background:linear-gradient(135deg,var(--surface2),var(--card));display:flex;align-items:center;justify-content:center;font-size:30px">🎬</span>`
     : '';
+  // 0270: data-pill = hover 강조 CSS 타깃(globals.css — pill엔 inline transform이 없어 클래스 transform이 안전)
   const inner = `${ping}
       ${card}
-      <span style="${pillBase}${pillColor}">${name}</span>
+      <span data-pill style="${pillBase}${pillColor}">${name}</span>
       <span style="display:block;width:${MARKER_DOT_SIZE}px;height:${MARKER_DOT_SIZE}px;border-radius:50%;border:2px solid var(--bg);box-shadow:${dotShadow};background:${PRIMARY};position:relative"></span>`;
 
   // 점 중심 = 좌표 (항상): translate -100%(묶음 전체 — 카드·라벨 높이 자동 흡수) + 점높이/2 하향 보정.
   // 선택 토글 시 점·라벨은 제자리 고정, 카드만 라벨 위에 나타났다 사라진다. 미선택 총높이 ≈ 47px ≥ 44px (§5 히트 타겟)
-  return `<div style="position:relative;width:0;height:0">
+  // 0270: data-spot-id = 데탑 목록 hover가 이 마커 DOM을 찾는 키(setIcon 재생성 없이 classList 토글 — SDK API 비의존)
+  return `<div data-spot-id="${escapeHtml(spot.id)}" style="position:relative;width:0;height:0">
     <div style="position:absolute;left:0;top:0;transform:translate(-50%, calc(-100% + ${MARKER_DOT_SIZE / 2}px));display:flex;flex-direction:column;align-items:center;min-width:44px;padding:6px 8px 0;cursor:pointer">${inner}</div>
   </div>`;
 }
@@ -811,6 +813,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     mapInstance.morph(new naver.maps.LatLng(spot.lat, spot.lng), targetZoom, STAGE2_TRANSITION);
   }
 
+  // 0270: 데탑 목록 hover → 마커 강조 (순수 시각 — 선택·지도 이동 없음). React 상태 미경유(DOM 직접 토글 —
+  // 빠른 훑기에 렌더 부담 0, 0261 scrollTop 직접 설정과 같은 계열 판단). 클러스터에 묶여 DOM 미부착이면 자연 no-op.
+  function setMarkerHover(spot: SpotFinderSpot, on: boolean) {
+    if (selectedSpotRef.current?.id === spot.id) return; // 선택 마커는 이미 최상위 강조 — 선택 스타일 우선(호버 무시)
+    mapDivRef.current?.querySelector(`[data-spot-id="${spot.id}"]`)?.classList.toggle('marker-hover', on);
+    markersRef.current.get(spot.id)?.setZIndex(on ? 5 : 1); // 선택 z10 미만으로만 승격 — 위계 유지
+  }
+
   // 마커 클릭 리스너의 스테일 클로저 방지 — 매 커밋 최신 핸들러 동기화 (렌더 중 ref 쓰기 금지 규칙 준수)
   useEffect(() => {
     handleSpotSelectRef.current = handleSpotSelect; // 0248: 마커 클릭도 확대 룰 직결 (디스패처 폐지)
@@ -901,9 +911,12 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             const selected = selectedSpot?.id === spot.id;
             return (
               <li key={spot.id} ref={selected ? selectedItemRef : undefined}>
+                {/* 0270: hover = 마커 강조만(순수 시각) — 지도 이동·선택 없음, 클릭이 유일한 선택 수단. 모바일 행엔 미부착(합성 mouseenter 배제) */}
                 <button
                   type="button"
                   onClick={() => handleSpotSelect(spot)}
+                  onMouseEnter={() => setMarkerHover(spot, true)}
+                  onMouseLeave={() => setMarkerHover(spot, false)}
                   className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${selected
                     ? 'border-primary bg-primary/[0.08]'
                     : 'border-transparent hover:bg-card'
