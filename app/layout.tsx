@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { buildThemeCss } from "@/lib/theme";
+import { ThemeProvider } from "@/app/(protected)/_components/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,14 +30,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // suppressHydrationWarning: next-themes가 첫 페인트 전 html의 data-theme를 수정 (1레벨만 적용)
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {/* 디자인 토큰 발행 — 값의 정본은 lib/theme.ts (A005 §2·§3) */}
         <style id="dotrip-theme">{buildThemeCss()}</style>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
         {/* 0241: 모바일 가로 차단 안내 — 세로 전용 앱(PWA 아님이라 CSS 오버레이). 표시 조건은 globals.css 미디어쿼리. */}
         <div className="landscape-blocker" role="alert">
           <span className="landscape-blocker__icon" aria-hidden>📱</span>
