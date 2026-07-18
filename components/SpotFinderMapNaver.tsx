@@ -992,10 +992,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             0279: bg-card = 타일 전 흰 깜빡임 1차 방어(SDK 캔버스 attach 전 구간) — 인스턴스 background 옵션과 이중 */}
         <div ref={mapDivRef} className="w-full h-full bg-card" />
 
-        {/* 0277: 지도 슬롯 로딩/실패 서피스 — 지도 영역만 덮는 오버레이(리스트·상세는 위에 그대로 보임) */}
-        {mapSlot === 'loading' && <SpotFinderMapSlot variant="loading" slow={slow} />}
-        {mapSlot === 'error' && <SpotFinderMapSlot variant="error" onRetry={retry} />}
-        {mapSlot === 'auth' && <SpotFinderMapSlot variant="auth" />}
+        {/* 0277: 지도 슬롯 로딩/실패 서피스 — 지도 영역만 덮는 오버레이(리스트·상세는 위에 그대로 보임).
+            0280: sheetLevel 전달 — 모바일 안내가 시트 스냅별 가시 영역 중앙을 추종(데탑은 무시) */}
+        {mapSlot === 'loading' && <SpotFinderMapSlot variant="loading" sheetLevel={sheetLevel} slow={slow} />}
+        {mapSlot === 'error' && <SpotFinderMapSlot variant="error" sheetLevel={sheetLevel} onRetry={retry} />}
+        {mapSlot === 'auth' && <SpotFinderMapSlot variant="auth" sheetLevel={sheetLevel} />}
       </div>
 
       {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
