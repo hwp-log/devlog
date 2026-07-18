@@ -549,6 +549,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     // 초기 중심 = 초기 선택 스팟(featuredSpot — 시연 고정 ?? spots[0]) — 선택 마커가 화면 크기와 무관하게 정중앙 시작.
     // 못 찾거나 spots가 비면 INITIAL_CENTER(서울 bbox 중점) 폴백. 생성 옵션만 — 렌더 후 이동 없음(0172 원칙)
     const first = featuredSpot;
+    // 0279: 타일 로드 전 SDK 기본 밝은 배경이 다크 화면에서 흰 깜빡임(웜캐시 재진입 실측) → card 토큰 주입.
+    // documentElement 금지: 다크 값은 [data-theme=dark] 스코프에만 발행(theme.ts buildThemeCss)
+    // — 루트에서 읽으면 라이트 card. 지도 div(다크 스코프 내부)에서 읽는다. SDK는 var() 미해석이라 실값 전달.
+    // 타일은 tileTransition 기본값(true)으로 이 배경 위에 페이드인. 테마 전환 재적용은 D-2 트랙(현행 dark-only).
+    const mapBackground = getComputedStyle(mapDivRef.current).getPropertyValue('--card').trim();
     const map = new naver.maps.Map(mapDivRef.current, {
       center: new naver.maps.LatLng(first?.lat ?? INITIAL_CENTER.lat, first?.lng ?? INITIAL_CENTER.lng),
       zoom: INITIAL_ZOOM, // 초기 뷰 = 서울 확대 (전체 fitBounds 시작 폐지 — Effect A 마운트 발화 가드 참조)
@@ -563,6 +568,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       mapDataControlOptions: { position: naver.maps.Position.TOP_RIGHT },
       // 0239: 축척 바 제거 — 표기 의무 아님(v3). 로고·저작권은 위 무변경(의무).
       scaleControl: false,
+      background: mapBackground, // 0279: 타일 전 배경 = card (위 mapBackground 주석 참조)
       // customStyleId는 GL(벡터) 전용. STYLE_VERSION env는 JS SDK에 대응 옵션이 없음 —
       // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지)
       ...(supportsGl
@@ -982,8 +988,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
       <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
-        {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비). 항상 마운트(0277). */}
-        <div ref={mapDivRef} className="w-full h-full" />
+        {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비). 항상 마운트(0277).
+            0279: bg-card = 타일 전 흰 깜빡임 1차 방어(SDK 캔버스 attach 전 구간) — 인스턴스 background 옵션과 이중 */}
+        <div ref={mapDivRef} className="w-full h-full bg-card" />
 
         {/* 0277: 지도 슬롯 로딩/실패 서피스 — 지도 영역만 덮는 오버레이(리스트·상세는 위에 그대로 보임) */}
         {mapSlot === 'loading' && <SpotFinderMapSlot variant="loading" slow={slow} />}
