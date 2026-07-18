@@ -77,14 +77,15 @@
    선택(파랑)과 인지 경쟁. 무채 명도 반응 채택(Material 상태 차등). transform은 pill inline에 없어 클래스로 안전.
    origin 하단 중앙 = 점에 앵커된 느낌. 그림자 강화는 inline box-shadow(0269)와 충돌이라 미적용(컴포넌트 setMarkerHover 참조).
    배경·테두리·글자는 markerContent inline(0269)에 있어 클래스 선택자로 못 이김 — !important가 유일한 덮어쓰기 수단(구조 근거).
-   배경 스톱은 평상(#33383d→surface2)의 각 스톱 한 톤 상향(#454b52→#33383d — 밝은 스톱이 평상 어두운 스톱과 연속).
+   0284: 색값은 theme.ts marker-hover 토큰으로 이관(라이트/다크 쌍) — 테마별 해석이라 스코프 분기 없이 단일 규칙.
+   다크값은 0270 확정 그대로(평상 pill 각 스톱 한 톤 상향 — 밝은 스톱이 평상 어두운 스톱과 연속).
    caveat: linear-gradient는 transition 비보간 — background는 즉시 전환, 체감 부드러움은 border-color·color·transform이 담당. */
 [data-pill] { transition: transform 120ms ease-out, background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out; transform-origin: 50% 100%; }
 .marker-hover [data-pill] {
   transform: scale(1.12);
-  background: linear-gradient(to bottom, #454b52, #33383d) !important;
-  border-color: rgba(255, 255, 255, 0.8) !important;
-  color: #e5e7eb !important;
+  background: linear-gradient(to bottom, var(--marker-hover-hi), var(--marker-hover-lo)) !important;
+  border-color: var(--marker-hover-border) !important;
+  color: var(--marker-hover-fg) !important;
 }
 
 /* 화면별 다크 스코프 (A005 §8) — 레이아웃에 data-theme="dark" 부여 시 하위 전체 다크 */

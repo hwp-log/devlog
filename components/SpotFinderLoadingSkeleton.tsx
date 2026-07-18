@@ -20,7 +20,8 @@ export default function SpotFinderLoadingSkeleton() {
   return (
     <div className="relative w-full h-full flex">
       {/* 데탑 좌측 목록 열 (모바일 숨김) — 실제 열과 동일 320px·bg·구분선 */}
-      <div className="hidden lg:flex w-[320px] shrink-0 flex-col gap-2 bg-bg border-r border-[rgba(255,255,255,0.12)] p-3">
+      {/* 0284: 구분선 라이트 = border 토큰 / 다크 = 0.12 실측값 (실화면 3열과 동일 페어) */}
+      <div className="hidden lg:flex w-[320px] shrink-0 flex-col gap-2 bg-bg border-r border-border dark:border-[rgba(255,255,255,0.12)] p-3">
         <div className="h-4 w-[55%] rounded skeleton-shimmer mt-1" />
         <div className="h-9 w-full rounded-xl skeleton-shimmer" />
         <div className="h-8 w-full rounded-xl skeleton-shimmer" />
@@ -32,7 +33,7 @@ export default function SpotFinderLoadingSkeleton() {
       </div>
 
       {/* 중앙 지도 영역 — 셔머로 채움 */}
-      <div className="relative flex-1 min-w-0 skeleton-shimmer lg:border-r lg:border-[rgba(255,255,255,0.12)]" />
+      <div className="relative flex-1 min-w-0 skeleton-shimmer lg:border-r lg:border-border dark:lg:border-[rgba(255,255,255,0.12)]" />
 
       {/* 데탑 우측 상세 패널 (모바일 숨김) — 히어로 210 + 텍스트 골격 */}
       <aside className="hidden lg:flex w-[350px] shrink-0 flex-col bg-bg">

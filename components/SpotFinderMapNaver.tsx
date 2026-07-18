@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, Heart } from 'lucide-react';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
+import { useTheme } from 'next-themes';
 import { useNaverMapsLoader, type NaverLoaderStatus } from '@/lib/naver/useNaverMapsLoader';
 import { SpotFinderMapSlot } from './SpotFinderMapSlot';
 import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/naver/MarkerClustering';
@@ -64,13 +65,13 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   const dotShadow = selected
     ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 6px rgba(0,0,0,0.5)`
     : '0 2px 6px rgba(0,0,0,0.5)';
-  // 0269 확정: 미선택 = 회색 pill(목업 스펙) — 밝은 테두리(흰 0.5)+상단 inset 하이라이트가 다크 지도 지명과의 구분을 담당
+  // 0269 확정: 미선택 = 회색 pill(목업 스펙) — 밝은 테두리+상단 inset 하이라이트가 다크 지도 지명과의 구분을 담당
   // (앰버 0267~0268은 실기기 비교로 기각 — 토큰도 삭제). 선택 = primary 파랑, 그림자 문법만 통일.
-  // 그라데이션 밝은 톤 #33383d 리터럴 근거: surface2(#26292b)의 흰색 혼합 파생으로는 목업의 청색 성분(+5B)이 재현 안 됨
-  // — color-mix 파생(0268 관례) 불가 판정, 목업 확정값을 그대로 사용.
+  // 0284: 밝은 스톱·테두리를 theme.ts marker-pill 토큰으로 이관(라이트 쌍 추가) — 다크값은 0269 목업 확정값
+  // (#33383d — surface2 흰색 혼합 파생 불가 판정 이력은 theme.ts 주석 참조). 마커 DOM은 페이지 트리 안이라 var() 해석됨.
   const pillColor = selected
     ? `background:linear-gradient(to bottom,color-mix(in srgb,${PRIMARY} 82%,#fff),${PRIMARY});color:#fff;border:1px solid ${PRIMARY};box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),0 2px 6px rgba(0,0,0,0.4);`
-    : 'background:linear-gradient(to bottom,#33383d,var(--surface2));color:var(--fg2);border:1px solid rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 2px 6px rgba(0,0,0,0.4);';
+    : 'background:linear-gradient(to bottom,var(--marker-pill-hi),var(--surface2));color:var(--fg2);border:1px solid var(--marker-pill-border);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 2px 6px rgba(0,0,0,0.4);';
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
@@ -457,6 +458,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   const { status, slow, retry } = useNaverMapsLoader();
   const ready = status === 'ready'; // 하위 마커·스크롤·리사이즈 로직의 기존 ready 참조 무변경 유지
   const mapSlot = useMapSlotPhase(status);
+  // 0284: 테마 구독 — 렌더에 쓰지 않고(서버 undefined, 0283 원칙) 지도 init effect에서만 소비.
+  // 테마 전환 = 지도 파괴·재생성(customStyleId 런타임 변경은 SDK 미문서화 — 확인 불가 판정)
+  const { resolvedTheme } = useTheme();
 
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
@@ -479,6 +483,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const userInteractedRef = useRef(false);
   const lastSizeRef = useRef({ w: 0, h: 0 });
+  const viewRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null); // 0284: 테마 전환 재생성 간 center/zoom 보존
   const prevMovieIdRef = useRef<string | null>(null); // Effect A 마운트 발화 차단용 이전 칩 값
   const hasFitRef = useRef(false); // 프로그램 fit 이력 — 리사이즈 재적합의 초기 뷰 점프 방지
   // 명령형 마커 관리 — 마커 리빌드 없이 최신 선택/핸들러 참조 유지
@@ -556,23 +561,27 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     return mainland.length > 0 ? mainland : visibleSpots;
   }, [visibleSpots, selectedMovieId]);
 
-  // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제)
+  // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
+  // 0284: 테마(resolvedTheme)도 게이트·의존 — 전환 시 파괴·재생성으로 배경·타일 스타일 재적용
+  // (customStyleId 런타임 변경은 SDK 미문서화라 기각). 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단.
   useEffect(() => {
-    if (!ready || !mapDivRef.current) return;
+    if (!ready || !resolvedTheme || !mapDivRef.current) return;
     // WebGL 미지원 환경(구형 기기·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
     const supportsGl = !!document.createElement('canvas').getContext('webgl');
     if (!supportsGl) console.warn('[SpotFinderMapNaver] WebGL 미지원 — 래스터 폴백 (커스텀 스타일 미적용)');
     // 초기 중심 = 초기 선택 스팟(featuredSpot — 시연 고정 ?? spots[0]) — 선택 마커가 화면 크기와 무관하게 정중앙 시작.
-    // 못 찾거나 spots가 비면 INITIAL_CENTER(서울 bbox 중점) 폴백. 생성 옵션만 — 렌더 후 이동 없음(0172 원칙)
+    // 못 찾거나 spots가 비면 INITIAL_CENTER(서울 bbox 중점) 폴백. 생성 옵션만 — 렌더 후 이동 없음(0172 원칙).
+    // 0284: 테마 전환 재생성 시엔 viewRef(직전 center/zoom)가 우선 — 사용자가 보던 뷰 보존.
     const first = featuredSpot;
+    const view = viewRef.current;
     // 0279: 타일 로드 전 SDK 기본 밝은 배경이 다크 화면에서 흰 깜빡임(웜캐시 재진입 실측) → card 토큰 주입.
     // documentElement 금지: 다크 값은 [data-theme=dark] 스코프에만 발행(theme.ts buildThemeCss)
-    // — 루트에서 읽으면 라이트 card. 지도 div(다크 스코프 내부)에서 읽는다. SDK는 var() 미해석이라 실값 전달.
-    // 타일은 tileTransition 기본값(true)으로 이 배경 위에 페이드인. 테마 전환 재적용은 D-2 트랙(현행 dark-only).
+    // — 스코프 밖에서 읽으면 라이트 card. 지도 div(테마 스코프 내부)에서 읽는다. SDK는 var() 미해석이라 실값 전달.
+    // 타일은 tileTransition 기본값(true)으로 이 배경 위에 페이드인. 0284: 테마 전환 = 이 effect 재실행이라 재읽기 자동.
     const mapBackground = getComputedStyle(mapDivRef.current).getPropertyValue('--card').trim();
     const map = new naver.maps.Map(mapDivRef.current, {
-      center: new naver.maps.LatLng(first?.lat ?? INITIAL_CENTER.lat, first?.lng ?? INITIAL_CENTER.lng),
-      zoom: INITIAL_ZOOM, // 초기 뷰 = 서울 확대 (전체 fitBounds 시작 폐지 — Effect A 마운트 발화 가드 참조)
+      center: new naver.maps.LatLng(view?.lat ?? first?.lat ?? INITIAL_CENTER.lat, view?.lng ?? first?.lng ?? INITIAL_CENTER.lng),
+      zoom: view?.zoom ?? INITIAL_ZOOM, // 초기 뷰 = 서울 확대 (전체 fitBounds 시작 폐지 — Effect A 마운트 발화 가드 참조)
       minZoom: 6,
       maxBounds: new naver.maps.LatLngBounds(
         new naver.maps.LatLng(KOREA_BOUNDS.south, KOREA_BOUNDS.west),
@@ -591,23 +600,33 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         ? { padding: { bottom: computeMapPadBottom(mapDivRef.current) } }
         : {}),
       // customStyleId는 GL(벡터) 전용. STYLE_VERSION env는 JS SDK에 대응 옵션이 없음 —
-      // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지)
+      // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지).
+      // 0284: 커스텀 스타일(다크 타일)은 다크에만 — 라이트 = SDK 기본 스타일(밝은 타일, 사용자 확정).
       ...(supportsGl
-        ? { gl: true, customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID }
+        ? {
+          gl: true,
+          ...(resolvedTheme === 'dark'
+            ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID }
+            : {}),
+        }
         : {}),
     });
     // GL 지도는 비동기 초기화 — init 전에 fitBounds/클러스터러를 붙이면 빈 bounds로
     // 계산되어 마커가 그려지지 않는다 (실측). init 이벤트 후 인스턴스 공개.
     const initListener = naver.maps.Event.once(map, 'init', () => setMapInstance(map));
     return () => {
+      // 0284: 파괴 직전 뷰 캡처 — 테마 전환 재생성이 같은 center/zoom에서 재개 (언마운트 캡처는 무해·미소비)
+      const c = map.getCenter() as naver.maps.LatLng;
+      viewRef.current = { lat: c.lat(), lng: c.lng(), zoom: map.getZoom() };
       naver.maps.Event.removeListener(initListener);
       setMapInstance(null);
       map.destroy();
     };
     // spots를 deps에 넣지 않음(의도): RSC prop이라 router.refresh/revalidate 시 새 참조로 내려와
-    // 지도가 파괴·재생성됨(뷰·줌 소실). init effect는 1회 생성이 의도 — spots[0]은 최초 마운트 값만 사용
+    // 지도가 파괴·재생성됨(뷰·줌 소실). init effect는 1회 생성이 의도 — spots[0]은 최초 마운트 값만 사용.
+    // 0284: resolvedTheme 의존 추가 — 테마 전환만 재생성 트리거(viewRef로 뷰 보존)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, resolvedTheme]);
 
   // 0214: 첫 진입 시 좌측 목록을 선택 스팟(featuredSpot)으로 스크롤 — 선택 카드가 화면 중앙에 보이게.
   // 0277: 게이트 분리 후 리스트는 ready 전에도 렌더되나, 이 초기 스크롤은 [ready] 1회 발화 유지
@@ -936,7 +955,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
       {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환).
           열 구분선 0.12 = 시안 --t15 실측값 — 시안 t13(0.08)과 동일값이었으나 체감 보강으로 상위 단계 채택 (구분선 한정, border 토큰 무변) */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 lg:static lg:top-auto lg:left-auto lg:right-auto lg:z-auto lg:w-[320px] lg:shrink-0 lg:h-full lg:bg-bg lg:border-r lg:border-[rgba(255,255,255,0.12)] lg:p-3">
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 lg:static lg:top-auto lg:left-auto lg:right-auto lg:z-auto lg:w-[320px] lg:shrink-0 lg:h-full lg:bg-bg lg:border-r lg:border-border dark:lg:border-[rgba(255,255,255,0.12)] lg:p-3">
         {/* 데탑 전용 헤더 — 시안 실측 18/20/10, 칼럼 md:p-3(12)+gap-2(8) 보정. 눈썹은 하한 준수 12px(시안 11px) */}
         <div className="hidden lg:block pt-1.5 px-2 pb-0.5">
           <p className="text-xs font-normal tracking-widest text-primary">SpotFinder</p>
@@ -991,7 +1010,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                   onMouseEnter={() => setMarkerHover(spot, true)}
                   onMouseLeave={() => setMarkerHover(spot, false)}
                   className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${selected
-                    ? 'border-transparent bg-white/[0.16]'
+                    ? 'border-transparent bg-black/[0.08] dark:bg-white/[0.16]'
                     : 'border-transparent hover:bg-card'
                     }`}
                 >
@@ -1015,8 +1034,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         )}
       </div>
 
-      {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
-      <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
+      {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선).
+          0284: 라이트 = border 토큰 / 다크 = 0.12 상향 실측값 보존 */}
+      <div className="relative flex-1 min-w-0 lg:border-r lg:border-border dark:lg:border-[rgba(255,255,255,0.12)]">
 
         {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비). 항상 마운트(0277).
             0279: bg-card = 타일 전 흰 깜빡임 1차 방어(SDK 캔버스 attach 전 구간) — 인스턴스 background 옵션과 이중.
@@ -1086,7 +1106,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         </div>
         {/* 0238: 스팟 목록 — listSpots 재사용. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
             0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법 — 0271: 테두리 제거(투명 유지 = 레이아웃 시프트 방지).
-            0272: 틴트 파랑 0.11 → 흰색 저투명 0.08 — 파랑은 다크 배경에서 미독(실화면 실측 우선 판정), 흰색은 명도로 부상. 0.06·0.08 비교 후 강도 2배(0.16)로 상향 — 실화면 가시성 판정
+            0272: 틴트 파랑 0.11 → 흰색 저투명 0.08 — 파랑은 다크 배경에서 미독(실화면 실측 우선 판정), 흰색은 명도로 부상. 0.06·0.08 비교 후 강도 2배(0.16)로 상향 — 실화면 가시성 판정.
+            0284: 라이트 쌍 추가 — 0272 명도 부상의 대칭(라이트 = 검정 저투명 0.08, 판단값). 다크값 무변
             0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
             0258: 래퍼 밖(루트 직속) — 루트는 클립하지 않아 pill 뒤까지 행이 이어져 보임(걸침 신호 상시).
             0259: mt-2 = 칩과 클립 경계 사이 고정 여백(내부 pt는 스크롤에 밀려 행이 칩에 붙음 — 박스 밖 margin은 페인트 없어 peek 잔존 무해).
@@ -1101,7 +1122,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     gap-3 = 기존 본문 내부 썸네일-텍스트 간격(12px) 시각 보존 + §5 인접 타겟 간격 충족.
                     텍스트 탭도 handleSpotSelect 선행 — 모달이 selectedSpot을 렌더하므로(빈 모달 방지, 구 [상세] 패턴). */}
                 <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${selected
-                  ? 'border-transparent bg-white/[0.16]'
+                  ? 'border-transparent bg-black/[0.08] dark:bg-white/[0.16]'
                   : 'border-transparent'
                   }`}>
                   <button
