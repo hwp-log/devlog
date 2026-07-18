@@ -61,6 +61,18 @@
   }
 }
 
+/* 0275: 셔머 스켈레톤 + 지도핀 breathe (SpotFinder 지도 로딩 서피스).
+   셔머 색 정본 = lib/theme.ts dark: 바탕 popover(#232527) / 이동 띠 surface2(#26292b).
+   시안 = docs/design/mockups/Dotrip Desktop Loading.html · Dotrip Mobile Loading.html. 리듬 1.4s. */
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+@keyframes map-pin-breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+
 /* 0270: 데탑 목록 hover 마커 강조 — pill 확대 + 명도 상승(색상 무변). 앰버 색 차용은 실화면 비교 후 기각 —
    선택(파랑)과 인지 경쟁. 무채 명도 반응 채택(Material 상태 차등). transform은 pill inline에 없어 클래스로 안전.
    origin 하단 중앙 = 점에 앵커된 느낌. 그림자 강화는 inline box-shadow(0269)와 충돌이라 미적용(컴포넌트 setMarkerHover 참조).
@@ -165,6 +177,14 @@ body {
     height: calc(100vh - 57px);
     height: calc(100svh - 57px);
   }
+}
+
+/* 0275: 셔머 스켈레톤 표면 — 바탕 popover 위를 밝은 surface2 띠가 1.4s로 훑음.
+   색은 theme.ts 토큰 var(--popover)/var(--surface2) 경유(다크 스코프 자동, 리터럴 금지). */
+@utility skeleton-shimmer {
+  background: linear-gradient(100deg, var(--popover) 40%, var(--surface2) 50%, var(--popover) 60%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
 }
 
 @layer utilities {
