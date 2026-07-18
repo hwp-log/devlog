@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--
+  Dotrip 로딩 상태 정본 시안 — 데스크탑
+  · A005 v3 §9 기준, SpotFinder 지도 로딩 UX 확정 시안 (2026-07-18)
+  · 색값의 정본은 lib/theme.ts — 이 파일의 리터럴 hex는 시각 대조용 근사값
+  · 셔머 바탕 = popover(#232527), 이동 띠 = surface2(#26292b) — theme.ts dark 완전 일치
+  · 시각 대조 전용. 마크업 복붙 금지, 의도를 Next 16 + Tailwind v4로 재구현
+  · 포맷: 수기 정적 HTML (기존 2파일은 DC 번들, 이 파일은 손으로 작성)
+
+  로딩 규칙:
+  - 로딩 프레임은 항상 거치는 장면 (지연이든 정상이든 표시 후 교체)
+  - 목록·상세 = 셔머 스켈레톤 / 지도 영역 = 같은 셔머 언어 + 지도핀 아이콘
+  - 지도핀·라벨은 셔머와 같은 1.4s 리듬으로 breathe(투명도 0.4~0.85)
+  - 각 영역은 준비되는 대로 실제 콘텐츠로 교체 (게이트 분리: 지도 슬롯만 대기)
+  - 최소 표시 시간(150~300ms 지연 + 300~500ms 유지)으로 깜빡임 방지
+  - 진짜 실패(SDK onerror) 시에만 지도 영역에 수동 "다시 시도" 버튼
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Dotrip Desktop Loading</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg-deep: #151718;
+    --card: #1d1f21;
+    --sheet: #1a1c1e;
+    --fg: #f0eee8;
+    --muted: #8a8d8f;
+    --hint: #6a6d6f;
+    --border: #2c2f31;
+    --brand: #4d9eff;
+    --on-brand: #04244a;
+    /* 셔머 정본: 바탕=popover, 이동 띠=surface2 (lib/theme.ts dark) */
+    --shimmer-base: #232527;
+    --shimmer-move: #26292b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--card); font-family: 'Pretendard', system-ui, sans-serif; color: var(--fg); padding: 24px; }
+  .frame { background: var(--bg-deep); border-radius: 8px; overflow: hidden; max-width: 980px; margin: 0 auto; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-bottom: 0.5px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 16px; }
+  .logo i { color: var(--brand); font-size: 20px; }
+  .nav { display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
+  .nav .on { color: var(--fg); }
+  .right { display: flex; align-items: center; gap: 12px; }
+  .write { background: var(--brand); color: var(--on-brand); font-size: 13px; padding: 6px 14px; border-radius: 16px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #f0a93a; color: #4a2a05; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+
+  .cols { display: grid; grid-template-columns: 300px 1fr 330px; height: 520px; }
+  .list { border-right: 0.5px solid var(--border); padding: 18px; overflow: hidden; }
+  .detail { border-left: 0.5px solid var(--border); overflow: hidden; }
+  .kicker { font-size: 12px; color: var(--muted); }
+  .h1 { font-size: 17px; font-weight: 500; margin: 3px 0 12px; }
+  .search { display: flex; align-items: center; gap: 6px; background: var(--card); border: 0.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--hint); margin-bottom: 12px; }
+  .chips { display: flex; gap: 6px; margin-bottom: 18px; overflow: hidden; }
+  .chip { font-size: 12px; padding: 5px 12px; border-radius: 14px; white-space: nowrap; background: var(--card); color: #b4b2a9; }
+  .chip.on { background: var(--brand); color: var(--on-brand); }
+  .rows { display: flex; flex-direction: column; gap: 18px; }
+  .row { display: flex; gap: 12px; align-items: center; }
+  .row .txt { flex: 1; }
+
+  /* 지도 영역: 목록·상세와 같은 셔머 언어로 통일 */
+  .map { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  .map i { font-size: 30px; color: #4a4e52; }
+  .map .label { font-size: 14px; color: var(--hint); }
+
+  .detail .hero { height: 170px; }
+  .detail .body { padding: 18px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+
+  /* 셔머 스켈레톤 — 시안 원본 정의 (linear-gradient 100deg, 1.4s) */
+  .skel {
+    background: linear-gradient(100deg, var(--shimmer-base) 40%, var(--shimmer-move) 50%, var(--shimmer-base) 60%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+  }
+  .thumb { width: 46px; height: 46px; border-radius: 8px; flex-shrink: 0; }
+  .bar { height: 11px; margin-bottom: 8px; }
+  .bar.sm { height: 9px; margin-bottom: 0; }
+  /* 지도핀·라벨: 셔머와 같은 1.4s 리듬으로 숨쉼 */
+  .breathe { animation: breathe 1.4s ease-in-out infinite; }
+
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @keyframes breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+</style>
+</head>
+<body>
+
+<!-- ==== 1. SPOTFINDER — 로딩 프레임 (데스크탑) ==== -->
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo"><i class="ti ti-map-pin"></i>D<span style="color:var(--brand)">o</span>trip</div>
+    <div class="nav"><span>Story</span><span class="on">SpotFinder</span><span>PlanFinder</span></div>
+    <div class="right"><span class="write">Write</span><span class="avatar">현</span></div>
+  </div>
+
+  <div class="cols">
+
+    <!-- 좌: 목록 (셔머 스켈레톤) — 검색·칩은 즉시, 행만 로딩 -->
+    <div class="list">
+      <div class="kicker">SpotFinder</div>
+      <div class="h1">영화·드라마 촬영지 검색</div>
+      <div class="search"><i class="ti ti-search"></i>작품·촬영지를 입력하세요</div>
+      <div class="chips">
+        <span class="chip on">전체 50</span>
+        <span class="chip">도깨비 9</span>
+        <span class="chip">호텔…</span>
+      </div>
+      <div class="rows">
+        <div class="row"><div class="skel thumb"></div><div class="txt"><div class="skel bar" style="width:72%"></div><div class="skel bar sm" style="width:50%"></div></div></div>
+        <div class="row"><div class="skel thumb"></div><div class="txt"><div class="skel bar" style="width:64%"></div><div class="skel bar sm" style="width:44%"></div></div></div>
+        <div class="row"><div class="skel thumb"></div><div class="txt"><div class="skel bar" style="width:70%"></div><div class="skel bar sm" style="width:48%"></div></div></div>
+        <div class="row"><div class="skel thumb"></div><div class="txt"><div class="skel bar" style="width:58%"></div><div class="skel bar sm" style="width:52%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- 중앙: 지도 영역 (셔머 언어 통일 + 지도핀 breathe) -->
+    <div class="map skel" style="border-radius:0">
+      <i class="ti ti-map-pin breathe"></i>
+      <div class="label breathe">지도를 불러오는 중</div>
+    </div>
+
+    <!-- 우: 상세 (셔머 스켈레톤) -->
+    <div class="detail">
+      <div class="skel hero" style="border-radius:0"></div>
+      <div class="body">
+        <div class="skel bar" style="width:60%;height:14px;margin-bottom:14px"></div>
+        <div class="skel bar sm" style="width:40%;height:10px;margin-bottom:16px"></div>
+        <div class="grid2">
+          <div class="skel bar sm" style="width:85%;height:10px;margin:0"></div>
+          <div class="skel bar sm" style="width:70%;height:10px;margin:0"></div>
+          <div class="skel bar sm" style="width:75%;height:10px;margin:0"></div>
+          <div class="skel bar sm" style="width:65%;height:10px;margin:0"></div>
+        </div>
+        <div class="skel bar sm" style="width:35%;height:10px;margin-bottom:12px"></div>
+        <div class="skel bar sm" style="width:80%;height:10px;margin:0"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
