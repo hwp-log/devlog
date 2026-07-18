@@ -96,14 +96,7 @@
 @custom-variant has-invalid (&:has(input:user-invalid));
 @custom-variant has-valid (&:has(input:user-valid));
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
@@ -128,17 +121,10 @@
   --radius-card: var(--radius-base);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: #f8f9fa;
+  background: var(--bg-deep);
   min-height: 100vh;
-  color: var(--foreground);
+  color: var(--fg);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -156,8 +142,8 @@ body {
     inset: 0;
     z-index: 9999;
     padding: 24px calc(24px + env(safe-area-inset-right)) 24px calc(24px + env(safe-area-inset-left));
-    background: var(--background);
-    color: var(--foreground);
+    background: var(--bg);
+    color: var(--fg);
     text-align: center;
   }
   body { overflow: hidden; } /* 뒤 깨진 레이아웃 스크롤 차단 */
