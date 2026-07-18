@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Info, Heart } from 'lucide-react';
 import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
-import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
+import { useNaverMapsLoader, type NaverLoaderStatus } from '@/lib/naver/useNaverMapsLoader';
+import { SpotFinderMapSlot } from './SpotFinderMapSlot';
 import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/naver/MarkerClustering';
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { formatTransit } from '@/lib/spot/transit';
@@ -396,8 +397,50 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
   );
 }
 
+// 0277: 지도 슬롯 로딩 서피스의 표시 위상 — 지도 슬롯에만 적용(리스트·상세는 즉시 실데이터).
+// show-delay: loading이 SHOW_DELAY 지속돼야 표시(웜 캐시 깜빡임 억제).
+// 최소 노출: 한 번 뜨면 MIN_EXPOSURE 유지(ready 전환돼도) — 짧은 깜빡임 방지.
+// error/auth는 즉시 표시(지연 없음 — 실패는 즉각 알림).
+const MAP_SLOT_SHOW_DELAY_MS = 200;
+const MAP_SLOT_MIN_EXPOSURE_MS = 400;
+
+function useMapSlotPhase(status: NaverLoaderStatus): 'loading' | 'error' | 'auth' | null {
+  const [loadingVisible, setLoadingVisible] = useState(false);
+  const shownAtRef = useRef(0);
+  const visibleRef = useRef(false);
+  useEffect(() => {
+    visibleRef.current = loadingVisible;
+  }, [loadingVisible]);
+
+  useEffect(() => {
+    if (status === 'loading') {
+      if (visibleRef.current) return; // 이미 표시 중이면 유지(재시도 등)
+      const t = setTimeout(() => {
+        shownAtRef.current = Date.now();
+        setLoadingVisible(true);
+      }, MAP_SLOT_SHOW_DELAY_MS);
+      return () => clearTimeout(t);
+    }
+    // ready/error/auth → 로딩 오버레이 종료. 안 떠 있으면 할 일 없음(깜빡임 억제 = 애초에 미표시).
+    // setState는 타이머 콜백(async)에서만 — effect 본문 동기 setState 회피(react-hooks/set-state-in-effect).
+    if (!visibleRef.current) return;
+    // ready면 최소 노출 잔여만큼 유지 후 숨김, error/auth면 즉시(다음 틱) 숨김 — 에러 서피스에 자리 양보.
+    const remain = status === 'ready'
+      ? Math.max(0, MAP_SLOT_MIN_EXPOSURE_MS - (Date.now() - shownAtRef.current))
+      : 0;
+    const t = setTimeout(() => setLoadingVisible(false), remain);
+    return () => clearTimeout(t);
+  }, [status]);
+
+  if (status === 'error') return 'error';
+  if (status === 'authError') return 'auth';
+  return loadingVisible ? 'loading' : null;
+}
+
 export default function SpotFinderMapNaver({ spots }: Props) {
-  const { ready, error } = useNaverMapsLoader();
+  const { status, slow, retry } = useNaverMapsLoader();
+  const ready = status === 'ready'; // 하위 마커·스크롤·리사이즈 로직의 기존 ready 참조 무변경 유지
+  const mapSlot = useMapSlotPhase(status);
 
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
@@ -540,7 +583,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   }, [ready]);
 
   // 0214: 첫 진입 시 좌측 목록을 선택 스팟(featuredSpot)으로 스크롤 — 선택 카드가 화면 중앙에 보이게.
-  // 리스트는 ready 이후에만 렌더(605)라 [ready]에 발화 + 1회 가드. 폴백(=맨 위)·featured 부재 시 스킵(불필요 스크롤 방지).
+  // 0277: 게이트 분리 후 리스트는 ready 전에도 렌더되나, 이 초기 스크롤은 [ready] 1회 발화 유지
+  //   (선택 li ref는 그 시점 이미 존재 → 정상 동작). 폴백(=맨 위)·featured 부재 시 스킵(불필요 스크롤 방지).
   // 0245: 모바일 시트 목록도 동일 처리 — display:none 쪽(반대 브레이크포인트)은 scrollIntoView가 no-op이라 분기 불필요.
   useEffect(() => {
     if (!ready || didInitialScrollRef.current) return;
@@ -554,7 +598,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   // 0261: 선택 변경 시 목록 정렬(0250 재구현 — 직접 scrollTop) — 데탑 center(가시 ~6.8행, 맥락)/모바일 top(가시 ~1.4행 — 0257 걸침 보존).
   // sheetLevel 의존: peek(0높이)에서 선택된 경우 half 복귀 때 재정렬(꼬리 행 클램프 어긋남 보정 포함).
-  // 첫 진입은 skeleton(행 미렌더) 시점이라 no-op — 초기 center 스크롤은 위 0214/0245 effect가 그대로 담당(공존, ready 후 deps 불변이라 재발화 없음).
+  // 0277: 게이트 분리로 첫 진입에도 행이 렌더됨 → 이 effect가 마운트 시점에도 선택 행을 정렬(위 0214와 같은 선택 행 대상, center 수렴이라 중복 스크롤이어도 위치 동일).
   useEffect(() => {
     alignRowInList(selectedItemRef.current, 'center'); // 데탑 (0214 ref 재사용)
     alignRowInList(mobileSelectedItemRef.current, 'top'); // 모바일 (0245 ref 재사용)
@@ -850,15 +894,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  if (error) {
-    return (
-      <div className="w-full h-full bg-card flex items-center justify-center p-6 text-center">
-        <p className="text-sm text-muted">지도를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>
-      </div>
-    );
-  }
-  if (!ready) return <div className="w-full h-full bg-card animate-pulse" />;
-
+  // 0277: 게이트 분리 — !ready로 통째 early-return 폐지. 리스트·검색·상세·시트는 spots로
+  // 즉시 실데이터 렌더, 지도 준비/실패는 아래 중앙 지도 영역의 SpotFinderMapSlot 오버레이만 담당.
   return (
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
       {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환).
@@ -945,8 +982,13 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       {/* 지도 영역 — 좌측 열·우측 패널을 제외한 남은 폭. 우측 경계 = 시안 실측 (3열 구분선) */}
       <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
-        {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비) */}
+        {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비). 항상 마운트(0277). */}
         <div ref={mapDivRef} className="w-full h-full" />
+
+        {/* 0277: 지도 슬롯 로딩/실패 서피스 — 지도 영역만 덮는 오버레이(리스트·상세는 위에 그대로 보임) */}
+        {mapSlot === 'loading' && <SpotFinderMapSlot variant="loading" slow={slow} />}
+        {mapSlot === 'error' && <SpotFinderMapSlot variant="error" onRetry={retry} />}
+        {mapSlot === 'auth' && <SpotFinderMapSlot variant="auth" />}
       </div>
 
       {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
