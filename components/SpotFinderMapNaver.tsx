@@ -139,9 +139,25 @@ const DEGENERATE_SPAN_DEG = 0.0001; // ≈10m — "사실상 1개 지점" 판정
 const SPOT_CLICK_ZOOM_MIN = 11; // = STAGE2_MAX_ZOOM (하한·분해 임계·맥락). 계산값 <11이면 11.
 const SPOT_CLICK_ZOOM_MAX = 16; // 상한 — z16 비겹침 175m로 실 도심 전부 분리. 그 이하(구룡포 4m·중복좌표)는 불가, 여기서 멈춤.
 const EQUATOR_MPP_Z0 = 156543; // z0 적도 m/px (Web Mercator). mpp(z) = EQUATOR·cos(lat)/2^z
-// 0243: 모바일 지도 하단 패딩(px) — 선택 스팟이 하단 시트 위 가시영역 중앙에 오게 ≈하단 UI 높이(C).
-// 중심 상승 = P/2 = C/2 (기존 300 ≈1.5C는 과보정으로 스팟이 위로 치우침). 실기기 조정 여지.
-const MOBILE_MAP_PAD_BOTTOM = 200;
+// 0243→0281: 모바일 지도 하단 패딩 — 고정 200px는 시트 half(svh 비례)와 파생 페어가 어긋나
+// 큰 뷰포트(브라우저 모바일 뷰)에서 선택 마커가 가시 영역 중앙을 이탈(0281 확증) → 시트 half
+// 공칭 산식에서 파생 계산으로 대체. SHEET_MAX_H.half(58svh·359px) ↔ SLOT_TOP(SpotFinderMapSlot)
+// ↔ computeMapPadBottom 3자 페어 — 한쪽만 바꾸면 어긋남.
+// MARKER_BLOCK_CENTER_OFFSET = 좌표(점 중심)에서 마커 블록(카드+pill+점) 중심까지 위쪽 거리.
+// 유도: 점 위 5.5(MARKER_DOT_SIZE/2) + 4(pill 간격) + pill≈31(15px font+패딩+보더, 판단값) +
+// 5(카드 간격) + MARKER_CARD_SIZE 72.5 ≈ 블록 118 → 중심 ≈ 좌표 −56. 실기기 체감 조정 여지.
+const MARKER_BLOCK_CENTER_OFFSET = 56;
+// pad = 시트half − 2×블록보정 → 좌표 안착점 = (H−pad)/2 = 가시영역 중앙 + 56 = "블록 중심이
+// 가시 영역 수직 중앙"이 모든 뷰포트 높이에서 성립(0281 사용자 확정 기준: 카드 블록 중앙).
+// svh는 지도 div clientHeight로 역산(innerHeight는 iOS 주소창에 흔들림 — CSS svh 확정값 사용).
+// safe-area는 지도 div 인라인 --sab(env)를 computed로 읽음(0279 --card·0261 env computed 선례).
+// 브라우저는 env=0이라 자동으로 0.58·svh 항이 지배.
+function computeMapPadBottom(mapEl: HTMLElement): number {
+  const svh = mapEl.clientHeight;
+  const sab = parseFloat(getComputedStyle(mapEl).getPropertyValue('--sab')) || 0;
+  const sheetHalf = Math.max(0.58 * svh, 359 + sab);
+  return Math.max(0, sheetHalf - 2 * MARKER_BLOCK_CENTER_OFFSET);
+}
 const MOBILE_MQ = '(max-width: 1023px)'; // lg(1024) 미만 = 모바일 뷰
 // 0246→0247: 모바일 시트 2단 max-h (full 88svh는 시트가 지도를 가려 행 탭 시 이동 결과가 안 보여 제거).
 // peek 150 = border2 + pt4 + 그래버44 + 제목24 + 여유4 + pb72 (제목까지 노출, 검색은 mt 아래라 가림) — 0256: pb 78→72 동기. 완전한 리터럴 → Tailwind JIT 스캔 OK.
@@ -569,6 +585,11 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       // 0239: 축척 바 제거 — 표기 의무 아님(v3). 로고·저작권은 위 무변경(의무).
       scaleControl: false,
       background: mapBackground, // 0279: 타일 전 배경 = card (위 mapBackground 주석 참조)
+      // 0281: 초기 자동 선택(featuredSpot)은 morph 미경유·생성 center 시작이라 생성 옵션에서
+      // padding을 함께 반영 — 첫 프레임부터 카드 블록 중앙 프레이밍(아래 재적용 effect와 동일 산식)
+      ...(window.matchMedia(MOBILE_MQ).matches
+        ? { padding: { bottom: computeMapPadBottom(mapDivRef.current) } }
+        : {}),
       // customStyleId는 GL(벡터) 전용. STYLE_VERSION env는 JS SDK에 대응 옵션이 없음 —
       // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지)
       ...(supportsGl
@@ -878,14 +899,23 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   // 0248: 0236의 "모바일 지도 빈 곳 탭 → 선택 해제" 리스너 제거 — 목록 상시(0244)라 전환은 행 탭으로 충분, 데탑도 빈 곳 탭 해제 없음(정합).
 
-  // 0224: 모바일 지도 하단 패딩 — 선택 스팟이 하단 카드에 안 가리게 시각 중심 상향(줌 무영향, 네이티브 padding MapOption).
+  // 0224→0281: 모바일 지도 하단 패딩 — 시트 half 동조 계산(computeMapPadBottom)으로 시각 중심 상향
+  // (줌 무영향, 네이티브 padding MapOption). resize 구독: 브라우저 창 높이 변경 시 재계산 —
+  // 실기기는 svh·safe-area가 불변이라 동일값 재적용 = 무해.
   useEffect(() => {
     if (!mapInstance) return;
     const mq = window.matchMedia(MOBILE_MQ);
-    const apply = () => mapInstance.setOptions('padding', { bottom: mq.matches ? MOBILE_MAP_PAD_BOTTOM : 0 });
+    const apply = () => {
+      const el = mapDivRef.current;
+      mapInstance.setOptions('padding', { bottom: mq.matches && el ? computeMapPadBottom(el) : 0 });
+    };
     apply();
     mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
+    window.addEventListener('resize', apply);
+    return () => {
+      mq.removeEventListener('change', apply);
+      window.removeEventListener('resize', apply);
+    };
   }, [mapInstance]);
 
   // 0224: 상세 모달 열기 — ?detail=id를 네이티브 history로 push(Next 라우터 미경유 → 지도 재마운트·선택·중심·줌 보존).
@@ -989,8 +1019,13 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       <div className="relative flex-1 min-w-0 lg:border-r lg:border-[rgba(255,255,255,0.12)]">
 
         {/* 지도 캔버스 — 마커·클러스터·이동은 명령형 effect가 관리 (네이버 SDK 직접 소비). 항상 마운트(0277).
-            0279: bg-card = 타일 전 흰 깜빡임 1차 방어(SDK 캔버스 attach 전 구간) — 인스턴스 background 옵션과 이중 */}
-        <div ref={mapDivRef} className="w-full h-full bg-card" />
+            0279: bg-card = 타일 전 흰 깜빡임 1차 방어(SDK 캔버스 attach 전 구간) — 인스턴스 background 옵션과 이중.
+            0281: --sab = env을 computed로 읽기 위한 발행 지점(computeMapPadBottom 소비 — JS는 env 직접 불가) */}
+        <div
+          ref={mapDivRef}
+          className="w-full h-full bg-card"
+          style={{ '--sab': 'env(safe-area-inset-bottom)' } as React.CSSProperties}
+        />
 
         {/* 0277: 지도 슬롯 로딩/실패 서피스 — 지도 영역만 덮는 오버레이(리스트·상세는 위에 그대로 보임).
             0280: sheetLevel 전달 — 모바일 안내가 시트 스냅별 가시 영역 중앙을 추종(데탑은 무시) */}
