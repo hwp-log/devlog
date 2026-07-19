@@ -1026,7 +1026,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                   onMouseEnter={() => setMarkerHover(spot, true)}
                   onMouseLeave={() => setMarkerHover(spot, false)}
                   className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${selected
-                    ? 'border-transparent bg-black/[0.08] dark:bg-white/[0.16]'
+                    ? 'border-transparent bg-primary/10 dark:bg-white/[0.16]'
                     : 'border-transparent hover:bg-card'
                     }`}
                 >
@@ -1123,7 +1123,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         {/* 0238: 스팟 목록 — listSpots 재사용. 행 본문=handleSpotSelect(0248), [상세]=openDetail.
             0244: 선택 행 하이라이트 = 데탑 li 버튼과 동일 문법 — 0271: 테두리 제거(투명 유지 = 레이아웃 시프트 방지).
             0272: 틴트 파랑 0.11 → 흰색 저투명 0.08 — 파랑은 다크 배경에서 미독(실화면 실측 우선 판정), 흰색은 명도로 부상. 0.06·0.08 비교 후 강도 2배(0.16)로 상향 — 실화면 가시성 판정.
-            0284: 라이트 쌍 추가 — 0272 명도 부상의 대칭(라이트 = 검정 저투명 0.08, 판단값). 다크값 무변
+            0284: 라이트 쌍 추가 — 0272 명도 부상의 대칭(라이트 = 검정 저투명 0.08, 판단값). 다크값 무변.
+            0286: 라이트 무채 0.08 → primary/10 — 회색은 선택이 미독(리스트↔지도 연동 화면). 지속 상태(선택)에만
+            색 배정(§9 상태 위계)이라 파랑 정합. 다크는 0272 판정(파랑 미독·흰 저투명) 유지 — 데탑·모바일 시트 행 동기 페어
             0252: 높이는 SHEET_LIST_MAX_H(명시 calc)로 확정 — flex grow/shrink 미사용(Safari grow 미계산 붕괴 대응, 산식은 상수 주석).
             0258: 래퍼 밖(루트 직속) — 루트는 클립하지 않아 pill 뒤까지 행이 이어져 보임(걸침 신호 상시).
             0259: mt-2 = 칩과 클립 경계 사이 고정 여백(내부 pt는 스크롤에 밀려 행이 칩에 붙음 — 박스 밖 margin은 페인트 없어 peek 잔존 무해).
@@ -1138,7 +1140,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
                     gap-3 = 기존 본문 내부 썸네일-텍스트 간격(12px) 시각 보존 + §5 인접 타겟 간격 충족.
                     텍스트 탭도 handleSpotSelect 선행 — 모달이 selectedSpot을 렌더하므로(빈 모달 방지, 구 [상세] 패턴). */}
                 <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${selected
-                  ? 'border-transparent bg-black/[0.08] dark:bg-white/[0.16]'
+                  ? 'border-transparent bg-primary/10 dark:bg-white/[0.16]'
                   : 'border-transparent'
                   }`}>
                   <button
