@@ -122,6 +122,22 @@
   --radius-card: var(--radius-base);
 }
 
+/* 0295: 테마 전환 색 페이드 — 색 3속성만(reflow·물결 방지, transition:all 금지).
+   @layer base 필수: 비레이어로 두면 캐스케이드 레이어 규칙상 @layer utilities의 Tailwind
+   transition 유틸(transition-colors·duration-* 등)을 특이도와 무관하게 덮어버림 —
+   base(<utilities)에 넣어 기존 요소별 transition이 항상 이기게 한다. 비레이어 커스텀 룰
+   ([data-pill] 120ms 등)도 base를 이김. 지도·마커는 재생성(0284)이라 transition 미발동(구조적 제외). */
+@layer base {
+  *, ::before, ::after {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      transition: none;
+    }
+  }
+}
+
 body {
   background: var(--bg-deep);
   min-height: 100vh;

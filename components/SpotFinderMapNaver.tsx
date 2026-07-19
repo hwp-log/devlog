@@ -488,6 +488,10 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
+  // 0296: 테마 전환 페이드 오버레이 — 재생성(0284)의 "빈 배경 번쩍 + 타일 촤락"을 bg-card 면으로 가림.
+  // 첫 마운트는 제외(prevThemeRef null 가드 — 그 구간은 mapSlot 로딩 서피스가 커버), 종료는 tilesloaded once.
+  const [themeFade, setThemeFade] = useState(false);
+  const prevThemeRef = useRef<string | null>(null);
   // 초기 자동 선택: 시연 고정 스팟(FEATURED_SPOT_NAME) ?? spots[0](최신순 폴백) = 상호작용 안내용 첫 화면.
   // handleSpotSelect(클릭 경로)를 타지 않는 state 초기값이라 지도 이동(panTo)이 구조적으로 없음
   const featuredSpot = useMemo(
@@ -586,10 +590,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
   }, [visibleSpots, selectedMovieId]);
 
   // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
-  // 0284: 테마(resolvedTheme)도 게이트·의존 — 전환 시 파괴·재생성으로 배경·타일 스타일 재적용
-  // (customStyleId 런타임 변경은 SDK 미문서화라 기각). 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단.
+  // 0284: 테마(resolvedTheme)도 게이트·의존 — 전환 시 파괴·재생성으로 배경·타일 스타일 재적용.
+  // 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단.
+  // 0297 실측 확정: setOptions('customStyleId') 런타임 교체는 호출은 통과하나 스타일 미반영(실기기) —
+  // 경로 폐기, 재생성이 유일한 작동 경로. 0284 판정이 실측으로 확정됨.
   useEffect(() => {
     if (!ready || !resolvedTheme || !mapDivRef.current) return;
+    // 0296: 테마 "전환"만 페이드 발동 — 첫 실행(prevThemeRef null)은 제외(mapSlot 로딩 서피스와 중복 방지).
+    // setState는 타이머 콜백에서만(effect 본문 동기 setState 회피 — useMapSlotPhase 선례). 0ms여도
+    // 빈 구간의 바탕(bg-card)과 오버레이 색이 같아 시각 공백 없음.
+    const themeChanged = prevThemeRef.current !== null && prevThemeRef.current !== resolvedTheme;
+    prevThemeRef.current = resolvedTheme;
+    const fadeInTimer = themeChanged ? window.setTimeout(() => setThemeFade(true), 0) : undefined;
     // WebGL 미지원 환경(구형 기기·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
     const supportsGl = !!document.createElement('canvas').getContext('webgl');
     if (!supportsGl) console.warn('[SpotFinderMapNaver] WebGL 미지원 — 래스터 폴백 (커스텀 스타일 미적용)');
@@ -642,11 +654,28 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     // GL 지도는 비동기 초기화 — init 전에 fitBounds/클러스터러를 붙이면 빈 bounds로
     // 계산되어 마커가 그려지지 않는다 (실측). init 이벤트 후 인스턴스 공개.
     const initListener = naver.maps.Event.once(map, 'init', () => setMapInstance(map));
+    // 0296: 오버레이 걷기 = tilesloaded 1회(once — 이후 일반 카메라 이동의 재발화에 오버레이 재등장 방지).
+    // init은 GL 초기화 신호일 뿐 타일 미완이라 부적합(촤락 노출). 홀드 300ms: 마지막 타일 페인트 안착 여유만
+    // (3초 홀드는 답답함으로 기각 — 0297 실측 후 단축). 안전망: 타일 실패·이벤트 미도달 대비
+    // 2000ms 후 강제 해제(오버레이 고착 방지). 전환이 아니면 아무것도 안 붙임 — 첫 진입 무영향.
+    let holdTimer: number | undefined;
+    const tilesListener = themeChanged
+      ? naver.maps.Event.once(map, 'tilesloaded', () => {
+        holdTimer = window.setTimeout(() => setThemeFade(false), 300);
+      })
+      : undefined;
+    const failsafeTimer = themeChanged
+      ? window.setTimeout(() => setThemeFade(false), 2000)
+      : undefined;
     return () => {
       // 0284: 파괴 직전 뷰 캡처 — 테마 전환 재생성이 같은 center/zoom에서 재개 (언마운트 캡처는 무해·미소비)
       const c = map.getCenter() as naver.maps.LatLng;
       viewRef.current = { lat: c.lat(), lng: c.lng(), zoom: map.getZoom() };
       naver.maps.Event.removeListener(initListener);
+      if (tilesListener) naver.maps.Event.removeListener(tilesListener);
+      if (fadeInTimer !== undefined) clearTimeout(fadeInTimer);
+      if (holdTimer !== undefined) clearTimeout(holdTimer);
+      if (failsafeTimer !== undefined) clearTimeout(failsafeTimer);
       setMapInstance(null);
       map.destroy();
     };
@@ -1096,6 +1125,15 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         {mapSlot === 'loading' && <SpotFinderMapSlot variant="loading" sheetLevel={sheetLevel} slow={slow} />}
         {mapSlot === 'error' && <SpotFinderMapSlot variant="error" sheetLevel={sheetLevel} onRetry={retry} />}
         {mapSlot === 'auth' && <SpotFinderMapSlot variant="auth" sheetLevel={sheetLevel} />}
+
+        {/* 0296: 테마 전환 페이드 오버레이 — 재생성(0284)의 빈 배경·타일 촤락을 도착 테마 bg-card 면으로 가림.
+            상시 마운트 + opacity 토글(전환 250ms — 0287 판정: ease-[ease] 미생성이라 등가 베지어).
+            z-20 = mapSlot과 동일 위계(시트 z-30 아래), pointer-events-none = 지도 조작 무방해.
+            발동·해제는 지도 init effect(테마 전환 시만·tilesloaded once·2000ms 안전망) 참조. */}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 z-20 bg-card transition-opacity duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] ${themeFade ? 'opacity-100' : 'opacity-0'}`}
+        />
       </div>
 
       {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
