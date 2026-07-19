@@ -1,7 +1,7 @@
 # 0283 회고: 테마 토글 (2단계) — next-themes 도입 + 루트 data-theme + FOUC 방지
 
 **작성일**: 2026-07-19
-**소요 시간**: [사용자 확인 필요]
+**소요 시간**: 약 1시간
 **관련 커밋**: `eb08ca4` feat: 0283 라이트/다크 토글 UI 추가 - next-themes 도입, localStorage 저장
 (plan은 chore 의존성 분리 커밋을 예상했으나, 실제로는 package.json·package-lock.json이 이 feat 단일 커밋에 함께 포함됨 — AGENTS.md "의존성 추가와 기능 구현은 별도 커밋" 관례와 어긋난 이력으로 명기)
 
