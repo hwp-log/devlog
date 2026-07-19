@@ -6,6 +6,7 @@ import type { SpotFinderSpot } from '@/lib/spot/queries';
 import { theme, withAlpha } from '@/lib/theme';
 import { useTheme } from 'next-themes';
 import { useNaverMapsLoader, type NaverLoaderStatus } from '@/lib/naver/useNaverMapsLoader';
+import { ThemeToggle } from '@/app/(protected)/_components/ThemeToggle';
 import { SpotFinderMapSlot } from './SpotFinderMapSlot';
 import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/naver/MarkerClustering';
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
@@ -1169,8 +1170,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
           </button>
           {/* 제목 + 총 N곳 (제목 텍스트·스타일 = 데탑 좌측 칼럼 헤더 준용, 카운트 = listSpots.length) */}
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-base font-semibold tracking-[-0.02em] text-fg break-keep">영화·드라마 촬영지 검색</h1>
-            <span className="shrink-0 text-xs text-muted">총 {listSpots.length}곳</span>
+            {/* min-w-0: 우측 그룹 확대(토글 신설)로 좁아진 폭에서 break-keep 줄바꿈 허용(오버플로 방지) */}
+            <h1 className="min-w-0 text-base font-semibold tracking-[-0.02em] text-fg break-keep">영화·드라마 촬영지 검색</h1>
+            <div className="flex shrink-0 items-center gap-2.5">
+              <span className="text-xs text-muted">총 {listSpots.length}곳</span>
+              {/* 0298: SpotFinder 모바일 전용 테마 토글 — 데탑은 상단 헤더(0293)에 이미 있음.
+                  시트 루트(:1157)가 lg:hidden이라 이 토글은 데스크톱에서 구조적 미노출(중복 lg:hidden 불요). */}
+              <ThemeToggle />
+            </div>
           </div>
           {/* 검색창 — searchQuery/onChange 재사용(신규 상태 없음). 모바일 16px(§5 iOS 자동 확대 방지) */}
           <input
