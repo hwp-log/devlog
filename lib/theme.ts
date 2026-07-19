@@ -27,14 +27,12 @@ export const theme = {
     fg2: '#55565c',
     muted: '#8a8a90',
     border: 'rgba(25,26,28,0.10)',
-    // 0284: SpotFinder 마커 라이트 쌍 — 다크 확정값(0269·0270)의 명도 반전 유도 판단값.
-    // 실기기 대비 검증 전 — 체감 조정 대상. pill = 밝은 스톱에서 surface2로 하강, hover = 한 톤 하강 + 테두리 진하게
-    markerPillHi: '#ffffff',
-    markerPillBorder: 'rgba(25,26,28,0.18)',
-    markerHoverHi: '#f2f2f5',
-    markerHoverLo: '#e2e2e8',
-    markerHoverBorder: 'rgba(25,26,28,0.35)',
-    markerHoverFg: '#191a1c',
+    // 0290: hover 라이트 — card에서 한 톤 진한 회색 평면(hi=lo)·무테두리·글씨 fg2 유지(명도 반응은 배경 담당).
+    // 알약 본체 색·그림자는 0292부터 markerContent(isDark) JS 분기가 담당 — 여기는 hover(globals.css 소비)만.
+    markerHoverHi: '#e8e8ee',
+    markerHoverLo: '#e8e8ee',
+    markerHoverBorder: 'transparent',
+    markerHoverFg: '#55565c',
   },
   dark: {
     bgDeep: '#0f1112',
@@ -46,10 +44,8 @@ export const theme = {
     fg2: '#c8c4be',
     muted: '#7a7870',
     border: 'rgba(255,255,255,0.08)',
-    // 0284: 기존 리터럴 이관 — pill(SpotFinderMapNaver markerContent 0269)·hover(globals.css .marker-hover 0270) 확정값 그대로.
-    // #33383d 근거: surface2 흰색 혼합 파생으론 목업 청색 성분(+5B) 재현 불가 — color-mix 불가 판정(0269), 목업 확정값
-    markerPillHi: '#33383d',
-    markerPillBorder: 'rgba(255,255,255,0.5)',
+    // 0270 hover 확정값 그대로(#454b52 = 평상 pill 각 스톱 한 톤 상향). 알약 본체의 다크 확정값(0269 리터럴)은
+    // 0292부터 markerContent(isDark) 분기 안에 직접 존재 — 여기는 hover(globals.css .marker-hover 소비)만.
     markerHoverHi: '#454b52',
     markerHoverLo: '#33383d',
     markerHoverBorder: 'rgba(255,255,255,0.8)',

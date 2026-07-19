@@ -50,7 +50,7 @@ function escapeHtml(s: string): string {
 // 마커 HTML — 시안 2단계: 미선택 = 지명 라벨 pill + 11px 점 / 선택 = 58px 썸네일 카드 + primary pill.
 // 0-크기 외곽 + translate(-50%,-100%)로 "블록 하단 중앙 = 좌표" (시안 앵커 동일, 라벨 가변 폭 대응 — anchor는 Point(0,0))
 // 라벨 12px = CLAUDE.md §5 하한 준수 (시안 11px, 기존 눈썹·배지 판정 계열). 색은 토큰(var(--surface2)/var(--fg2)/var(--bg))
-function markerContent(spot: SpotFinderSpot, selected: boolean): string {
+function markerContent(spot: SpotFinderSpot, selected: boolean, isDark: boolean): string {
   const name = escapeHtml(spot.name);
   // 라벨 크기 분기: 선택 22px(히어로 제목 동급 — 24px는 위계 역전이라 기각, 판단값) / 미선택 12px 무변
   const pillSize = selected
@@ -62,16 +62,24 @@ function markerContent(spot: SpotFinderSpot, selected: boolean): string {
   // 스택형 구조 (선택 = 미선택 + 추가 레이어): [카드(선택+사진)] / [라벨] / [점 — 항상 좌표에 고정].
   // 점이 살아 있으므로 발광(이중 링 + 핑)은 항상 점에서 발생 — 카드에 가려질 일이 없음 (radial 불필요).
   // 간격은 시안 준용: 카드-라벨 4px(시안 카드 margin-bottom) / 라벨-점 4px(시안 미선택 간격)
+  // 0292: 알약 색·그림자는 isDark JS 분기로 확정 — 인라인 var() 페어(0289~0291)에서 관측된 다크 평탄화
+  //   재발 방지(값을 문자열로 직접 박음). 테마 전환 = 지도 재생성(0284)이라 마커가 항상 리빌드돼 분기 안전.
+  //   다크 = 0269~0270 확정 리터럴 바이트 원복. 라이트 = 플랫(칩 언어) — 배경·테두리는 기존 토큰 var 유지
+  //   (라이트 내 다크 스코프가 없어 var 해석 확실 + card/border 정본 추종).
+  // 파랑 발광 링(primary 알파)·핑은 입체가 아닌 선택 신호라 양 테마 유지. 비선택 점은 현행 리터럴 무변.
   const dotShadow = selected
-    ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, 0 2px 6px rgba(0,0,0,0.5)`
+    ? `0 0 0 6px ${withAlpha(PRIMARY, 0.15)}, 0 0 0 12px ${withAlpha(PRIMARY, 0.08)}, ${isDark ? '0 2px 6px rgba(0,0,0,0.5)' : '0 1px 2px rgba(25,26,28,0.15)'}`
     : '0 2px 6px rgba(0,0,0,0.5)';
-  // 0269 확정: 미선택 = 회색 pill(목업 스펙) — 밝은 테두리+상단 inset 하이라이트가 다크 지도 지명과의 구분을 담당
-  // (앰버 0267~0268은 실기기 비교로 기각 — 토큰도 삭제). 선택 = primary 파랑, 그림자 문법만 통일.
-  // 0284: 밝은 스톱·테두리를 theme.ts marker-pill 토큰으로 이관(라이트 쌍 추가) — 다크값은 0269 목업 확정값
-  // (#33383d — surface2 흰색 혼합 파생 불가 판정 이력은 theme.ts 주석 참조). 마커 DOM은 페이지 트리 안이라 var() 해석됨.
+  // 0269 확정(다크): 미선택 = 회색 pill — 밝은 테두리(흰 0.5)+상단 inset 하이라이트가 다크 지도 지명과의 구분 담당.
+  // 선택 = primary 파랑 그라데이션(상단 흰 혼합 광택). 라이트(0292): 선택·비선택 모두 완전 플랫 —
+  // 비선택 = card 단색 + border 토큰 얇은 테두리(지도 밝은 부분 위 경계 확보), 선택 = primary 단색.
   const pillColor = selected
-    ? `background:linear-gradient(to bottom,color-mix(in srgb,${PRIMARY} 82%,#fff),${PRIMARY});color:#fff;border:1px solid ${PRIMARY};box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),0 2px 6px rgba(0,0,0,0.4);`
-    : 'background:linear-gradient(to bottom,var(--marker-pill-hi),var(--surface2));color:var(--fg2);border:1px solid var(--marker-pill-border);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 2px 6px rgba(0,0,0,0.4);';
+    ? (isDark
+      ? `background:linear-gradient(to bottom,color-mix(in srgb,${PRIMARY} 82%,#fff),${PRIMARY});color:#fff;border:1px solid ${PRIMARY};box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),0 2px 6px rgba(0,0,0,0.4);`
+      : `background:${PRIMARY};color:#fff;border:1px solid ${PRIMARY};box-shadow:none;`)
+    : (isDark
+      ? 'background:linear-gradient(to bottom,#33383d,var(--surface2));color:var(--fg2);border:1px solid rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 2px 6px rgba(0,0,0,0.4);'
+      : 'background:var(--card);color:var(--fg2);border:1px solid var(--border);box-shadow:none;');
   const ping = selected
     ? `<span style="position:absolute;left:50%;bottom:${-(41 - MARKER_DOT_SIZE / 2)}px;width:82px;height:82px;margin-left:-41px;border-radius:50%;background:${withAlpha(PRIMARY, 0.75)};pointer-events:none;${pingAnim}"></span>`
     : '';
@@ -678,7 +686,8 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         // map 미지정 — 클러스터러가 클러스터 상태에 따라 부착/해제를 관리
         position: new naver.maps.LatLng(spot.lat, spot.lng),
         // 0-크기 콘텐츠 + 내부 translate(-50%,-100%) 구조라 anchor는 (0,0) — 하단 중앙 = 좌표
-        icon: { content: markerContent(spot, selected), anchor: new naver.maps.Point(0, 0) },
+        // 0292: isDark 전달 — 테마 전환 시 지도 재생성(0284)으로 이 effect가 재실행돼 최신 테마로 리빌드
+        icon: { content: markerContent(spot, selected, resolvedTheme === 'dark'), anchor: new naver.maps.Point(0, 0) },
         zIndex: selected ? 10 : 1,
       });
       naver.maps.Event.addListener(marker, 'click', () => handleSpotSelectRef.current(spot));
@@ -723,14 +732,14 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       const prev = markersRef.current.get(prevId);
       const prevSpot = spots.find((s) => s.id === prevId);
       if (prev && prevSpot) {
-        prev.setIcon({ content: markerContent(prevSpot, false), anchor: new naver.maps.Point(0, 0) });
+        prev.setIcon({ content: markerContent(prevSpot, false, resolvedTheme === 'dark'), anchor: new naver.maps.Point(0, 0) });
         prev.setZIndex(1);
       }
     }
     if (selectedSpot) {
       const next = markersRef.current.get(selectedSpot.id);
       if (next) {
-        next.setIcon({ content: markerContent(selectedSpot, true), anchor: new naver.maps.Point(0, 0) });
+        next.setIcon({ content: markerContent(selectedSpot, true, resolvedTheme === 'dark'), anchor: new naver.maps.Point(0, 0) });
         next.setZIndex(10);
       }
     }
