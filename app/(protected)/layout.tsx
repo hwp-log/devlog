@@ -7,6 +7,7 @@ import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
 import { HeaderGate } from '@/app/(protected)/_components/HeaderGate';
 import { ThemeScope } from '@/app/(protected)/_components/ThemeScope';
+import { ThemeToggle } from '@/app/(protected)/_components/ThemeToggle';
 import { ProtectedMain } from '@/app/(protected)/_components/ProtectedMain';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
             <NavLinks />
             {/* col-start-3 명시 — 모바일에서 NavLinks(display:none) 소멸 시 중앙 열로 자동 배치되는 것 방지 */}
             <div className="col-start-3 justify-self-end flex items-center gap-3">
+              {/* 0293: 테마 트랙 스위치 — Write 왼쪽(업계 표준 헤더 위치), 드롭다운 항목에서 이전 */}
+              <ThemeToggle />
               <Link
                 href="/story/new"
                 className="hidden lg:inline-flex items-center rounded-full bg-primary px-[17px] py-[7px] text-[12.5px] font-semibold text-white hover:bg-primary/90 transition-colors"

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { Logo } from '@/app/(protected)/_components/Logo';
 import { NavLinks } from '@/app/(protected)/_components/NavLinks';
 import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
+import { ThemeToggle } from '@/app/(protected)/_components/ThemeToggle';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
 
 export default async function StoryLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,8 @@ export default async function StoryLayout({ children }: { children: React.ReactN
             {user ? (
               <>
                 <NavLinks />
+                {/* 0293: 테마 트랙 스위치 — Write 왼쪽, (protected) 헤더와 동일 컴포넌트 */}
+                <ThemeToggle />
                 <Link
                   href="/story/new"
                   className="hidden lg:flex btn-soft items-center px-4 py-1.5 text-slate-600 text-sm"

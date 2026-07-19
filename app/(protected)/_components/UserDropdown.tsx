@@ -3,7 +3,6 @@ import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { signOut } from '@/lib/auth/actions';
 import { getAvatarInfo } from '@/lib/avatar/generate';
-import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
   email: string;
@@ -90,8 +89,6 @@ export function UserDropdown({ email, avatarUrl, nickname, isAdmin }: Props) {
               </Link>
             </>
           )}
-          <hr className="border-slate-100 dark:border-border my-1" />
-          <ThemeToggle />
           <form action={signOut}>
             <button
               type="submit"
