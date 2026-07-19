@@ -254,6 +254,9 @@ type Props = { spots: SpotFinderSpot[] };
 
 // 상세 콘텐츠 단일 정의 — 모바일 플로팅 카드와 데탑 우측 고정 패널이 공유 (내용·순서 동일)
 function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: () => void }) {
+  // 0285: 사진 유무 분기 — 사진 위는 다크 스크림 + 흰 글자가 테마 중립 표준(라이트/다크 무분기 유지).
+  // 폴백(플레이스홀더)만 라이트에서 밝은 스크림 + 어두운 글자로 전환 — 밝은 배경 위 검정 띠 이물감 제거.
+  const hasPhoto = !!spot.thumbnailUrl;
   return (
     <>
       <div className="relative h-[210px] flex-shrink-0">
@@ -263,19 +266,32 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
         ) : (
           <SpotCoverPlaceholder variant="hero" movieTitle={spot.primaryMovie.title} />
         )}
-        {/* 시안 실측 스크림 — 하단 제목 가독 + 상단 X 대비. No Image 폴백에도 동일 적용해 흰 제목 가독 보장 */}
+        {/* 시안 실측 스크림 — 하단 제목 가독 + 상단 X 대비. 폴백 다크도 동일(흰 제목 가독 보장).
+            0285: 폴백 라이트만 밝은 스크림 — rgb(246,246,248) = bgDeep(#f6f6f8) 파생, 스톱 구조는 시안 실측 유지.
+            Tailwind arbitrary는 완전 리터럴만 JIT 스캔(§5) — var() 불가라 리터럴, 동기 관계는 이 주석이 담당 */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(to_top,rgba(13,13,20,0.85)_0%,rgba(13,13,20,0.15)_45%,rgba(13,13,20,0.35)_100%)]"
+          className={`absolute inset-0 ${hasPhoto
+            ? 'bg-[linear-gradient(to_top,rgba(13,13,20,0.85)_0%,rgba(13,13,20,0.15)_45%,rgba(13,13,20,0.35)_100%)]'
+            : 'bg-[linear-gradient(to_top,rgba(246,246,248,0.85)_0%,rgba(246,246,248,0.15)_45%,rgba(246,246,248,0.35)_100%)] dark:bg-[linear-gradient(to_top,rgba(13,13,20,0.85)_0%,rgba(13,13,20,0.15)_45%,rgba(13,13,20,0.35)_100%)]'
+            }`}
         />
         {/* 작품 배지 — 데탑 시안 실측 top12/left14. 0249: 모바일 모달은 y=0부터라 노치 대응(safe-area+38, ✕와 중심 정렬) + 1.2배(14px/8·2, 1.5→1.3→1.2 체감 조정) */}
         <div className="absolute top-[calc(env(safe-area-inset-top)+38px)] lg:top-3 left-3.5 flex">
-          <span className="rounded-full bg-white/[0.18] px-2 py-[2px] text-sm lg:px-[7px] lg:text-xs font-normal text-white whitespace-nowrap">
+          {/* 0285: 폴백 라이트 = 어두운 대비(검정 저투명 0.08 — 0272·0284 명도 부상 관례) / 사진·다크 = 현행 */}
+          <span className={`rounded-full px-2 py-[2px] text-sm lg:px-[7px] lg:text-xs font-normal whitespace-nowrap ${hasPhoto
+            ? 'bg-white/[0.18] text-white'
+            : 'bg-black/[0.08] text-fg2 dark:bg-white/[0.18] dark:text-white'
+            }`}>
             {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
           </span>
         </div>
         <div className="absolute left-4 right-4 bottom-[14px]">
-          <h2 className="text-[22px] font-semibold tracking-[-0.02em] leading-[1.3] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.60)]">
+          {/* 0285: 폴백 라이트 = fg + 그림자 제거(밝은 배경에 검정 글로우 부자연) / 사진·다크 = 현행 흰 글자 + 그림자 */}
+          <h2 className={`text-[22px] font-semibold tracking-[-0.02em] leading-[1.3] ${hasPhoto
+            ? 'text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.60)]'
+            : 'text-fg dark:text-white dark:[text-shadow:0_2px_10px_rgba(0,0,0,0.60)]'
+            }`}>
             {spot.name}
           </h2>
         </div>
