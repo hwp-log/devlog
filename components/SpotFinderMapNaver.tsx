@@ -825,15 +825,18 @@ export default function SpotFinderMapNaver({ spots }: Props) {
 
   // 0237: 작품 칩 버튼 목록 — 데스크탑 좌측 칼럼·모바일 시트가 공유(selectedMovieId 단일 상태). 스크롤 컨테이너는 각자.
   // py-2 lg:py-1 = 데스크탑 렌더 동일(회귀 없음), 모바일만 터치 여유.
+  // 0287: 라이트 데탑 = 목업(무테두리 연회색 pill — card 토큰·활성 primary 무변). 테두리 폭은 분기로 이동:
+  // 베이스 border 제거, lg:border-0(데탑 라이트 무테두리) + lg:dark:border(데탑 다크 1px 복원). 모바일 라이트는
+  // 테두리 유지 — 시트 배경이 card라 무테두리 시 pill 소멸(공유 렌더러의 문맥 차이, 목업은 좌측 한정).
   function renderMovieChips() {
     return (
       <>
         <button
           type="button"
           onClick={() => setSelectedMovieId(null)}
-          className={`shrink-0 rounded-full px-3 py-2 lg:py-1 text-sm font-medium border transition-colors ${selectedMovieId === null
-            ? 'bg-primary text-white border-primary'
-            : 'bg-card text-fg2 border-border'
+          className={`shrink-0 rounded-full px-3 py-2 lg:py-1 text-sm font-medium transition-colors ${selectedMovieId === null
+            ? 'border border-primary lg:border-0 lg:dark:border bg-primary text-white'
+            : 'border border-border lg:border-0 lg:dark:border bg-card text-fg2'
             }`}
         >
           전체 ({spots.length})
@@ -843,9 +846,9 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             type="button"
             key={g.id}
             onClick={() => setSelectedMovieId(g.id)}
-            className={`shrink-0 rounded-full px-3 py-2 lg:py-1 text-sm font-medium border transition-colors ${selectedMovieId === g.id
-              ? 'bg-primary text-white border-primary'
-              : 'bg-card text-fg2 border-border'
+            className={`shrink-0 rounded-full px-3 py-2 lg:py-1 text-sm font-medium transition-colors ${selectedMovieId === g.id
+              ? 'border border-primary lg:border-0 lg:dark:border bg-primary text-white'
+              : 'border border-border lg:border-0 lg:dark:border bg-card text-fg2'
               }`}
           >
             {g.title} ({g.count})
@@ -979,21 +982,27 @@ export default function SpotFinderMapNaver({ spots }: Props) {
             영화·드라마 촬영지 검색
           </h1>
         </div>
+        {/* 0287: 라이트 = 확정 목업 — 흰 배경 위 3요소(입력창·비활성 칩·화살표) 동일 연회색(card 토큰 #f2f2f5 정합)·
+            테두리 없음·그림자 없음(평면). 포커스 = 파란 선 대신 부드러운 글로우(0.18, box-shadow 220ms ease,
+            reduced-motion 해제). 라이트 border-0이라 focus:border-primary·hover:border-muted는 폭 0으로 자연 무효
+            — 다크 전용 동작. 다크 = dark: 복원으로 현행 전량 보존(1px 테두리·shadow-sm·200ms·글로우 0.15).
+            이력: 유백색 유리(흰 위 대비 부족)·회색+0.5px 테두리 2안 기각 → 목업 확정 */}
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="작품명·촬영지를 입력하세요"
-          className="hidden lg:block w-full rounded-xl px-4 py-2 text-sm border border-border bg-card text-fg placeholder:text-muted shadow-sm transition-[color,border-color,box-shadow] duration-200 ease-out hover:border-muted focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
+          className="hidden lg:block w-full rounded-xl px-4 py-2 text-sm border-0 dark:border dark:border-border bg-card dark:shadow-sm text-fg placeholder:text-muted transition-[box-shadow] duration-[220ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] motion-reduce:transition-none dark:transition-[color,border-color,box-shadow] dark:duration-200 dark:ease-out hover:border-muted focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]"
         />
 
-        <div className="hidden lg:flex items-center gap-2 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-sm px-2 py-1.5">
+        {/* 0287: 칩 바 컨테이너 라이트 = 무박스(흰 배경 동화 — 목업은 회색 pill들만 띄움, blur도 다크 전용) / 다크 = 현행 복원 */}
+        <div className="hidden lg:flex items-center gap-2 rounded-xl border-0 dark:border dark:border-border dark:bg-card/80 dark:backdrop-blur-sm dark:shadow-sm px-2 py-1.5">
           {showArrows && (
             <button
               type="button"
               aria-label="이전"
               onClick={() => scrollChips('left')}
-              className="hidden lg:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
+              className="hidden lg:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center dark:shadow-sm hover:bg-surface2 transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
@@ -1006,7 +1015,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
               type="button"
               aria-label="다음"
               onClick={() => scrollChips('right')}
-              className="hidden lg:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center shadow-sm hover:bg-surface2 transition-colors"
+              className="hidden lg:flex shrink-0 w-7 h-7 rounded-full bg-card text-fg items-center justify-center dark:shadow-sm hover:bg-surface2 transition-colors"
             >
               <ChevronRight size={14} />
             </button>
