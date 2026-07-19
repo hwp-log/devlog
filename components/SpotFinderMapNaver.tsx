@@ -625,13 +625,17 @@ export default function SpotFinderMapNaver({ spots }: Props) {
         : {}),
       // customStyleId는 GL(벡터) 전용. STYLE_VERSION env는 JS SDK에 대응 옵션이 없음 —
       // Style Editor 배포 버전이 자동 반영되므로 미소비 (발명 금지).
-      // 0284: 커스텀 스타일(다크 타일)은 다크에만 — 라이트 = SDK 기본 스타일(밝은 타일, 사용자 확정).
+      // 0284: 커스텀 스타일(다크 타일)은 다크에만, 라이트 = SDK 기본 → 0294: 라이트 전용 스타일 신설
+      // (원거리 이동 시 검정 캔버스 완화 — 스타일 배경 레이어가 밝음). 테마별 적용은 재생성 배선(0284) 그대로.
+      // 라이트 env(STYLE_ID_LIGHT) 미설정이면 SDK 기본 폴백(옵션 자체 미전달 — 크래시 없음).
       ...(supportsGl
         ? {
           gl: true,
           ...(resolvedTheme === 'dark'
             ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID }
-            : {}),
+            : (process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT
+              ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT }
+              : {})),
         }
         : {}),
     });
