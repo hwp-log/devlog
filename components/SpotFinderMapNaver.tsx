@@ -875,7 +875,13 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="min-w-0 text-sm font-semibold text-fg truncate">{spot.name}</p>
-          <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border">
+          {/* 0288: 작품 배지 데탑 라이트만 무테두리 — 검색바·칩(0287)과 톤 통일. 폭 페어 = 0287 칩과 동일
+              (lg:border-0 + lg:dark:border 다크 복원). 모바일 시트는 유지 — 배경 surface2가 시트 card와 한 톤 차라
+              테두리가 형태를 담당(0287 칩 스코프 판단과 동일 계열).
+              0289: 배경도 데탑 라이트만 card로 — 칩(0287 기준)과 동일 토큰. surface2는 공용이라 무스코프 교체 시
+              다크가 딸려 바뀜 → lg:bg-card + lg:dark:bg-surface2 페어(다크·모바일 현행 보존). caveat: 행 hover(bg-card)
+              순간엔 배지 형태가 행 배경과 동화 — 일시 상태·텍스트 유지라 수용(칩 색 통일 우선) */}
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-surface2 lg:bg-card lg:dark:bg-surface2 text-fg2 text-xs px-2 py-0.5 border border-border lg:border-0 lg:dark:border">
             {spot.primaryMovie.title}{spot.extraMovieCount > 0 ? ` +${spot.extraMovieCount}` : ''}
           </span>
         </div>
