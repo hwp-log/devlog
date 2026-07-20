@@ -1,11 +1,6 @@
-import Link from 'next/link';
-import { PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { Logo } from '@/app/(protected)/_components/Logo';
-import { NavLinks } from '@/app/(protected)/_components/NavLinks';
-import { UserDropdown } from '@/app/(protected)/_components/UserDropdown';
-import { ThemeToggle } from '@/app/(protected)/_components/ThemeToggle';
+import { AppHeader } from '@/app/(protected)/_components/AppHeader';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
 
 export default async function StoryLayout({ children }: { children: React.ReactNode }) {
@@ -27,39 +22,14 @@ export default async function StoryLayout({ children }: { children: React.ReactN
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
       />
-      <header className="sticky top-0 z-10 glass-header">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Logo />
-          <div className="flex items-center gap-6">
-            {user ? (
-              <>
-                <NavLinks />
-                {/* 0293: 테마 트랙 스위치 — Write 왼쪽, (protected) 헤더와 동일 컴포넌트 */}
-                <ThemeToggle />
-                <Link
-                  href="/story/new"
-                  className="hidden lg:flex btn-soft items-center px-4 py-1.5 text-fg2 text-sm"
-                >
-                  <span className="relative z-[2] flex items-center gap-1.5">
-                    <PenSquare size={14} />
-                    Write
-                  </span>
-                </Link>
-                <UserDropdown
-                  email={user.email ?? ''}
-                  avatarUrl={profile?.avatarUrl ?? null}
-                  nickname={profile?.nickname ?? ''}
-                  isAdmin={profile?.role === 'ADMIN'}
-                />
-              </>
-            ) : (
-              <Link href="/login" className="text-sm text-fg2 hover:text-fg transition-colors">
-                로그인
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        isLoggedIn={!!user}
+        email={user?.email ?? ''}
+        avatarUrl={profile?.avatarUrl ?? null}
+        nickname={profile?.nickname ?? ''}
+        isAdmin={profile?.role === 'ADMIN'}
+        widthClassName="max-w-7xl mx-auto"
+      />
       <main className="max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8">
         {children}
       </main>
