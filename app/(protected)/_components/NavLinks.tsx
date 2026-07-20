@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const BASE_NAV = [
   { href: '/story', label: 'Story' },
@@ -8,33 +9,96 @@ const BASE_NAV = [
   { href: '/plan-finder', label: 'PlanFinder' },
 ];
 
+// HeaderGate가 /spot-finder에서 wrapper 구조를 토글해 헤더 서브트리(NavLinks 포함)가 remount됨.
+// 갓 마운트된 점은 이전 transform이 없어 slide 불가 → 위치를 모듈 레벨에 보존해 새 인스턴스가 이전 위치에서 미끄러지게.
+let lastCenter: number | null = null;
+
 export function NavLinks() {
   const pathname = usePathname();
+  const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const activeIndex = BASE_NAV.findIndex(({ href }) => pathname.startsWith(href));
+
+  const startedAt = useRef(lastCenter); // 이 인스턴스 마운트 시점의 이전 위치(null=최초 로드)
+  const [center, setCenter] = useState<number | null>(startedAt.current);
+  // 최초 로드에서만 transition off(0→활성위치 점프 방지). remount면 이전 위치 있으니 처음부터 on.
+  const [enabled, setEnabled] = useState(startedAt.current != null);
+
+  const getCenter = useCallback(() => {
+    const el = activeIndex >= 0 ? itemRefs.current[activeIndex] : null;
+    if (!el || el.offsetWidth === 0) return null;
+    return el.offsetLeft + el.offsetWidth / 2;
+  }, [activeIndex]);
+
+  // 페인트 후 측정→이동. remount 시 이전 위치(초기 render)가 먼저 페인트된 뒤 target으로 슬라이드.
+  useEffect(() => {
+    const target = getCenter();
+    if (target == null) {
+      setCenter(null); // 비활성 라우트/모바일(display:none) → 감춤
+      return;
+    }
+    lastCenter = target;
+    if (!enabled && startedAt.current == null) {
+      // 최초 마운트: 슬라이드 없이 즉시 배치 → 다음 프레임에 transition 활성
+      startedAt.current = target;
+      setCenter(target);
+      const id = requestAnimationFrame(() => setEnabled(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setCenter(target); // remount/네비: 이전 위치에서 target으로 슬라이드
+  }, [pathname, getCenter, enabled]);
+
+  // 레이아웃 변동(리사이즈·폰트 스왑) 재측정
+  useEffect(() => {
+    const remeasure = () => {
+      const c = getCenter();
+      if (c != null) {
+        lastCenter = c;
+        setCenter(c);
+      }
+    };
+    window.addEventListener('resize', remeasure);
+    let cancelled = false;
+    document.fonts?.ready.then(() => {
+      if (!cancelled) remeasure();
+    });
+    return () => {
+      cancelled = true;
+      window.removeEventListener('resize', remeasure);
+    };
+  }, [getCenter]);
 
   return (
-    <nav className="hidden lg:flex items-center gap-6">
-      {BASE_NAV.map(({ href, label }) => {
-        const isActive = pathname.startsWith(href);
+    <nav className="relative hidden lg:flex items-center gap-6">
+      {BASE_NAV.map(({ href, label }, i) => {
+        const isActive = i === activeIndex;
         return (
           <Link
             key={href}
+            ref={(el) => {
+              itemRefs.current[i] = el;
+            }}
             href={href}
-            className={`relative text-sm transition-colors ${
+            className={`text-sm transition-colors ${
               isActive
                 ? 'text-[#1A1A1A] dark:text-fg'
                 : 'text-slate-500 hover:text-slate-800 dark:text-muted dark:hover:text-fg'
             }`}
           >
             {label}
-            {isActive && (
-              <span
-                aria-hidden
-                className="absolute left-1/2 -translate-x-1/2 -bottom-2.5 w-1 h-1 rounded-full bg-primary"
-              />
-            )}
           </Link>
         );
       })}
+      {/* 단일 점(6px): 활성 메뉴 중심으로 translateX. 인라인 transition으로 계산 스타일 확실 반영(레이어·variant 무관).
+          reduced-motion 시 !important로 인라인 transition 제거 → 즉시 이동. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-2.5 left-0 w-1.5 h-1.5 rounded-full bg-primary motion-reduce:transition-none!"
+        style={{
+          transform: `translateX(calc(${center ?? 0}px - 50%))`,
+          opacity: center != null ? 1 : 0,
+          transition: enabled ? 'transform 250ms ease-out' : 'none',
+        }}
+      />
     </nav>
   );
 }
