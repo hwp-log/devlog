@@ -1,3 +1,12 @@
+/** 스토리 카드 작성일: 올해면 "M월 D일", 지난해면 "YYYY년 M월 D일". */
+export function formatStoryCardDate(date: Date): string {
+  const now = new Date();
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  if (date.getFullYear() === now.getFullYear()) return `${m}월 ${d}일`;
+  return `${date.getFullYear()}년 ${m}월 ${d}일`;
+}
+
 export function formatRelativeDate(date: Date): string {
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60_000);

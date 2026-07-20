@@ -1,18 +1,9 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { StoryCard } from '@/app/story/_components/StoryCard';
+import { StoryCard, type StoryCardProps } from '@/app/story/_components/StoryCard';
 import { CardReveal } from '@/app/story/_components/CardReveal';
 
-interface MyStoryItem {
-  id: string;
-  thumbnail: string | null;
-  title: string;
-  preview: string;
-  createdAt: Date;
-  tags: { id: string; name: string }[];
-  likeCount: number;
-  isLiked: boolean;
-}
+type MyStoryItem = StoryCardProps;
 
 export function MyStoryCardGrid({ stories }: { stories: MyStoryItem[] }) {
   const initialPhaseRef = useRef(true);

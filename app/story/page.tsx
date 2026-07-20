@@ -1,7 +1,5 @@
 import { ViewTransition } from 'react';
-import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
-import { extractFirstImage, extractTextPreview } from '@/lib/story/extract-thumbnail';
+import { extractFirstImage } from '@/lib/story/extract-thumbnail';
 import { fetchStoriesWithMeta, fetchPopularTags } from '@/lib/story/queries';
 import { TagSearchBar } from './_components/TagSearchBar';
 import { StoryHeader } from './_components/StoryHeader';
@@ -13,21 +11,9 @@ export default async function StoryPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
   const keyword = q?.trim() ?? '';
   const stories = await fetchStoriesWithMeta({ tag: keyword || undefined });
   const popularTags = await fetchPopularTags();
-
-  const myLikedIds = new Set<string>();
-  if (user) {
-    const myLikes = await prisma.like.findMany({
-      where: { userId: user.id, storyId: { in: stories.map((s) => s.id) } },
-      select: { storyId: true },
-    });
-    myLikes.forEach((l) => myLikedIds.add(l.storyId));
-  }
 
   const listKey = stories.map(s => s.id).join('-') || '__empty__';
 
@@ -46,18 +32,18 @@ export default async function StoryPage({
         </div>
       ) : (
         <StoryCardList
-          stories={stories.map((story) => ({
-            id: story.id,
-            thumbnail: extractFirstImage(story.content),
-            title: story.title,
-            preview: extractTextPreview(story.content),
-            createdAt: story.createdAt,
-            tags: story.tags,
-            likeCount: story._count.likes,
-            isLiked: myLikedIds.has(story.id),
-            authorNickname: story.user.nickname,
-            authorAvatarUrl: story.user.avatarUrl,
-          }))}
+          stories={stories.map((story) => {
+            const spot = story.storySpots[0]?.spot;
+            return {
+              id: story.id,
+              thumbnail: extractFirstImage(story.content),
+              title: story.title,
+              createdAt: story.createdAt,
+              likeCount: story._count.likes,
+              work: spot?.spotMovies[0]?.movie.title ?? null,
+              location: spot?.name ?? null,
+            };
+          })}
         />
       )}
       </ViewTransition>

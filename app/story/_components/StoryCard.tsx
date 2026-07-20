@@ -1,73 +1,47 @@
 import Link from 'next/link';
-import { Heart } from 'lucide-react';
-import { AuthorAvatar } from '@/components/AuthorAvatar';
+import { Heart, MapPin } from 'lucide-react';
+import { formatStoryCardDate } from '@/lib/format-date';
 
-interface StoryCardProps {
+export interface StoryCardProps {
   id: string;
   thumbnail: string | null;
   title: string;
-  preview: string;
   createdAt: Date;
-  tags: { id: string; name: string }[];
   likeCount: number;
-  isLiked: boolean;
-  authorNickname?: string;
-  authorAvatarUrl?: string | null;
+  work?: string | null;
+  location?: string | null;
 }
 
-export function StoryCard({ id, thumbnail, title, preview, createdAt, tags, likeCount, isLiked, authorNickname, authorAvatarUrl }: StoryCardProps) {
-  const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
-
+export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, location }: StoryCardProps) {
   return (
-    <Link href={`/story/${id}`} className="bg-bg border border-border rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden block cursor-pointer">
-      <article>
+    <Link href={`/story/${id}`} className="group block cursor-pointer">
+      <div className="relative aspect-[4/3] rounded-[12px] overflow-hidden bg-surface2">
         {thumbnail ? (
-          <div className="relative aspect-[16/9] overflow-hidden bg-surface2">
-            <img src={thumbnail} alt="" className="w-full h-full object-cover" />
-            <span className="absolute bottom-2 right-2 backdrop-blur-sm bg-black/55 rounded-[10px] px-2 py-0.5 font-mono text-xs text-white select-none">
-              {dateStr}
-            </span>
-          </div>
+          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="aspect-[16/9] bg-surface2 flex flex-col items-center justify-center gap-1 text-muted text-xs">
-            <span>이미지 없음</span>
-            <span className="font-mono text-muted">{dateStr}</span>
-          </div>
+          <div className="w-full h-full flex items-center justify-center text-muted text-xs">이미지 없음</div>
         )}
-        <div className="p-6 pb-5">
-          <h2 className="text-lg font-semibold text-fg mb-2">{title}</h2>
-          <p className="text-fg2 text-sm leading-relaxed mb-4 line-clamp-2">{preview}</p>
-          <div className="flex flex-wrap gap-2">
-            {tags.slice(0, 3).map((tag) => (
-              <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full bg-card text-fg2">
-                #{tag.name}
-              </span>
-            ))}
-            {tags.length > 3 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-card text-muted">
-                +{tags.length - 3}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="border-t border-border px-6 py-3 flex items-center justify-between">
-          {authorNickname ? (
-            <div className="flex items-center gap-2 min-w-0">
-              <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl ?? null} />
-              <span className="text-xs text-fg2 truncate">{authorNickname}</span>
-            </div>
-          ) : (
-            <span />
-          )}
-          <span className="flex items-center gap-1 text-xs text-muted">
-            <Heart
-              size={13}
-              className={isLiked ? 'fill-heart-active text-heart-active' : 'text-muted'}
-            />
-            <span>{likeCount}</span>
+        {work && (
+          <span className="absolute top-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full px-2 py-0.5 text-xs font-medium shadow-sm bg-bg dark:bg-surface2 text-fg">
+            {work}
           </span>
-        </div>
-      </article>
+        )}
+      </div>
+      <h2 className="mt-2 text-xs font-medium text-fg break-keep line-clamp-2 tracking-[-0.02em]">{title}</h2>
+      <p className="mt-0.5 text-xs text-muted">{formatStoryCardDate(createdAt)}</p>
+      <div className="mt-1 flex items-center gap-1.5 text-xs text-fg2">
+        {location && (
+          <span className="flex items-center gap-0.5 min-w-0">
+            <MapPin size={12} className="shrink-0" />
+            <span className="truncate">{location}</span>
+          </span>
+        )}
+        {location && <span className="text-border" aria-hidden>·</span>}
+        <span className="flex items-center gap-0.5 shrink-0">
+          <Heart size={12} />
+          <span>{likeCount}</span>
+        </span>
+      </div>
     </Link>
   );
 }

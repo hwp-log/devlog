@@ -16,7 +16,24 @@ export async function fetchStoriesWithMeta(options?: {
         ? { tags: { some: { name: { contains: escapeILike(tag), mode: 'insensitive' } } } }
         : {}),
     },
-    include: { tags: true, _count: { select: { likes: true } }, user: { select: { nickname: true, avatarUrl: true } } },
+    include: {
+      tags: true,
+      _count: { select: { likes: true } },
+      user: { select: { nickname: true, avatarUrl: true } },
+      // 카드 배지·메타용 대표 스팟 1개(order asc). 작품은 상세페이지와 동일한 0185 대표 규칙(spotMovies createdAt desc 첫 번째).
+      storySpots: {
+        orderBy: { order: 'asc' },
+        take: 1,
+        select: {
+          spot: {
+            select: {
+              name: true,
+              spotMovies: { orderBy: { createdAt: 'desc' }, take: 1, select: { movie: { select: { title: true } } } },
+            },
+          },
+        },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   });
 }

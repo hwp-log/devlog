@@ -1,20 +1,9 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { StoryCard } from './StoryCard';
+import { StoryCard, type StoryCardProps } from './StoryCard';
 import { CardReveal } from './CardReveal';
 
-interface StoryItem {
-  id: string;
-  thumbnail: string | null;
-  title: string;
-  preview: string;
-  createdAt: Date;
-  tags: { id: string; name: string }[];
-  likeCount: number;
-  isLiked: boolean;
-  authorNickname?: string;
-  authorAvatarUrl?: string | null;
-}
+type StoryItem = StoryCardProps;
 
 export function StoryCardList({ stories }: { stories: StoryItem[] }) {
   const initialPhaseRef = useRef(true);
