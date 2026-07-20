@@ -41,7 +41,7 @@ export default async function StoryPage({
       </div>
       <ViewTransition key={listKey} default="list-fade">
       {stories.length === 0 ? (
-        <div className="glass-outer p-12 text-center text-slate-500">
+        <div className="bg-card border border-border rounded-2xl p-12 text-center text-fg2">
           {keyword ? `"${keyword}" 태그가 포함된 스토리가 없습니다` : '아직 작성된 글이 없습니다'}
         </div>
       ) : (

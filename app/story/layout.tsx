@@ -38,7 +38,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
                 <ThemeToggle />
                 <Link
                   href="/story/new"
-                  className="hidden lg:flex btn-soft items-center px-4 py-1.5 text-slate-600 text-sm"
+                  className="hidden lg:flex btn-soft items-center px-4 py-1.5 text-fg2 text-sm"
                 >
                   <span className="relative z-[2] flex items-center gap-1.5">
                     <PenSquare size={14} />
@@ -53,7 +53,7 @@ export default async function StoryLayout({ children }: { children: React.ReactN
                 />
               </>
             ) : (
-              <Link href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+              <Link href="/login" className="text-sm text-fg2 hover:text-fg transition-colors">
                 로그인
               </Link>
             )}
