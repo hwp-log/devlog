@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { FlightLeg, type FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import { PlanTimeline, buildTimeline } from '@/app/(protected)/my-plan/_components/PlanTimeline';
-import { PublicCostSection } from '@/app/story/[id]/PublicCostSection';
+import { PublicCostSection } from '@/app/(protected)/story/[id]/PublicCostSection';
 import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { StoryCard, type StoryCardProps } from '@/app/story/_components/StoryCard';
-import { CardReveal } from '@/app/story/_components/CardReveal';
+import { StoryCard, type StoryCardProps } from '@/app/(protected)/story/_components/StoryCard';
+import { CardReveal } from '@/app/(protected)/story/_components/CardReveal';
 
 type MyStoryItem = StoryCardProps;
 

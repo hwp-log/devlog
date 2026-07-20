@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { FilterDropdown } from '@/app/(protected)/plan-finder/_components/FilterDropdown';
-import { CardReveal } from '@/app/story/_components/CardReveal';
+import { CardReveal } from '@/app/(protected)/story/_components/CardReveal';
 import { MyPlanCard, type Ratio } from './MyPlanCard';
 
 type Currency = 'KRW' | 'USD' | 'JPY';

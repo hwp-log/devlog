@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { StoryWriteForm } from '@/app/story/new/StoryWriteForm';
+import { StoryWriteForm } from '@/app/(protected)/story/new/StoryWriteForm';
 import { updateStoryAction } from '../actions';
 
 export default async function StoryEditPage({ params }: { params: Promise<{ id: string }> }) {

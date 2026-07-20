@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { extractFirstImage } from '@/lib/story/extract-thumbnail';
 import { fetchStoriesWithMeta, fetchMyStoryTags } from '@/lib/story/queries';
 import { getAvatarInfo } from '@/lib/avatar/generate';
-import { TagSearchBar } from '@/app/story/_components/TagSearchBar';
+import { TagSearchBar } from '@/app/(protected)/story/_components/TagSearchBar';
 import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
 
 export default async function MyStoryPage({
