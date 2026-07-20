@@ -4,13 +4,13 @@ export function StoryHeader() {
   return (
     <div>
       <p
-        className="text-xs font-semibold text-primary mb-1 appear-up"
+        className="text-[12px] font-medium uppercase tracking-wider text-primary mb-0 appear-up"
         style={{ animationDelay: '0s' }}
       >
         Story
       </p>
       <h1
-        className="text-xl md:text-3xl font-bold text-fg break-keep appear-up"
+        className="text-[20px] font-semibold text-fg break-keep appear-up"
         style={{ animationDelay: '0.12s' }}
       >
         {HEADLINE}
