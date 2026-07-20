@@ -4,6 +4,7 @@ import { AppHeader } from '@/app/(protected)/_components/AppHeader';
 import { BottomTabBar } from '@/app/(protected)/_components/BottomTabBar';
 import { ThemeScope } from '@/app/(protected)/_components/ThemeScope';
 import { ProtectedMain } from '@/app/(protected)/_components/ProtectedMain';
+import { Footer } from '@/app/(protected)/_components/Footer';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -30,6 +31,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           isAdmin={profile?.role === 'ADMIN'}
         />
         <ProtectedMain>{children}</ProtectedMain>
+        <Footer />
         <BottomTabBar />
       </ThemeScope>
     </>

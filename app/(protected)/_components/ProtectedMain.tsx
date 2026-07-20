@@ -16,10 +16,10 @@ export function ProtectedMain({ children }: { children: React.ReactNode }) {
     <main
       className={
         fullBleed
-          ? 'max-w-none' // 0225: 풀블리드 라우트(SpotFinder)는 전 폭 edge-to-edge — 모바일도 풀스크린 지도
+          ? 'max-w-none' // 0225: 풀블리드 라우트(SpotFinder)는 전 폭 edge-to-edge — 모바일도 풀스크린 지도. flex-1 미부여(지도 자체 사이징)
           : wide
-            ? 'px-6 pt-8 pb-24 lg:pb-8' // 풀폭 + 헤더와 동일 px-6 (max-w 없음). 뷰포트 단위 미사용 → 가로 스크롤 무관
-            : 'max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8'
+            ? 'flex-1 px-6 pt-8 pb-24 lg:pb-8' // flex-1: 짧은 콘텐츠에서 푸터를 뷰포트 하단으로(sticky footer). 풀폭 + 헤더와 동일 px-6
+            : 'flex-1 max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8' // flex-1: sticky footer. mx-auto는 flex 교차축에서도 중앙 정렬
       }
     >
       {children}

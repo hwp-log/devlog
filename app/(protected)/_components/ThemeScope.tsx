@@ -12,7 +12,7 @@ export function ThemeScope({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-theme={dark ? 'dark' : undefined}
-      className={`min-h-screen${dark ? ' bg-bg-deep' : ''}`}
+      className={`min-h-screen flex flex-col${dark ? ' bg-bg-deep' : ''}`}
       style={{ fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}
     >
       {children}
