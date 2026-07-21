@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { BookOpen, Map, Compass, PenSquare } from 'lucide-react';
 
 const TABS = [
@@ -12,6 +13,34 @@ const TABS = [
 
 export function BottomTabBar() {
   const pathname = usePathname();
+  const ref = useRef<HTMLDivElement>(null);
+
+  // 1단계(줌만): 핀치 줌(scale>1) 시 fixed 바가 layout viewport 기준이라 화면 밖(주소창 뒤)으로 밀림.
+  // Visual Viewport API로 visual viewport 하단에 재고정(MDN viewportHandler). scale≤1(키보드·주소창)엔 미개입(2단계).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = ref.current;
+    if (!vv || !el) return; // 미지원(구형·데스크톱) → className [transform:translateZ(0)] + 기존 fixed 폴백
+    const update = () => {
+      if (vv.scale > 1) {
+        // layout 하단 → visual 하단으로 이동 + 줌 상쇄. 좌·하단 기준 축소(바닥 고정).
+        const x = vv.offsetLeft;
+        const y = vv.offsetTop + vv.height - window.innerHeight;
+        el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${1 / vv.scale})`;
+        el.style.transformOrigin = '0 100%';
+      } else {
+        el.style.transform = ''; // 원복 → className translateZ(0) 폴백 노출
+        el.style.transformOrigin = '';
+      }
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
 
   function isActive(href: string) {
     if (href === '/story/new') return pathname === '/story/new';
@@ -19,10 +48,10 @@ export function BottomTabBar() {
     return pathname.startsWith(href);
   }
 
-  // [transform:translateZ(0)]: iOS Safari에서 검색 blur·주소창 전환 등 리플로우 시 fixed 하단 바가
-  // 주소창 뒤로 밀리는 이탈 완화 — 자체 GPU 레이어로 승격해 visual viewport 기준 재고정 안정화(자신의 fixed 성질 무변).
+  // [transform:translateZ(0)]: 폴백/미지원 시 fixed 바 GPU 레이어 승격(리플로우 이탈 완화). 줌 시엔 위 useEffect의 인라인 transform이 덮음.
   return (
     <div
+      ref={ref}
       className="fixed left-[14px] right-[14px] bottom-[calc(14px+env(safe-area-inset-bottom))] z-40 lg:hidden overflow-hidden rounded-[22px] border border-slate-200/50 dark:border-white/40 bg-card/90 backdrop-blur-sm shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)] [transform:translateZ(0)]"
     >
       <nav aria-label="주요 메뉴" className="flex items-stretch h-14">
