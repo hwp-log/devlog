@@ -33,12 +33,25 @@ export function BottomTabBar() {
         el.style.transformOrigin = '';
       }
     };
+    // 최종 상태 수렴 안전망: iOS가 줌 종료 마지막 프레임 이벤트를 놓쳐도 탭바가 정상 위치로 수렴하게.
+    //  A) 이벤트 직후 다음 프레임 재확인(rAF)  B) 이벤트 멈춘 뒤 150ms 재적용(디바운스). 상시 폴링 아님.
+    let raf = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onEvent = () => {
+      update();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+      clearTimeout(timer);
+      timer = setTimeout(update, 150);
+    };
     update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
+    vv.addEventListener('resize', onEvent);
+    vv.addEventListener('scroll', onEvent);
     return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
+      vv.removeEventListener('resize', onEvent);
+      vv.removeEventListener('scroll', onEvent);
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
     };
   }, []);
 
