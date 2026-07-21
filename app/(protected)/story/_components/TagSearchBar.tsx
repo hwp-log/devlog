@@ -3,7 +3,19 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 
-export function TagSearchBar({ q, basePath, tags = [] }: { q: string; basePath: string; tags?: string[] }) {
+export function TagSearchBar({
+  q,
+  basePath,
+  tags = [],
+  inputId,
+  onNavigate,
+}: {
+  q: string;
+  basePath: string;
+  tags?: string[];
+  inputId?: string;
+  onNavigate?: (url: string) => void; // 있으면 검색 네비를 공용 transition으로 위임(로딩 표시). my-story는 미전달 → 기존 router.replace
+}) {
   const router = useRouter();
   const [value, setValue] = useState(q);
   const [idx, setIdx] = useState(0);
@@ -34,9 +46,10 @@ export function TagSearchBar({ q, basePath, tags = [] }: { q: string; basePath: 
     timerRef.current = setTimeout(() => {
       const normalized = val.trim().replace(/\s/g, '').replace(/#/g, '');
       const url = normalized ? `${basePath}?q=${encodeURIComponent(normalized)}` : basePath;
-      router.replace(url);
+      if (onNavigate) onNavigate(url);
+      else router.replace(url);
     }, 300);
-  }, [router, basePath]);
+  }, [router, basePath, onNavigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -61,6 +74,7 @@ export function TagSearchBar({ q, basePath, tags = [] }: { q: string; basePath: 
     <div className="relative flex items-center">
       <Search size={15} className="absolute left-3 text-muted pointer-events-none" />
       <input
+        id={inputId}
         type="text"
         value={value}
         onChange={handleChange}
@@ -70,7 +84,7 @@ export function TagSearchBar({ q, basePath, tags = [] }: { q: string; basePath: 
         onCompositionEnd={handleCompositionEnd}
         placeholder={tags.length > 0 ? '' : '제목, 지역명을 입력하세요'}
         aria-label="제목, 지역명 또는 인기 태그로 검색"
-        className="w-full md:w-70 pl-9 pr-9 py-2 text-sm text-fg rounded-full bg-card border-0 dark:border dark:border-border
+        className="w-full md:w-70 pl-9 pr-9 py-2 text-sm text-fg rounded-full bg-surface2 border-0 dark:border dark:border-border
                    focus:outline-none focus:border-primary hover:border-muted
                    focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]
                    transition-[box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]

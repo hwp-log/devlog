@@ -190,6 +190,13 @@ body {
   animation: shimmer 1.4s infinite;
 }
 
+/* reduced-motion: 셔머 흐름 정지(정적 스켈레톤 유지). 비레이어라 유틸을 이김 */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+  }
+}
+
 @layer utilities {
   .glass-outer {
     background: rgba(255, 255, 255, 0.15);
