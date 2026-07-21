@@ -84,7 +84,7 @@ export function TagSearchBar({
         onCompositionEnd={handleCompositionEnd}
         placeholder={tags.length > 0 ? '' : '제목, 지역명을 입력하세요'}
         aria-label="제목, 지역명 또는 인기 태그로 검색"
-        className="w-full md:w-70 pl-9 pr-9 py-2 text-sm text-fg rounded-full bg-surface2 border-0 dark:border dark:border-border
+        className="w-full md:w-70 pl-9 pr-9 py-2 text-base md:text-sm text-fg rounded-full bg-surface2 border-0 dark:border dark:border-border
                    focus:outline-none focus:border-primary hover:border-muted
                    focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]
                    transition-[box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]
@@ -93,7 +93,7 @@ export function TagSearchBar({
       {showFakePlaceholder && (
         <span
           aria-hidden="true"
-          className="absolute left-9 right-9 top-1/2 -translate-y-1/2 text-sm leading-5 h-5 text-muted pointer-events-none select-none overflow-hidden whitespace-nowrap"
+          className="absolute left-9 right-9 top-1/2 -translate-y-1/2 text-base md:text-sm leading-5 h-5 text-muted pointer-events-none select-none overflow-hidden whitespace-nowrap"
         >
           {prevIdx === null ? (
             <span className="block">#{tags[idx]}</span>
