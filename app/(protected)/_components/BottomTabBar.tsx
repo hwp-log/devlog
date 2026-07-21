@@ -19,9 +19,11 @@ export function BottomTabBar() {
     return pathname.startsWith(href);
   }
 
+  // [transform:translateZ(0)]: iOS Safari에서 검색 blur·주소창 전환 등 리플로우 시 fixed 하단 바가
+  // 주소창 뒤로 밀리는 이탈 완화 — 자체 GPU 레이어로 승격해 visual viewport 기준 재고정 안정화(자신의 fixed 성질 무변).
   return (
     <div
-      className="fixed left-[14px] right-[14px] bottom-[calc(14px+env(safe-area-inset-bottom))] z-40 lg:hidden overflow-hidden rounded-[22px] border border-slate-200/50 dark:border-white/40 bg-card/90 backdrop-blur-sm shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]"
+      className="fixed left-[14px] right-[14px] bottom-[calc(14px+env(safe-area-inset-bottom))] z-40 lg:hidden overflow-hidden rounded-[22px] border border-slate-200/50 dark:border-white/40 bg-card/90 backdrop-blur-sm shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)] [transform:translateZ(0)]"
     >
       <nav aria-label="주요 메뉴" className="flex items-stretch h-14">
         {TABS.map(({ href, label, Icon }) => {
