@@ -218,7 +218,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
   const errorMessage = errors.photoFile?.message ?? errors.root?.server?.message;
 
   return (
-    <div className="flex flex-col font-sans text-[#1A1A1A]">
+    <div className="flex flex-col font-sans text-fg">
       {/* 편집 모드 사진 zone */}
       {isEditing && (
         <div className="relative">
@@ -244,7 +244,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
               </div>
             </>
           ) : (
-            <label className="flex items-center justify-center h-48 border-b border-slate-100 cursor-pointer text-sm text-slate-400 hover:bg-slate-50">
+            <label className="flex items-center justify-center h-48 border-b border-border cursor-pointer text-sm text-muted hover:bg-surface2">
               사진 추가
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoSelect} />
             </label>
@@ -273,14 +273,14 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
             type="text"
             {...register('name')}
             onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
-            className="w-full border border-black/20 rounded px-2 py-1 text-base font-semibold focus:outline-none"
+            className="w-full border border-border rounded px-2 py-1 text-base font-semibold focus:outline-none"
             autoFocus
           />
         ) : (
           <div className="flex items-start gap-2">
-            <h3 className="flex-1 text-lg font-semibold text-[#1A1A1A]">{spot.name}</h3>
+            <h3 className="flex-1 text-lg font-semibold text-fg">{spot.name}</h3>
             {!spot.photoUrl && (
-              <button type="button" onClick={onClose} className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0">
+              <button type="button" onClick={onClose} className="w-6 h-6 rounded-full bg-surface2 hover:bg-popover flex items-center justify-center flex-shrink-0">
                 <X size={12} />
               </button>
             )}
@@ -289,25 +289,25 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       </div>
 
       {/* 주소 */}
-      {spot.address && <p className="px-4 pb-2 text-sm text-slate-500">{spot.address}</p>}
+      {spot.address && <p className="px-4 pb-2 text-sm text-muted">{spot.address}</p>}
 
       {/* 리뷰 영역 */}
       {(!readOnly || spot.review) && (
         <>
-          <div className="border-t border-slate-100 mx-4" />
+          <div className="border-t border-border mx-4" />
           <div className="p-4">
-            <span className="text-sm font-medium text-slate-700 block mb-2">촬영지 리뷰</span>
+            <span className="text-sm font-medium text-fg block mb-2">촬영지 리뷰</span>
             {isEditing ? (
               <textarea
                 rows={3}
                 {...register('review')}
                 placeholder="리뷰를 입력하세요..."
-                className="border border-black/20 rounded px-2 py-1 text-sm resize-none focus:outline-none w-full"
+                className="border border-border rounded px-2 py-1 text-sm resize-none focus:outline-none w-full"
               />
             ) : spot.review ? (
-              <p className="text-sm text-slate-600 whitespace-pre-wrap">{spot.review}</p>
+              <p className="text-sm text-fg2 whitespace-pre-wrap">{spot.review}</p>
             ) : !readOnly ? (
-              <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
+              <p className="text-sm text-muted cursor-pointer hover:text-fg2" onClick={enterEdit}>
                 리뷰 작성...
               </p>
             ) : null}
@@ -318,9 +318,9 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 별점 — per-visit (1~5, 같은 별 재클릭 시 취소). 편집=선택 / 보기=채운 별. rating 없으면 readOnly에서 미표시 */}
       {(!readOnly || spot.rating != null) && (
         <>
-          <div className="border-t border-slate-100 mx-4" />
+          <div className="border-t border-border mx-4" />
           <div className="p-4">
-            <span className="text-sm font-medium text-slate-700 block mb-2">별점</span>
+            <span className="text-sm font-medium text-fg block mb-2">별점</span>
             {isEditing ? (
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -331,19 +331,19 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                     className="p-0.5"
                     aria-label={`${i}점`}
                   >
-                    <Star size={22} className={i <= (rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'} />
+                    <Star size={22} className={i <= (rating ?? 0) ? 'fill-accent text-accent' : 'text-muted'} />
                   </button>
                 ))}
-                {rating != null && <span className="ml-1 text-sm text-slate-500">{rating}점</span>}
+                {rating != null && <span className="ml-1 text-sm text-muted">{rating}점</span>}
               </div>
             ) : spot.rating != null ? (
               <div className="flex items-center gap-0.5">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} size={18} className={i <= spot.rating! ? 'fill-amber-400 text-amber-400' : 'text-slate-300'} />
+                  <Star key={i} size={18} className={i <= spot.rating! ? 'fill-accent text-accent' : 'text-muted'} />
                 ))}
               </div>
             ) : !readOnly ? (
-              <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>별점 매기기...</p>
+              <p className="text-sm text-muted cursor-pointer hover:text-fg2" onClick={enterEdit}>별점 매기기...</p>
             ) : null}
           </div>
         </>
@@ -352,10 +352,10 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 교통 기준점 — 저장 시 자동 계산 (읽기 전용), 표시 문구는 formatTransit 파생 */}
       {!isEditing && spot.nearestStation && spot.transitMinutes != null && (
         <>
-          <div className="border-t border-slate-100 mx-4" />
+          <div className="border-t border-border mx-4" />
           <div className="p-4">
-            <span className="text-sm font-medium text-slate-700 block mb-2">교통 기준점</span>
-            <p className="text-sm text-slate-600">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</p>
+            <span className="text-sm font-medium text-fg block mb-2">교통 기준점</span>
+            <p className="text-sm text-fg2">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</p>
           </div>
         </>
       )}
@@ -363,21 +363,21 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 촬영 작품 */}
       {(!readOnly || (isEditing ? movieId : spot.movieTitle)) && (
         <>
-          <div className="border-t border-slate-100 mx-4" />
+          <div className="border-t border-border mx-4" />
           <div className="p-4 relative">
-            <span className="text-sm font-medium text-slate-700 block mb-2">촬영 작품</span>
+            <span className="text-sm font-medium text-fg block mb-2">촬영 작품</span>
             {isEditing ? (
               movieLocked ? (
                 <div>
-                  <div className="flex items-center gap-2 border border-slate-200 bg-slate-50 rounded px-2 py-1 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 border border-border bg-surface2 rounded px-2 py-1 text-sm text-muted">
                     <span className="flex-1 truncate">{spot.movieTitle ? `${spot.movieTitle}${spot.extraMovieCount ? ` +${spot.extraMovieCount}` : ''}` : '연결된 작품 없음'}</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">공유 촬영지의 작품 정보는 수정할 수 없습니다</p>
+                  <p className="mt-1 text-xs text-muted">공유 촬영지의 작품 정보는 수정할 수 없습니다</p>
                 </div>
               ) : movieId ? (
-                <div className="flex items-center gap-2 border border-black/20 rounded px-2 py-1 text-sm">
+                <div className="flex items-center gap-2 border border-border rounded px-2 py-1 text-sm">
                   <span className="flex-1 truncate">{movieTitle}</span>
-                  <button type="button" onClick={clearMovie} className="text-slate-400 hover:text-slate-600">
+                  <button type="button" onClick={clearMovie} className="text-muted hover:text-fg2">
                     <X size={14} />
                   </button>
                 </div>
@@ -388,24 +388,24 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                     value={movieQuery}
                     onChange={(e) => handleMovieInput(e.target.value)}
                     placeholder="작품명 검색..."
-                    className="border border-black/20 rounded px-2 py-1 text-sm focus:outline-none w-full"
+                    className="border border-border rounded px-2 py-1 text-sm focus:outline-none w-full"
                   />
                   {showDropdown && movieQuery.trim() !== '' && (
-                    <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-black/10 rounded shadow text-sm max-h-48 overflow-y-auto">
+                    <ul className="absolute z-10 left-0 right-0 mt-1 bg-popover border border-border rounded shadow text-sm max-h-48 overflow-y-auto">
                       {movieSuggestions.map((m) => (
                         <li
                           key={m.id}
                           onMouseDown={() => selectMovie(m)}
-                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer flex justify-between"
+                          className="px-3 py-2 hover:bg-surface2 cursor-pointer flex justify-between"
                         >
                           <span>{m.title}</span>
-                          <span className="text-slate-400 text-xs">{m.spotCount}곳</span>
+                          <span className="text-muted text-xs">{m.spotCount}곳</span>
                         </li>
                       ))}
                       {!movieSuggestions.some((m) => normalizeTitle(m.title) === normalizeTitle(movieQuery)) && (
                         <li
                           onMouseDown={handleSubmitNew}
-                          className="px-3 py-2 hover:bg-slate-50 cursor-pointer text-slate-600 border-t border-slate-100"
+                          className="px-3 py-2 hover:bg-surface2 cursor-pointer text-fg2 border-t border-border"
                         >
                           <span className="text-sm">&apos;{movieQuery.trim()}&apos; 새 작품으로 등록</span>
                         </li>
@@ -415,9 +415,9 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                 </div>
               )
             ) : spot.movieTitle ? (
-              <p className="text-sm text-slate-600">{spot.movieTitle}{spot.extraMovieCount ? ` +${spot.extraMovieCount}` : ''}</p>
+              <p className="text-sm text-fg2">{spot.movieTitle}{spot.extraMovieCount ? ` +${spot.extraMovieCount}` : ''}</p>
             ) : !readOnly ? (
-              <p className="text-sm text-slate-400 cursor-pointer hover:text-slate-600" onClick={enterEdit}>
+              <p className="text-sm text-muted cursor-pointer hover:text-fg2" onClick={enterEdit}>
                 작품 연결...
               </p>
             ) : null}
@@ -432,14 +432,14 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
             type="button"
             onClick={handleSubmit(onValid)}
             disabled={!nameValue.trim()}
-            className="flex-1 py-1.5 rounded-lg text-sm font-medium bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-1.5 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             저장
           </button>
           <button
             type="button"
             onClick={cancelEdit}
-            className="flex-1 py-1.5 rounded-lg text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
+            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 hover:bg-popover transition-colors disabled:opacity-50"
           >
             취소
           </button>
@@ -455,7 +455,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <button
             type="button"
             onClick={enterEdit}
-            className="flex-1 py-1.5 rounded-lg text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 hover:bg-popover transition-colors"
           >
             수정
           </button>

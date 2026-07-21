@@ -46,8 +46,8 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
   return (
     <div className="max-w-7xl mx-auto">
       <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2">스토리 수정</h1>
-      <p className="text-sm text-slate-500 mb-6">내용을 수정하고 저장하세요</p>
+      <h1 className="text-2xl font-bold text-fg mb-2">스토리 수정</h1>
+      <p className="text-sm text-muted mb-6">내용을 수정하고 저장하세요</p>
       <StoryWriteForm
         action={boundAction}
         initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}

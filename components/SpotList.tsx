@@ -54,14 +54,14 @@ function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-black/[0.08] ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
+      className={`flex items-center gap-2 px-3 py-2 bg-surface2 rounded-lg border border-border ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
     >
       <button
         type="button"
         aria-label="드래그 핸들"
-        className={`text-slate-400 flex-shrink-0 transition-colors ${
+        className={`text-muted flex-shrink-0 transition-colors ${
           canDrag
-            ? 'cursor-grab active:cursor-grabbing hover:text-slate-600'
+            ? 'cursor-grab active:cursor-grabbing hover:text-fg2'
             : 'cursor-default opacity-30'
         }`}
         {...(canDrag ? { ...attributes, ...listeners } : {})}
@@ -74,13 +74,13 @@ function SortableItem({ spot, index, total, onDelete }: SortableItemProps) {
       >
         {index + 1}
       </span>
-      <span className="flex-1 text-sm text-[#1A1A1A] truncate">{spot.name}</span>
+      <span className="flex-1 text-sm text-fg truncate">{spot.name}</span>
       {onDelete && (
         <button
           type="button"
           aria-label="촬영지 삭제"
           onClick={() => onDelete(spot.id)}
-          className="text-slate-300 hover:text-red-400 flex-shrink-0 transition-colors"
+          className="text-muted hover:text-red-400 flex-shrink-0 transition-colors"
         >
           <X size={14} />
         </button>
@@ -117,7 +117,7 @@ export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect, onDra
             <li
               key={spot.id}
               onClick={() => onSelect?.(spot)}
-              className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-black/[0.08] cursor-pointer hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-surface2 rounded-lg border border-border cursor-pointer hover:bg-popover transition-colors"
             >
               <span
                 className="w-5 h-5 rounded-full flex-shrink-0 text-white text-[10px] font-bold flex items-center justify-center"
@@ -125,7 +125,7 @@ export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect, onDra
               >
                 {i + 1}
               </span>
-              <span className="flex-1 text-sm text-[#1A1A1A] truncate">{spot.name}</span>
+              <span className="flex-1 text-sm text-fg truncate">{spot.name}</span>
             </li>
           );
         })}

@@ -265,14 +265,14 @@ export default function SpotMap({
   const appkey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
   if (!appkey) {
     return (
-      <div className="w-full h-[400px] rounded-xl bg-slate-100 flex items-center justify-center text-sm text-slate-500">
+      <div className="w-full h-[400px] rounded-xl bg-card flex items-center justify-center text-sm text-muted">
         지도를 표시하려면 카카오 앱키가 필요합니다.
       </div>
     );
   }
-  if (loading) return <div className="w-full h-[400px] rounded-xl bg-slate-100 animate-pulse" />;
+  if (loading) return <div className="w-full h-[400px] rounded-xl bg-card animate-pulse" />;
   if (error) return (
-    <div className="w-full h-[400px] rounded-xl bg-slate-100 flex items-center justify-center text-sm text-slate-500">
+    <div className="w-full h-[400px] rounded-xl bg-card flex items-center justify-center text-sm text-muted">
       지도 로드에 실패했습니다.
     </div>
   );
@@ -284,9 +284,9 @@ export default function SpotMap({
         <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
           }`}>
           {readOnly ? (
-            <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 relative overflow-hidden">
+            <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
               <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
-                <p className="text-base font-semibold text-slate-800 mb-3">순서</p>
+                <p className="text-base font-semibold text-fg mb-3">순서</p>
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                 </div>
@@ -303,10 +303,10 @@ export default function SpotMap({
               </div>
             </div>
           ) : nearbyChooser ? (
-            <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200 p-5 flex flex-col gap-3">
+            <div className="bg-card rounded-xl shadow-lg h-full overflow-y-auto border border-border p-5 flex flex-col gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-800">근처에 이런 촬영지가 있어요</p>
-                <p className="mt-0.5 text-xs text-slate-400">같은 곳이면 선택(중복 방지), 다르면 새 장소로 등록하세요.</p>
+                <p className="text-sm font-semibold text-fg">근처에 이런 촬영지가 있어요</p>
+                <p className="mt-0.5 text-xs text-muted">같은 곳이면 선택(중복 방지), 다르면 새 장소로 등록하세요.</p>
               </div>
               <ul className="flex flex-col gap-2">
                 {nearbyChooser.candidates.map((c) => (
@@ -314,20 +314,20 @@ export default function SpotMap({
                     <button
                       type="button"
                       onClick={() => chooseNearby(c)}
-                      className="w-full text-left rounded-lg border border-slate-200 hover:bg-slate-50 px-3 py-2 transition-colors"
+                      className="w-full text-left rounded-lg border border-border hover:bg-surface2 px-3 py-2 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="min-w-0 flex-1 text-sm font-medium text-slate-800 truncate">{c.name}</span>
-                        <span className="shrink-0 text-xs text-slate-400">{c.distanceM}m</span>
+                        <span className="min-w-0 flex-1 text-sm font-medium text-fg truncate">{c.name}</span>
+                        <span className="shrink-0 text-xs text-muted">{c.distanceM}m</span>
                       </div>
                       {c.movies.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {c.movies.map((m) => (
-                            <span key={m} className="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">{m}</span>
+                            <span key={m} className="rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5">{m}</span>
                           ))}
                         </div>
                       )}
-                      {c.storyCount > 0 && <p className="mt-1 text-xs text-slate-400">스토리 {c.storyCount}편</p>}
+                      {c.storyCount > 0 && <p className="mt-1 text-xs text-muted">스토리 {c.storyCount}편</p>}
                     </button>
                   </li>
                 ))}
@@ -335,13 +335,13 @@ export default function SpotMap({
               <button
                 type="button"
                 onClick={chooseNewPlace}
-                className="mt-1 w-full rounded-lg bg-slate-900 text-white text-sm py-2 hover:bg-slate-700 transition-colors"
+                className="mt-1 w-full rounded-lg bg-primary text-white text-sm py-2 hover:bg-primary/90 transition-colors"
               >
                 새 장소로 등록
               </button>
             </div>
           ) : activeSpot ? (
-            <div className="bg-white rounded-xl shadow-lg h-full overflow-y-auto border border-slate-200">
+            <div className="bg-card rounded-xl shadow-lg h-full overflow-y-auto border border-border">
               <SpotPopup
                 key={activeSpot.id}
                 spot={activeSpot}
@@ -354,17 +354,17 @@ export default function SpotMap({
               />
             </div>
           ) : canAddSpot ? (
-            <div className="bg-white rounded-xl shadow-lg h-full border border-slate-200 p-5 flex flex-col gap-4">
+            <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 flex flex-col gap-4">
               {mode === 'pinning' ? (
                 <>
                   <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                    <MapPin size={40} className="text-slate-300" />
-                    <p className="text-sm text-slate-400 text-center">지도를 클릭해 위치를 지정하세요</p>
+                    <MapPin size={40} className="text-muted" />
+                    <p className="text-sm text-muted text-center">지도를 클릭해 위치를 지정하세요</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
-                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
                   >
                     <ArrowLeft size={14} />
                     뒤로
@@ -373,13 +373,13 @@ export default function SpotMap({
               ) : mode === 'search' ? (
                 <>
                   <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                    <Search size={40} className="text-slate-300" />
-                    <p className="text-sm text-slate-400 text-center">오른쪽 지도에서 장소를 검색하세요</p>
+                    <Search size={40} className="text-muted" />
+                    <p className="text-sm text-muted text-center">오른쪽 지도에서 장소를 검색하세요</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setMode('menu'); setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle'); }}
-                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
                   >
                     <ArrowLeft size={14} />
                     뒤로
@@ -387,7 +387,7 @@ export default function SpotMap({
                 </>
               ) : mode === 'reorder' ? (
                 <>
-                  <p className="text-base font-semibold text-slate-800">여행순서 바꾸기</p>
+                  <p className="text-base font-semibold text-fg">여행순서 바꾸기</p>
                   <div className="flex-1 overflow-y-auto min-h-0">
                     <SpotList
                       spots={localSpots}
@@ -396,20 +396,20 @@ export default function SpotMap({
                       onDragStart={(spot) => setMapCenter({ lat: spot.lat, lng: spot.lng })}
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
+                  <div className="flex flex-col gap-1.5 pt-2 border-t border-border">
                     <div className="flex items-start gap-2">
-                      <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                      <p className="text-xs text-slate-400">⠿ 을 누르고 위아래로 옮기면 순서를 바꿀 수 있습니다.</p>
+                      <Lightbulb size={12} className="text-muted mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted">⠿ 을 누르고 위아래로 옮기면 순서를 바꿀 수 있습니다.</p>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                      <p className="text-xs text-slate-400">마커를 지우려면 × 를 누르세요.</p>
+                      <Lightbulb size={12} className="text-muted mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted">마커를 지우려면 × 를 누르세요.</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
-                    className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
                   >
                     <ArrowLeft size={14} />
                     뒤로
@@ -417,28 +417,28 @@ export default function SpotMap({
                 </>
               ) : (
                 <>
-                  <p className="text-base font-semibold text-slate-800">나만의 경로 짜기</p>
+                  <p className="text-base font-semibold text-fg">나만의 경로 짜기</p>
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
                       onClick={() => { setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle'); setMode('search'); }}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border text-left w-full hover:bg-surface2 transition-colors"
                     >
-                      <Search size={20} className="text-slate-400 shrink-0" />
+                      <Search size={20} className="text-muted shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-slate-700">촬영지 직접검색</p>
-                        <p className="text-xs text-slate-500">이름으로 바로 추가</p>
+                        <p className="text-sm font-medium text-fg">촬영지 직접검색</p>
+                        <p className="text-xs text-muted">이름으로 바로 추가</p>
                       </div>
                     </button>
                     <button
                       type="button"
                       onClick={() => setMode('pinning')}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 text-left w-full hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border text-left w-full hover:bg-surface2 transition-colors"
                     >
-                      <MapPin size={20} className="text-slate-400 shrink-0" />
+                      <MapPin size={20} className="text-muted shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-slate-700">지도에서 찍기</p>
-                        <p className="text-xs text-slate-500">지도를 눌러 위치 지정</p>
+                        <p className="text-sm font-medium text-fg">지도에서 찍기</p>
+                        <p className="text-xs text-muted">지도를 눌러 위치 지정</p>
                       </div>
                     </button>
                     <button
@@ -446,36 +446,36 @@ export default function SpotMap({
                       onClick={() => setMode('reorder')}
                       disabled={localSpots.length < 2}
                       className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${localSpots.length >= 2
-                        ? 'border-slate-200 hover:bg-slate-50'
-                        : 'border-slate-200 opacity-40 cursor-not-allowed bg-slate-50'
+                        ? 'border-border hover:bg-surface2'
+                        : 'border-border opacity-40 cursor-not-allowed bg-surface2'
                         }`}
                     >
-                      <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-slate-400' : 'text-slate-500'}`} />
+                      <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-muted' : 'text-muted'}`} />
                       <div>
-                        <p className="text-sm font-medium text-slate-700">여행순서 바꾸기</p>
-                        <p className="text-xs text-slate-500">방문 순서 편집</p>
+                        <p className="text-sm font-medium text-fg">여행순서 바꾸기</p>
+                        <p className="text-xs text-muted">방문 순서 편집</p>
                       </div>
                     </button>
                   </div>
-                  <div className="flex flex-col gap-3 pt-2 border-t border-slate-100">
-                    <p className="text-xs font-semibold text-slate-600">나만의 여행 동선 만들기</p>
+                  <div className="flex flex-col gap-3 pt-2 border-t border-border">
+                    <p className="text-xs font-semibold text-fg2">나만의 여행 동선 만들기</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start gap-2">
-                        <span className="text-xs text-slate-400 mt-0.5 shrink-0 font-medium">①</span>
-                        <p className="text-xs text-slate-500">촬영지 직접검색 또는 지도에서 찍기 버튼을 눌러 마커를 하나 추가합니다.</p>
+                        <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">①</span>
+                        <p className="text-xs text-muted">촬영지 직접검색 또는 지도에서 찍기 버튼을 눌러 마커를 하나 추가합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-xs text-slate-400 mt-0.5 shrink-0 font-medium">②</span>
-                        <p className="text-xs text-slate-500">추가한 마커의 장소에 사진과 리뷰를 작성합니다.</p>
+                        <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">②</span>
+                        <p className="text-xs text-muted">추가한 마커의 장소에 사진과 리뷰를 작성합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-xs text-slate-400 mt-0.5 shrink-0 font-medium">③</span>
-                        <p className="text-xs text-slate-500">1,2를 반복하면 마커가 선으로 이어져 나만의 여행 동선이 완성됩니다.</p>
+                        <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">③</span>
+                        <p className="text-xs text-muted">1,2를 반복하면 마커가 선으로 이어져 나만의 여행 동선이 완성됩니다.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Lightbulb size={12} className="text-slate-300 mt-0.5 shrink-0" />
-                      <p className="text-xs text-slate-400">마커 순서를 바꾸려면 여행순서 바꾸기 버튼을 누르면 됩니다.</p>
+                      <Lightbulb size={12} className="text-muted mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted">마커 순서를 바꾸려면 여행순서 바꾸기 버튼을 누르면 됩니다.</p>
                     </div>
                   </div>
                 </>
@@ -592,9 +592,9 @@ export default function SpotMap({
           </Map>
           {mode === 'search' && (
             <div className="absolute inset-x-3 top-3 z-20">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-card rounded-xl shadow-lg overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-2.5">
-                  <Search size={14} className="text-slate-400 shrink-0" />
+                  <Search size={14} className="text-muted shrink-0" />
                   <input
                     type="text"
                     value={searchKeyword}
@@ -602,37 +602,37 @@ export default function SpotMap({
                     onKeyDown={(e) => { if (e.key === 'Enter') handleKeywordSearch(); }}
                     placeholder="예) 광화문, 서울시청"
                     autoFocus
-                    className="flex-1 text-sm text-slate-900 focus:outline-none"
+                    className="flex-1 text-sm text-fg focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={handleKeywordSearch}
-                    className="text-xs text-slate-500 hover:text-slate-800 px-2 transition-colors"
+                    className="text-xs text-muted hover:text-fg px-2 transition-colors"
                   >
                     검색
                   </button>
                 </div>
                 {searchStatus === 'zero' && (
-                  <div className="border-t border-slate-100 px-3 py-3">
-                    <p className="text-sm text-slate-400">검색 결과가 없습니다.</p>
+                  <div className="border-t border-border px-3 py-3">
+                    <p className="text-sm text-muted">검색 결과가 없습니다.</p>
                   </div>
                 )}
                 {searchStatus === 'error' && (
-                  <div className="border-t border-slate-100 px-3 py-3">
+                  <div className="border-t border-border px-3 py-3">
                     <p className="text-sm text-red-400">검색 중 오류가 발생했습니다.</p>
                   </div>
                 )}
                 {searchStatus === 'ok' && (
-                  <div className="border-t border-slate-100 max-h-48 overflow-y-auto">
+                  <div className="border-t border-border max-h-48 overflow-y-auto">
                     {searchResults.map((place) => (
                       <button
                         key={place.id}
                         type="button"
                         onClick={() => handlePlaceSelect(place)}
-                        className="text-left w-full px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+                        className="text-left w-full px-3 py-2.5 hover:bg-surface2 transition-colors border-b border-border last:border-b-0"
                       >
-                        <p className="text-sm font-medium text-slate-700">{place.place_name}</p>
-                        <p className="text-xs text-slate-400">{place.address_name}</p>
+                        <p className="text-sm font-medium text-fg">{place.place_name}</p>
+                        <p className="text-xs text-muted">{place.address_name}</p>
                       </button>
                     ))}
                   </div>
