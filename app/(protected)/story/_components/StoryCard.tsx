@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart, MapPin } from 'lucide-react';
 import { formatStoryCardDate } from '@/lib/format-date';
 
@@ -17,7 +18,13 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, lo
     <Link href={`/story/${id}`} className="group block cursor-pointer">
       <div className="relative aspect-[4/3] rounded-[12px] overflow-hidden bg-surface2">
         {thumbnail ? (
-          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+          <Image
+            src={thumbnail}
+            alt=""
+            fill
+            sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, (max-width: 1535px) 20vw, 17vw"
+            className="object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted text-xs">이미지 없음</div>
         )}

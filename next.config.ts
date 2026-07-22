@@ -7,7 +7,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname,
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_URL
+          ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+          : 'placeholder.supabase.co', // jest 등 env 없는 평가용, 실서빙 불가 호스트
         port: '',
         pathname: '/storage/v1/object/public/**',
         search: '',
