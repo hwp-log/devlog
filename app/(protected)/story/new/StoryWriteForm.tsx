@@ -128,7 +128,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-[760px]">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="title" className="text-sm font-medium text-fg">제목</label>
               <input
@@ -252,8 +252,10 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
-      {/* SpotMap: 폼과 같은 정렬선 — 지도 마커 오프셋 방지 */}
-      <div className="w-full mt-6">
+      {/* SpotMap: 폼과 같은 정렬선(좌측 축 공유) — 지도 마커 오프셋 방지.
+          xl 1064 = 페이지 컨테이너 max-w-4xl(896) + xl 좌여백 168 — 우단이 ProtectedMain
+          기본 컨테이너(max-w-7xl px-6, 콘텐츠 1232) 우단과 일치. 한쪽만 바꾸면 어긋남. */}
+      <div className="w-full xl:w-[1064px] mt-6">
         <div className="border-t border-border pt-6">
           <h2 className="flex items-center gap-2 text-base font-semibold text-fg mb-4">
             <MapPin size={16} />
