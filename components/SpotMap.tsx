@@ -280,6 +280,163 @@ export default function SpotMap({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col md:flex-row gap-3">
+        {/* 지도 컨테이너 */}
+        <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+          <Map
+            center={mapCenter}
+            level={mapLevel}
+            isPanto={true}
+            onCreate={handleMapCreate}
+            onClick={handleMapClick}
+            className="w-full h-full"
+          >
+            {/* 폴리라인: 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 */}
+            {localSpots.length >= 2 && localSpots.slice(0, -1).map((spot, i) => {
+              const next = localSpots[i + 1];
+              const isDash = haversineKm(spot, next) > LONG_DISTANCE_KM;
+              const path = [
+                { lat: spot.lat, lng: spot.lng },
+                { lat: next.lat, lng: next.lng },
+              ];
+              return (
+                <Fragment key={spot.id}>
+                  {isDash ? (
+                    <Polyline
+                      path={path}
+                      strokeWeight={3}
+                      strokeColor="#1a8cff"
+                      strokeOpacity={0.7}
+                      strokeStyle="dash"
+                      zIndex={1}
+                    />
+                  ) : (
+                    <>
+                      <Polyline path={path} strokeWeight={10} strokeColor="#0a5cc4" strokeOpacity={1} strokeStyle="solid" zIndex={1} />
+                      <Polyline path={path} strokeWeight={6}  strokeColor="#1a8cff" strokeOpacity={1} strokeStyle="solid" zIndex={2} />
+                    </>
+                  )}
+                </Fragment>
+              );
+            })}
+
+            {/* 마커: CustomOverlayMap + 펄스. 같은 좌표(50m 이내) 병합 → "1·7" 라벨 */}
+            {groupByProximity(localSpots).map((group) => {
+              const isMerge = group.orders.length > 1;
+              const label = group.orders.join('·');
+              const firstColor = getSpotColor(group.orders[0] - 1, localSpots.length);
+              const lastColor  = getSpotColor(group.orders[group.orders.length - 1] - 1, localSpots.length);
+              const background = isMerge
+                ? `linear-gradient(135deg, ${firstColor}, ${lastColor})`
+                : firstColor;
+              const isPulse = group.orders.some(o =>
+                localSpots.find(s => s.order === o && pulsingIds.has(s.id))
+              );
+              return (
+                <CustomOverlayMap
+                  key={group.representative.id}
+                  position={{ lat: group.representative.lat, lng: group.representative.lng }}  // ★★★ lat first
+                  zIndex={1}
+                >
+                  <div style={{ position: 'relative', display: 'inline-flex' }}>
+                    <div
+                      onClick={() => handleMarkerClick(group.representative)}
+                      style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        borderRadius: 9999,
+                        background: background,
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: isMerge ? 11 : 12,
+                        fontWeight: 'bold',
+                        border: '2px solid #fff',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        cursor: 'default',
+                        minWidth: 28,
+                        height: 28,
+                        padding: isMerge ? '0 6px' : 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </div>
+                    {isPulse && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: -5,
+                          borderRadius: 9999,
+                          background: `linear-gradient(135deg, ${firstColor}, ${lastColor})`,
+                          zIndex: 0,
+                          animation: 'spot-pulse 0.6s ease-out forwards',
+                          pointerEvents: 'none',
+                        }}
+                        onAnimationEnd={() => {
+                          group.orders.forEach(o => {
+                            const s = localSpots.find(sp => sp.order === o);
+                            if (s) setPulsingIds(prev => { const ns = new Set(prev); ns.delete(s.id); return ns; });
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                </CustomOverlayMap>
+              );
+            })}
+          </Map>
+          {mode === 'search' && (
+            <div className="absolute inset-x-3 top-3 z-20">
+              <div className="bg-card rounded-xl shadow-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2.5">
+                  <Search size={14} className="text-muted shrink-0" />
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleKeywordSearch(); }}
+                    placeholder="예) 광화문, 서울시청"
+                    autoFocus
+                    className="flex-1 text-sm text-fg focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleKeywordSearch}
+                    className="text-xs text-muted hover:text-fg px-2 transition-colors"
+                  >
+                    검색
+                  </button>
+                </div>
+                {searchStatus === 'zero' && (
+                  <div className="border-t border-border px-3 py-3">
+                    <p className="text-sm text-muted">검색 결과가 없습니다.</p>
+                  </div>
+                )}
+                {searchStatus === 'error' && (
+                  <div className="border-t border-border px-3 py-3">
+                    <p className="text-sm text-red-400">검색 중 오류가 발생했습니다.</p>
+                  </div>
+                )}
+                {searchStatus === 'ok' && (
+                  <div className="border-t border-border max-h-48 overflow-y-auto">
+                    {searchResults.map((place) => (
+                      <button
+                        key={place.id}
+                        type="button"
+                        onClick={() => handlePlaceSelect(place)}
+                        className="text-left w-full px-3 py-2.5 hover:bg-surface2 transition-colors border-b border-border last:border-b-0"
+                      >
+                        <p className="text-sm font-medium text-fg">{place.place_name}</p>
+                        <p className="text-xs text-muted">{place.address_name}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
         <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
           }`}>
@@ -482,164 +639,6 @@ export default function SpotMap({
               )}
             </div>
           ) : null}
-        </div>
-
-        {/* 지도 컨테이너 */}
-        <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
-          <Map
-            center={mapCenter}
-            level={mapLevel}
-            isPanto={true}
-            onCreate={handleMapCreate}
-            onClick={handleMapClick}
-            className="w-full h-full"
-          >
-            {/* 폴리라인: 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 */}
-            {localSpots.length >= 2 && localSpots.slice(0, -1).map((spot, i) => {
-              const next = localSpots[i + 1];
-              const isDash = haversineKm(spot, next) > LONG_DISTANCE_KM;
-              const path = [
-                { lat: spot.lat, lng: spot.lng },
-                { lat: next.lat, lng: next.lng },
-              ];
-              return (
-                <Fragment key={spot.id}>
-                  {isDash ? (
-                    <Polyline
-                      path={path}
-                      strokeWeight={3}
-                      strokeColor="#1a8cff"
-                      strokeOpacity={0.7}
-                      strokeStyle="dash"
-                      zIndex={1}
-                    />
-                  ) : (
-                    <>
-                      <Polyline path={path} strokeWeight={10} strokeColor="#0a5cc4" strokeOpacity={1} strokeStyle="solid" zIndex={1} />
-                      <Polyline path={path} strokeWeight={6}  strokeColor="#1a8cff" strokeOpacity={1} strokeStyle="solid" zIndex={2} />
-                    </>
-                  )}
-                </Fragment>
-              );
-            })}
-
-            {/* 마커: CustomOverlayMap + 펄스. 같은 좌표(50m 이내) 병합 → "1·7" 라벨 */}
-            {groupByProximity(localSpots).map((group) => {
-              const isMerge = group.orders.length > 1;
-              const label = group.orders.join('·');
-              const firstColor = getSpotColor(group.orders[0] - 1, localSpots.length);
-              const lastColor  = getSpotColor(group.orders[group.orders.length - 1] - 1, localSpots.length);
-              const background = isMerge
-                ? `linear-gradient(135deg, ${firstColor}, ${lastColor})`
-                : firstColor;
-              const isPulse = group.orders.some(o =>
-                localSpots.find(s => s.order === o && pulsingIds.has(s.id))
-              );
-              return (
-                <CustomOverlayMap
-                  key={group.representative.id}
-                  position={{ lat: group.representative.lat, lng: group.representative.lng }}  // ★★★ lat first
-                  zIndex={1}
-                >
-                  <div style={{ position: 'relative', display: 'inline-flex' }}>
-                    <div
-                      onClick={() => handleMarkerClick(group.representative)}
-                      style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        borderRadius: 9999,
-                        background: background,
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: isMerge ? 11 : 12,
-                        fontWeight: 'bold',
-                        border: '2px solid #fff',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                        cursor: 'default',
-                        minWidth: 28,
-                        height: 28,
-                        padding: isMerge ? '0 6px' : 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {label}
-                    </div>
-                    {isPulse && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: -5,
-                          borderRadius: 9999,
-                          background: `linear-gradient(135deg, ${firstColor}, ${lastColor})`,
-                          zIndex: 0,
-                          animation: 'spot-pulse 0.6s ease-out forwards',
-                          pointerEvents: 'none',
-                        }}
-                        onAnimationEnd={() => {
-                          group.orders.forEach(o => {
-                            const s = localSpots.find(sp => sp.order === o);
-                            if (s) setPulsingIds(prev => { const ns = new Set(prev); ns.delete(s.id); return ns; });
-                          });
-                        }}
-                      />
-                    )}
-                  </div>
-                </CustomOverlayMap>
-              );
-            })}
-          </Map>
-          {mode === 'search' && (
-            <div className="absolute inset-x-3 top-3 z-20">
-              <div className="bg-card rounded-xl shadow-lg overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2.5">
-                  <Search size={14} className="text-muted shrink-0" />
-                  <input
-                    type="text"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleKeywordSearch(); }}
-                    placeholder="예) 광화문, 서울시청"
-                    autoFocus
-                    className="flex-1 text-sm text-fg focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleKeywordSearch}
-                    className="text-xs text-muted hover:text-fg px-2 transition-colors"
-                  >
-                    검색
-                  </button>
-                </div>
-                {searchStatus === 'zero' && (
-                  <div className="border-t border-border px-3 py-3">
-                    <p className="text-sm text-muted">검색 결과가 없습니다.</p>
-                  </div>
-                )}
-                {searchStatus === 'error' && (
-                  <div className="border-t border-border px-3 py-3">
-                    <p className="text-sm text-red-400">검색 중 오류가 발생했습니다.</p>
-                  </div>
-                )}
-                {searchStatus === 'ok' && (
-                  <div className="border-t border-border max-h-48 overflow-y-auto">
-                    {searchResults.map((place) => (
-                      <button
-                        key={place.id}
-                        type="button"
-                        onClick={() => handlePlaceSelect(place)}
-                        className="text-left w-full px-3 py-2.5 hover:bg-surface2 transition-colors border-b border-border last:border-b-0"
-                      >
-                        <p className="text-sm font-medium text-fg">{place.place_name}</p>
-                        <p className="text-xs text-muted">{place.address_name}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

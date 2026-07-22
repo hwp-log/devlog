@@ -20,12 +20,10 @@ export default async function StoryNewPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-fg mb-2">새 스토리 작성</h1>
-        <p className="text-sm text-muted mb-6">다녀온 그 장소, 당신의 이야기를 남겨주세요</p>
+    <div className="max-w-4xl mx-auto">
+        <p className="text-[12px] font-medium uppercase tracking-wider text-primary">WRITE</p>
+        <h1 className="text-2xl font-bold text-fg mb-6 break-keep">다녀온 촬영지를 이야기로 남겨보세요</h1>
         <StoryWriteForm action={createStoryAction} userId={user.id} availablePlans={availablePlans} />
-      </div>
     </div>
   );
 }

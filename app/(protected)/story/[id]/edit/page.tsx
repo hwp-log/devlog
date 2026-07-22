@@ -44,10 +44,9 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
   const boundAction = updateStoryAction.bind(null, story.id);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-fg mb-2">스토리 수정</h1>
-      <p className="text-sm text-muted mb-6">내용을 수정하고 저장하세요</p>
+    <div className="max-w-4xl mx-auto">
+      <p className="text-[12px] font-medium uppercase tracking-wider text-primary">EDIT</p>
+      <h1 className="text-2xl font-bold text-fg mb-6 break-keep">그 날의 기억을 다시 다듬어보세요</h1>
       <StoryWriteForm
         action={boundAction}
         initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}
@@ -57,7 +56,6 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
         availablePlans={availablePlans}
         initialPlanId={story.planId}
       />
-      </div>
     </div>
   );
 }
