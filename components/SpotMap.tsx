@@ -109,6 +109,10 @@ export default function SpotMap({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null); // 테마 재생성 시 직전 뷰 보존
   const lastSizeRef = useRef({ w: 0, h: 0 }); // relayout 재-observe 즉발 콜백 가드
+  // destroy한 지도를 자체 기록 — 마커·폴리라인 클린업이 파괴된 GL 지도에 setMap(null)을 호출해
+  // removeLayer→getLayer 크래시가 나는 것을 차단. Naver 내부 프로퍼티(map.destroyed 등) 비의존.
+  // WeakSet이라 지도 인스턴스 GC 시 자동 소거(누수 없음).
+  const destroyedMapsRef = useRef<WeakSet<naver.maps.Map>>(new WeakSet());
 
   const modeRef = useRef<Mode>('menu');
   const addSpotFromMapRef = useRef<((lng: number, lat: number) => void) | null>(null);
@@ -153,44 +157,6 @@ export default function SpotMap({
   function panTo(lat: number, lng: number) {
     mapInstance?.panTo(new naver.maps.LatLng(lat, lng));
   }
-
-  // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
-  // 테마 전환 = 파괴·재생성: customStyleId 런타임 교체는 호출은 통과하나 미반영(SpotFinderMapNaver 0297 실측).
-  // 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단. 파괴 직전 viewRef 캡처로 보던 뷰 재개.
-  useEffect(() => {
-    if (status !== 'ready' || !resolvedTheme || !mapDivRef.current) return;
-    // WebGL 미지원(구형·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
-    const supportsGl = !!document.createElement('canvas').getContext('webgl');
-    // 타일 로드 전 SDK 기본 밝은 배경의 다크 깜빡임 방지 — 지도 div(테마 스코프 내부)에서 --card 실값 주입
-    const mapBackground = getComputedStyle(mapDivRef.current).getPropertyValue('--card').trim();
-    const view = viewRef.current;
-    const map = new naver.maps.Map(mapDivRef.current, {
-      center: new naver.maps.LatLng(view?.lat ?? initialCtr.lat, view?.lng ?? initialCtr.lng),
-      zoom: view?.zoom ?? ZOOM_DEFAULT,
-      background: mapBackground,
-      // 커스텀 스타일(다크/라이트)은 GL(벡터) 전용. 라이트 env 미설정 시 SDK 기본 폴백(옵션 미전달)
-      ...(supportsGl
-        ? {
-            gl: true,
-            ...(resolvedTheme === 'dark'
-              ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID }
-              : process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT
-                ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT }
-                : {}),
-          }
-        : {}),
-    });
-    // GL 지도는 비동기 초기화 — init 전 fitBounds는 빈 bounds 계산(SpotFinderMapNaver 실측). init 후 인스턴스 공개.
-    const initListener = naver.maps.Event.once(map, 'init', () => setMapInstance(map));
-    return () => {
-      const c = map.getCenter() as naver.maps.LatLng;
-      viewRef.current = { lat: c.lat(), lng: c.lng(), zoom: map.getZoom() };
-      naver.maps.Event.removeListener(initListener); // 해제는 핸들 기반 — (target,type,fn)식은 조용히 누수
-      setMapInstance(null);
-      map.destroy();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 재생성 트리거는 로더·테마만(뷰는 viewRef 보존)
-  }, [status, resolvedTheme]);
 
   // 초기 1회 전체 스팟 핏 — 카카오 setBounds(패딩 60) 상응. mapInstance는 init 후에만 세팅되므로 안전
   useEffect(() => {
@@ -246,6 +212,7 @@ export default function SpotMap({
   // 같은 좌표(50m 이내) 병합 → "1·7" 라벨. 클릭은 마커 리스너(HTML 문자열엔 React 핸들러 불가).
   useEffect(() => {
     if (!mapInstance) return;
+    const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 가드용
     const isDark = resolvedTheme === 'dark';
     const items = groupByProximity(localSpots).map((group) => {
       const isMerge = group.orders.length > 1;
@@ -270,6 +237,8 @@ export default function SpotMap({
       return { marker, clickListener };
     });
     return () => {
+      // 파괴된 지도의 오버레이 해제는 GL removeLayer 크래시 유발 → 스킵(테마 전환 시 별도 커밋에서 발생)
+      if (destroyedMaps.has(mapInstance)) return;
       items.forEach(({ marker, clickListener }) => {
         naver.maps.Event.removeListener(clickListener); // 해제는 핸들 기반
         marker.setMap(null);
@@ -281,6 +250,7 @@ export default function SpotMap({
   // 폴리라인 — 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 (구 <Polyline> 시각 동일)
   useEffect(() => {
     if (!mapInstance || localSpots.length < 2) return;
+    const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 가드용
     const lines: naver.maps.Polyline[] = [];
     localSpots.slice(0, -1).forEach((spot, i) => {
       const next = localSpots[i + 1];
@@ -292,8 +262,53 @@ export default function SpotMap({
         lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 6, strokeColor: '#1a8cff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 2 }));
       }
     });
-    return () => lines.forEach(l => l.setMap(null));
+    // 파괴된 지도의 오버레이 해제는 GL removeLayer 크래시 유발 → 스킵(마커 클린업과 동일 가드)
+    return () => { if (!destroyedMaps.has(mapInstance)) lines.forEach(l => l.setMap(null)); };
   }, [mapInstance, localSpots]);
+
+  // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
+  // 테마 전환 = 파괴·재생성: customStyleId 런타임 교체는 호출은 통과하나 미반영(SpotFinderMapNaver 0297 실측).
+  // 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단. 파괴 직전 viewRef 캡처로 보던 뷰 재개.
+  // 선언 위치가 마커·폴리라인 effect 뒤 — 언마운트 클린업은 선언 순서(위→아래)로 실행되므로 오버레이
+  // 해제(⑤⑥)가 이 destroy보다 먼저 돌아 "파괴된 지도에 setMap(null)"을 피한다(SpotFinder 0753 순서 선례).
+  // 셋업은 마커·폴리라인이 mapInstance 게이트(early-return)라 이 effect가 마지막이어도 첫 마운트엔
+  // init→setMapInstance 이후 커밋에 정상 실행 — 순서 영향 없음.
+  useEffect(() => {
+    if (status !== 'ready' || !resolvedTheme || !mapDivRef.current) return;
+    const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 기록용
+    // WebGL 미지원(구형·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
+    const supportsGl = !!document.createElement('canvas').getContext('webgl');
+    // 타일 로드 전 SDK 기본 밝은 배경의 다크 깜빡임 방지 — 지도 div(테마 스코프 내부)에서 --card 실값 주입
+    const mapBackground = getComputedStyle(mapDivRef.current).getPropertyValue('--card').trim();
+    const view = viewRef.current;
+    const map = new naver.maps.Map(mapDivRef.current, {
+      center: new naver.maps.LatLng(view?.lat ?? initialCtr.lat, view?.lng ?? initialCtr.lng),
+      zoom: view?.zoom ?? ZOOM_DEFAULT,
+      background: mapBackground,
+      // 커스텀 스타일(다크/라이트)은 GL(벡터) 전용. 라이트 env 미설정 시 SDK 기본 폴백(옵션 미전달)
+      ...(supportsGl
+        ? {
+            gl: true,
+            ...(resolvedTheme === 'dark'
+              ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID }
+              : process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT
+                ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT }
+                : {}),
+          }
+        : {}),
+    });
+    // GL 지도는 비동기 초기화 — init 전 fitBounds는 빈 bounds 계산(SpotFinderMapNaver 실측). init 후 인스턴스 공개.
+    const initListener = naver.maps.Event.once(map, 'init', () => setMapInstance(map));
+    return () => {
+      const c = map.getCenter() as naver.maps.LatLng;
+      viewRef.current = { lat: c.lat(), lng: c.lng(), zoom: map.getZoom() };
+      naver.maps.Event.removeListener(initListener); // 해제는 핸들 기반 — (target,type,fn)식은 조용히 누수
+      setMapInstance(null);
+      destroyedMaps.add(map); // destroy 직전 기록 — 별도 커밋의 ⑤⑥ 클린업 가드가 참조(테마 전환)
+      map.destroy();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 재생성 트리거는 로더·테마만(뷰는 viewRef 보존)
+  }, [status, resolvedTheme]);
 
   function triggerPulse(spotId: string) {
     setPulsingIds(prev => new Set(prev).add(spotId));
