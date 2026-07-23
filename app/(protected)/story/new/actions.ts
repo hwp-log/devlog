@@ -3,9 +3,12 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import type { LocalSpot } from '@/lib/types';
 import { findNearestTransit } from '@/lib/spot/autoTransit';
 import { clampRating } from '@/lib/spot/rating';
+import {
+  MAX_TITLE_LEN, MAX_CONTENT_LEN, MAX_TAGS, MAX_TAG_LEN, MAX_SPOTS, MAX_SPOT_NAME_LEN,
+  parseTags, parseSpots,
+} from '@/lib/story/parse-input';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -19,16 +22,21 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
 
   const title = formData.get('title')?.toString().trim() ?? '';
   const content = formData.get('content')?.toString().trim() ?? '';
-  const tagsRaw = formData.get('tags') as string;
-  const tagNames: string[] = JSON.parse(tagsRaw || '[]');
-  const spotsRaw = formData.get('spots') as string;
-  const spotsData: LocalSpot[] = JSON.parse(spotsRaw || '[]');
+  const tagNames = parseTags(formData.get('tags')?.toString() ?? '');
+  const spotsData = parseSpots(formData.get('spots')?.toString() ?? '');
+  if (!tagNames || !spotsData) return { error: '잘못된 요청입니다. 새로고침 후 다시 시도해주세요' };
 
   const planIdRaw = formData.get('plan_id')?.toString().trim() ?? '';
   const planId = planIdRaw || null;
 
   if (!title) return { error: '제목을 입력해주세요' };
   if (!content) return { error: '본문을 입력해주세요' };
+  if (title.length > MAX_TITLE_LEN) return { error: `제목은 ${MAX_TITLE_LEN}자 이하로 입력해주세요` };
+  if (content.length > MAX_CONTENT_LEN) return { error: `본문은 ${MAX_CONTENT_LEN}자 이하로 입력해주세요` };
+  if (tagNames.length > MAX_TAGS) return { error: `태그는 ${MAX_TAGS}개까지 입력할 수 있습니다` };
+  if (tagNames.some((t) => t.length > MAX_TAG_LEN)) return { error: `태그는 ${MAX_TAG_LEN}자 이하로 입력해주세요` };
+  if (spotsData.length > MAX_SPOTS) return { error: `스팟은 ${MAX_SPOTS}개까지 추가할 수 있습니다` };
+  if (spotsData.some((s) => s.name.length > MAX_SPOT_NAME_LEN)) return { error: `장소명은 ${MAX_SPOT_NAME_LEN}자 이하로 입력해주세요` };
 
   if (planId) {
     const plan = await prisma.myPlan.findUnique({ where: { id: planId }, select: { ownerId: true } });
