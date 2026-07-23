@@ -19,7 +19,7 @@ export function ProtectedMain({ children }: { children: React.ReactNode }) {
           ? 'max-w-none' // 0225: 풀블리드 라우트(SpotFinder)는 전 폭 edge-to-edge — 모바일도 풀스크린 지도. flex-1 미부여(지도 자체 사이징)
           : wide
             ? 'flex-1 px-6 pt-8 pb-24 lg:pb-8' // flex-1: 짧은 콘텐츠에서 푸터를 뷰포트 하단으로(sticky footer). 풀폭 + 헤더와 동일 px-6
-            : 'flex-1 max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8' // flex-1: sticky footer. mx-auto는 flex 교차축에서도 중앙 정렬
+            : 'w-full flex-1 max-w-7xl mx-auto px-6 pt-8 pb-24 lg:pb-8' // w-full: flex 부모(ThemeScope flex-col)에서 교차축 auto 마진(mx-auto)이 stretch를 무력화해 fit-content로 수축 → 폭 명시. flex-1: sticky footer
       }
     >
       {children}
