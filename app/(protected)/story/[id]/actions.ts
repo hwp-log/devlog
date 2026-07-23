@@ -347,6 +347,10 @@ export async function toggleLikeAction(storyId: string): Promise<{ liked: boolea
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('로그인이 필요합니다');
 
+  // 미존재 storyId 사전 가드 — like.create의 FK 에러(P2003) 500 방지 (사전 조회 가드 선례)
+  const story = await prisma.story.findUnique({ where: { id: storyId }, select: { id: true } });
+  if (!story) throw new Error('스토리를 찾을 수 없습니다');
+
   const existing = await prisma.like.findUnique({
     where: { storyId_userId: { storyId, userId: user.id } },
   });

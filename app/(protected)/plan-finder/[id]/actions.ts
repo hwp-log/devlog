@@ -10,6 +10,14 @@ export async function togglePlanLikeAction(planId: string): Promise<{ liked: boo
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('로그인이 필요합니다');
 
+  // 공개 플랜만 좋아요 가능 — 페이지(plan-finder/[id]/page.tsx)·copyPublicPlanAction과 동일 게이트.
+  // 미존재 planId도 여기서 걸러짐 (FK 에러 사전 차단)
+  const plan = await prisma.myPlan.findFirst({
+    where: { id: planId, isPublic: true },
+    select: { id: true },
+  });
+  if (!plan) throw new Error('플랜을 찾을 수 없습니다');
+
   const existing = await prisma.planLike.findUnique({
     where: { planId_userId: { planId, userId: user.id } },
   });
