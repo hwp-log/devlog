@@ -1,16 +1,22 @@
 'use client';
 
-import { Fragment, useEffect, useRef, useState } from 'react';
-import { useKakaoLoader, Map, CustomOverlayMap, Polyline } from 'react-kakao-maps-sdk';
+import { useEffect, useRef, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
 import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
+import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
 import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
 
 const LONG_DISTANCE_KM = 50;
 const MERGE_EPSILON_KM = 0.05; // 50m 이내 = 같은 장소로 병합
+
+// 줌 매핑(카카오 level→네이버 zoom 근사, 실화면 보정 대상): 기본 level5≈13 / 검색·찍기 확대 level3≈16
+const ZOOM_DEFAULT = 13;
+const ZOOM_FOCUS = 16;
 
 function haversineKm(
   a: { lat: number; lng: number },
@@ -46,6 +52,29 @@ function groupByProximity(spots: LocalSpot[]): MarkerGroup[] {
   return groups;
 }
 
+// 마커 HTML(번호 알약 + 펄스) — 구 CustomOverlayMap JSX와 시각 동일 재현.
+// 바깥 래퍼 translate(-50%,-50%) + anchor(0,0) = 카카오 중앙 앵커 상응. isDark는 그림자만 분기.
+// 펄스 애니메이션은 globals.css @keyframes spot-pulse(0.6s) 참조 — 제거 타이머(triggerPulse)와 페어.
+function markerContent(opts: {
+  label: string;
+  isMerge: boolean;
+  firstColor: string;
+  lastColor: string;
+  isPulse: boolean;
+  isDark: boolean;
+}): string {
+  const { label, isMerge, firstColor, lastColor, isPulse, isDark } = opts;
+  const background = isMerge ? `linear-gradient(135deg, ${firstColor}, ${lastColor})` : firstColor;
+  const shadow = isDark ? '0 2px 6px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.3)';
+  const pulse = isPulse
+    ? `<div style="position:absolute;inset:-5px;border-radius:9999px;background:linear-gradient(135deg, ${firstColor}, ${lastColor});z-index:0;animation:spot-pulse 0.6s ease-out forwards;pointer-events:none"></div>`
+    : '';
+  return `<div style="transform:translate(-50%,-50%);position:relative;display:inline-flex">
+    <div style="position:relative;z-index:1;border-radius:9999px;background:${background};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${isMerge ? 11 : 12}px;font-weight:bold;border:2px solid #fff;box-shadow:${shadow};cursor:default;min-width:28px;height:28px;padding:${isMerge ? '0 6px' : '0'};white-space:nowrap">${label}</div>
+    ${pulse}
+  </div>`;
+}
+
 type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
 type Props = {
@@ -68,23 +97,24 @@ export default function SpotMap({
   onPhotoSelect,
   readOnly,
 }: Props) {
-  const [loading, error] = useKakaoLoader({
-    appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? '',
-    libraries: ['services'],
-  });
+  const { status, retry } = useNaverMapsLoader();
+  const { resolvedTheme } = useTheme();
+  const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const viewRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null); // 테마 재생성 시 직전 뷰 보존
+  const lastSizeRef = useRef({ w: 0, h: 0 }); // relayout 재-observe 즉발 콜백 가드
 
   const modeRef = useRef<Mode>('menu');
   const addSpotFromMapRef = useRef<((lng: number, lat: number) => void) | null>(null);
   const fitDoneRef = useRef(false);
 
-  const [mapInstance, setMapInstance] = useState<kakao.maps.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
   const [activeSpot, setActiveSpot] = useState<LocalSpot | null>(null);
   const [displayedSpot, setDisplayedSpot] = useState<LocalSpot | null>(null);
   const [mode, setMode] = useState<Mode>('menu');
   const [pulsingIds, setPulsingIds] = useState<Set<string>>(new Set());
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState<kakao.maps.services.PlacesSearchResultItem[]>([]);
+  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
   // S3-a: 마커 추가 시 근처 기존 촬영지 후보(있으면 재사용 선택 UI)
   const [nearbyChooser, setNearbyChooser] = useState<{ spotId: string; candidates: NearbySpot[] } | null>(null);
@@ -103,46 +133,174 @@ export default function SpotMap({
     }
   };
 
-  // initialCenter props: [lng, lat] 순서 → 카카오 {lat, lng}로 변환 ★★★
-  const [mapCenter, setMapCenter] = useState(() =>
+  // 초기 중심(생성 옵션 전용) — initialCenter props는 [lng, lat] 순서 유지(기존 호출 측 인터페이스) ★★★
+  const [initialCtr] = useState(() =>
     spots.length > 0
       ? { lat: spots[0].lat, lng: spots[0].lng }
       : initialCenter
         ? { lat: initialCenter[1], lng: initialCenter[0] }
         : { lat: 37.566, lng: 126.978 }
   );
-  const [mapLevel, setMapLevel] = useState(5);
 
-  function handleMapCreate(map: kakao.maps.Map) {
-    setMapInstance(map); // re-render 트리거 → SpotMap useEffect가 Map 내부 effect 이후 실행
+  // 부드러운 중심 이동 — 카카오 isPanto 상응
+  function panTo(lat: number, lng: number) {
+    mapInstance?.panTo(new naver.maps.LatLng(lat, lng));
   }
 
-  // setBounds를 useEffect로 이관: 자식(Map) effect → 부모(SpotMap) effect 순서 보장
-  // Map 내부 center/level 동기화 이후에 setBounds가 실행되므로 덮어씌워지지 않음
+  // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
+  // 테마 전환 = 파괴·재생성: customStyleId 런타임 교체는 호출은 통과하나 미반영(SpotFinderMapNaver 0297 실측).
+  // 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단. 파괴 직전 viewRef 캡처로 보던 뷰 재개.
+  useEffect(() => {
+    if (status !== 'ready' || !resolvedTheme || !mapDivRef.current) return;
+    // WebGL 미지원(구형·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
+    const supportsGl = !!document.createElement('canvas').getContext('webgl');
+    // 타일 로드 전 SDK 기본 밝은 배경의 다크 깜빡임 방지 — 지도 div(테마 스코프 내부)에서 --card 실값 주입
+    const mapBackground = getComputedStyle(mapDivRef.current).getPropertyValue('--card').trim();
+    const view = viewRef.current;
+    const map = new naver.maps.Map(mapDivRef.current, {
+      center: new naver.maps.LatLng(view?.lat ?? initialCtr.lat, view?.lng ?? initialCtr.lng),
+      zoom: view?.zoom ?? ZOOM_DEFAULT,
+      background: mapBackground,
+      // 커스텀 스타일(다크/라이트)은 GL(벡터) 전용. 라이트 env 미설정 시 SDK 기본 폴백(옵션 미전달)
+      ...(supportsGl
+        ? {
+            gl: true,
+            ...(resolvedTheme === 'dark'
+              ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID }
+              : process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT
+                ? { customStyleId: process.env.NEXT_PUBLIC_NAVER_MAP_STYLE_ID_LIGHT }
+                : {}),
+          }
+        : {}),
+    });
+    // GL 지도는 비동기 초기화 — init 전 fitBounds는 빈 bounds 계산(SpotFinderMapNaver 실측). init 후 인스턴스 공개.
+    const initListener = naver.maps.Event.once(map, 'init', () => setMapInstance(map));
+    return () => {
+      const c = map.getCenter() as naver.maps.LatLng;
+      viewRef.current = { lat: c.lat(), lng: c.lng(), zoom: map.getZoom() };
+      naver.maps.Event.removeListener(initListener); // 해제는 핸들 기반 — (target,type,fn)식은 조용히 누수
+      setMapInstance(null);
+      map.destroy();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 재생성 트리거는 로더·테마만(뷰는 viewRef 보존)
+  }, [status, resolvedTheme]);
+
+  // 초기 1회 전체 스팟 핏 — 카카오 setBounds(패딩 60) 상응. mapInstance는 init 후에만 세팅되므로 안전
   useEffect(() => {
     if (!mapInstance || fitDoneRef.current || spots.length < 2) return;
-    const bounds = new kakao.maps.LatLngBounds();
-    spots.forEach(s => bounds.extend(new kakao.maps.LatLng(s.lat, s.lng))); // ★★★ lat first
-    mapInstance.setBounds(bounds, 60, 60, 60, 60);
+    const bounds = new naver.maps.LatLngBounds(
+      new naver.maps.LatLng(spots[0].lat, spots[0].lng),
+      new naver.maps.LatLng(spots[0].lat, spots[0].lng),
+    );
+    spots.forEach(s => bounds.extend(new naver.maps.LatLng(s.lat, s.lng))); // ★★★ lat first
+    mapInstance.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
     fitDoneRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 최초 마운트 스팟 기준 1회(fitDoneRef 가드)
   }, [mapInstance]);
 
-  function handleMapClick(_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) {
-    if (modeRef.current !== 'pinning') return;
-    const lat = mouseEvent.latLng.getLat(); // ★★★
-    const lng = mouseEvent.latLng.getLng(); // ★★★
-    addSpotFromMapRef.current?.(lng, lat);
-  }
+  // 컨테이너 크기 변경 시 relayout — 0316 폭 버그(xl 1064 미채움) 해결. autoResize = 카카오 relayout() 상응.
+  // 재-observe 즉발 콜백은 크기 불변 가드로 무시, rAF 배칭. 핏 재적합 미이식 — center 보존만 (SpotFinderMapNaver 축소판)
+  useEffect(() => {
+    const el = mapDivRef.current;
+    if (!el || !mapInstance) return;
+    let frame = 0;
+    const onResize = () => {
+      cancelAnimationFrame(frame);
+      const { width, height } = el.getBoundingClientRect();
+      if (width === lastSizeRef.current.w && height === lastSizeRef.current.h) return;
+      lastSizeRef.current = { w: width, h: height };
+      frame = requestAnimationFrame(() => {
+        const center = mapInstance.getCenter();
+        mapInstance.autoResize();
+        mapInstance.setCenter(center);
+      });
+    };
+    const observer = new ResizeObserver(onResize);
+    observer.observe(el);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [mapInstance]);
+
+  // 지도 클릭 → 좌표 찍기(핀 모드 전용) — modeRef/addSpotFromMapRef stale-closure 가드 그대로 사용.
+  // e.coord는 LatLng 인스턴스(카카오 mouseEvent.latLng 상응)
+  useEffect(() => {
+    if (!mapInstance) return;
+    const listener = naver.maps.Event.addListener(mapInstance, 'click', (e: naver.maps.PointerEvent) => {
+      if (modeRef.current !== 'pinning') return;
+      const coord = e.coord as naver.maps.LatLng;
+      addSpotFromMapRef.current?.(coord.lng(), coord.lat()); // ★★★ (lng, lat) 인자 순서
+    });
+    return () => naver.maps.Event.removeListener(listener); // 해제는 핸들 기반
+  }, [mapInstance]);
+
+  // 마커 구축 — 스팟·펄스·테마 변경 시 파괴·재생성(스팟 수 소규모라 비용 무시 가능).
+  // 같은 좌표(50m 이내) 병합 → "1·7" 라벨. 클릭은 마커 리스너(HTML 문자열엔 React 핸들러 불가).
+  useEffect(() => {
+    if (!mapInstance) return;
+    const isDark = resolvedTheme === 'dark';
+    const items = groupByProximity(localSpots).map((group) => {
+      const isMerge = group.orders.length > 1;
+      const label = group.orders.join('·');
+      const firstColor = getSpotColor(group.orders[0] - 1, localSpots.length);
+      const lastColor = getSpotColor(group.orders[group.orders.length - 1] - 1, localSpots.length);
+      const isPulse = group.orders.some(o =>
+        localSpots.find(s => s.order === o && pulsingIds.has(s.id))
+      );
+      const marker = new naver.maps.Marker({
+        map: mapInstance,
+        position: new naver.maps.LatLng(group.representative.lat, group.representative.lng), // ★★★ lat first
+        icon: {
+          content: markerContent({ label, isMerge, firstColor, lastColor, isPulse, isDark }),
+          anchor: new naver.maps.Point(0, 0), // 콘텐츠 translate(-50%,-50%)와 페어 = 중앙 앵커
+        },
+        zIndex: 1,
+      });
+      const clickListener = naver.maps.Event.addListener(marker, 'click', () =>
+        handleMarkerClick(group.representative)
+      );
+      return { marker, clickListener };
+    });
+    return () => {
+      items.forEach(({ marker, clickListener }) => {
+        naver.maps.Event.removeListener(clickListener); // 해제는 핸들 기반
+        marker.setMap(null);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleMarkerClick은 안정 setter·prop만 사용(리빌드 트리거는 데이터·테마만)
+  }, [mapInstance, localSpots, pulsingIds, resolvedTheme]);
+
+  // 폴리라인 — 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 (구 <Polyline> 시각 동일)
+  useEffect(() => {
+    if (!mapInstance || localSpots.length < 2) return;
+    const lines: naver.maps.Polyline[] = [];
+    localSpots.slice(0, -1).forEach((spot, i) => {
+      const next = localSpots[i + 1];
+      const path = [new naver.maps.LatLng(spot.lat, spot.lng), new naver.maps.LatLng(next.lat, next.lng)];
+      if (haversineKm(spot, next) > LONG_DISTANCE_KM) {
+        lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 3, strokeColor: '#1a8cff', strokeOpacity: 0.7, strokeStyle: 'dash', zIndex: 1 }));
+      } else {
+        lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 10, strokeColor: '#0a5cc4', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 1 }));
+        lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 6, strokeColor: '#1a8cff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 2 }));
+      }
+    });
+    return () => lines.forEach(l => l.setMap(null));
+  }, [mapInstance, localSpots]);
 
   function triggerPulse(spotId: string) {
     setPulsingIds(prev => new Set(prev).add(spotId));
+    // globals.css @keyframes spot-pulse 0.6s와 페어 — HTML 문자열 마커라 onAnimationEnd 불가, 타이머로 제거
+    window.setTimeout(() => {
+      setPulsingIds(prev => { const ns = new Set(prev); ns.delete(spotId); return ns; });
+    }, 600);
   }
 
   function handleMarkerClick(spot: LocalSpot) {
     setActiveSpot((prev) => (prev?.id === spot.id ? null : spot));
     if (readOnly) {
       setDisplayedSpot(spot);
-      setMapCenter({ lat: spot.lat, lng: spot.lng });
+      panTo(spot.lat, spot.lng);
     }
     setMode('view');
     triggerPulse(spot.id);
@@ -152,7 +310,7 @@ export default function SpotMap({
     setDisplayedSpot(spot);
     setActiveSpot(spot);
     setMode('view');
-    setMapCenter({ lat: spot.lat, lng: spot.lng });
+    panTo(spot.lat, spot.lng);
     triggerPulse(spot.id);
   }
 
@@ -187,38 +345,31 @@ export default function SpotMap({
     onSpotsChange?.(reindexed);
   }
 
-  function handleKeywordSearch() {
+  // 키워드 검색 — 서버 액션(lib/spot/searchPlaces, Kakao Local REST). 좌표 변환은 서버 완료.
+  async function handleKeywordSearch() {
     const kw = searchKeyword.trim();
     if (!kw) return;
-    const ps = new kakao.maps.services.Places();
-    ps.keywordSearch(kw, (data, status) => {
-      if (status === kakao.maps.services.Status.OK) {
-        setSearchResults(data);
-        setSearchStatus('ok');
-      } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-        setSearchResults([]);
-        setSearchStatus('zero');
-      } else {
-        setSearchResults([]);
-        setSearchStatus('error');
-      }
-    });
+    const result = await searchPlaces(kw);
+    if (result.status === 'ok') {
+      setSearchResults(result.places);
+      setSearchStatus('ok');
+    } else {
+      setSearchResults([]);
+      setSearchStatus(result.status);
+    }
   }
 
-  async function handlePlaceSelect(place: kakao.maps.services.PlacesSearchResultItem) {
-    const lng = parseFloat(place.x); // x = 경도(lng) ★★★
-    const lat = parseFloat(place.y); // y = 위도(lat) ★★★
-    const id = addSpot(place.place_name, lng, lat);
-    // @ts-expect-error kakao.maps.d.ts 커뮤니티 타입에 jump 누락 (공식 API)
-    mapInstance?.jump(new kakao.maps.LatLng(lat, lng), 3);
-    setMapCenter({ lat, lng });
-    setMapLevel(3);
+  async function handlePlaceSelect(place: PlaceResult) {
+    const { lat, lng } = place; // x/y→lng/lat 변환은 서버 액션이 완료 — 클라엔 순수 숫자만
+    const id = addSpot(place.name, lng, lat);
+    // 중심·줌 원자 전환(카카오 jump 상응) — setZoom+setCenter는 0ms 점프라 기각(SpotFinderMapNaver 실측)
+    mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS);
     // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집
     const candidates = await findNearbySpots(lat, lng);
     if (candidates.length > 0) {
       setNearbyChooser({ spotId: id, candidates });
     } else {
-      setActiveSpot({ id, name: place.place_name, lat, lng, order: localSpots.length + 1 });
+      setActiveSpot({ id, name: place.name, lat, lng, order: localSpots.length + 1 });
       setMode('edit');
     }
   }
@@ -262,130 +413,43 @@ export default function SpotMap({
     setNearbyChooser(null);
   }
 
-  const appkey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
-  if (!appkey) {
+  if (!process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID) {
     return (
       <div className="w-full h-[400px] rounded-xl bg-card flex items-center justify-center text-sm text-muted">
-        지도를 표시하려면 카카오 앱키가 필요합니다.
+        지도를 표시하려면 네이버 지도 클라이언트 ID가 필요합니다.
       </div>
     );
   }
-  if (loading) return <div className="w-full h-[400px] rounded-xl bg-card animate-pulse" />;
-  if (error) return (
-    <div className="w-full h-[400px] rounded-xl bg-card flex items-center justify-center text-sm text-muted">
-      지도 로드에 실패했습니다.
-    </div>
-  );
+  if (status === 'authError') {
+    return (
+      <div className="w-full h-[400px] rounded-xl bg-card flex items-center justify-center text-sm text-muted">
+        지도 인증에 실패했습니다. (클라이언트 ID·도메인 등록 확인)
+      </div>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <div className="w-full h-[400px] rounded-xl bg-card flex flex-col items-center justify-center gap-2 text-sm text-muted">
+        <p>지도 로드에 실패했습니다.</p>
+        <button
+          type="button"
+          onClick={retry}
+          className="text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg transition-colors"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+  if (status === 'loading') return <div className="w-full h-[400px] rounded-xl bg-card animate-pulse" />;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col md:flex-row gap-3">
         {/* 지도 컨테이너 */}
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
-          <Map
-            center={mapCenter}
-            level={mapLevel}
-            isPanto={true}
-            onCreate={handleMapCreate}
-            onClick={handleMapClick}
-            className="w-full h-full"
-          >
-            {/* 폴리라인: 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 */}
-            {localSpots.length >= 2 && localSpots.slice(0, -1).map((spot, i) => {
-              const next = localSpots[i + 1];
-              const isDash = haversineKm(spot, next) > LONG_DISTANCE_KM;
-              const path = [
-                { lat: spot.lat, lng: spot.lng },
-                { lat: next.lat, lng: next.lng },
-              ];
-              return (
-                <Fragment key={spot.id}>
-                  {isDash ? (
-                    <Polyline
-                      path={path}
-                      strokeWeight={3}
-                      strokeColor="#1a8cff"
-                      strokeOpacity={0.7}
-                      strokeStyle="dash"
-                      zIndex={1}
-                    />
-                  ) : (
-                    <>
-                      <Polyline path={path} strokeWeight={10} strokeColor="#0a5cc4" strokeOpacity={1} strokeStyle="solid" zIndex={1} />
-                      <Polyline path={path} strokeWeight={6}  strokeColor="#1a8cff" strokeOpacity={1} strokeStyle="solid" zIndex={2} />
-                    </>
-                  )}
-                </Fragment>
-              );
-            })}
-
-            {/* 마커: CustomOverlayMap + 펄스. 같은 좌표(50m 이내) 병합 → "1·7" 라벨 */}
-            {groupByProximity(localSpots).map((group) => {
-              const isMerge = group.orders.length > 1;
-              const label = group.orders.join('·');
-              const firstColor = getSpotColor(group.orders[0] - 1, localSpots.length);
-              const lastColor  = getSpotColor(group.orders[group.orders.length - 1] - 1, localSpots.length);
-              const background = isMerge
-                ? `linear-gradient(135deg, ${firstColor}, ${lastColor})`
-                : firstColor;
-              const isPulse = group.orders.some(o =>
-                localSpots.find(s => s.order === o && pulsingIds.has(s.id))
-              );
-              return (
-                <CustomOverlayMap
-                  key={group.representative.id}
-                  position={{ lat: group.representative.lat, lng: group.representative.lng }}  // ★★★ lat first
-                  zIndex={1}
-                >
-                  <div style={{ position: 'relative', display: 'inline-flex' }}>
-                    <div
-                      onClick={() => handleMarkerClick(group.representative)}
-                      style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        borderRadius: 9999,
-                        background: background,
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: isMerge ? 11 : 12,
-                        fontWeight: 'bold',
-                        border: '2px solid #fff',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                        cursor: 'default',
-                        minWidth: 28,
-                        height: 28,
-                        padding: isMerge ? '0 6px' : 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {label}
-                    </div>
-                    {isPulse && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: -5,
-                          borderRadius: 9999,
-                          background: `linear-gradient(135deg, ${firstColor}, ${lastColor})`,
-                          zIndex: 0,
-                          animation: 'spot-pulse 0.6s ease-out forwards',
-                          pointerEvents: 'none',
-                        }}
-                        onAnimationEnd={() => {
-                          group.orders.forEach(o => {
-                            const s = localSpots.find(sp => sp.order === o);
-                            if (s) setPulsingIds(prev => { const ns = new Set(prev); ns.delete(s.id); return ns; });
-                          });
-                        }}
-                      />
-                    )}
-                  </div>
-                </CustomOverlayMap>
-              );
-            })}
-          </Map>
+          {/* 명령형 지도 마운트 지점 — 마커·폴리라인은 effect로 부착(② 단계), 선언형 자식 없음 */}
+          <div ref={mapDivRef} className="w-full h-full" />
           {mode === 'search' && (
             <div className="absolute inset-x-3 top-3 z-20">
               <div className="bg-card rounded-xl shadow-lg overflow-hidden">
@@ -427,8 +491,8 @@ export default function SpotMap({
                         onClick={() => handlePlaceSelect(place)}
                         className="text-left w-full px-3 py-2.5 hover:bg-surface2 transition-colors border-b border-border last:border-b-0"
                       >
-                        <p className="text-sm font-medium text-fg">{place.place_name}</p>
-                        <p className="text-xs text-muted">{place.address_name}</p>
+                        <p className="text-sm font-medium text-fg">{place.name}</p>
+                        <p className="text-xs text-muted">{place.address}</p>
                       </button>
                     ))}
                   </div>
@@ -550,7 +614,7 @@ export default function SpotMap({
                       spots={localSpots}
                       onReorder={handleReorder}
                       onDelete={handleDeleteInReorder}
-                      onDragStart={(spot) => setMapCenter({ lat: spot.lat, lng: spot.lng })}
+                      onDragStart={(spot) => panTo(spot.lat, spot.lng)}
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 pt-2 border-t border-border">
