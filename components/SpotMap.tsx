@@ -77,6 +77,10 @@ function markerContent(opts: {
 
 type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
+// 글쓰기(fixedSideWidth) 사이드 카드 폭 — 실화면 비교용 단일 스위치.
+// 현재 426 고정: 카드 426 / 지도 322(=760−426−12). ↔ 'w-full md:w-2/5': 카드 304 / 지도 444.
+const WRITE_SIDE_CARD_WIDTH = 'w-full md:w-[426px]';
+
 type Props = {
   spots: LocalSpot[];
   initialCenter?: [number, number]; // [lng, lat] — 기존 호출 측 인터페이스 유지
@@ -87,6 +91,8 @@ type Props = {
   onSpotsChange?: (spots: LocalSpot[]) => void;
   onPhotoSelect?: (spotId: string, file: File | null) => void;
   readOnly?: boolean;
+  // 글쓰기: 섹션 760 폭이라 비율(304)이 과협소 → WRITE_SIDE_CARD_WIDTH 적용. 상세(readOnly)는 미전달=비율 2/5.
+  fixedSideWidth?: boolean;
 };
 
 export default function SpotMap({
@@ -96,6 +102,7 @@ export default function SpotMap({
   onSpotsChange,
   onPhotoSelect,
   readOnly,
+  fixedSideWidth,
 }: Props) {
   const { status, retry } = useNaverMapsLoader();
   const { resolvedTheme } = useTheme();
@@ -501,8 +508,9 @@ export default function SpotMap({
             </div>
           )}
         </div>
-        {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide */}
-        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? 'w-full md:w-2/5 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+        {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide.
+            열림 폭: 글쓰기=WRITE_SIDE_CARD_WIDTH(426 고정) / 상세=비율 2/5. 두 값 모두 완전 리터럴(JIT 스캔) */}
+        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? `${fixedSideWidth ? WRITE_SIDE_CARD_WIDTH : 'w-full md:w-2/5'} opacity-100` : 'w-0 opacity-0 pointer-events-none'
           }`}>
           {readOnly ? (
             <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
