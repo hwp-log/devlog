@@ -1,6 +1,7 @@
 'use client';
 import { useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
@@ -134,6 +135,38 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
           🖼
         </ToolbarButton>
       </div>
+      {/* 버블 메뉴 — 선택 서식(B/I/H1/H2/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
+          이미지는 선택 서식이 아니라 제외. 상단 툴바와 하이브리드(둘 다 유지). */}
+      <BubbleMenu
+        editor={editor}
+        options={{ offset: 8, placement: 'top' }}
+        shouldShow={({ editor: e, state }) =>
+          !state.selection.empty && !e.isActive('image') // 빈 선택·이미지 노드 선택 시 숨김
+        }
+        className="flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg"
+      >
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')}>
+          B
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')}>
+          I
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={editor.isActive('heading', { level: 1 })}
+        >
+          H1
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+        >
+          H2
+        </ToolbarButton>
+        <ToolbarButton onClick={handleLink} isActive={editor.isActive('link')}>
+          🔗
+        </ToolbarButton>
+      </BubbleMenu>
       <EditorContent
         editor={editor}
         className="tiptap-content min-h-[260px] px-[14px] py-3 text-base leading-relaxed focus-within:outline-none"
