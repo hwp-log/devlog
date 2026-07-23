@@ -252,7 +252,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
-      {/* SpotMap: 페이지 컨테이너(760) 폭 상속 — 카드 426 고정은 SpotMap fixedSideWidth가 담당 */}
+      {/* SpotMap: 페이지 컨테이너(860) 폭 상속 — 카드 426 고정은 SpotMap fixedSideWidth가 담당 */}
       <div className="w-full mt-6">
         <div className="border-t border-border pt-6">
           <h2 className="flex items-center gap-2 text-base font-semibold text-fg mb-4">

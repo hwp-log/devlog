@@ -78,7 +78,7 @@ function markerContent(opts: {
 type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
 
 // 글쓰기(fixedSideWidth) 사이드 카드 폭 — 실화면 비교용 단일 스위치.
-// 현재 426 고정: 카드 426 / 지도 322(=760−426−12). ↔ 'w-full md:w-2/5': 카드 304 / 지도 444.
+// 현재 426 고정: 카드 426 / 지도 422(=860−426−12). ↔ 'w-full md:w-2/5': 카드 344 / 지도 504.
 const WRITE_SIDE_CARD_WIDTH = 'w-full md:w-[426px]';
 
 type Props = {
