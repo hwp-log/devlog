@@ -136,7 +136,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 name="title"
                 type="text"
                 defaultValue={initialData?.title ?? ''}
-                className="w-full rounded-[10px] px-[14px] py-3 text-sm text-fg bg-surface2 border-0 dark:border dark:border-border focus:outline-none focus:border-primary hover:border-muted focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)] transition-[box-shadow] duration-200"
+                className="w-full rounded-[10px] px-[14px] py-3 text-base text-fg bg-surface2 border-0 dark:border dark:border-border focus:outline-none focus:border-primary hover:border-muted focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)] transition-[box-shadow] duration-200"
               />
             </div>
             <div className="flex flex-col gap-1.5">

@@ -136,7 +136,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       </div>
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-[14px] py-3 text-sm focus-within:outline-none"
+        className="tiptap-content min-h-[260px] px-[14px] py-3 text-base leading-relaxed focus-within:outline-none"
       />
     </div>
   );

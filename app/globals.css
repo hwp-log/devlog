@@ -238,6 +238,8 @@ body {
 
   .tiptap-content {
     color: #1A1A1A;
+    word-break: keep-all;       /* 한글 어절 단위 줄바꿈 — 편집·상세 공통(§5 헤딩 규칙과 정합) */
+    overflow-wrap: break-word;  /* keep-all 짝 — 어절 경계 없는 긴 토큰(URL 등)만 강제 개행, 가로 넘침 방지 */
   }
 
   .tiptap-content h1 {
