@@ -2,6 +2,7 @@
 import { usePathname } from 'next/navigation';
 import { Mail } from 'lucide-react';
 import { Logo } from './Logo';
+import { DataAttribution } from '@/components/DataAttribution';
 
 // 풀블리드 지도 화면엔 푸터 숨김(지도와 충돌) — ProtectedMain FULL_BLEED_ROUTES와 동일 개념
 const HIDE_FOOTER_ROUTES = ['/spot-finder'];
@@ -20,9 +21,7 @@ export function Footer() {
           {/* 도메인 미확정 — mailto 미연결, 텍스트만 */}
           <span>hello@dotrip</span>
         </div>
-        <p className="max-w-md text-xs text-muted leading-relaxed break-keep">
-          이 서비스의 촬영지 정보 및 일부 사진·위치 데이터는 한국문화정보원에서 제공받았습니다.
-        </p>
+        <DataAttribution variant="footer" />
         <p className="text-xs text-muted">© 2026 Dotrip. All rights reserved.</p>
       </div>
     </footer>

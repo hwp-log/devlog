@@ -12,6 +12,7 @@ import { getMarkerClusteringClass, type MarkerClusteringInstance } from '@/lib/n
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { formatTransit } from '@/lib/spot/transit';
 import { haversineM } from '@/lib/spot/geo';
+import { DataAttribution } from './DataAttribution';
 
 const PRIMARY = theme.common.primary;
 
@@ -429,10 +430,10 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
           </div>
         )}
 
-        {/* 0240: 출처 표기(공공누리 출처표시) — 상세뷰에만 노출(지도·시트에선 제거). */}
+        {/* 0240→현행: 출처 표기 — DataAttribution 단일 소스(문화정보원 데이터셋 + 관광공사 TourAPI). 상세뷰에만 노출(지도·시트에선 제거). */}
         <div className="flex items-start gap-1.5">
           <Info size={12} className="mt-0.5 text-muted shrink-0" />
-          <span className="text-xs text-muted">출처: 한국문화정보원 미디어콘텐츠</span>
+          <DataAttribution variant="compact" />
         </div>
       </div>
     </>
