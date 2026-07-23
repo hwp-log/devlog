@@ -7,6 +7,7 @@ import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { uploadStoryImage } from '@/lib/supabase/storage';
+import { createSlashCommand } from './SlashCommand';
 
 interface TiptapEditorProps {
   content: string;
@@ -47,6 +48,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       Image,
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: placeholder ?? '내용을 입력하세요...' }),
+      createSlashCommand(() => fileInputRef.current?.click()),
     ],
     content,
     onUpdate({ editor }) {

@@ -259,6 +259,13 @@ body {
     padding-left: 1.5rem;
   }
 
+  .tiptap-content blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 1rem;
+    margin: 0.75rem 0;
+    color: var(--fg2); /* 토큰 var() 직결 — 0323 패턴, 다크 자동 */
+  }
+
   .tiptap-content a {
     color: var(--primary); /* 정본(lib/theme.ts) primary 역할에 "링크" 명시 */
     text-decoration: underline;
