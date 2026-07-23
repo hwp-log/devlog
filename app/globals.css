@@ -237,7 +237,7 @@ body {
   }
 
   .tiptap-content {
-    color: #1A1A1A;
+    color: var(--fg); /* 토큰 var() 직결 — [data-theme=dark] 스코프에서 값 자동 반전(분기 불요) */
     word-break: keep-all;       /* 한글 어절 단위 줄바꿈 — 편집·상세 공통(§5 헤딩 규칙과 정합) */
     overflow-wrap: break-word;  /* keep-all 짝 — 어절 경계 없는 긴 토큰(URL 등)만 강제 개행, 가로 넘침 방지 */
   }
@@ -260,7 +260,7 @@ body {
   }
 
   .tiptap-content a {
-    color: #2563eb;
+    color: var(--primary); /* 정본(lib/theme.ts) primary 역할에 "링크" 명시 */
     text-decoration: underline;
   }
 
@@ -271,7 +271,7 @@ body {
   }
 
   .tiptap-content p.is-editor-empty:first-child::before {
-    color: #94a3b8;
+    color: var(--muted);
     content: attr(data-placeholder);
     float: left;
     pointer-events: none;

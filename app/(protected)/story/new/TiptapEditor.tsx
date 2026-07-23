@@ -28,7 +28,7 @@ function ToolbarButton({
       type="button"
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       className={`px-2 py-1 rounded text-sm font-medium transition-colors ${
-        isActive ? 'bg-slate-200 text-slate-900' : 'text-slate-600 hover:bg-slate-100'
+        isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
       }`}
     >
       {children}
@@ -85,7 +85,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
   }
 
   return (
-    <div className="border-[0.5px] border-black/15 rounded-[10px] bg-white">
+    <div className="border-[0.5px] border-border rounded-[10px] bg-card">
       <input
         ref={fileInputRef}
         type="file"
@@ -93,7 +93,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
         className="hidden"
         onChange={handleFileChange}
       />
-      <div className="border-b border-black/10 p-2 flex gap-1 flex-wrap">
+      <div className="border-b border-border p-2 flex gap-1 flex-wrap">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           isActive={editor.isActive('heading', { level: 1 })}

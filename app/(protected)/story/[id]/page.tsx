@@ -102,7 +102,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             <span>{story.user.nickname}</span>
           </div>
           <div
-            className="tiptap-content text-base text-slate-800 leading-relaxed mb-6"
+            className="tiptap-content text-base leading-relaxed mb-6"
             dangerouslySetInnerHTML={{ __html: story.content }}
           />
           {story.tags.length > 0 && (
