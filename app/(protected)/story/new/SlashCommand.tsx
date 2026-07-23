@@ -15,9 +15,10 @@ function buildItems(onImagePick: () => void): SlashItem[] {
   return [
     {
       label: '제목',
-      keywords: ['제목', 'h1', 'heading', 'title'],
+      keywords: ['제목', 'h2', 'heading', 'title'],
+      // 본문 최상위 제목은 h2 — 페이지 제목 input이 h1 역할(0332 시각 병합·툴바 H1 제거와 동기)
       run: (editor, range) =>
-        editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run(),
+        editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run(),
     },
     {
       label: '목록',
