@@ -43,13 +43,11 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
 
   const boundAction = updateStoryAction.bind(null, story.id);
 
+  // 글쓰기 폭 단일 소스(0313 원칙) — 헤더·폼·SpotMap이 이 폭을 상속
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* 헤더는 폼 블록과 같은 760 축 (좌측 정렬) — StoryWriteForm의 max-w-[760px]와 짝 */}
-      <div className="max-w-[760px]">
-        <p className="text-[12px] font-medium uppercase tracking-wider text-primary">EDIT</p>
-        <h1 className="text-2xl font-bold text-fg mb-6 break-keep">그 날의 기억을 다시 다듬어보세요</h1>
-      </div>
+    <div className="max-w-[760px] mx-auto">
+      <p className="text-[12px] font-medium uppercase tracking-wider text-primary">EDIT</p>
+      <h1 className="text-2xl font-bold text-fg mb-6 break-keep">그 날의 기억을 다시 다듬어보세요</h1>
       <StoryWriteForm
         action={boundAction}
         initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}

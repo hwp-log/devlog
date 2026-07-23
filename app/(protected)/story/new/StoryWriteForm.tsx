@@ -128,7 +128,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-[760px]">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="title" className="text-sm font-medium text-fg">제목</label>
               <input
@@ -252,9 +252,8 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
-      {/* SpotMap: 폼과 동일 760 폭 — 헤더·폼·지도 같은 정렬선(0316 xl:1064 우측 확장 폐기 —
-          실화면에서 지도만 튀어나온 인상). 카드 426 고정은 SpotMap fixedSideWidth가 담당. */}
-      <div className="w-full max-w-[760px] mt-6">
+      {/* SpotMap: 페이지 컨테이너(760) 폭 상속 — 카드 426 고정은 SpotMap fixedSideWidth가 담당 */}
+      <div className="w-full mt-6">
         <div className="border-t border-border pt-6">
           <h2 className="flex items-center gap-2 text-base font-semibold text-fg mb-4">
             <MapPin size={16} />
