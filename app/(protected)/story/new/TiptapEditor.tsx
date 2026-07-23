@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 import { uploadStoryImage } from '@/lib/supabase/storage';
 import { createSlashCommand } from './SlashCommand';
 
@@ -49,6 +50,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: placeholder ?? '내용을 입력하세요...' }),
       createSlashCommand(() => fileInputRef.current?.click()),
+      GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
     content,
     onUpdate({ editor }) {
@@ -169,9 +171,10 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
           🔗
         </ToolbarButton>
       </BubbleMenu>
+      {/* sm:pl-[38px] = 핸들 gutter — dragHandleWidth 20이 카드 안 [18,38]에 정착 (한쪽만 바꾸면 카드 밖 돌출). 모바일은 hover 없어 gutter 불요 */}
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-[14px] py-3 text-base leading-relaxed focus-within:outline-none"
+        className="tiptap-content min-h-[260px] px-[14px] py-3 sm:pl-[38px] text-base leading-relaxed focus-within:outline-none"
       />
     </div>
   );

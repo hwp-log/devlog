@@ -285,6 +285,43 @@ body {
     height: 0;
   }
 
+  /* 드래그 핸들 (tiptap-extension-global-drag-handle) — 패키지가 뷰포트 좌표를
+     style.left/top에 직접 대입하므로 fixed 필수 (absolute 금지, 0325 fixed와 같은 이유).
+     스크롤·키입력 시 패키지가 .hide 토글 → fixed 좌표 어긋남 없음. */
+  .drag-handle {
+    position: fixed;
+    width: 20px;  /* dragHandleWidth 기본값 20과 동기 — TiptapEditor sm:pl-[38px]의 파생원 */
+    height: 24px; /* 패키지 수직 센터링 상수 (lineHeight−24)/2와 파생 관계 */
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: grab;
+    color: var(--muted); /* 토큰 var() 직결 — 다크 자동. 호버는 무채·명도 반응만(0323 상태 위계) */
+    transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+  }
+
+  .drag-handle::before {
+    content: '⠿';
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .drag-handle:hover {
+    color: var(--fg2);
+    background: var(--popover);
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .drag-handle.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .btn-elevated {
     position: relative;
     background: #fff;

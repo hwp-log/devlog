@@ -145,7 +145,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 content={content}
                 onChange={setContent}
                 userId={userId}
-                placeholder="다녀온 그 장소의 이야기를 남겨주세요..."
+                placeholder="그곳에서 어떤 장면을 만났나요?..."
               />
               <input type="hidden" name="content" value={content} />
             </div>
