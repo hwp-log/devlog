@@ -15,6 +15,7 @@ type LoadedStorySpot = {
   spot: Spot & { spotMovies: { movie: { id: string; title: string } }[] };
 };
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
+import { STORY_TEMPLATE_HTML } from '@/lib/story/template';
 
 type ActionState = { error: string } | null;
 
@@ -51,7 +52,9 @@ interface StoryWriteFormProps {
 export function StoryWriteForm({ action, initialData, userId, storyId, storySpots = [], availablePlans = [], initialPlanId }: StoryWriteFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [, startTransition] = useTransition();
-  const [content, setContent] = useState(initialData?.content ?? '');
+  // 새 글(initialData 없음)만 골격 프리필. 수정은 initialData.content(빈 글이면 '')를
+  // 그대로 써 기존 글 위에 템플릿이 덧붙지 않음 — 새 글/수정 분기는 이 한 줄이 유일.
+  const [content, setContent] = useState(initialData?.content ?? STORY_TEMPLATE_HTML);
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(initialPlanId ?? null);
@@ -148,6 +151,9 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 placeholder="그곳에서 어떤 장면을 만났나요?..."
               />
               <input type="hidden" name="content" value={content} />
+              <p className="text-xs text-muted">
+                회색 안내 문구는 저장되지 않아요. 소제목은 자유롭게 바꾸거나 지워도 돼요.
+              </p>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-fg">태그 <span className="text-muted font-normal">({tags.length}/5)</span></label>

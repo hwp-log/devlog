@@ -9,14 +9,27 @@ import Placeholder from '@tiptap/extension-placeholder';
 import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 // tiptap 확장 Link·Image와 이름 충돌 — 별칭 필수
 import { Image as ImageIcon, Link as LinkIcon, List, Quote } from 'lucide-react';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { uploadStoryImage } from '@/lib/supabase/storage';
 import { createSlashCommand } from './SlashCommand';
+import { STORY_TEMPLATE_SECTIONS } from '@/lib/story/template';
 
 interface TiptapEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
   userId: string;
+}
+
+// 빈 문단 바로 앞의 H2 제목 텍스트를 찾는다 (top-level 자식만 순회).
+// placeholder 매칭이 heading 텍스트 기준이므로, 사용자가 H2 제목을 직접 바꾸면
+// 매칭이 끊겨 기본(도입부) 문구로 떨어진다 — 자기 제목을 쓴 것이므로 의도된 동작.
+function precedingHeadingText(doc: ProseMirrorNode, pos: number): string | null {
+  let heading: string | null = null;
+  doc.forEach((node, offset) => {
+    if (offset < pos && node.type.name === 'heading') heading = node.textContent;
+  });
+  return heading;
 }
 
 function ToolbarButton({
@@ -59,7 +72,15 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       StarterKit.configure({ link: false }),
       Image,
       Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: placeholder ?? '내용을 입력하세요...' }),
+      Placeholder.configure({
+        // 프리필 골격의 각 빈 문단에 섹션별 안내를 띄우려면 포커스 노드 한정을 해제.
+        // 빈 문단이면 앞 H2로 섹션 질문을 매핑, 없으면(도입부·기타) 기본 문구.
+        showOnlyCurrent: false,
+        placeholder: ({ editor, pos }) =>
+          STORY_TEMPLATE_SECTIONS.find(
+            (s) => s.heading === precedingHeadingText(editor.state.doc, pos),
+          )?.prompt ?? (placeholder ?? '내용을 입력하세요...'),
+      }),
       createSlashCommand(() => fileInputRef.current?.click()),
       GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
@@ -191,9 +212,12 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
         </ToolbarButton>
       </BubbleMenu>
       {/* sm:pl-[38px] = 핸들 gutter — dragHandleWidth 20이 카드 안 [18,38]에 정착 (한쪽만 바꾸면 카드 밖 돌출). 모바일은 hover 없어 gutter 불요 */}
+      {/* [&_p.is-empty]:before:* = 프리필 골격의 빈 문단 placeholder 렌더. globals.css는
+          p.is-editor-empty:first-child(전체 빈 에디터 첫 문단)만 그리므로, 비지 않은 문서 속
+          빈 문단(is-empty)은 여기서 렌더 (globals.css 규칙과 동일 스타일). */}
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-[14px] py-3 sm:pl-[38px] text-base leading-relaxed focus-within:outline-none"
+        className="tiptap-content min-h-[260px] px-[14px] py-3 sm:pl-[38px] text-base leading-relaxed focus-within:outline-none [&_p.is-empty]:before:content-[attr(data-placeholder)] [&_p.is-empty]:before:text-muted [&_p.is-empty]:before:float-left [&_p.is-empty]:before:h-0 [&_p.is-empty]:before:pointer-events-none"
       />
     </div>
   );
