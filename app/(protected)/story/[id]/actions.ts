@@ -11,6 +11,7 @@ import {
   MAX_TITLE_LEN, MAX_CONTENT_LEN, MAX_TAGS, MAX_TAG_LEN, MAX_SPOTS, MAX_SPOT_NAME_LEN,
   parseTags, parseSpots,
 } from '@/lib/story/parse-input';
+import { cleanEmptySections } from '@/lib/story/clean-empty-sections';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -43,7 +44,8 @@ export async function updateStoryAction(storyId: string, _prevState: ActionState
   if (!story || story.userId !== user.id) return { error: '수정 권한이 없습니다' };
 
   const title = formData.get('title')?.toString().trim() ?? '';
-  const content = formData.get('content')?.toString().trim() ?? '';
+  // 내용 없는 섹션(프리필 골격 잔재) 정리 후 검증 — 결과가 빈 문자열이면 아래 !content 체크에 걸림
+  const content = cleanEmptySections(formData.get('content')?.toString().trim() ?? '');
   const tagNames = parseTags(formData.get('tags')?.toString() ?? '');
   const spotsData = parseSpots(formData.get('spots')?.toString() ?? '');
   if (!tagNames || !spotsData) return { error: '잘못된 요청입니다. 새로고침 후 다시 시도해주세요' };
