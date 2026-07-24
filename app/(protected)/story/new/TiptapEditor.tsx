@@ -5,31 +5,19 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
 import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 // tiptap 확장 Link·Image와 이름 충돌 — 별칭 필수
 import { Image as ImageIcon, Link as LinkIcon, List, Quote } from 'lucide-react';
-import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { uploadStoryImage } from '@/lib/supabase/storage';
 import { createSlashCommand } from './SlashCommand';
-import { STORY_TEMPLATE_SECTIONS } from '@/lib/story/template';
+import { FormatMenu } from './FormatMenu';
+import { createStoryPlaceholder } from './StoryPlaceholder';
 
 interface TiptapEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
   userId: string;
-}
-
-// 빈 문단 바로 앞의 H2 제목 텍스트를 찾는다 (top-level 자식만 순회).
-// placeholder 매칭이 heading 텍스트 기준이므로, 사용자가 H2 제목을 직접 바꾸면
-// 매칭이 끊겨 기본(도입부) 문구로 떨어진다 — 자기 제목을 쓴 것이므로 의도된 동작.
-function precedingHeadingText(doc: ProseMirrorNode, pos: number): string | null {
-  let heading: string | null = null;
-  doc.forEach((node, offset) => {
-    if (offset < pos && node.type.name === 'heading') heading = node.textContent;
-  });
-  return heading;
 }
 
 function ToolbarButton({
@@ -72,15 +60,9 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       StarterKit.configure({ link: false }),
       Image,
       Link.configure({ openOnClick: false }),
-      Placeholder.configure({
-        // 프리필 골격의 각 빈 문단에 섹션별 안내를 띄우려면 포커스 노드 한정을 해제.
-        // 빈 문단이면 앞 H2로 섹션 질문을 매핑, 없으면(도입부·기타) 기본 문구.
-        showOnlyCurrent: false,
-        placeholder: ({ editor, pos }) =>
-          STORY_TEMPLATE_SECTIONS.find(
-            (s) => s.heading === precedingHeadingText(editor.state.doc, pos),
-          )?.prompt ?? (placeholder ?? '내용을 입력하세요...'),
-      }),
+      // 스톡 Placeholder 대신 커스텀(전 문서 스캔) — 스톡 뷰포트 윈도잉이 양식 전체 replace 후
+      // 데코를 소실시켜서(0336 증상 B). 상세 사유는 StoryPlaceholder.ts 상단 주석 참조.
+      createStoryPlaceholder(placeholder ?? '내용을 입력하세요...'),
       createSlashCommand(() => fileInputRef.current?.click()),
       GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
@@ -122,7 +104,9 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
   }
 
   return (
-    <div className="border-[0.5px] border-border rounded-[10px] bg-card">
+    // 카드 테두리·배경 제거 — 본문을 페이지 배경 위에 놓아 상세(읽는 화면)와 같은 캔버스로(0319 타이포 일치와 같은 원칙).
+    // 회색 bg-card가 본문 대비를 낮춰 "흐린 회색"으로 보이던 것도 해소. 영역 구분은 툴바 border-b가 담당.
+    <div>
       <input
         ref={fileInputRef}
         type="file"
@@ -183,7 +167,8 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
         <ToolbarButton onClick={handleImageUpload} label="이미지">
           <ImageIcon size={16} />
         </ToolbarButton>
-        {/* 3단계: 서식 버튼 자리 — 우측 끝 */}
+        {/* 3b: 서식 팝오버 — ml-auto로 우측 끝 분리(삽입 성격이 달라 다른 그룹과 구분) */}
+        <FormatMenu editor={editor} />
       </div>
       {/* 버블 메뉴 — 선택 서식(B/I/H2/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
           이미지는 선택 서식이 아니라 제외. 상단 툴바와 하이브리드(둘 다 유지). */}
@@ -212,12 +197,20 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
         </ToolbarButton>
       </BubbleMenu>
       {/* sm:pl-[38px] = 핸들 gutter — dragHandleWidth 20이 카드 안 [18,38]에 정착 (한쪽만 바꾸면 카드 밖 돌출). 모바일은 hover 없어 gutter 불요 */}
-      {/* [&_p.is-empty]:before:* = 프리필 골격의 빈 문단 placeholder 렌더. globals.css는
-          p.is-editor-empty:first-child(전체 빈 에디터 첫 문단)만 그리므로, 비지 않은 문서 속
-          빈 문단(is-empty)은 여기서 렌더 (globals.css 규칙과 동일 스타일). */}
+      {/* [&_p.is-empty]:before:* = placeholder 렌더. is-empty는 StoryPlaceholder가 "문구 붙는 빈 문단"
+          (도입부 첫 문단 · heading 다음 첫 문단)에만 부여 → 여기서 전부 동일하게 in-flow block +
+          pre-line(\n 반영) + 트레일링 br 숨김으로 처리해 문단 높이 = 문구 높이(모바일 래핑 포함).
+          float/h-0·first-child 분기 제거 — 2줄 문구가 다음 줄과 겹치던 원인(0336). 문구 안 붙는 빈
+          문단은 is-empty가 없어 기존 동작(캐럿 정상) 유지.
+          globals.css의 p.is-editor-empty:first-child 규칙은 이제 死규칙(플러그인이 is-editor-empty를
+          안 붙임) — 무해하나 향후 정리 대상.
+          [&_.ProseMirror]:outline-none = 편집영역 포커스 시 브라우저 기본 파란 아웃라인 제거.
+          (래퍼의 focus-within:outline-none은 정작 포커스 받는 안쪽 .ProseMirror엔 안 먹어 남던 테두리)
+          block + br 숨김 유지 이유: prompt가 한 줄이어도 모바일(360px)에서 2~3줄로 래핑되므로
+          float+h-0(height:0)이면 넘친 줄이 다음 heading에 겹침. block이 문단 높이=래핑 포함 높이로 잡음. */}
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-[14px] py-3 sm:pl-[38px] text-base leading-relaxed focus-within:outline-none [&_p.is-empty]:before:content-[attr(data-placeholder)] [&_p.is-empty]:before:text-muted [&_p.is-empty]:before:float-left [&_p.is-empty]:before:h-0 [&_p.is-empty]:before:pointer-events-none"
+        className="tiptap-content min-h-[260px] px-[14px] py-3 sm:pl-[38px] text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none [&_p.is-empty]:before:content-[attr(data-placeholder)] [&_p.is-empty]:before:text-muted [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:block [&_p.is-empty_br]:hidden"
       />
     </div>
   );
