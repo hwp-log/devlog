@@ -23,7 +23,7 @@ export default async function StoryNewPage() {
   return (
     <div className="max-w-[860px] mx-auto">
         <p className="text-[12px] font-medium uppercase tracking-wider text-primary">WRITE</p>
-        <h1 className="text-2xl font-bold text-fg mb-6 break-keep">다녀온 촬영지를 이야기로 남겨보세요</h1>
+        <h1 className="text-[13px] font-medium text-fill4 dark:text-fill5 mb-6 break-keep">다녀온 촬영지를 이야기로 남겨보세요</h1>
         <StoryWriteForm action={createStoryAction} userId={user.id} availablePlans={availablePlans} />
     </div>
   );

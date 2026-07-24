@@ -144,6 +144,13 @@
   --color-work-dokkaebi: var(--work-dokkaebi);
   --color-work-pachinko: var(--work-pachinko);
   --color-work-poksak: var(--work-poksak);
+  /* 무채 채움 스케일(lib/theme.ts fill1~5) — 서피스와 별도. 눈썹·비인터랙션 아이콘·예산 트리맵 채움용.
+     숫자 직접 접미(surface2 규칙) → 유틸 text-fill3 / bg-fill3. 값 스왑은 CSS 변수가 담당(라이트/다크 자동) */
+  --color-fill1: var(--fill1);
+  --color-fill2: var(--fill2);
+  --color-fill3: var(--fill3);
+  --color-fill4: var(--fill4);
+  --color-fill5: var(--fill5);
   /* bare `rounded`(0.25rem, 기존 7곳 사용)를 건드리지 않기 위해 역할명 rounded-card로 노출 */
   --radius-card: var(--radius-base);
 }
