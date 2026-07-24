@@ -46,8 +46,8 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
   // 글쓰기 폭 단일 소스(0313 원칙) — 헤더·폼·SpotMap이 이 폭을 상속
   return (
     <div className="max-w-[860px] mx-auto">
-      <p className="text-[12px] font-medium uppercase tracking-wider text-primary">EDIT</p>
-      <h1 className="text-[13px] font-medium text-fill4 dark:text-fill5 mb-6 break-keep">그 날의 기억을 다시 다듬어보세요</h1>
+      <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">EDIT</p>
+      <h1 className="text-[20px] font-bold text-fg mt-[7px] mb-6 break-keep">그 날의 기억을 다시 다듬어보세요</h1>
       <StoryWriteForm
         action={boundAction}
         initialData={{ title: story.title, content: story.content, tags: story.tags.map((t) => t.name) }}

@@ -139,11 +139,10 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 name="title"
                 type="text"
                 defaultValue={initialData?.title ?? ''}
-                className="w-full rounded-[10px] px-[14px] py-3 text-[30px] font-bold leading-tight text-fg bg-surface2 border-0 dark:border dark:border-border focus:outline-none focus:border-primary hover:border-muted focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)] transition-[box-shadow] duration-200"
+                placeholder="제목을 입력하세요"
+                className="w-full px-[14px] pt-[2px] pb-[10px] text-[21px] sm:text-[23px] font-bold tracking-[-0.02em] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
               />
             </div>
-            {/* 제목↔본문 구분선 — L1 제목과 본문 편집 영역을 시각적으로 분리(0338 위계) */}
-            <div className="border-t border-border" aria-hidden />
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-fg">본문</label>
               <TiptapEditor
