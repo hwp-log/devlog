@@ -131,20 +131,20 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
 
   return (
     <>
-      <form id="story-write-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="title" className="text-sm font-medium text-fg">제목</label>
+      <form id="story-write-form" onSubmit={handleSubmit} className="flex flex-col">
+            <div className="flex flex-col">
+              <label htmlFor="title" className="text-[12px] font-medium text-muted mb-[9px]">제목</label>
               <input
                 id="title"
                 name="title"
                 type="text"
                 defaultValue={initialData?.title ?? ''}
                 placeholder="제목을 입력하세요"
-                className="w-full px-[14px] pt-[2px] pb-[10px] text-[21px] sm:text-[23px] font-bold tracking-[-0.02em] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
+                className="w-full px-0 pt-[2px] pb-[10px] text-[21px] sm:text-[23px] font-bold tracking-[-0.02em] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-fg">본문</label>
+            <div className="flex flex-col pt-[46px]">
+              <label className="text-[12px] font-medium text-muted mb-[9px]">본문</label>
               <TiptapEditor
                 content={content}
                 onChange={setContent}
@@ -152,31 +152,31 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 placeholder="그곳에서 어떤 장면을 만났나요?..."
               />
               <input type="hidden" name="content" value={content} />
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted mt-1.5">
                 회색 안내 문구는 저장되지 않아요. 소제목은 자유롭게 바꾸거나 지워도 돼요.
               </p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-fg">태그 <span className="text-muted font-normal">({tags.length}/5)</span></label>
-              <div className="flex gap-2">
+            <div className="flex flex-col pt-[46px]">
+              <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span className="font-normal">({tags.length}/5)</span></label>
+              <div className="flex items-end gap-2">
                 <input
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
                   placeholder="태그 입력 후 Enter"
-                  className="flex-1 rounded-[10px] px-[14px] py-2.5 text-sm text-fg bg-surface2 border-0 dark:border dark:border-border placeholder:text-muted focus:outline-none focus:border-primary hover:border-muted focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)] transition-[box-shadow] duration-200"
+                  className="flex-1 px-0 min-h-[44px] pb-[8px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
                 />
                 <button
                   type="button"
                   onClick={addTag}
-                  className="px-4 py-2.5 rounded-[10px] text-sm bg-surface2 text-fg2 hover:bg-popover transition-colors"
+                  className="min-h-[44px] px-2 text-[12.5px] text-muted hover:text-fg2 transition-colors"
                 >
                   추가
                 </button>
               </div>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {tags.map((tag) => (
                     <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface2 text-fg2 text-xs">
                       #{tag}
@@ -194,12 +194,12 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             </div>
             {availablePlans.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-fg">내 플랜 연결</label>
+              <div className="flex flex-col pt-[26px]">
+                <label className="text-[12px] font-medium text-muted mb-[9px]">내 플랜 연결</label>
                 <select
                   value={selectedPlanId ?? ''}
                   onChange={(e) => setSelectedPlanId(e.target.value || null)}
-                  className="w-full rounded-[10px] px-[14px] py-3 text-sm text-fg bg-surface2 border-0 dark:border dark:border-border focus:outline-none focus:border-primary hover:border-muted focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)] transition-[box-shadow] duration-200"
+                  className="w-full px-0 min-h-[44px] pb-[8px] text-[14px] text-fg bg-transparent border-0 border-b border-border focus:outline-none focus:border-primary"
                 >
                   <option value="">연결 안 함</option>
                   {availablePlans.map((p) => (
@@ -224,7 +224,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                     ...byCat,
                   ];
                   return (
-                    <div className="rounded-[10px] border border-border bg-card p-4 text-sm text-fg2">
+                    <div className="mt-4 text-sm text-fg2">
                       <div className="flex items-center gap-1.5 mb-3 text-fg">
                         <Wallet size={15} className="text-primary" />
                         <span className="font-medium">예상 비용</span>
@@ -259,19 +259,21 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
       </div>
       {/* 등록 버튼: 시안 순서상 여행동선 아래 마지막. form 밖이라 form="story-write-form"으로 연결 —
           클릭 시 폼 submit 이벤트가 발화해 handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}
+      <div className="pt-[46px]">
       {state && 'error' in state && (
-        <p role="alert" className="text-sm text-red-600 mt-4">{state.error}</p>
+        <p role="alert" className="text-sm text-red-600 mb-3">{state.error}</p>
       )}
       <button
         type="submit"
         form="story-write-form"
         disabled={isPending}
-        className="w-full mt-1 bg-primary text-white rounded-full py-[13px] text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full bg-primary text-white rounded-full py-[13px] text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {initialData
           ? (isPending ? '수정 중...' : '수정')
           : (isPending ? '등록 중...' : '스토리 등록')}
       </button>
+      </div>
     </>
   );
 }

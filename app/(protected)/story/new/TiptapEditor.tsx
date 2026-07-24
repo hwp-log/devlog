@@ -197,8 +197,8 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
           <LinkIcon size={16} />
         </ToolbarButton>
       </BubbleMenu>
-      {/* px-[14px] = 아래 필드(제목·태그·플랜 input의 px-[14px])와 시작선 일치. 카드가 없어져 핸들 gutter(옛 sm:pl-[38px]) 제거.
-          드래그 핸들은 node.left-20에 뜨므로 텍스트 14px 기준 [container-6, container+14] — 좌측 여백으로 6px만 삐짐(모바일은 hover 없어 미표시). */}
+      {/* px-0 = 상자 제거된 4필드(제목·태그·플랜)와 함께 컨테이너 끝선 flush(0341). 카드가 없어져 핸들 gutter(옛 sm:pl-[38px]) 제거.
+          드래그 핸들은 node.left-20에 뜨므로 텍스트 0 기준 [container-20, container] — 완전히 좌측 gutter로 빠짐(main px-6 안, 클리핑·가로스크롤 없음. 모바일은 hover 없어 미표시). */}
       {/* [&_p.is-empty]:before:* = placeholder 렌더. is-empty는 StoryPlaceholder가 "문구 붙는 빈 문단"
           (도입부 첫 문단 · heading 다음 첫 문단)에만 부여 → 여기서 전부 동일하게 in-flow block +
           pre-line(\n 반영) + 트레일링 br 숨김으로 처리해 문단 높이 = 문구 높이(모바일 래핑 포함).
@@ -212,7 +212,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
           float+h-0(height:0)이면 넘친 줄이 다음 heading에 겹침. block이 문단 높이=래핑 포함 높이로 잡음. */}
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-[14px] py-3 text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none [&_p.is-empty]:before:content-[attr(data-placeholder)] [&_p.is-empty]:before:text-muted [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:block [&_p.is-empty_br]:hidden"
+        className="tiptap-content min-h-[260px] px-0 py-3 text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none [&_p.is-empty]:before:content-[attr(data-placeholder)] [&_p.is-empty]:before:text-muted [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:block [&_p.is-empty_br]:hidden"
       />
     </div>
   );
