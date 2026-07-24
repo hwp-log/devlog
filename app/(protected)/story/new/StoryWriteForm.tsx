@@ -131,7 +131,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form id="story-write-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="title" className="text-sm font-medium text-fg">제목</label>
               <input
@@ -244,18 +244,6 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 })()}
               </div>
             )}
-            {state && 'error' in state && (
-              <p role="alert" className="text-sm text-red-600">{state.error}</p>
-            )}
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full mt-1 bg-primary text-white rounded-full py-[13px] text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {initialData
-                ? (isPending ? '수정 중...' : '수정')
-                : (isPending ? '등록 중...' : '스토리 등록')}
-            </button>
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
@@ -269,6 +257,21 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
           <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
         </div>
       </div>
+      {/* 등록 버튼: 시안 순서상 여행동선 아래 마지막. form 밖이라 form="story-write-form"으로 연결 —
+          클릭 시 폼 submit 이벤트가 발화해 handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}
+      {state && 'error' in state && (
+        <p role="alert" className="text-sm text-red-600 mt-4">{state.error}</p>
+      )}
+      <button
+        type="submit"
+        form="story-write-form"
+        disabled={isPending}
+        className="w-full mt-1 bg-primary text-white rounded-full py-[13px] text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {initialData
+          ? (isPending ? '수정 중...' : '수정')
+          : (isPending ? '등록 중...' : '스토리 등록')}
+      </button>
     </>
   );
 }
