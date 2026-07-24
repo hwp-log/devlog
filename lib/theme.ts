@@ -27,6 +27,14 @@ export const theme = {
     fg2: '#55565c',
     muted: '#8a8a90',
     border: 'rgba(25,26,28,0.10)',
+    // 0337: 무채 채움 스케일 — 서피스(배경)와 별도. 눈썹 텍스트·비인터랙션 아이콘·예산 트리맵 타일 채움용.
+    // 서피스는 r=g 무채(surface2 232,232,238)지만 fill은 r<g<b로 브랜드 파랑(primary)에 살짝 기운 저채도.
+    // 라이트: fill1 가장 옅음 → fill5 가장 진함. 차트 면적 대비 확보용으로 서피스보다 넓게 스팬.
+    fill1: '#e2e6ee',
+    fill2: '#c4cbd8',
+    fill3: '#9aa3b5',
+    fill4: '#6b7488',
+    fill5: '#444b5c',
     // 0290: hover 라이트 — card에서 한 톤 진한 회색 평면(hi=lo)·무테두리·글씨 fg2 유지(명도 반응은 배경 담당).
     // 알약 본체 색·그림자는 0292부터 markerContent(isDark) JS 분기가 담당 — 여기는 hover(globals.css 소비)만.
     markerHoverHi: '#e8e8ee',
@@ -44,6 +52,13 @@ export const theme = {
     fg2: '#c8c4be',
     muted: '#7a7870',
     border: 'rgba(255,255,255,0.08)',
+    // 0337: 무채 채움 스케일 다크 — 명도 반전(fill1 가장 진함 → fill5 가장 밝음), 채도는 라이트보다 더 낮춤.
+    // fill1은 bgDeep(#0f1112, 15,17,18)보다 명확히 밝아 배경에 묻히지 않게 띄움.
+    fill1: '#24282e',
+    fill2: '#343943',
+    fill3: '#4d545f',
+    fill4: '#6f7884',
+    fill5: '#9aa1ab',
     // 0270 hover 확정값 그대로(#454b52 = 평상 pill 각 스톱 한 톤 상향). 알약 본체의 다크 확정값(0269 리터럴)은
     // 0292부터 markerContent(isDark) 분기 안에 직접 존재 — 여기는 hover(globals.css .marker-hover 소비)만.
     markerHoverHi: '#454b52',
