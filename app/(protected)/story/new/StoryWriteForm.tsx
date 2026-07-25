@@ -145,7 +145,16 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                  // isComposing 가드(0366) — 한글 IME 조합 중 Enter는 keydown이 2회 옴(조합 커밋 +
+                  // 실제 Enter). 커밋 keydown에서 addTag하면 비워진 input에 IME가 마지막 음절을
+                  // 재커밋해 태그가 2개(#수리남·#남) 생김. isComposing은 UI Events 표준 속성이라
+                  // 상태 추적(compositionstart/end)·비표준 keyCode 229 없이 한 줄로 판별 가능.
+                  // React 합성 이벤트엔 없어 nativeEvent 경유.
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+                    e.preventDefault();
+                    addTag();
+                  }}
                   placeholder="태그 입력 후 Enter"
                   className="flex-1 px-0 min-h-[44px] pb-[8px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
                 />
