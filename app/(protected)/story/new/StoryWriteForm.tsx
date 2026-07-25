@@ -157,7 +157,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               </p>
             </div>
             <div className="flex flex-col pt-[46px]">
-              <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span className="font-normal">({tags.length}/5)</span></label>
+              <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span>({tags.length}/5)</span></label>
               <div className="flex items-end gap-2">
                 <input
                   type="text"
