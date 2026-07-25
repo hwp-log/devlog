@@ -34,6 +34,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         plan: {
           select: {
             title: true,
+            description: true,
             isPublic: true,
             currency: true,
             costs: { select: { category: true, amount: true } },
@@ -144,7 +145,9 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         <div className="mt-6">
           {/* 눈썹 클래스 = 0342 SPOTMAP 눈썹과 동일 문자열. 공용 <Eyebrow> 추출은 후속 정리 */}
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">
+          {/* h2 mb: 소개 표시 시 10px(제목↔소개), 소개가 자기 mb-[16px]로 트리맵 간격을 이어받음.
+              소개 미표시(비공개·빈 값) 시 기존 16px — 음수 마진 상쇄 대신 명시 분기(값 의도 보존). */}
+          <h2 className={`text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] ${story.plan.isPublic && story.plan.description ? 'mb-[10px]' : 'mb-[16px]'} break-keep`}>
             {story.plan.isPublic && story.planId ? (
               // 비공개 플랜은 plan-finder 상세가 없어 링크 미제공(기존 하단 링크의 isPublic 조건 승계)
               <Link
@@ -158,6 +161,10 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               story.plan.title
             )}
           </h2>
+          {/* 소개 — 비공개 플랜 미표시(링크 미제공과 같은 isPublic 조건). 상한 없는 필드라 2줄 클램프 */}
+          {story.plan.isPublic && story.plan.description && (
+            <p className="mb-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
+          )}
           {publicSummary.ratios.length > 0 && <PublicCostSection summary={publicSummary} />}
         </div>
       )}

@@ -13,7 +13,7 @@ export default async function StoryNewPage() {
   const plans = await prisma.myPlan.findMany({
     where: { ownerId: user.id, story: null },
     select: {
-      id: true, title: true, currency: true,
+      id: true, title: true, description: true, currency: true,
       costs: { select: { category: true, amount: true } },
       flight: { select: { totalAmount: true } },
     },
@@ -24,6 +24,7 @@ export default async function StoryNewPage() {
   const availablePlans = plans.map((p) => ({
     id: p.id,
     title: p.title,
+    description: p.description,
     summary: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY'),
   }));
 

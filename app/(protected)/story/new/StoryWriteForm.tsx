@@ -26,6 +26,7 @@ type ActionState = { error: string } | null;
 export type PlanWithSummary = {
   id: string;
   title: string;
+  description: string | null; // MyPlan.description — 상한 없는 필드라 표시층 2줄 클램프가 방어선
   summary: PublicCostSummary;
 };
 
@@ -183,11 +184,16 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               )}
               <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             </div>
+            {/* 발행 조건 안내 — 서버 필수 검증은 제목·본문뿐(actions.ts)이라 아래(플랜·동선)는
+                실제로 선택. 등록 버튼이 여행동선 아래라 다 채워야 하는 것처럼 읽히는 문제 완화.
+                어휘는 본문 보조 안내와 동일(text-xs text-muted). */}
+            <p className="mt-[34px] text-xs text-muted">여기까지만 써도 발행할 수 있어요. 아래는 선택이에요.</p>
             {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
                 눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
-                비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9). */}
+                비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9).
+                pt-[24px]는 위 발행 안내 문구와의 간격. */}
             {availablePlans.length > 0 && (
-              <div className="flex flex-col pt-[46px]">
+              <div className="flex flex-col pt-[24px]">
                 <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
                 <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행계획</h2>
                 {/* appearance-none + 직접 chevron: 네이티브 select는 CSS에 안 잡히는 내장 좌측
@@ -208,14 +214,23 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                   </select>
                   <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-0 bottom-[10px] text-muted" />
                 </div>
-                {/* 트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략(블록 유지) */}
+                {/* 소개·트리맵은 서로 독립 렌더(소개만 있고 총액 0인 플랜 대응).
+                    소개는 상한 없는 필드라 2줄 클램프로 끊고 전문은 플랜에서. 비면 줄 자체 미렌더.
+                    트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략(블록 유지) */}
                 {selectedPlanId && (() => {
                   const plan = availablePlans.find((p) => p.id === selectedPlanId);
-                  if (!plan || plan.summary.ratios.length === 0) return null;
+                  if (!plan) return null;
                   return (
-                    <div className="mt-[16px]">
-                      <PublicCostSection summary={plan.summary} />
-                    </div>
+                    <>
+                      {plan.description && (
+                        <p className="mt-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
+                      )}
+                      {plan.summary.ratios.length > 0 && (
+                        <div className="mt-[16px]">
+                          <PublicCostSection summary={plan.summary} />
+                        </div>
+                      )}
+                    </>
                   );
                 })()}
               </div>
