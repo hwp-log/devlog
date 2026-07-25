@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
-import { MapPin, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { PublicCostSection } from './PublicCostSection';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
@@ -84,10 +84,16 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
     <div className="max-w-[860px] mx-auto">
       {/* 본문 카드 제거(0371 — READ 블록 1단계): 읽기 표면은 페이지 배경 위 개방 캔버스(0319의
           상세판), 카드는 조작 표면(지도·목록)에만. 글쓰기 화면과 동일 문법.
-          하드코딩 색(#1A1A1A·slate)의 다크 미대응은 기존 백로그 — 이번 범위 아님 */}
+          하드코딩 색 백로그 중 제목 h1은 0375에서 text-fg로 해소(다크 실측), "← 목록으로" slate만 잔존 */}
       <div>
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <h1 className="text-3xl font-bold text-[#1A1A1A] leading-tight">{story.title}</h1>
+          {/* STORY 눈썹(0375) — PLAN·SPOTMAP과 동일 문법으로 상세 눈썹 3종 정렬. 헤드라인 없음
+              (읽는 화면엔 안내할 행동이 없고 제목이 곧 타이틀), 작품 등 분류 데이터 없음
+              (미연결 글 57% 실측 — 빈 상태가 기본이 되는 데이터는 눈썹 자리에 부적합).
+              눈썹↔제목 간격 = 편집 화면 눈썹↔타이틀과 같은 6px 어휘(mt-[6px]) */}
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">STORY</p>
+          <div className="flex items-start justify-between gap-4 mt-[6px] mb-6">
+            {/* text-fg(0375) — #1A1A1A 하드코딩이 다크에서 제목만 안 뒤집히던 원인(사용자 실측) */}
+            <h1 className="text-3xl font-bold text-fg leading-tight">{story.title}</h1>
             {isOwner && (
               // 텍스트 링크화(0372, 시안 실측) — 수정 primary(시안 accent=#4c9aff ≈ primary 매핑,
               // 프로젝트 accent는 별점 전용이라 오용 금지) / 삭제 muted. pt-[6px] = 제목과 flex-start 정렬 보정
@@ -102,12 +108,18 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
           </div>
-          {/* 메타(0372 시안): 날짜 모노 · 18px 원형 배지 · 이름, 13px/500/muted. slate → muted 토큰 */}
-          <div className="mt-[14px] flex items-center gap-2 text-[13px] font-medium text-muted mb-6">
-            <span className="font-mono">{story.createdAt.toLocaleDateString('ko-KR')}</span>
-            <span>·</span>
-            <AuthorAvatar variant="badge" nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
-            <span>{story.user.nickname}</span>
+          {/* 메타(0375 확정): 아바타 → 이름(fg2 — 날짜보다 한 단 진하게, 주체 강조) → 세로
+              파이프(문자 아닌 1px 선, h-[11px], border 토큰) → 날짜. 요소 간 10px, 아바타↔이름은
+              그룹 내 8px 유지. 날짜 모노 제거 — 0372의 Geist Mono는 한글 날짜 맥락에서 자간이
+              벌어져 되돌림(트리맵 %·좋아요 숫자 등 숫자 지표의 모노는 유지).
+              pb-[16px]+border-b = 헤더(제목·메타)와 본문 분리선 */}
+          <div className="mt-[14px] flex items-center gap-[10px] text-[13px] font-medium text-muted pb-[16px] border-b border-border mb-6">
+            <span className="flex items-center gap-2 text-fg2">
+              <AuthorAvatar size="sm" nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
+              {story.user.nickname}
+            </span>
+            <span aria-hidden className="w-px h-[11px] bg-border" />
+            <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
           </div>
           <div
             className="tiptap-content text-base leading-relaxed mb-6"
@@ -172,10 +184,10 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
         // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
         <div className="mt-[46px]">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
-            <MapPin size={16} />
-            방문장소
-          </h2>
+          {/* 눈썹 문법(0375) — 같은 화면 PLAN 블록·편집 화면(0342 SPOTMAP)과 동일 클래스 문자열.
+              MapPin 아이콘 제거 — 눈썹+타이틀 구조로 통일 */}
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
           <SpotMap spots={localSpots} readOnly />
         </div>
       )}
