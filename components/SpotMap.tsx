@@ -9,7 +9,7 @@ import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
-import { Search, MapPin, ArrowLeft } from 'lucide-react';
+import { Search, MapPin, ArrowLeft, List } from 'lucide-react';
 
 const MERGE_EPSILON_KM = 0.05; // 50m 이내 = 같은 장소로 병합
 
@@ -67,7 +67,7 @@ function markerContent(opts: { color: string; isPulse: boolean; isDark: boolean 
   </div>`;
 }
 
-type Mode = 'menu' | 'pinning' | 'search' | 'edit' | 'view';
+type Mode = 'menu' | 'pinning' | 'search' | 'list' | 'edit' | 'view';
 
 // 글쓰기(fixedSideWidth) 사이드 카드 폭 — 실화면 비교용 단일 스위치.
 // 현재 426 고정: 카드 426 / 지도 422(=860−426−12). ↔ 'w-full md:w-2/5': 카드 344 / 지도 504.
@@ -592,9 +592,31 @@ export default function SpotMap({
                     뒤로
                   </button>
                 </>
+              ) : mode === 'list' ? (
+                <>
+                  <p className="text-base font-semibold text-fg">장소 보기</p>
+                  {/* max-h 산출(0366): 데스크톱 376 = 지도 md:h-[500px](위 472) − p-5(40) − gap-4×2(32)
+                      − 타이틀(24) − 뒤로버튼(≈28). 29b6658 reorder 카드 식(300)에서 팁블록(≈47)·gap
+                      1개가 빠진 만큼 확대, 안전 하향 360(항목 래핑 여유 — 구판도 313→300 하향).
+                      지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
+                      명시 max-h — flex-1 grow는 §5 금지(iOS grow 미계산 붕괴, 0253).
+                      목록은 SpotList readOnly 재사용, 클릭 = 마커 클릭과 동일(handleSpotSelect →
+                      보기 팝업 + panTo + 펄스; 팝업 닫기는 기존 배선대로 메뉴 복귀) */}
+                  <div className="max-h-[220px] md:max-h-[360px] overflow-y-auto">
+                    <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMode('menu')}
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                  >
+                    <ArrowLeft size={14} />
+                    뒤로
+                  </button>
+                </>
               ) : (
                 <>
-                  <p className="text-base font-semibold text-fg">나만의 여행리뷰 작성</p>
+                  <p className="text-base font-semibold text-fg">리뷰 작성</p>
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
@@ -603,8 +625,8 @@ export default function SpotMap({
                     >
                       <Search size={20} className="text-muted shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-fg">촬영지 직접검색</p>
-                        <p className="text-xs text-muted">이름으로 바로 추가</p>
+                        <p className="text-sm font-medium text-fg">여행지 검색</p>
+                        <p className="text-xs text-muted">검색 후 리뷰 작성</p>
                       </div>
                     </button>
                     <button
@@ -614,17 +636,35 @@ export default function SpotMap({
                     >
                       <MapPin size={20} className="text-muted shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-fg">지도에서 찍기</p>
-                        <p className="text-xs text-muted">지도를 눌러 위치 지정</p>
+                        <p className="text-sm font-medium text-fg">좌표 찍기</p>
+                        <p className="text-xs text-muted">찍은 뒤 리뷰 작성</p>
+                      </div>
+                    </button>
+                    {/* 장소 보기(0366) — 0364에서 reorder 카드와 함께 사라진 "찍은 장소 파악"을 모드로
+                        복구(순서 편집·번호·dnd는 미복구). 상시 표시안은 max-h 140 잘림이 답답해 기각 —
+                        모드는 카드 전체 높이 사용. 0개면 비활성(구 reorder 항목의 <2 패턴, 조건만 <1) */}
+                    <button
+                      type="button"
+                      onClick={() => setMode('list')}
+                      disabled={localSpots.length < 1}
+                      className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${localSpots.length >= 1
+                        ? 'border-border hover:bg-surface2'
+                        : 'border-border opacity-40 cursor-not-allowed bg-surface2'
+                        }`}
+                    >
+                      <List size={20} className="text-muted shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-fg">장소 보기</p>
+                        <p className="text-xs text-muted">리뷰장소 한눈에 확인</p>
                       </div>
                     </button>
                   </div>
                   <div className="flex flex-col gap-3 pt-2 border-t border-border">
-                    <p className="text-xs font-semibold text-fg2">나만의 여행리뷰 작성방법</p>
+                    <p className="text-xs font-semibold text-fg2">여행 리뷰 작성 방법</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start gap-2">
                         <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">①</span>
-                        <p className="text-xs text-muted">촬영지 직접검색 또는 지도에서 찍기 버튼을 눌러 마커를 하나 추가합니다.</p>
+                        <p className="text-xs text-muted">여행지 검색 또는 좌표 찍기 버튼을 눌러 마커를 하나 추가합니다.</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">②</span>
