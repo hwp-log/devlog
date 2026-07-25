@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
-import { MapPin, Wallet } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { PublicCostSection } from './PublicCostSection';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
@@ -137,10 +137,9 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       )}
       {story.plan && publicSummary && (
         <div className="mt-6">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
-            <Wallet size={16} />
-            예산 요약
-          </h2>
+          {/* 눈썹 클래스 = 0342 SPOTMAP 눈썹과 동일 문자열. 공용 <Eyebrow> 추출은 후속 정리 */}
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">BUDGET</p>
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">예산 요약</h2>
           <PublicCostSection summary={publicSummary} />
         </div>
       )}

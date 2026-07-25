@@ -35,6 +35,18 @@ export const theme = {
     fill3: '#9aa3b5',
     fill4: '#6b7488',
     fill5: '#444b5c',
+    // 0343: 차트 rank 팔레트 — 예산 트리맵 타일. rank1=비중 최대 항목. Bg(타일 배경)·Fg(타일 글자)는
+    // 짝으로만 사용 — chartNBg 위엔 반드시 chartNFg (섞으면 대비 미보장). rank6+(최대 6항목)는 rank5 재사용.
+    chart1Bg: '#a9cdf0',
+    chart1Fg: '#1f3a52',
+    chart2Bg: '#f4e0a3',
+    chart2Fg: '#5a4a1a',
+    chart3Bg: '#a9dcc0',
+    chart3Fg: '#1f4636',
+    chart4Bg: '#f3c2cf',
+    chart4Fg: '#5a2733',
+    chart5Bg: '#cbc0ec',
+    chart5Fg: '#352a55',
     // 0290: hover 라이트 — card에서 한 톤 진한 회색 평면(hi=lo)·무테두리·글씨 fg2 유지(명도 반응은 배경 담당).
     // 알약 본체 색·그림자는 0292부터 markerContent(isDark) JS 분기가 담당 — 여기는 hover(globals.css 소비)만.
     markerHoverHi: '#e8e8ee',
@@ -59,6 +71,17 @@ export const theme = {
     fill3: '#4d545f',
     fill4: '#6f7884',
     fill5: '#9aa1ab',
+    // 0343: 차트 rank 팔레트 다크 — 라이트와 같은 rank 순서·짝 규칙(chartNBg ↔ chartNFg)
+    chart1Bg: '#5b86ad',
+    chart1Fg: '#eaf3fb',
+    chart2Bg: '#b39c54',
+    chart2Fg: '#faf3d8',
+    chart3Bg: '#5aa584',
+    chart3Fg: '#e6f5ec',
+    chart4Bg: '#b06e81',
+    chart4Fg: '#fbe8ee',
+    chart5Bg: '#8579b3',
+    chart5Fg: '#efeafb',
     // 0270 hover 확정값 그대로(#454b52 = 평상 pill 각 스톱 한 톤 상향). 알약 본체의 다크 확정값(0269 리터럴)은
     // 0292부터 markerContent(isDark) 분기 안에 직접 존재 — 여기는 hover(globals.css .marker-hover 소비)만.
     markerHoverHi: '#454b52',

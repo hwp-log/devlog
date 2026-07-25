@@ -151,6 +151,17 @@
   --color-fill3: var(--fill3);
   --color-fill4: var(--fill4);
   --color-fill5: var(--fill5);
+  /* 차트 rank 팔레트(lib/theme.ts chart1~5) — Bg·Fg 짝으로만 사용(bg-chart1-bg + text-chart1-fg) */
+  --color-chart1-bg: var(--chart1-bg);
+  --color-chart1-fg: var(--chart1-fg);
+  --color-chart2-bg: var(--chart2-bg);
+  --color-chart2-fg: var(--chart2-fg);
+  --color-chart3-bg: var(--chart3-bg);
+  --color-chart3-fg: var(--chart3-fg);
+  --color-chart4-bg: var(--chart4-bg);
+  --color-chart4-fg: var(--chart4-fg);
+  --color-chart5-bg: var(--chart5-bg);
+  --color-chart5-fg: var(--chart5-fg);
   /* bare `rounded`(0.25rem, 기존 7곳 사용)를 건드리지 않기 위해 역할명 rounded-card로 노출 */
   --radius-card: var(--radius-base);
 }
