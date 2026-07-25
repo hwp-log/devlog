@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X } from 'lucide-react';
+import { GripVertical, MapPin, X } from 'lucide-react';
 import type { LocalSpot } from '@/lib/types';
 import { getSpotColor } from '@/lib/spot-color';
 
@@ -111,23 +111,18 @@ export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect, onDra
   if (readOnly) {
     return (
       <ul className="flex flex-col gap-1">
-        {spots.map((spot, i) => {
-          const color = getSpotColor(i, spots.length);
-          return (
-            <li
-              key={spot.id}
-              onClick={() => onSelect?.(spot)}
-              className="flex items-center gap-2 px-3 py-2 bg-surface2 rounded-lg border border-border cursor-pointer hover:bg-popover transition-colors"
-            >
-              {/* 0364 순서 폐기 — 번호 없는 색 도트(마커 색과 대응, 선택 시 마커 펄스가 짝) */}
-              <span
-                className="w-3.5 h-3.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: color }}
-              />
-              <span className="flex-1 text-sm text-fg truncate">{spot.name}</span>
-            </li>
-          );
-        })}
+        {spots.map((spot) => (
+          <li
+            key={spot.id}
+            onClick={() => onSelect?.(spot)}
+            className="flex items-center gap-2 px-3 py-2 bg-surface2 rounded-lg border border-border cursor-pointer hover:bg-popover transition-colors"
+          >
+            {/* 0368 — 순서 파생 색 폐기로 도트가 무정보라 장소 아이콘으로. 크기 14 = 옛 도트
+                w-3.5와 동일 폭(정렬 불변). 목록↔마커 대응은 클릭 시 panTo·펄스가 담당 */}
+            <MapPin size={14} className="text-muted flex-shrink-0" />
+            <span className="flex-1 text-sm text-fg truncate">{spot.name}</span>
+          </li>
+        ))}
       </ul>
     );
   }

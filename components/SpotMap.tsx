@@ -6,7 +6,6 @@ import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
 import type { LocalSpot } from '@/lib/types';
 import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
-import { getSpotColor } from '@/lib/spot-color';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
 import { Search, MapPin, ArrowLeft, List } from 'lucide-react';
@@ -51,12 +50,14 @@ function groupByProximity(spots: LocalSpot[]): MarkerGroup[] {
   return groups;
 }
 
-// 마커 HTML(색 도트 + 펄스) — 0364: 순서 폐기로 번호 라벨 제거, 고정 크기 도트.
-// 목록↔마커 대응은 색 + 선택 펄스(handleSpotSelect→triggerPulse)가 담당(번호 대체 수단 실측 확인).
+// 마커 HTML(파랑 도트 + 펄스) — 0364 번호 폐기에 이어 0368: 순서 파생 색(첫 초록/끝 빨강)도
+// 의미를 잃어 primary 단색 통일. var(--primary) — 지도 div가 테마 스코프 안이라 상속 작동, 다크 자동.
+// 목록↔마커 대응은 항목 클릭 시 panTo·펄스가 담당(색 구분 불필요 — 0368 확정).
 // 바깥 래퍼 translate(-50%,-50%) + anchor(0,0) = 카카오 중앙 앵커 상응. isDark는 그림자만 분기.
 // 펄스 애니메이션은 globals.css @keyframes spot-pulse(0.6s) 참조 — 제거 타이머(triggerPulse)와 페어.
-function markerContent(opts: { color: string; isPulse: boolean; isDark: boolean }): string {
-  const { color, isPulse, isDark } = opts;
+function markerContent(opts: { isPulse: boolean; isDark: boolean }): string {
+  const { isPulse, isDark } = opts;
+  const color = 'var(--primary)';
   const shadow = isDark ? '0 2px 6px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.3)';
   const pulse = isPulse
     ? `<div style="position:absolute;inset:-5px;border-radius:9999px;background:${color};z-index:0;animation:spot-pulse 0.6s ease-out forwards;pointer-events:none"></div>`
@@ -258,7 +259,6 @@ export default function SpotMap({
     const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 가드용
     const isDark = resolvedTheme === 'dark';
     const items = groupByProximity(localSpots).map((group) => {
-      const color = getSpotColor(group.orders[0] - 1, localSpots.length);
       const isPulse = group.orders.some(o =>
         localSpots.find(s => s.order === o && pulsingIds.has(s.id))
       );
@@ -266,7 +266,7 @@ export default function SpotMap({
         map: mapInstance,
         position: new naver.maps.LatLng(group.representative.lat, group.representative.lng), // ★★★ lat first
         icon: {
-          content: markerContent({ color, isPulse, isDark }),
+          content: markerContent({ isPulse, isDark }),
           anchor: new naver.maps.Point(0, 0), // 콘텐츠 translate(-50%,-50%)와 페어 = 중앙 앵커
         },
         zIndex: 1,
