@@ -2,7 +2,7 @@
 import { useActionState, useMemo, useState, useTransition } from 'react';
 import { TiptapEditor } from './TiptapEditor';
 import SpotMap from '@/components/SpotMapWrapper';
-import { Wallet } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 
@@ -14,30 +14,20 @@ type LoadedStorySpot = {
   rating: number | null;
   spot: Spot & { spotMovies: { movie: { id: string; title: string } }[] };
 };
-import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { STORY_TEMPLATE_HTML } from '@/lib/story/template';
+// server-only 모듈에서 타입만 — 런타임 import 없음(PublicCostSection과 동일 선례)
+import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
+import { PublicCostSection } from '@/app/(protected)/story/[id]/PublicCostSection';
 
 type ActionState = { error: string } | null;
 
-export type PlanWithCosts = {
+// 비중 요약은 서버 page가 summarizePlanCost(server-only)로 사전 계산해 내려줌 —
+// 원 금액(costs·flight)은 클라로 안 옴. 드롭다운 변경은 이 배열 룩업(서버 왕복 없음).
+export type PlanWithSummary = {
   id: string;
   title: string;
-  currency: 'KRW' | 'USD' | 'JPY';
-  costs: { category: string; amount: number }[];
-  flight: { totalAmount: number } | null;
+  summary: PublicCostSummary;
 };
-
-const CATEGORY_LABELS: Record<string, string> = {
-  TRANSPORT: '교통', ACCOMMODATION: '숙박',
-  FOOD: '식비', ENTRANCE: '입장료', ETC: '기타',
-};
-
-function formatAmount(amount: number, currency: string) {
-  const localeMap: Record<string, string> = { KRW: 'ko-KR', USD: 'en-US', JPY: 'ja-JP' };
-  return new Intl.NumberFormat(localeMap[currency] ?? 'ko-KR', {
-    style: 'currency', currency, maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 interface StoryWriteFormProps {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
@@ -45,7 +35,7 @@ interface StoryWriteFormProps {
   userId: string;
   storySpots?: LoadedStorySpot[];
   storyId?: string;
-  availablePlans?: PlanWithCosts[];
+  availablePlans?: PlanWithSummary[];
   initialPlanId?: string | null;
 }
 
@@ -193,52 +183,38 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               )}
               <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             </div>
+            {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
+                눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
+                비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9). */}
             {availablePlans.length > 0 && (
-              <div className="flex flex-col pt-[26px]">
-                <label className="text-[12px] font-medium text-muted mb-[9px]">내 플랜 연결</label>
-                <select
-                  value={selectedPlanId ?? ''}
-                  onChange={(e) => setSelectedPlanId(e.target.value || null)}
-                  className="w-full px-0 min-h-[44px] pb-[8px] text-[14px] text-fg bg-transparent border-0 border-b border-border focus:outline-none focus:border-primary"
-                >
-                  <option value="">연결 안 함</option>
-                  {availablePlans.map((p) => (
-                    <option key={p.id} value={p.id}>{p.title}</option>
-                  ))}
-                </select>
+              <div className="flex flex-col pt-[46px]">
+                <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
+                <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행계획</h2>
+                {/* appearance-none + 직접 chevron: 네이티브 select는 CSS에 안 잡히는 내장 좌측
+                    여백(Chrome 4px·Safari 8px 실측)을 그려 트리맵 좌측선과 어긋남. pt-[8px]는
+                    텍스트를 밑줄 쪽으로 내려 텍스트↔밑줄(~12px) < 밑줄↔트리맵(16px) —
+                    밑줄이 select 소속으로 읽히게. pr-[24px]는 긴 제목의 chevron 침범 방지. */}
+                <div className="relative">
+                  <select
+                    aria-label="내 플랜 연결"
+                    value={selectedPlanId ?? ''}
+                    onChange={(e) => setSelectedPlanId(e.target.value || null)}
+                    className="w-full appearance-none pl-0 pr-[24px] pt-[8px] min-h-[44px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border focus:outline-none focus:border-primary"
+                  >
+                    <option value="">연결 안 함</option>
+                    {availablePlans.map((p) => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-0 bottom-[10px] text-muted" />
+                </div>
+                {/* 트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략(블록 유지) */}
                 {selectedPlanId && (() => {
                   const plan = availablePlans.find((p) => p.id === selectedPlanId);
-                  if (!plan) return null;
-                  const flightAmount = plan.flight?.totalAmount ?? 0;
-                  const total = calcPlanTotal(plan.costs, plan.flight);
-                  const byCat = Object.entries(CATEGORY_LABELS)
-                    .map(([key, label]) => {
-                      const sum = plan.costs
-                        .filter((c) => c.category === key)
-                        .reduce((s, c) => s + c.amount, 0);
-                      return sum > 0 ? { label, sum } : null;
-                    })
-                    .filter(Boolean) as { label: string; sum: number }[];
-                  const allItems = [
-                    ...(flightAmount > 0 ? [{ label: '항공', sum: flightAmount }] : []),
-                    ...byCat,
-                  ];
+                  if (!plan || plan.summary.ratios.length === 0) return null;
                   return (
-                    <div className="mt-4 text-sm text-fg2">
-                      <div className="flex items-center gap-1.5 mb-3 text-fg">
-                        <Wallet size={15} className="text-primary" />
-                        <span className="font-medium">예상 비용</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-fg2">합계</span>
-                        <span className="font-mono text-fg">{formatAmount(total, plan.currency)}</span>
-                      </div>
-                      {allItems.length > 0 && (
-                        <p className="mt-1.5 text-xs text-muted">
-                          {allItems.map((c) => `${c.label} ${formatAmount(c.sum, plan.currency)}`).join(' · ')}
-                        </p>
-                      )}
-                      <p className="mt-3 text-xs text-muted">연결 시 이 비용 정보가 스토리에 공개됩니다</p>
+                    <div className="mt-[16px]">
+                      <PublicCostSection summary={plan.summary} />
                     </div>
                   );
                 })()}

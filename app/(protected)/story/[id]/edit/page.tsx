@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { StoryWriteForm } from '@/app/(protected)/story/new/StoryWriteForm';
 import { updateStoryAction } from '../actions';
+import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 
 export default async function StoryEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +29,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id !== story.userId) redirect(`/story/${id}`);
 
-  const availablePlans = await prisma.myPlan.findMany({
+  const plans = await prisma.myPlan.findMany({
     where: {
       ownerId: user.id,
       OR: [{ story: null }, { story: { id: story.id } }],
@@ -40,6 +41,12 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
     },
     orderBy: { createdAt: 'desc' },
   });
+  // 비중 요약은 server-only(summarizePlanCost) — 여기서 계산해 결과만 클라로(new/page.tsx와 동일 패턴)
+  const availablePlans = plans.map((p) => ({
+    id: p.id,
+    title: p.title,
+    summary: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY'),
+  }));
 
   const boundAction = updateStoryAction.bind(null, story.id);
 

@@ -3,13 +3,14 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { StoryWriteForm } from './StoryWriteForm';
 import { createStoryAction } from './actions';
+import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 
 export default async function StoryNewPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const availablePlans = await prisma.myPlan.findMany({
+  const plans = await prisma.myPlan.findMany({
     where: { ownerId: user.id, story: null },
     select: {
       id: true, title: true, currency: true,
@@ -18,6 +19,13 @@ export default async function StoryNewPage() {
     },
     orderBy: { createdAt: 'desc' },
   });
+  // 비중 요약은 server-only(summarizePlanCost) — 여기서 계산해 결과만 클라로.
+  // 원 금액(costs·flight)은 안 내림 — PLAN 블록은 비중 트리맵만 쓴다(상세·plan-finder와 동일 패턴).
+  const availablePlans = plans.map((p) => ({
+    id: p.id,
+    title: p.title,
+    summary: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY'),
+  }));
 
   // 글쓰기 폭 단일 소스(0313 원칙) — 헤더·폼·SpotMap이 이 폭을 상속
   return (
