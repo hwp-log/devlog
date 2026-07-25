@@ -8,13 +8,18 @@ import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
-import { Search, MapPin, ArrowLeft, List } from 'lucide-react';
+import { Search, MapPin, ArrowLeft, List, Maximize2 } from 'lucide-react';
 
 const MERGE_EPSILON_KM = 0.05; // 50m 이내 = 같은 장소로 병합
 
 // 줌 매핑(카카오 level→네이버 zoom 근사, 실화면 보정 대상): 기본 level5≈13 / 검색·찍기 확대 level3≈16
 const ZOOM_DEFAULT = 13;
 const ZOOM_FOCUS = 16;
+
+// 사용자 조작 전환 질감 단일 소스(0369 보완) — 모든 morph(클릭 포커스·전체보기·검색 추가)가 공유.
+// duration 1100 = SDK 기본(~500ms) 절반 속도(1000)에서 10% 추가 감속(사용자 체감 조정 2회 확정).
+// easing 'easeOutCubic' = SDK TransitionOptions 기본값 명시(SpotFinder 실측 확증과 동일 어휘)
+const SPOT_TRANSITION = { duration: 1100, easing: 'easeOutCubic' };
 
 function haversineKm(
   a: { lat: number; lng: number },
@@ -52,7 +57,7 @@ function groupByProximity(spots: LocalSpot[]): MarkerGroup[] {
 
 // 마커 HTML(파랑 도트 + 펄스) — 0364 번호 폐기에 이어 0368: 순서 파생 색(첫 초록/끝 빨강)도
 // 의미를 잃어 primary 단색 통일. var(--primary) — 지도 div가 테마 스코프 안이라 상속 작동, 다크 자동.
-// 목록↔마커 대응은 항목 클릭 시 panTo·펄스가 담당(색 구분 불필요 — 0368 확정).
+// 목록↔마커 대응은 항목 클릭 시 확대 이동(focusSpot morph)·펄스가 담당(색 구분 불필요 — 0368 확정).
 // 바깥 래퍼 translate(-50%,-50%) + anchor(0,0) = 카카오 중앙 앵커 상응. isDark는 그림자만 분기.
 // 펄스 애니메이션은 globals.css @keyframes spot-pulse(0.6s) 참조 — 제거 타이머(triggerPulse)와 페어.
 function markerContent(opts: { isPulse: boolean; isDark: boolean }): string {
@@ -147,11 +152,6 @@ export default function SpotMap({
         : { lat: 37.566, lng: 126.978 }
   );
 
-  // 부드러운 중심 이동 — 카카오 isPanto 상응
-  function panTo(lat: number, lng: number) {
-    mapInstance?.panTo(new naver.maps.LatLng(lat, lng));
-  }
-
   // 전체 스팟 뷰 산출(0367) — 초기 뷰와 "전체 보기" 버튼이 공유하는 단일 규칙.
   // GL fitBounds는 신뢰 불가 실측 2건(SpotFinderMapNaver:212 퇴화 스팬 무시 · :656 준비 전 빈
   // bounds) → SpotFinder moveToStage2와 같은 "프로젝션 직접 산출" 방식 재사용. 초기 뷰는 전환
@@ -162,12 +162,20 @@ export default function SpotMap({
   //   목적엔 충분) → center + ZOOM_FOCUS(16: 검색·찍기 확대와 동일 맥락의 기확정 상수).
   //   이격 → 산출 줌을 ZOOM_FOCUS 상한으로 클램프(근접 판정을 새는 엣지도 같은 상한).
   // 반환 false = 컨테이너 실측 전(size 0) — 호출부가 rAF 재시도(이전 fitBounds 미적용 증상의 처방).
-  function fitAllSpots(map: naver.maps.Map, spotList: LocalSpot[]): boolean {
+  // smooth(0369): 초기 로드 = false(0ms 점프 — 0367 판단 불변) / 사용자 조작(전체보기 버튼) =
+  // true(morph — 산출은 공유하고 적용 단계만 가름. 질감은 검색 추가와 같은 SDK 기본 ~500ms).
+  function fitAllSpots(map: naver.maps.Map, spotList: LocalSpot[], smooth = false): boolean {
+    const apply = (center: naver.maps.LatLng | naver.maps.Coord, zoom: number) => {
+      if (smooth) map.morph(center as naver.maps.LatLng, zoom, SPOT_TRANSITION);
+      else {
+        map.setCenter(center);
+        map.setZoom(zoom);
+      }
+    };
     if (spotList.length === 0) return true;
     const allNear = spotList.every(s => haversineKm(spotList[0], s) < MERGE_EPSILON_KM);
     if (spotList.length === 1 || allNear) {
-      map.setCenter(new naver.maps.LatLng(spotList[0].lat, spotList[0].lng)); // ★★★ lat first
-      map.setZoom(ZOOM_FOCUS);
+      apply(new naver.maps.LatLng(spotList[0].lat, spotList[0].lng), ZOOM_FOCUS); // ★★★ lat first
       return true;
     }
     const size = map.getSize();
@@ -192,8 +200,7 @@ export default function SpotMap({
     const center = proj.fromOffsetToCoord(
       new naver.maps.Point((pSW.x + pNE.x) / 2, (pSW.y + pNE.y) / 2),
     );
-    map.setCenter(center);
-    map.setZoom(targetZoom);
+    apply(center, targetZoom);
     return true;
   }
 
@@ -340,12 +347,25 @@ export default function SpotMap({
     }, 600);
   }
 
+  // 스팟 포커스(0369) — 클릭한 좌표를 중심으로 부드럽게 확대(질감은 SPOT_TRANSITION 단일 소스).
+  // Math.max(현재줌, ZOOM_FOCUS) — 이미 더 확대해 둔 상태에서 클릭 시 축소되지 않게.
+  function focusSpot(spot: LocalSpot) {
+    if (!mapInstance) return;
+    mapInstance.morph(
+      new naver.maps.LatLng(spot.lat, spot.lng),
+      Math.max(mapInstance.getZoom(), ZOOM_FOCUS),
+      SPOT_TRANSITION,
+    );
+  }
+
   function handleMarkerClick(spot: LocalSpot) {
-    setActiveSpot((prev) => (prev?.id === spot.id ? null : spot));
+    // 토글 아님 — 같은 마커 재클릭 시 activeSpot이 null로 떨어져 사이드 카드가 메뉴(검색·찍기)로
+    // 바뀌던 문제. 마커 클릭 = 항상 보기 팝업(수정·삭제), 닫기는 팝업의 ×·닫기 버튼 전담
+    setActiveSpot(spot);
     if (readOnly) {
       setDisplayedSpot(spot);
-      panTo(spot.lat, spot.lng);
     }
+    focusSpot(spot); // 0369 — 편집 분기도 이동(기존엔 readOnly만 panTo, 편집은 이동 없던 결함 해소)
     setMode('view');
     triggerPulse(spot.id);
   }
@@ -354,7 +374,7 @@ export default function SpotMap({
     setDisplayedSpot(spot);
     setActiveSpot(spot);
     setMode('view');
-    panTo(spot.lat, spot.lng);
+    focusSpot(spot); // 0369 — panTo(줌 불변) → 확대 중심 전환
     triggerPulse(spot.id);
   }
 
@@ -394,7 +414,7 @@ export default function SpotMap({
     const { lat, lng } = place; // x/y→lng/lat 변환은 서버 액션이 완료 — 클라엔 순수 숫자만
     const id = addSpot(place.name, lng, lat);
     // 중심·줌 원자 전환(카카오 jump 상응) — setZoom+setCenter는 0ms 점프라 기각(SpotFinderMapNaver 실측)
-    mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS);
+    mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS, SPOT_TRANSITION);
     // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집
     const candidates = await findNearbySpots(lat, lng);
     if (candidates.length > 0) {
@@ -479,6 +499,22 @@ export default function SpotMap({
       <div className="flex flex-col md:flex-row gap-3">
         {/* 지도 컨테이너 — md:h-[500px]는 사이드 카드 목록 max-h(readOnly 424·reorder 300, 0342)의 파생 원본. 바꾸면 그 두 값도 함께 */}
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+          {/* 리뷰장소 전체보기 오버레이(0369) — 확대해 돌아다닌 뒤 전체 뷰 복귀. 글쓰기·상세 공용
+              (초기 뷰가 양쪽 적용이므로 복귀 수단도 양쪽). z-10 = 지도 위·팝오버(z-50) 아래.
+              우상단 = 네이버 기본 컨트롤(로고·저작권·축척, 하단 계열)과 비충돌 — 실화면 확인 항목.
+              모양: 알약(pill) + 아이콘 — 지도 위 부유 컨트롤 관례. 데스크톱은 컴팩트(sm:py-1.5),
+              모바일만 min-h 44px 터치 타깃 유지(§5 — 축소 요구와 기준선의 양립은 반응형으로).
+              text-xs(12px) = §5 하한 준수. 토큰만 사용(다크 자동). smooth=true — 사용자 조작은 morph */}
+          {localSpots.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { if (mapInstance) fitAllSpots(mapInstance, localSpots, true); }}
+              className="absolute top-3 right-3 z-10 flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:py-1.5 px-3 rounded-full border border-border bg-card/95 shadow-md text-xs font-medium text-fg2 hover:bg-popover hover:text-fg transition-colors"
+            >
+              <Maximize2 size={13} />
+              리뷰장소 전체보기
+            </button>
+          )}
           {/* 명령형 지도 마운트 지점 — 마커·폴리라인은 effect로 부착(② 단계), 선언형 자식 없음 */}
           <div ref={mapDivRef} className="w-full h-full" />
           {mode === 'search' && (
@@ -650,30 +686,18 @@ export default function SpotMap({
                       지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
                       명시 max-h — flex-1 grow는 §5 금지(iOS grow 미계산 붕괴, 0253).
                       목록은 SpotList readOnly 재사용, 클릭 = 마커 클릭과 동일(handleSpotSelect →
-                      보기 팝업 + panTo + 펄스; 팝업 닫기는 기존 배선대로 메뉴 복귀) */}
+                      보기 팝업 + 확대 이동(focusSpot) + 펄스; 팝업 닫기는 기존 배선대로 메뉴 복귀) */}
                   <div className="max-h-[220px] md:max-h-[360px] overflow-y-auto">
                     <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMode('menu')}
-                      className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
-                    >
-                      <ArrowLeft size={14} />
-                      뒤로
-                    </button>
-                    {/* 전체 보기(0367) — 목록·마커 클릭(panTo·펄스)으로 확대해 돌아다닌 뒤 전체로
-                        복귀하는 수단. 초기 뷰와 같은 fitAllSpots 공유(명시적 행동이라 초기 1회
-                        제한의 예외). "장소 보기" = 전체 현황 맥락이라 이 카드가 자연스러운 자리 */}
-                    <button
-                      type="button"
-                      onClick={() => { if (mapInstance) fitAllSpots(mapInstance, localSpots); }}
-                      className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
-                    >
-                      전체 보기
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMode('menu')}
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                  >
+                    <ArrowLeft size={14} />
+                    뒤로
+                  </button>
                 </>
               ) : (
                 <>

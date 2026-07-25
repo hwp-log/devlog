@@ -1,4 +1,4 @@
-import { render, act } from '@testing-library/react';
+import { render, act, screen, fireEvent } from '@testing-library/react';
 import SpotMap from '../SpotMap';
 
 // 초기 뷰 규칙(0367) — 0개=기본 유지 / 단일·근접=center+ZOOM_FOCUS / 이격=프로젝션 산출(상한 16).
@@ -13,8 +13,12 @@ jest.mock('@/lib/spot/nearby', () => ({ findNearbySpots: jest.fn(async () => [])
 jest.mock('@/lib/spot/searchPlaces', () => ({ searchPlaces: jest.fn() }));
 jest.mock('../SpotPopup', () => ({ SpotPopup: () => null }));
 
-type ViewLog = { setCenter: Array<{ lat: number; lng: number }>; setZoom: number[] };
-const viewLog: ViewLog = { setCenter: [], setZoom: [] };
+type ViewLog = {
+  setCenter: Array<{ lat: number; lng: number }>;
+  setZoom: number[];
+  morph: Array<{ lat: number; lng: number; zoom: number }>;
+};
+const viewLog: ViewLog = { setCenter: [], setZoom: [], morph: [] };
 let initCallbacks: Array<() => void> = [];
 
 class MockLatLng {
@@ -46,7 +50,10 @@ class MockMap {
   fitBounds() { throw new Error('fitBounds 사용 금지 — GL 신뢰 불가 실측으로 직접 산출로 전환(0367)'); }
   autoResize() {}
   panTo() {}
-  morph() {}
+  morph(c: MockLatLng, z: number) {
+    this.center = c; this.zoom = z;
+    viewLog.morph.push({ lat: c._lat, lng: c._lng, zoom: z });
+  }
   destroy() {}
 }
 
@@ -73,6 +80,7 @@ beforeAll(() => {
 beforeEach(() => {
   viewLog.setCenter.length = 0;
   viewLog.setZoom.length = 0;
+  viewLog.morph.length = 0;
   initCallbacks = [];
 });
 
@@ -118,5 +126,34 @@ describe('지도 초기 뷰 규칙(0367)', () => {
   it('초기 1회만 — 같은 인스턴스에서 재실행 없음(호출 1세트)', () => {
     mountWithSpots([서울, 제주]);
     expect(viewLog.setZoom).toHaveLength(1); // 추가 rAF 재시도·재실행 없음
+  });
+
+  it('초기 로드는 0ms 점프 — morph를 쓰지 않는다(0367 판단 불변)', () => {
+    mountWithSpots([서울, 제주]);
+    expect(viewLog.morph).toEqual([]);
+  });
+});
+
+describe('사용자 조작 전환(0369) — morph', () => {
+  it('리뷰장소 전체보기 오버레이: 스팟 0개면 미렌더', () => {
+    mountWithSpots([]);
+    expect(screen.queryByRole('button', { name: '리뷰장소 전체보기' })).not.toBeInTheDocument();
+  });
+
+  it('오버레이 클릭: morph로 전체 뷰(부드러운 전환) — 0ms 경로와 분리', () => {
+    mountWithSpots([서울, 제주]);
+    viewLog.setCenter.length = 0; viewLog.setZoom.length = 0; // 초기 핏 기록 제거
+    fireEvent.click(screen.getByRole('button', { name: '리뷰장소 전체보기' }));
+    expect(viewLog.morph).toHaveLength(1);
+    expect(viewLog.morph[0].zoom).toBeLessThan(16);
+    expect(viewLog.setZoom).toEqual([]); // smooth 경로는 setZoom 미사용
+  });
+
+  it('목록 항목 클릭: 해당 좌표로 morph + 줌 하한 16(축소 없음)', () => {
+    mountWithSpots([서울, 제주]); // 초기 핏으로 줌 16 미만 상태
+    fireEvent.click(screen.getByText('서울'));
+    expect(viewLog.morph).toHaveLength(1);
+    expect(viewLog.morph[0]).toMatchObject({ lat: 서울.lat, lng: 서울.lng });
+    expect(viewLog.morph[0].zoom).toBe(16); // Math.max(현재줌<16, ZOOM_FOCUS)
   });
 });
