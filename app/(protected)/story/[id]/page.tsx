@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
-import { MapPin } from 'lucide-react';
+import { MapPin, ArrowRight } from 'lucide-react';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { PublicCostSection } from './PublicCostSection';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
@@ -33,6 +33,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         },
         plan: {
           select: {
+            title: true,
             isPublic: true,
             currency: true,
             costs: { select: { category: true, amount: true } },
@@ -135,23 +136,35 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <SpotMap spots={localSpots} readOnly />
         </div>
       )}
+      {/* PLAN 블록 — 타이틀 = 플랜 제목 겸 링크(본문색·→ 아이콘), 하단 "이 여행플랜 보기" 링크를 대체.
+          총액 0이어도 눈썹+제목 링크는 유지(플랜 경로 보존 — 옛 하단 링크도 총액 무관이었음),
+          트리맵만 ratios 있을 때 렌더. BUDGET(예산을 약속하는 헤더)과 달리 PLAN 타이틀은
+          플랜 제목 자체가 정보이자 링크라 단독 성립 — 0343 "헤더만 뜬다"류 문제 아님. */}
       {story.plan && publicSummary && (
         <div className="mt-6">
           {/* 눈썹 클래스 = 0342 SPOTMAP 눈썹과 동일 문자열. 공용 <Eyebrow> 추출은 후속 정리 */}
-          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">BUDGET</p>
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">예산 요약</h2>
-          <PublicCostSection summary={publicSummary} />
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">
+            {story.plan.isPublic && story.planId ? (
+              // 비공개 플랜은 plan-finder 상세가 없어 링크 미제공(기존 하단 링크의 isPublic 조건 승계)
+              <Link
+                href={`/plan-finder/${story.planId}`}
+                className="inline-flex items-center gap-1 hover:text-fg2 transition-colors"
+              >
+                {story.plan.title}
+                <ArrowRight size={18} aria-hidden />
+              </Link>
+            ) : (
+              story.plan.title
+            )}
+          </h2>
+          {publicSummary.ratios.length > 0 && <PublicCostSection summary={publicSummary} />}
         </div>
       )}
-      <div className="mt-4 flex justify-between items-center">
+      <div className="mt-4">
         <Link href="/story" className="text-xs text-slate-500 hover:text-slate-800 transition-colors">
           ← 목록으로
         </Link>
-        {story.plan?.isPublic && story.planId && (
-          <Link href={`/plan-finder/${story.planId}`} className="text-xs text-slate-500 hover:text-slate-800 transition-colors">
-            이 여행플랜 보기 →
-          </Link>
-        )}
       </div>
       </div>
     </div>

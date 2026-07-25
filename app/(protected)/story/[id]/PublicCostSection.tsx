@@ -21,7 +21,10 @@ const NAME_MIN_RATIO = 12;
 /**
  * 예산 트리맵(0343) — 비중(%)만 표시, 총액·금액 없음(공개 정책).
  * ratios는 summarizePlanCost가 내림차순 정렬 보장 — index가 곧 rank(색 결정).
- * 타일 폭 = flexGrow(비중), flexBasis 0이 비례 폭의 전제. 소비처: story/[id] · plan-finder/[id].
+ * 타일 폭 = flexGrow(비중), flexBasis 0이 비례 폭의 전제.
+ * 카드 껍데기 없음 — 카드는 조작 가능 영역 표시이고 트리맵은 보기 전용이라 여백으로 구분
+ * (0341 글쓰기 예산 껍데기 제거와 같은 규칙). 바깥 여백은 소비처 소관.
+ * 소비처: story/[id] · plan-finder/[id] · story/new(글쓰기 PLAN 블록).
  */
 export function PublicCostSection({ summary }: Props) {
   const { ratios } = summary;
@@ -32,7 +35,7 @@ export function PublicCostSection({ summary }: Props) {
     .filter((item) => item.ratio < NAME_MIN_RATIO);
 
   return (
-    <div className="glass-outer p-5 mb-4">
+    <div>
       <div className="flex gap-[4px] h-[118px]">
         {ratios.map((item, rank) => {
           const showName = item.ratio >= NAME_MIN_RATIO;
@@ -60,7 +63,7 @@ export function PublicCostSection({ summary }: Props) {
                 aria-hidden
                 className={`w-2 h-2 rounded-full shrink-0 ${RANK_DOT[Math.min(item.rank, 4)]}`}
               />
-              {item.label}
+              {item.label} {item.ratio}%
             </span>
           ))}
         </div>
