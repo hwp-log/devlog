@@ -441,6 +441,16 @@ body {
     margin-bottom: 3px;
   }
 
+  /* 콜아웃 NodeSelection 표시(0363 짝) — 경계 Backspace/Delete 1회차가 노드 선택으로
+     전환되는데 PM 기본엔 selectednode 스타일이 없어 "아무 일도 안 일어난" 것처럼 보임.
+     선택 = 다음 키로 삭제될 범위 예고라 지속 상태 색(primary) 사용, outline은 radius를
+     따라가고 레이아웃 불변. 편집 전용 클래스(PM 부여)라 상세 무영향. 토큰이라 다크 자동.
+     다른 노드(이미지 등)의 선택 표시는 PM 기본 그대로 — 이 규칙은 콜아웃 한정 */
+  .tiptap-content div[data-callout].ProseMirror-selectednode {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   .tiptap-content div[data-callout="faq"] p:nth-child(2) {
     font-weight: 500;
     margin-bottom: 2px;

@@ -1,5 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { TextSelection } from '@tiptap/pm/state';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 
 // 콜아웃 블록 — 양식 5종 개편 선행(프리필 💡팁/❓FAQ 전제).
 // 저장 HTML: <div data-callout="tip|faq|warn"><p>제목</p><p>본문…</p></div>
@@ -54,6 +54,53 @@ export const Callout = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     return ['div', mergeAttributes(HTMLAttributes), 0];
+  },
+
+  // 경계 Backspace/Delete(0363) — isolating이 경계 병합을 막으면서 "안에서 노드를 지울" 경로까지
+  // 없앴다(내부 전체 선택 삭제는 빈 껍데기 잔존, 첫 문단 앞 Backspace는 no-op — 0355·0363 실측).
+  // 규칙: 캐럿이 경계 위치(첫 textblock 맨 앞 Backspace / 마지막 textblock 맨 끝 Delete)일 때 —
+  //   · 콜아웃이 비었으면(제목 포함 텍스트 전무) 즉시 통삭제
+  //   · 내용이 있으면 NodeSelection(하이라이트)으로 전환 — 한 번 더 누르면 기본 deleteSelection이
+  //     삭제(실수 통삭제 방지 2단). 모바일은 백스페이스 연타만으로 빈 콜아웃→통삭제에 도달.
+  // 그 외 위치는 false(내부 문단 병합·글자 삭제 등 기본 동작 무간섭). isolating은 유지 —
+  // 경계 병합 해체(B안)는 첫 p=제목 위치 규약을 조용히 붕괴시켜 기각.
+  // "빈" 판정이 제목을 포함하는 것은 0353 발행 정리(제목 제외)와 목적이 다른 의도적 차이 —
+  // 여기 기준은 "지울 내용이 남았나"다. 저장 규약·0353 규칙 불변.
+  addKeyboardShortcuts() {
+    const boundaryDelete = (dir: 'backward' | 'forward') => () => {
+      const { selection } = this.editor.state;
+      // NodeSelection 상태는 기본 deleteSelection에 맡김(여기서 개입하면 2단이 무한 선택이 됨)
+      if (!selection.empty || !(selection instanceof TextSelection)) return false;
+      const { $from } = selection;
+      let depth = 0;
+      for (let d = $from.depth; d > 0; d--) {
+        if ($from.node(d).type.name === this.name) {
+          depth = d;
+          break;
+        }
+      }
+      if (depth === 0) return false; // 콜아웃 밖 — 불개입
+      const callout = $from.node(depth);
+      const atBoundary =
+        dir === 'backward'
+          ? $from.index(depth) === 0 && $from.parentOffset === 0
+          : $from.index(depth) === callout.childCount - 1 &&
+            $from.parentOffset === $from.parent.content.size;
+      if (!atBoundary) return false;
+
+      const before = $from.before(depth);
+      if (callout.textContent.trim().length === 0) {
+        return this.editor.commands.deleteRange({ from: before, to: before + callout.nodeSize });
+      }
+      return this.editor.commands.command(({ tr }) => {
+        tr.setSelection(NodeSelection.create(tr.doc, before));
+        return true;
+      });
+    };
+    return {
+      Backspace: boundaryDelete('backward'),
+      Delete: boundaryDelete('forward'),
+    };
   },
 
   addCommands() {
