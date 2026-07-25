@@ -2,7 +2,7 @@
 import { useActionState, useMemo, useState, useTransition } from 'react';
 import { TiptapEditor } from './TiptapEditor';
 import SpotMap from '@/components/SpotMapWrapper';
-import { MapPin, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
 
@@ -248,14 +248,11 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
       {/* SpotMap: 페이지 컨테이너(860) 폭 상속 — 카드 426 고정은 SpotMap fixedSideWidth가 담당 */}
-      <div className="w-full mt-6">
-        <div className="border-t border-border pt-6">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-fg mb-4">
-            <MapPin size={16} />
-            여행동선
-          </h2>
-          <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
-        </div>
+      {/* 눈썹 클래스 = WRITE/EDIT 헤더 눈썹과 동일 문자열(0341 규격 복제). 공용 <Eyebrow> 추출은 후속 정리 */}
+      <div className="w-full pt-[46px]">
+        <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
+        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행동선</h2>
+        <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
       </div>
       {/* 등록 버튼: 시안 순서상 여행동선 아래 마지막. form 밖이라 form="story-write-form"으로 연결 —
           클릭 시 폼 submit 이벤트가 발화해 handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}

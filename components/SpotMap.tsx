@@ -468,7 +468,7 @@ export default function SpotMap({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col md:flex-row gap-3">
-        {/* 지도 컨테이너 */}
+        {/* 지도 컨테이너 — md:h-[500px]는 사이드 카드 목록 max-h(readOnly 424·reorder 300, 0342)의 파생 원본. 바꾸면 그 두 값도 함께 */}
         <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           {/* 명령형 지도 마운트 지점 — 마커·폴리라인은 effect로 부착(② 단계), 선언형 자식 없음 */}
           <div ref={mapDivRef} className="w-full h-full" />
@@ -531,7 +531,10 @@ export default function SpotMap({
             <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
               <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
                 <p className="text-base font-semibold text-fg mb-3">순서</p>
-                <div className="flex-1 overflow-y-auto min-h-0">
+                {/* 0342: 데스크톱 424 = 지도 md:h-[500px](위 472) − 카드 p-5 상하(40) − "순서" 타이틀(24)+mb-3(12).
+                    지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
+                    명시 max-h — flex-1 grow는 §5 금지(iOS grow 미계산 붕괴, 0253) */}
+                <div className="max-h-[220px] md:max-h-[424px] overflow-y-auto">
                   <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                 </div>
               </div>
@@ -632,7 +635,11 @@ export default function SpotMap({
               ) : mode === 'reorder' ? (
                 <>
                   <p className="text-base font-semibold text-fg">여행순서 바꾸기</p>
-                  <div className="flex-1 overflow-y-auto min-h-0">
+                  {/* 0342: 데스크톱 300 = 지도 md:h-[500px](위 472) − p-5(40) − gap-4×3(48) − 타이틀(24)
+                      − 팁블록(≈47) − 뒤로버튼(≈28) = 313에서 안전 하향(팁 2줄 래핑 시 뒤로버튼 클립 방지).
+                      지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
+                      명시 max-h — flex-1 grow는 §5 금지(iOS grow 미계산 붕괴, 0253) */}
+                  <div className="max-h-[220px] md:max-h-[300px] overflow-y-auto">
                     <SpotList
                       spots={localSpots}
                       onReorder={handleReorder}
