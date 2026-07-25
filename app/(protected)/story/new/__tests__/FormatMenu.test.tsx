@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import { FormatMenu } from '../FormatMenu';
 import { Callout } from '../Callout';
-import { STORY_TEMPLATE_HTML } from '@/lib/story/template';
+import { STORY_FORMS, resolveFormatInsertion } from '@/lib/story/template';
 
 // 0359 확인 분기 UI — 교체는 항상 전체 교체, 쓴 내용이 있을 때만 팝오버가 확인 화면으로 전환.
 // jsdom엔 ResizeObserver가 없어(@floating-ui autoUpdate 의존) 최소 스텁을 주입한다.
@@ -25,8 +25,12 @@ function makeEditor(content: string): Editor {
   });
 }
 
+// 0365: 기본 양식이 자유형(STORY_TEMPLATE_HTML='')이 되어 ④ 골격을 직접 해석해 픽스처로 사용
+const PILGRIMAGE_HTML = resolveFormatInsertion(
+  STORY_FORMS.find((f) => f.key === 'pilgrimage')!,
+);
 // 예시 원문에서 한 글자 수정 — "쓴 내용 있음" 픽스처
-const EDITED_HTML = STORY_TEMPLATE_HTML.replace('출입 제한이다', '출입 제한이었다');
+const EDITED_HTML = PILGRIMAGE_HTML.replace('출입 제한이다', '출입 제한이었다');
 
 function openMenu() {
   fireEvent.click(screen.getByRole('button', { name: /서식/ }));
@@ -34,7 +38,7 @@ function openMenu() {
 
 describe('FormatMenu — 확인 분기', () => {
   it('예시 원문 그대로면 확인 없이 즉시 전체 교체되고 팝오버가 닫힌다', () => {
-    const editor = makeEditor(STORY_TEMPLATE_HTML);
+    const editor = makeEditor(PILGRIMAGE_HTML);
     render(<FormatMenu editor={editor} />);
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: /정보 리뷰형/ }));

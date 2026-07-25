@@ -158,9 +158,13 @@ export function resolveFormatInsertion(form: {
   return form.sections.map(sectionToHtml).join('') + `${form.tailHtml}<p></p>`;
 }
 
-// 프리필 = 촬영지 순례형(④)에서 파생 — 골격 정의가 두 곳에 생기지 않게.
-// 분기(initialData?.content ?? STORY_TEMPLATE_HTML)는 StoryWriteForm 유지.
-export const STORY_TEMPLATE_HTML = resolveFormatInsertion(formByKey('pilgrimage'));
+// 새 글 기본 양식 = ⑤ 자유형(0365, ④에서 변경) — 프리필이 깔려 있으면 다른 양식·슬래시
+// 기능을 찾지 않게 되므로, 빈 화면에서 힌트 2줄로 접근법을 먼저 보여주고 스스로 양식을
+// 고르게 유도. 자유형이라 결과는 빈 문자열(빈 본문)이지만 파생 구조는 유지(단일 소스).
+// 분기(initialData?.content ?? STORY_TEMPLATE_HTML)는 StoryWriteForm 유지 — 수정 화면 무영향.
+// ※ 시안 문서(docs/design/mockups/dotrip-양식-프리필-최종본.html)의 "④ 기본 프리필" 서술과
+//   어긋남 — 문서 수정 여부는 별도 판단(0365 보고 참조).
+export const STORY_TEMPLATE_HTML = resolveFormatInsertion(formByKey('free'));
 
 // heading → 예시 본문 정규화 서명(전 양식 합집합 — heading 유일성 전제).
 // 마지막 섹션 서명엔 tailHtml 텍스트 포함(콜아웃이 그 구간에 속하므로 구간 텍스트와 대응).

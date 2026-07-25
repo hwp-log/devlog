@@ -476,16 +476,19 @@ body {
     margin-bottom: 0;
   }
 
-  /* 문서 끝 빈 문단 힌트(0361) — trailingNode가 자동 유지하는 끝 빈 <p>가 정체 불명 공백으로
-     읽혀 CSS만으로 힌트 표시(placeholder 확장 재도입 없음). 실측: PM은 빈 문단을
-     <p><br class="ProseMirror-trailingBreak"></p>로 렌더 → :empty 불성립, br은 void라
-     ::before 불가 → :has()로 판별. :last-child 한정(중간 빈 문단에도 trailingBreak가 붙음).
-     ★ .ProseMirror 한정 필수 — .tiptap-content는 상세와 공유되고 저장 글도 끝 빈 문단이 있어
-     상세에 걸면 게시물에 문구가 노출됨(상세는 innerHTML 직계라 .ProseMirror 없음).
-     float+height:0 = 캐럿이 문구 시작점에 겹치는 표준 placeholder 패턴. 크기는 본문 상속.
-     커서 자리이므로 클릭은 통과(pointer-events) */
-  .tiptap-content .ProseMirror>p:last-child:has(>br.ProseMirror-trailingBreak:only-child)::before {
-    content: "'/' 를 입력해 블록을 추가하세요";
+  /* 빈 문서 힌트(0361→0365) — 조건: 문서가 전부 비었을 때만(p가 유일 자식). 0365에서
+     :last-child → :only-child로 축소 — 이전엔 프리필 끝 빈 문단에도 떴으나, 기본 양식이
+     자유형(빈 본문)이 되며 "빈 화면에서 접근법 안내(①②③) → 쓰기 시작하면 소멸"로 확정.
+     실측(0361): PM은 빈 문단을 <p><br class="ProseMirror-trailingBreak"></p>로 렌더 →
+     :empty 불성립, br은 void라 ::before 불가 → :has()로 판별.
+     여러 줄 = content의 \A 개행 + white-space: pre-line. 줄 간격·크기는 본문 상속, 색은 muted.
+     ①②③은 이모지가 아닌 원문자라 콜아웃 밖 이모지 금지 규칙과 무관, 문서 데이터도 아님.
+     ★ .ProseMirror 한정 필수 — .tiptap-content는 상세와 공유(상세는 innerHTML 직계라 미노출).
+     float+height:0 = 캐럿이 문구 시작점에 겹치는 표준 placeholder 패턴(둘째 줄은 빈 문서라
+     아래 겹칠 내용 없음). 커서 자리이므로 클릭은 통과(pointer-events) */
+  .tiptap-content .ProseMirror>p:only-child:has(>br.ProseMirror-trailingBreak:only-child)::before {
+    content: "① '/'를 입력해 여러 기능을 사용해보세요.\A② '서식'을 클릭하여 글쓰기 템플릿을 이용해보세요.\A③ 아니면 나만의 방식으로 즐겁게 작성해보세요 :)";
+    white-space: pre-line;
     color: var(--muted);
     float: left;
     height: 0;
