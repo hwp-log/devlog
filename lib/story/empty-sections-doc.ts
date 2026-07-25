@@ -9,7 +9,15 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 //       heading 자신의 제목 텍스트는 "내용"으로 치지 않는다.
 
 // 노드가 "내용"인가 — 이미지 노드 자체 / 공백 아닌 텍스트 / 이미지 포함(clean-empty의 img 규칙과 대응).
+// 콜아웃은 첫 문단(제목)을 내용으로 치지 않음 — clean-empty-sections.ts의 div[data-callout] 규칙과 짝.
 function nodeHasContent(node: ProseMirrorNode): boolean {
+  if (node.type.name === 'callout') {
+    let has = false;
+    node.forEach((child, _offset, i) => {
+      if (i > 0 && child.textContent.trim().length > 0) has = true;
+    });
+    return has;
+  }
   if (node.type.name === 'image') return true;
   if (node.textContent.trim().length > 0) return true;
   let hasImage = false;

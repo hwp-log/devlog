@@ -20,6 +20,15 @@ export function cleanEmptySections(html: string): string {
 
   try {
     const { document } = new JSDOM(html).window;
+
+    // 빈 콜아웃 제거 — 첫 문단(제목)은 내용으로 치지 않음(heading 규칙과 동일 철학,
+    // empty-sections-doc.ts nodeHasContent의 callout 분기와 짝). 구간 분할 "전"이어야
+    // 제목만 남은 콜아웃 텍스트가 소속 구간(hr 뒤 배치라 마지막 구간)을 살리는 오판이 없다.
+    for (const co of Array.from(document.querySelectorAll('div[data-callout]'))) {
+      const rest = Array.from(co.children).slice(1);
+      if (!rest.some(hasContent)) co.remove();
+    }
+
     const blocks = Array.from(document.body.children);
 
     // heading 기준 구간 분할. 구간 0 = 첫 heading 앞 도입부(제목 없음).
