@@ -81,8 +81,10 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="max-w-7xl mx-auto">
       <div className="max-w-4xl mx-auto">
-      <div className="glass-outer p-8">
-        <div className="max-w-4xl mx-auto">
+      {/* 본문 카드 제거(0371 — READ 블록 1단계): 읽기 표면은 페이지 배경 위 개방 캔버스(0319의
+          상세판), 카드는 조작 표면(지도·목록)에만. 글쓰기 화면과 동일 문법.
+          하드코딩 색(#1A1A1A·slate)의 다크 미대응은 기존 백로그 — 이번 범위 아님 */}
+      <div>
           <div className="flex items-start justify-between gap-4 mb-6">
             <h1 className="text-3xl font-bold text-[#1A1A1A] leading-tight">{story.title}</h1>
             {isOwner && (
@@ -126,10 +128,11 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             initialCount={story._count.likes}
             isLoggedIn={!!currentUser}
           />
-        </div>
       </div>
       {story.storySpots.length > 0 && (
-        <div className="mt-6">
+        // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
+        // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
+        <div className="mt-[46px]">
           <h2 className="flex items-center gap-2 text-base font-semibold text-[#1A1A1A] mb-4">
             <MapPin size={16} />
             방문장소
@@ -142,7 +145,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           트리맵만 ratios 있을 때 렌더. BUDGET(예산을 약속하는 헤더)과 달리 PLAN 타이틀은
           플랜 제목 자체가 정보이자 링크라 단독 성립 — 0343 "헤더만 뜬다"류 문제 아님. */}
       {story.plan && publicSummary && (
-        <div className="mt-6">
+        <div className="mt-[46px]">
           {/* 눈썹 클래스 = 0342 SPOTMAP 눈썹과 동일 문자열. 공용 <Eyebrow> 추출은 후속 정리 */}
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
           {/* h2 mb: 소개 표시 시 10px(제목↔소개), 소개가 자기 mb-[16px]로 트리맵 간격을 이어받음.
