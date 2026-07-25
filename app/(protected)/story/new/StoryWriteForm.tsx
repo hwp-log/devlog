@@ -183,9 +183,10 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
                 눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
                 비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9).
-                pt-[24px]는 위 태그 필드와의 간격(발행 안내 문구 삭제로 기준 변경). */}
+                pt-[46px]는 위 태그 필드와의 간격 — 안내 문구 삭제 후 다른 필드 블록과 같은
+                46px 리듬으로 복귀(본문 pt-[46px]와 동일). */}
             {availablePlans.length > 0 && (
-              <div className="flex flex-col pt-[24px]">
+              <div className="flex flex-col pt-[46px]">
                 <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
                 <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행계획</h2>
                 {/* appearance-none + 직접 chevron: 네이티브 select는 CSS에 안 잡히는 내장 좌측
