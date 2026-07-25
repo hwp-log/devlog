@@ -141,6 +141,8 @@
   --color-fg2: var(--fg2);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  /* 구분선 전용(0345) — border보다 진한 청회색. 짧은 선분에만 사용, 면 채움 금지 */
+  --color-divider: var(--divider);
   --color-work-dokkaebi: var(--work-dokkaebi);
   --color-work-pachinko: var(--work-pachinko);
   --color-work-poksak: var(--work-poksak);

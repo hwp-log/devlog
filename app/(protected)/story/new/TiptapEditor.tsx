@@ -46,9 +46,11 @@ function ToolbarButton({
   );
 }
 
-/* 툴바 그룹 구분선 — 색은 --border 토큰(bg-border 유틸), 장식이라 aria-hidden */
+/* 툴바 그룹 구분선 — 색은 --divider 토큰(구분선 전용, 0345). --border는 1px 세로 조각에선
+   식별 불가(헤어라인 알파가 긴 수평선 전제)라 별도 토큰. 폭 2px(w-0.5): 1px는 밝은 주변광에서
+   다크 배경 반사 리프트에 묻힘(실측 — 색 레버는 아이콘 밝기 직전까지 소진). 장식이라 aria-hidden */
 function ToolbarDivider() {
-  return <div aria-hidden className="w-px self-stretch bg-border" />;
+  return <div aria-hidden className="w-0.5 self-stretch bg-divider" />;
 }
 
 export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapEditorProps) {
