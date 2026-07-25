@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
 import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom';
 import { LayoutTemplate } from 'lucide-react';
-import { STORY_FORMS, formSkeletonHtml, sectionsToInsert } from '@/lib/story/template';
+import { STORY_FORMS, resolveFormatInsertion } from '@/lib/story/template';
 import { classifyDocSections } from '@/lib/story/empty-sections-doc';
 
-// 툴바 우측 끝 "서식" 버튼 + 팝오버. 양식 3종(촬영지 기록·코스 기록·자유) 중 하나를 고르면
-// 본문 양식이 그것으로 바뀐다. "삽입·보충"이 아니라 "양식 교체" — 빈 섹션은 걷어내고 새 양식을 넣되
-// 쓴 내용은 삭제하지 않는다. 표준(네이버·티스토리)도 템플릿을 통째로 불러오는 방식.
+// 툴바 우측 끝 "서식" 버튼 + 팝오버. 양식 5종 중 하나를 고르면 본문 양식이 그것으로 바뀐다.
+// "삽입·보충"이 아니라 "양식 교체" — 빈 섹션과 예시 원문 그대로인 섹션(0355)은 걷어내고
+// 새 양식을 넣되, 사용자가 쓴 내용은 삭제하지 않는다. 표준(네이버·티스토리)도 템플릿을 통째로
+// 불러오는 방식.
 // 팝오버는 React 트리 안에 인라인 렌더 — Pretendard가 상속으로 보존됨(0326 body-mount 문제 회피).
 // 위치만 @floating-ui/dom(strategy 'fixed', 0325 SlashCommand와 동일 — transform 조상 무관).
 export function FormatMenu({ editor }: { editor: Editor }) {
@@ -67,16 +68,16 @@ export function FormatMenu({ editor }: { editor: Editor }) {
 
   // 양식 교체 — 사용자가 쓴 내용은 어떤 경우에도 삭제하지 않는다.
   function applyForm(form: (typeof STORY_FORMS)[number]) {
-    // 표시(각주)와 같은 classify — 살아남는 섹션 + 빈 구간 삭제 위치 + 내용 유무를 현재 doc에서 재판정
+    // 표시(각주)와 같은 classify — 예시 원문 그대로인 구간은 "빈 것"으로 재판정됨(0355)
     const { survivingHeadings, emptyRanges, hasContent } = classifyDocSections(editor.state.doc);
-    // 살아남는 섹션과 heading이 겹치는 것은 제외하고 삽입할 섹션만
-    const html = formSkeletonHtml(sectionsToInsert(form.sections, survivingHeadings));
+    // 살아남는 섹션과 heading이 겹치는 것은 제외 — 삽입 HTML 해석은 resolveFormatInsertion 단일 규칙
+    const html = resolveFormatInsertion(form, survivingHeadings);
 
     if (!hasContent && form.sections.length > 0) {
-      // 내용이 하나도 없을 때만 전체 교체(빈 스켈레톤 포함) — 지울 사용자 내용이 없어 비파괴.
-      // 도입부가 첫 섹션(heading)으로 승격돼 앞 빈 문단은 불필요(두면 placeholder 없는 빈 줄만 남음).
+      // 사용자 내용이 하나도 없을 때(예시 원문 그대로 포함)만 전체 교체 — 지울 내용이 없어 비파괴.
+      // 이때 survivingHeadings는 빈 집합이라 html = 전체 골격(tail 콜아웃·끝 빈 문단 포함).
       // setContent는 emitUpdate 기본 true라 hidden input 동기됨.
-      editor.chain().focus().setContent(formSkeletonHtml(form.sections)).run();
+      editor.chain().focus().setContent(html).run();
     } else {
       // v1 절충: survivor가 있으면 새 섹션이 문서 끝에 append되어 양식 순서와 어긋날 수 있음
       //   (예: 근처 볼거리만 써둔 뒤 촬영지 기록 선택 → 근처 볼거리 다음에 분위기·촬영지 정보).
@@ -160,7 +161,7 @@ export function FormatMenu({ editor }: { editor: Editor }) {
           ))}
           {survivorCount > 0 && (
             <p role="note" className="px-2 pt-1.5 pb-1 text-xs text-muted border-t border-border mt-1">
-              내용이 있는 {survivorCount}개 섹션은 지우지 않아요
+              내용이 있는 섹션 {survivorCount}개는 지우지 않아요
             </p>
           )}
         </div>
