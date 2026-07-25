@@ -79,8 +79,9 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
     : null;
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="max-w-4xl mx-auto">
+    // 폭 단일 소스(0373 — 0321 일원화 방식): 860 = 글쓰기·수정과 동일 리터럴(0322 확정).
+    // 옛 max-w-7xl 래퍼는 ProtectedMain(max-w-7xl px-6)과 중복이라 제거, max-w-4xl(896)은 860으로 정합.
+    <div className="max-w-[860px] mx-auto">
       {/* 본문 카드 제거(0371 — READ 블록 1단계): 읽기 표면은 페이지 배경 위 개방 캔버스(0319의
           상세판), 카드는 조작 표면(지도·목록)에만. 글쓰기 화면과 동일 문법.
           하드코딩 색(#1A1A1A·slate)의 다크 미대응은 기존 백로그 — 이번 범위 아님 */}
@@ -180,7 +181,6 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         <Link href="/story" className="text-xs text-slate-500 hover:text-slate-800 transition-colors">
           ← 목록으로
         </Link>
-      </div>
       </div>
     </div>
   );
