@@ -123,6 +123,11 @@ export default function SpotMap({
   const [displayedSpot, setDisplayedSpot] = useState<LocalSpot | null>(null);
   const [mode, setMode] = useState<Mode>('menu');
   const [pulsingIds, setPulsingIds] = useState<Set<string>>(new Set());
+  // 테마 전환 페이드(0370 — SpotFinder 0296 이식): 재생성의 "빈 배경 번쩍 + 타일 촤락"을
+  // bg-card 면으로 가림. 첫 마운트는 제외(prevThemeRef null 가드), 해제는 tilesloaded once +
+  // 300ms 홀드(+2s failsafe). customStyleId 런타임 교체는 0297 실측 기각(호출 통과·스타일 미반영).
+  const [themeFade, setThemeFade] = useState(false);
+  const prevThemeRef = useRef<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
@@ -305,6 +310,10 @@ export default function SpotMap({
   useEffect(() => {
     if (status !== 'ready' || !resolvedTheme || !mapDivRef.current) return;
     const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 기록용
+    // 0296 이식(0370): 테마 "전환"만 페이드 발동 — 첫 실행(prevThemeRef null)은 제외
+    const themeChanged = prevThemeRef.current !== null && prevThemeRef.current !== resolvedTheme;
+    prevThemeRef.current = resolvedTheme;
+    const fadeInTimer = themeChanged ? window.setTimeout(() => setThemeFade(true), 0) : undefined;
     // WebGL 미지원(구형·차단·일부 헤드리스): 래스터 폴백 — 커스텀 스타일만 미적용, 기능 동일
     const supportsGl = !!document.createElement('canvas').getContext('webgl');
     // 타일 로드 전 SDK 기본 밝은 배경의 다크 깜빡임 방지 — 지도 div(테마 스코프 내부)에서 --card 실값 주입
@@ -328,10 +337,26 @@ export default function SpotMap({
     });
     // GL 지도는 비동기 초기화 — init 전 fitBounds는 빈 bounds 계산(SpotFinderMapNaver 실측). init 후 인스턴스 공개.
     const initListener = naver.maps.Event.once(map, 'init', () => setMapInstance(map));
+    // 0296 이식(0370): 오버레이 걷기 = tilesloaded 1회(once) + 300ms 홀드(마지막 타일 페인트 안착
+    // — SpotFinder 0297 실측 단축값. init은 GL 초기화 신호일 뿐 타일 미완이라 부적합).
+    // 안전망 2000ms — 타일 실패·이벤트 미도달 시 오버레이 고착 방지. 전환 아니면 아무것도 안 붙임.
+    let holdTimer: number | undefined;
+    const tilesListener = themeChanged
+      ? naver.maps.Event.once(map, 'tilesloaded', () => {
+          holdTimer = window.setTimeout(() => setThemeFade(false), 300);
+        })
+      : undefined;
+    const failsafeTimer = themeChanged
+      ? window.setTimeout(() => setThemeFade(false), 2000)
+      : undefined;
     return () => {
       const c = map.getCenter() as naver.maps.LatLng;
       viewRef.current = { lat: c.lat(), lng: c.lng(), zoom: map.getZoom() };
       naver.maps.Event.removeListener(initListener); // 해제는 핸들 기반 — (target,type,fn)식은 조용히 누수
+      if (tilesListener) naver.maps.Event.removeListener(tilesListener);
+      if (fadeInTimer !== undefined) clearTimeout(fadeInTimer);
+      if (holdTimer !== undefined) clearTimeout(holdTimer);
+      if (failsafeTimer !== undefined) clearTimeout(failsafeTimer);
       setMapInstance(null);
       destroyedMaps.add(map); // destroy 직전 기록 — 별도 커밋의 ⑤⑥ 클린업 가드가 참조(테마 전환)
       map.destroy();
@@ -515,6 +540,12 @@ export default function SpotMap({
               리뷰장소 전체보기
             </button>
           )}
+          {/* 테마 전환 페이드 오버레이(0370 — SpotFinder 0296 이식, :1137 클래스 동일).
+              z-20 = 전체보기 버튼(z-10) 위·사이드 팝오버(z-50) 아래 — 전환 중 버튼까지 가림이 목적 */}
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 z-20 bg-card transition-opacity duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] ${themeFade ? 'opacity-100' : 'opacity-0'}`}
+          />
           {/* 명령형 지도 마운트 지점 — 마커·폴리라인은 effect로 부착(② 단계), 선언형 자식 없음 */}
           <div ref={mapDivRef} className="w-full h-full" />
           {mode === 'search' && (
