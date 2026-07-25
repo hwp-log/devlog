@@ -142,9 +142,6 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 placeholder="그곳에서 어떤 장면을 만났나요?..."
               />
               <input type="hidden" name="content" value={content} />
-              <p className="text-xs text-muted mt-1.5">
-                회색 안내 문구는 저장되지 않아요. 소제목은 자유롭게 바꾸거나 지워도 돼요.
-              </p>
             </div>
             <div className="flex flex-col pt-[46px]">
               <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span>({tags.length}/5)</span></label>
@@ -183,14 +180,10 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               )}
               <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             </div>
-            {/* 발행 조건 안내 — 서버 필수 검증은 제목·본문뿐(actions.ts)이라 아래(플랜·동선)는
-                실제로 선택. 등록 버튼이 여행동선 아래라 다 채워야 하는 것처럼 읽히는 문제 완화.
-                어휘는 본문 보조 안내와 동일(text-xs text-muted). */}
-            <p className="mt-[34px] text-xs text-muted">여기까지만 써도 발행할 수 있어요. 아래는 선택이에요.</p>
             {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
                 눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
                 비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9).
-                pt-[24px]는 위 발행 안내 문구와의 간격. */}
+                pt-[24px]는 위 태그 필드와의 간격(발행 안내 문구 삭제로 기준 변경). */}
             {availablePlans.length > 0 && (
               <div className="flex flex-col pt-[24px]">
                 <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
