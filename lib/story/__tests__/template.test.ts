@@ -25,7 +25,7 @@ describe('STORY_FORMS heading 유일성 (예시 서명 매칭 안전)', () => {
 });
 
 describe('resolveFormatInsertion — 항상 전체 골격(0359 전체 교체)', () => {
-  it('전 섹션 + tail(hr·콜아웃) + 끝 빈 문단을 반환한다', () => {
+  it('전 섹션 + tail(콜아웃) + 끝 빈 문단을 반환한다', () => {
     const html = resolveFormatInsertion(pilgrimage);
     for (const s of pilgrimage.sections) expect(html).toContain(`<h2>${s.heading}</h2>`);
     expect(html).toContain('data-callout="tip"');

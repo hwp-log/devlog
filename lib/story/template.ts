@@ -9,7 +9,8 @@
 // v1.1에서 사용자 저장 양식을 이 배열에 합칠 수 있는 형태로 둔다.
 //
 // 구조(4양식 공통 골격): 도입 섹션(H2 + 인용으로 감싼 첫 문단) → 본문 섹션들 → tailHtml.
-// tailHtml = hr + 💡팁 + ❓FAQ 콜아웃 묶음. heading 구간 규칙상 "마지막 섹션 구간"에 속한다 —
+// tailHtml = 💡팁 + ❓FAQ 콜아웃 묶음(0362: 시안의 hr은 preflight 검은 선으로 렌더되고
+// 콜아웃 배경색이 구분 역할을 대체해 제거). heading 구간 규칙상 "마지막 섹션 구간"에 속한다 —
 // 삽입(resolveFormatInsertion)과 판정(PRISTINE_TEXT_BY_HEADING)이 이 전제를 공유한다.
 // 콜아웃 HTML은 0352 저장 규약(div[data-callout] > p+, 첫 p=제목, FAQ 2번째 p=질문) 준수.
 // 이모지는 데이터에 없음(CSS ::before 파생) — 제목·본문 텍스트에 이모지 금지.
@@ -37,7 +38,7 @@ export const STORY_FORMS = [
       },
     ],
     tailHtml:
-      '<hr><div data-callout="tip"><p>가는 길</p><p>구룡포항 뒤편에서 언덕까지 걸어서 5분. 계단이 가파르니 편한 신발로.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>겨울에 가도 괜찮나요?</p><p>바람이 세지만 사람이 적어 오히려 조용합니다.</p></div>',
+      '<div data-callout="tip"><p>가는 길</p><p>구룡포항 뒤편에서 언덕까지 걸어서 5분. 계단이 가파르니 편한 신발로.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>겨울에 가도 괜찮나요?</p><p>바람이 세지만 사람이 적어 오히려 조용합니다.</p></div>',
   },
   {
     key: 'review',
@@ -61,7 +62,7 @@ export const STORY_FORMS = [
       },
     ],
     tailHtml:
-      '<hr><div data-callout="tip"><p>가기 전에</p><p>창가 자리를 원하면 예약할 때 말해두는 게 좋다.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>예약 없이 가도 되나요?</p><p>주말은 자리가 없을 수 있어요. 평일 점심은 당일도 가능한 편입니다.</p></div>',
+      '<div data-callout="tip"><p>가기 전에</p><p>창가 자리를 원하면 예약할 때 말해두는 게 좋다.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>예약 없이 가도 되나요?</p><p>주말은 자리가 없을 수 있어요. 평일 점심은 당일도 가능한 편입니다.</p></div>',
   },
   {
     key: 'course',
@@ -85,7 +86,7 @@ export const STORY_FORMS = [
       },
     ],
     tailHtml:
-      '<hr><div data-callout="tip"><p>이 코스의 팁</p><p>차가 편하다. 시장을 오전 일찍 들르고 등대는 해 질 무렵에 두면 좋다.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>대중교통으로도 갈 수 있나요?</p><p>버스가 드물어 차를 권합니다. 포항 시내에서 청하면까지 40분쯤 걸려요.</p></div>',
+      '<div data-callout="tip"><p>이 코스의 팁</p><p>차가 편하다. 시장을 오전 일찍 들르고 등대는 해 질 무렵에 두면 좋다.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>대중교통으로도 갈 수 있나요?</p><p>버스가 드물어 차를 권합니다. 포항 시내에서 청하면까지 40분쯤 걸려요.</p></div>',
   },
   {
     key: 'pilgrimage',
@@ -109,7 +110,7 @@ export const STORY_FORMS = [
       },
     ],
     tailHtml:
-      '<hr><div data-callout="tip"><p>촬영 꿀팁</p><p>정문 담장 앞에서 살짝 올려다보는 로우앵글이 그 장면과 가장 비슷하다.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>입장료가 있나요?</p><p>카페 이용 시 별도 입장료는 없어요.</p></div>',
+      '<div data-callout="tip"><p>촬영 꿀팁</p><p>정문 담장 앞에서 살짝 올려다보는 로우앵글이 그 장면과 가장 비슷하다.</p></div><div data-callout="faq"><p>자주 묻는 질문</p><p>입장료가 있나요?</p><p>카페 이용 시 별도 입장료는 없어요.</p></div>',
   },
   {
     key: 'free',

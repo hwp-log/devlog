@@ -373,6 +373,17 @@ body {
     /* 마커는 보조 요소 — 무채 강조 차등(0323 상태 위계) */
   }
 
+  /* hr(0362) — 규칙이 없으면 preflight(border-top 1px + currentColor=본문색)가 검은 선으로
+     렌더. 사용자가 "---" 입력 규칙(StarterKit horizontalRule)으로 넣을 수 있어 토큰 정리.
+     --border는 긴 수평선 전제 헤어라인 토큰. 두께 1px — 0.5px은 비레티나에서 0으로 반올림될
+     수 있고, 길이가 있으면 --border 1px로 충분히 읽힘(0345 실측). 카드·밑줄과 같은 1px 어휘.
+     양식 프리필의 hr은 0362에서 제거됨(콜아웃 배경색이 구분 역할) — 이 규칙은 사용자 입력·기존 글용 */
+  .tiptap-content hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: var(--tiptap-p-gap) 0;
+  }
+
   .tiptap-content blockquote {
     border-left: 3px solid var(--border);
     padding-left: 1rem;
@@ -455,6 +466,30 @@ body {
   .tiptap-content> :first-child,
   .tiptap-content .ProseMirror> :first-child {
     margin-top: 0;
+  }
+
+  /* 컨테이너 하단 이중 여백 제거(0360) — 위 first-child 규칙의 대칭 짝. 마지막 블록 아래엔
+     받을 형제가 없어 margin이 컨테이너 패딩·다음 요소 여백과 이중으로 겹침(편집: 끝 빈 문단
+     12px + py-3 12px 누적이 답답함의 주원인). 라인 박스(이어쓰기 클릭 타깃)는 불변 */
+  .tiptap-content> :last-child,
+  .tiptap-content .ProseMirror> :last-child {
+    margin-bottom: 0;
+  }
+
+  /* 문서 끝 빈 문단 힌트(0361) — trailingNode가 자동 유지하는 끝 빈 <p>가 정체 불명 공백으로
+     읽혀 CSS만으로 힌트 표시(placeholder 확장 재도입 없음). 실측: PM은 빈 문단을
+     <p><br class="ProseMirror-trailingBreak"></p>로 렌더 → :empty 불성립, br은 void라
+     ::before 불가 → :has()로 판별. :last-child 한정(중간 빈 문단에도 trailingBreak가 붙음).
+     ★ .ProseMirror 한정 필수 — .tiptap-content는 상세와 공유되고 저장 글도 끝 빈 문단이 있어
+     상세에 걸면 게시물에 문구가 노출됨(상세는 innerHTML 직계라 .ProseMirror 없음).
+     float+height:0 = 캐럿이 문구 시작점에 겹치는 표준 placeholder 패턴. 크기는 본문 상속.
+     커서 자리이므로 클릭은 통과(pointer-events) */
+  .tiptap-content .ProseMirror>p:last-child:has(>br.ProseMirror-trailingBreak:only-child)::before {
+    content: "'/' 를 입력해 블록을 추가하세요";
+    color: var(--muted);
+    float: left;
+    height: 0;
+    pointer-events: none;
   }
 
   /* 드래그 핸들 (tiptap-extension-global-drag-handle) — 패키지가 뷰포트 좌표를

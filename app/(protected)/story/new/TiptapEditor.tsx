@@ -108,10 +108,11 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   }
 
   return (
-    // 카드 테두리·배경(bg-card) 제거 — 본문을 페이지 배경 위에 놓아 상세(읽는 화면)와 같은 캔버스로(0319 원칙).
-    // 포커스 링도 제거(0344) — 폐기된 시안 ⑥(상자 전제) 어휘. 본문은 필드가 아닌 개방 캔버스이며
-    // 포커스 신호는 캐럿·툴바 버튼 활성·플레이스홀더 소멸 3중으로 확보.
-    <div>
+    // 테두리 복원(0364, 현우 결정) — 툴바+본문을 한 상자로. 본문 영역의 끝이 모호하던 문제를
+    // 상자로 닫고, 본문 시작선이 제목·태그와 어긋나는 것(pl만큼)은 수용. 배경은 여전히 페이지
+    // 배경(0319의 bg 제거 유지) — 선만 두르고 면은 칠하지 않음. radius는 팝오버·버블 메뉴와
+    // 같은 10px 카드 어휘. 포커스 링 없음(0344) — 포커스 신호는 캐럿·툴바 활성으로 유지.
+    <div className="rounded-[10px] border border-border">
       <input
         ref={fileInputRef}
         type="file"
@@ -223,13 +224,17 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           <LinkIcon size={16} />
         </ToolbarButton>
       </BubbleMenu>
-      {/* px-0 = 상자 제거된 4필드(제목·태그·플랜)와 함께 컨테이너 끝선 flush(0341). 카드가 없어져 핸들 gutter(옛 sm:pl-[38px]) 제거.
-          드래그 핸들은 node.left-20에 뜨므로 텍스트 0 기준 [container-20, container] — 완전히 좌측 gutter로 빠짐(main px-6 안, 클리핑·가로스크롤 없음. 모바일은 hover 없어 미표시). */}
+      {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
+          구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)
+          상자를 두르면 pl ≥ 20이어야 테두리를 안 침범. sm:pl-[38px] = 0341 이전 카드 시절 파생값
+          복원(핸들 20 + 여유 18 → 핸들이 상자 안 [18,38] 구간, li 핸들도 [22,42]로 내부).
+          모바일은 hover 없어 핸들 미표시라 pl-4(상자 내부 숨통)만. pr-4는 우측 대칭 숨통.
+          0363의 border-b(하한선)는 상자 하단이 역할을 대체해 제거. */}
       {/* [&_.ProseMirror]:outline-none = 편집영역 포커스 시 브라우저 기본 파란 아웃라인 제거.
           (래퍼의 focus-within:outline-none은 정작 포커스 받는 안쪽 .ProseMirror엔 안 먹어 남던 테두리) */}
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-0 py-3 text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none"
+        className="tiptap-content min-h-[260px] py-3 pl-4 pr-4 sm:pl-[38px] text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none"
       />
     </div>
   );
