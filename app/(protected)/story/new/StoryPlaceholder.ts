@@ -17,12 +17,18 @@ import { STORY_ALL_SECTIONS } from '@/lib/story/template';
 
 const storyPlaceholderKey = new PluginKey('storyPlaceholder');
 
-// 커스텀 Placeholder. 매 상태변경마다 top-level을 훑어 "heading 바로 다음에 오는 첫 빈 문단"에만
-// data-placeholder + is-empty를 붙인다(그 외 빈 문단엔 안 붙임 → 엔터로 생긴 빈 줄에 안내가
-// 반복·겹치지 않음). 도입부는 이제 각 양식의 첫 섹션(heading)이라 특수 분기가 없다.
-// 자유형·빈 본문(heading 전무)에서는 어떤 안내도 띄우지 않는다(자유롭게 쓰도록).
+// 커스텀 Placeholder. 매 상태변경마다 top-level을 훑어 두 자리에만 data-placeholder + is-empty를 붙인다:
+// ① "heading 바로 다음에 오는 첫 빈 문단" → 섹션 문구(예: …). 도입부는 각 양식의 첫 섹션이라 특수 분기 없음.
+// ② "문서 맨 끝 빈 문단(heading 직후 아님)" → 슬래시 안내(SLASH_HINT). 슬래시 명령 발견성(0333 동기)을
+//    본문 안에서 해결. heading 직후면 ①이 이긴다 — 프리필 새 글의 끝(h2+빈 문단)은 섹션 문구 유지.
+// 그 외 빈 문단(중간 빈 줄)엔 안 붙임 → 엔터로 생긴 빈 줄에 안내가 반복·겹치지 않음.
+// 0336 "자유형·빈 본문 무안내"는 *내용* 간섭 배제의 뜻 — 슬래시 안내는 도구 사용법이라 예외로 빈
+// 본문 단독 문단에도 표시한다(사용자 확정).
 // is-empty가 "문구 붙는 문단"에만 있으므로 CSS는 그 문단만 block 처리하면 되고, 안 붙는 빈
 // 문단은 클래스가 없어 기존 동작(캐럿 정상)을 유지한다.
+
+export const SLASH_HINT = "'/' 를 입력해 블록을 추가하세요";
+
 export function createStoryPlaceholder(fallback: string) {
   return Extension.create({
     name: 'storyPlaceholder',
@@ -42,18 +48,31 @@ export function createStoryPlaceholder(fallback: string) {
                 const prev = prevNode;
                 prevNode = node; // 다음 반복용으로 먼저 갱신
                 if (!node.isTextblock || !isNodeEmpty(node)) return;
-                // heading 바로 다음 첫 빈 문단만 → 그 섹션 문구. 그 외 빈 문단은 데코 없음.
-                if (!prev || prev.type.name !== 'heading') return;
 
-                const heading = prev.textContent.trim();
-                const text = STORY_ALL_SECTIONS.find((s) => s.heading === heading)?.prompt ?? fallback;
+                if (prev && prev.type.name === 'heading') {
+                  // ① heading 바로 다음 첫 빈 문단 → 그 섹션 문구 (마지막 노드여도 이 분기가 우선)
+                  const heading = prev.textContent.trim();
+                  const text =
+                    STORY_ALL_SECTIONS.find((s) => s.heading === heading)?.prompt ?? fallback;
+                  decorations.push(
+                    Decoration.node(offset, offset + node.nodeSize, {
+                      class: 'is-empty',
+                      'data-placeholder': text,
+                    }),
+                  );
+                  return;
+                }
 
-                decorations.push(
-                  Decoration.node(offset, offset + node.nodeSize, {
-                    class: 'is-empty',
-                    'data-placeholder': text,
-                  }),
-                );
+                // ② 문서 맨 끝 빈 문단(문단 한정 — 빈 heading 제외) → 슬래시 안내
+                const isLast = offset + node.nodeSize === doc.content.size;
+                if (isLast && node.type.name === 'paragraph') {
+                  decorations.push(
+                    Decoration.node(offset, offset + node.nodeSize, {
+                      class: 'is-empty',
+                      'data-placeholder': SLASH_HINT,
+                    }),
+                  );
+                }
               });
               return DecorationSet.create(doc, decorations);
             },
