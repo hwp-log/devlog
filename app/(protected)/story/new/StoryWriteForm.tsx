@@ -130,8 +130,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 name="title"
                 type="text"
                 defaultValue={initialData?.title ?? ''}
-                placeholder="제목을 입력하세요"
-                className="w-full px-0 pt-[2px] pb-[10px] text-[21px] sm:text-[23px] font-bold tracking-[-0.02em] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
+                className="w-full px-0 pt-[2px] pb-[10px] text-[21px] sm:text-[23px] font-bold tracking-[-0.02em] text-fg bg-transparent border-0 border-b border-border focus:outline-none focus:border-primary"
               />
             </div>
             <div className="flex flex-col pt-[46px]">
