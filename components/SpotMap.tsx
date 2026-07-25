@@ -151,16 +151,65 @@ export default function SpotMap({
     mapInstance?.panTo(new naver.maps.LatLng(lat, lng));
   }
 
-  // 초기 1회 전체 스팟 핏 — 카카오 setBounds(패딩 60) 상응. mapInstance는 init 후에만 세팅되므로 안전
-  useEffect(() => {
-    if (!mapInstance || fitDoneRef.current || spots.length < 2) return;
-    const bounds = new naver.maps.LatLngBounds(
-      new naver.maps.LatLng(spots[0].lat, spots[0].lng),
-      new naver.maps.LatLng(spots[0].lat, spots[0].lng),
+  // 전체 스팟 뷰 산출(0367) — 초기 뷰와 "전체 보기" 버튼이 공유하는 단일 규칙.
+  // GL fitBounds는 신뢰 불가 실측 2건(SpotFinderMapNaver:212 퇴화 스팬 무시 · :656 준비 전 빈
+  // bounds) → SpotFinder moveToStage2와 같은 "프로젝션 직접 산출" 방식 재사용. 초기 뷰는 전환
+  // 질감이 불필요해 morph 대신 setCenter+setZoom(0ms 점프가 정답 — SpotFinder의 기각 사유는
+  // 질감이지 기능 아님). 마진 균등 60이라 SpotFinder의 비대칭 마진 보정항은 생략.
+  // 규칙(업계 표준 — 단일 지점 bounds는 크기 0이라 fitBounds 과확대):
+  //   1개 또는 전부 근접(마커 병합과 같은 MERGE_EPSILON_KM 재사용, 첫 스팟 기준 — 초기 뷰
+  //   목적엔 충분) → center + ZOOM_FOCUS(16: 검색·찍기 확대와 동일 맥락의 기확정 상수).
+  //   이격 → 산출 줌을 ZOOM_FOCUS 상한으로 클램프(근접 판정을 새는 엣지도 같은 상한).
+  // 반환 false = 컨테이너 실측 전(size 0) — 호출부가 rAF 재시도(이전 fitBounds 미적용 증상의 처방).
+  function fitAllSpots(map: naver.maps.Map, spotList: LocalSpot[]): boolean {
+    if (spotList.length === 0) return true;
+    const allNear = spotList.every(s => haversineKm(spotList[0], s) < MERGE_EPSILON_KM);
+    if (spotList.length === 1 || allNear) {
+      map.setCenter(new naver.maps.LatLng(spotList[0].lat, spotList[0].lng)); // ★★★ lat first
+      map.setZoom(ZOOM_FOCUS);
+      return true;
+    }
+    const size = map.getSize();
+    if (!size || size.width === 0 || size.height === 0) return false;
+    let minLat = spotList[0].lat, maxLat = minLat, minLng = spotList[0].lng, maxLng = minLng;
+    for (const s of spotList) {
+      minLat = Math.min(minLat, s.lat); maxLat = Math.max(maxLat, s.lat);
+      minLng = Math.min(minLng, s.lng); maxLng = Math.max(maxLng, s.lng);
+    }
+    // Mercator 상수 하드코딩 대신 SDK 프로젝션 위임 — GL 도/픽셀 비가 표준 256 예측과 어긋났던
+    // 실측 이력(SpotFinder 주석) 준용
+    const proj = map.getProjection();
+    const pSW = proj.fromCoordToOffset(new naver.maps.LatLng(minLat, minLng));
+    const pNE = proj.fromCoordToOffset(new naver.maps.LatLng(maxLat, maxLng));
+    const dx = Math.abs(pNE.x - pSW.x);
+    const dy = Math.abs(pNE.y - pSW.y);
+    const FIT_PADDING = 60; // 구 fitBounds 패딩 60 유지
+    const availW = size.width - FIT_PADDING * 2;
+    const availH = size.height - FIT_PADDING * 2;
+    const dz = Math.log2(Math.min(availW / dx, availH / dy));
+    const targetZoom = Math.min(Math.max(map.getZoom() + dz, map.getMinZoom()), ZOOM_FOCUS);
+    const center = proj.fromOffsetToCoord(
+      new naver.maps.Point((pSW.x + pNE.x) / 2, (pSW.y + pNE.y) / 2),
     );
-    spots.forEach(s => bounds.extend(new naver.maps.LatLng(s.lat, s.lng))); // ★★★ lat first
-    mapInstance.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+    map.setCenter(center);
+    map.setZoom(targetZoom);
+    return true;
+  }
+
+  // 초기 1회 전체 스팟 뷰(0367) — fitDoneRef로 초기 로드에만. 스팟 추가·삭제 시 재맞춤 없음
+  // (추가 흐름의 morph(ZOOM_FOCUS)·panTo·펄스와 충돌 방지). 테마 재생성 시엔 fitDoneRef=true +
+  // viewRef 복원(0317)이라 재실행 없음 — 보던 뷰 유지 불변.
+  useEffect(() => {
+    if (!mapInstance || fitDoneRef.current || spots.length === 0) return;
     fitDoneRef.current = true;
+    let frame = 0;
+    let tries = 0;
+    const attempt = () => {
+      if (fitAllSpots(mapInstance, spots)) return;
+      if (++tries < 30) frame = requestAnimationFrame(attempt); // 컨테이너 실측 대기(최대 ~0.5s)
+    };
+    attempt();
+    return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 최초 마운트 스팟 기준 1회(fitDoneRef 가드)
   }, [mapInstance]);
 
@@ -605,14 +654,26 @@ export default function SpotMap({
                   <div className="max-h-[220px] md:max-h-[360px] overflow-y-auto">
                     <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setMode('menu')}
-                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
-                  >
-                    <ArrowLeft size={14} />
-                    뒤로
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMode('menu')}
+                      className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    >
+                      <ArrowLeft size={14} />
+                      뒤로
+                    </button>
+                    {/* 전체 보기(0367) — 목록·마커 클릭(panTo·펄스)으로 확대해 돌아다닌 뒤 전체로
+                        복귀하는 수단. 초기 뷰와 같은 fitAllSpots 공유(명시적 행동이라 초기 1회
+                        제한의 예외). "장소 보기" = 전체 현황 맥락이라 이 카드가 자연스러운 자리 */}
+                    <button
+                      type="button"
+                      onClick={() => { if (mapInstance) fitAllSpots(mapInstance, localSpots); }}
+                      className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    >
+                      전체 보기
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
