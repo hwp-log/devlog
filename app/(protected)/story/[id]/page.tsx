@@ -88,10 +88,12 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <div className="flex items-start justify-between gap-4 mb-6">
             <h1 className="text-3xl font-bold text-[#1A1A1A] leading-tight">{story.title}</h1>
             {isOwner && (
-              <div className="flex items-center gap-2 shrink-0">
+              // 텍스트 링크화(0372, 시안 실측) — 수정 primary(시안 accent=#4c9aff ≈ primary 매핑,
+              // 프로젝트 accent는 별점 전용이라 오용 금지) / 삭제 muted. pt-[6px] = 제목과 flex-start 정렬 보정
+              <div className="flex items-center gap-[14px] shrink-0 pt-[6px]">
                 <Link
                   href={`/story/${story.id}/edit`}
-                  className="px-4 py-1.5 rounded-full text-sm bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors"
+                  className="text-[13px] font-medium text-primary hover:underline transition-colors"
                 >
                   수정
                 </Link>
@@ -99,35 +101,38 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-            <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
+          {/* 메타(0372 시안): 날짜 모노 · 18px 원형 배지 · 이름, 13px/500/muted. slate → muted 토큰 */}
+          <div className="mt-[14px] flex items-center gap-2 text-[13px] font-medium text-muted mb-6">
+            <span className="font-mono">{story.createdAt.toLocaleDateString('ko-KR')}</span>
             <span>·</span>
-            <AuthorAvatar nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
+            <AuthorAvatar variant="badge" nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
             <span>{story.user.nickname}</span>
           </div>
           <div
             className="tiptap-content text-base leading-relaxed mb-6"
             dangerouslySetInnerHTML={{ __html: story.content }}
           />
-          {story.tags.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap mb-4">
+          {/* 태그·좋아요 한 줄 양끝(0372 시안): 본문 종결선(border-t) 아래. 태그 div는 0개여도
+              빈 채 렌더 — justify-between에서 좋아요 우측 고정 유지. slate 칩 → surface2+border 토큰 */}
+          <div className="mt-[36px] pt-[20px] border-t border-border flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
               {story.tags.map((tag) => (
                 <Link
                   key={tag.id}
                   href={`/story?q=${encodeURIComponent(tag.name)}`}
-                  className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 cursor-pointer hover:bg-slate-200 transition-colors"
+                  className="text-[12.5px] px-[12px] py-[5px] rounded-full bg-surface2 border border-border text-fg2 cursor-pointer hover:bg-popover transition-colors"
                 >
                   #{tag.name}
                 </Link>
               ))}
             </div>
-          )}
-          <LikeButton
-            storyId={story.id}
-            initialLiked={!!myLike}
-            initialCount={story._count.likes}
-            isLoggedIn={!!currentUser}
-          />
+            <LikeButton
+              storyId={story.id}
+              initialLiked={!!myLike}
+              initialCount={story._count.likes}
+              isLoggedIn={!!currentUser}
+            />
+          </div>
       </div>
       {story.storySpots.length > 0 && (
         // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
