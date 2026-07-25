@@ -4,7 +4,11 @@ import { Extension, type Editor, type Range } from '@tiptap/core';
 import { ReactRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionProps } from '@tiptap/suggestion';
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
-import { Heading2, List, Quote, Image as ImageIcon, type LucideIcon } from 'lucide-react';
+import {
+  Heading2, List, Quote, Image as ImageIcon,
+  Lightbulb, MessageCircleQuestion, TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface SlashItem {
   label: string;
@@ -48,6 +52,28 @@ function buildItems(onImagePick: () => void): SlashItem[] {
         editor.chain().focus().deleteRange(range).run();
         onImagePick();
       },
+    },
+    // 콜아웃 3종 — 라벨·설명에 이모지 금지(종류 표시는 블록 자체의 ::before가 담당)
+    {
+      label: '팁',
+      description: '핵심 팁 강조 상자',
+      icon: Lightbulb,
+      keywords: ['팁', 'tip', 'callout', '콜아웃'],
+      run: (editor, range) => editor.chain().focus().deleteRange(range).insertCallout('tip').run(),
+    },
+    {
+      label: 'FAQ',
+      description: '질문·답변 상자',
+      icon: MessageCircleQuestion,
+      keywords: ['faq', '질문', '문답', 'callout', '콜아웃'],
+      run: (editor, range) => editor.chain().focus().deleteRange(range).insertCallout('faq').run(),
+    },
+    {
+      label: '주의',
+      description: '주의사항 강조 상자',
+      icon: TriangleAlert,
+      keywords: ['주의', 'warn', 'warning', 'caution', 'callout', '콜아웃'],
+      run: (editor, range) => editor.chain().focus().deleteRange(range).insertCallout('warn').run(),
     },
   ];
 }
@@ -143,9 +169,16 @@ export function createSlashCommand(onImagePick: () => void) {
           editor: this.editor,
           char: '/',
           startOfLine: true,
-          // 제목·인용 등 다른 블록 내부에서는 발동하지 않음 (문단만)
-          allow: ({ state, range }) =>
-            state.doc.resolve(range.from).parent.type.name === 'paragraph',
+          // 제목·인용 등 다른 블록 내부에서는 발동하지 않음 (문단만).
+          // 콜아웃 내부 문단도 제외 — 스키마상 중첩 불가지만 메뉴 자체를 안 띄워 UX로도 차단
+          allow: ({ state, range }) => {
+            const $pos = state.doc.resolve(range.from);
+            if ($pos.parent.type.name !== 'paragraph') return false;
+            for (let d = $pos.depth; d > 0; d--) {
+              if ($pos.node(d).type.name === 'callout') return false;
+            }
+            return true;
+          },
           items: ({ query }) => {
             const q = query.toLowerCase();
             return allItems.filter(

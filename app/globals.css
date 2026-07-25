@@ -381,6 +381,60 @@ body {
     /* 토큰 var() 직결 — 0323 패턴, 다크 자동 */
   }
 
+  /* 콜아웃(Callout.ts) — 저장 HTML: div[data-callout=tip|faq|warn] > p+(첫 p = 제목).
+     이모지는 데이터에 없고 data-callout 값에서 ::before로 파생 — 편집(.ProseMirror 아래)·
+     상세(innerHTML 직계) 모두 후손 셀렉터 한 벌로 커버(blockquote와 같은 패턴).
+     시안(dotrip-양식-프리필-최종본): bg #f4f6f8→card(컨테이너 면 어휘, surface2는 활성 상태
+     ·popover는 부유 레이어라 부적합), radius 10→radius-base, 본문 #4a5058→fg2. 다크는 토큰 자동 */
+  .tiptap-content div[data-callout] {
+    position: relative;
+    background: var(--card);
+    border-radius: var(--radius-base);
+    padding: 14px 16px 14px 48px;
+    /* 48 = 16(패딩) + 이모지 폭 ~20 + gap 12 — 시안 flex gap:12의 등가(문단 직계 유지 위해 flex 대신 absolute) */
+    margin: 0.75rem 0;
+  }
+
+  .tiptap-content div[data-callout]::before {
+    position: absolute;
+    left: 16px;
+    top: 14px;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  .tiptap-content div[data-callout="tip"]::before {
+    content: '💡';
+  }
+
+  .tiptap-content div[data-callout="faq"]::before {
+    content: '❓';
+  }
+
+  .tiptap-content div[data-callout="warn"]::before {
+    content: '⚠️';
+  }
+
+  /* 내부 문단은 콜아웃 전용 리듬 — 문단 위치가 곧 역할(저장 구조 규약과 동기):
+     첫 p = 제목(500·fg), FAQ 2번째 p = 질문(500), 나머지 = 본문(fg2) */
+  .tiptap-content div[data-callout] p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--fg2);
+  }
+
+  .tiptap-content div[data-callout] p:first-child {
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 3px;
+  }
+
+  .tiptap-content div[data-callout="faq"] p:nth-child(2) {
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
   .tiptap-content a {
     color: var(--primary);
     /* 정본(lib/theme.ts) primary 역할에 "링크" 명시 */

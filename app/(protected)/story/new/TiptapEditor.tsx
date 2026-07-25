@@ -7,8 +7,12 @@ import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 // tiptap 확장 Link·Image와 이름 충돌 — 별칭 필수
-import { Image as ImageIcon, Link as LinkIcon, List, Quote } from 'lucide-react';
+import {
+  Image as ImageIcon, Link as LinkIcon, List, Quote,
+  Lightbulb, MessageCircleQuestion, TriangleAlert,
+} from 'lucide-react';
 import { uploadStoryImage } from '@/lib/supabase/storage';
+import { Callout } from './Callout';
 import { createSlashCommand } from './SlashCommand';
 import { FormatMenu } from './FormatMenu';
 import { createStoryPlaceholder } from './StoryPlaceholder';
@@ -62,6 +66,7 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       StarterKit.configure({ link: false }),
       Image,
       Link.configure({ openOnClick: false }),
+      Callout,
       // 스톡 Placeholder 대신 커스텀(전 문서 스캔) — 스톡 뷰포트 윈도잉이 양식 전체 replace 후
       // 데코를 소실시켜서(0336 증상 B). 상세 사유는 StoryPlaceholder.ts 상단 주석 참조.
       createStoryPlaceholder(placeholder ?? '내용을 입력하세요...'),
@@ -145,6 +150,28 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
           label="인용"
         >
           <Quote size={16} />
+        </ToolbarButton>
+        {/* 콜아웃 3종 — 블록 구조 계열이라 그룹1(인용 옆). 삽입 그룹(3)은 외부 자산 어휘라 부적합 */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().insertCallout('tip').run()}
+          isActive={editor.isActive('callout', { kind: 'tip' })}
+          label="팁 콜아웃"
+        >
+          <Lightbulb size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().insertCallout('faq').run()}
+          isActive={editor.isActive('callout', { kind: 'faq' })}
+          label="FAQ 콜아웃"
+        >
+          <MessageCircleQuestion size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().insertCallout('warn').run()}
+          isActive={editor.isActive('callout', { kind: 'warn' })}
+          label="주의 콜아웃"
+        >
+          <TriangleAlert size={16} />
         </ToolbarButton>
         <ToolbarDivider />
         <ToolbarButton
