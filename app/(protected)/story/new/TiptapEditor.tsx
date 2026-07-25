@@ -105,9 +105,9 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
 
   return (
     // 카드 테두리·배경(bg-card) 제거 — 본문을 페이지 배경 위에 놓아 상세(읽는 화면)와 같은 캔버스로(0319 원칙).
-    // 상시 테두리 대신 focus-within 링만 — 본문에 포커스가 있을 때 --border 1px로 편집 영역 경계 표시.
-    // 툴바 버튼은 onMouseDown preventDefault라 포커스를 안 뺏음 → 클릭해도 링 유지(깜빡임 없음).
-    <div className="rounded-[10px] focus-within:ring-1 focus-within:ring-border">
+    // 포커스 링도 제거(0344) — 폐기된 시안 ⑥(상자 전제) 어휘. 본문은 필드가 아닌 개방 캔버스이며
+    // 포커스 신호는 캐럿·툴바 버튼 활성·플레이스홀더 소멸 3중으로 확보.
+    <div>
       <input
         ref={fileInputRef}
         type="file"
