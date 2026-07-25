@@ -9,9 +9,8 @@ import { SpotPopup } from './SpotPopup';
 import { getSpotColor } from '@/lib/spot-color';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
-import { Search, MapPin, ArrowUpDown, ArrowLeft, Lightbulb } from 'lucide-react';
+import { Search, MapPin, ArrowLeft } from 'lucide-react';
 
-const LONG_DISTANCE_KM = 50;
 const MERGE_EPSILON_KM = 0.05; // 50m 이내 = 같은 장소로 병합
 
 // 줌 매핑(카카오 level→네이버 zoom 근사, 실화면 보정 대상): 기본 level5≈13 / 검색·찍기 확대 level3≈16
@@ -52,30 +51,23 @@ function groupByProximity(spots: LocalSpot[]): MarkerGroup[] {
   return groups;
 }
 
-// 마커 HTML(번호 알약 + 펄스) — 구 CustomOverlayMap JSX와 시각 동일 재현.
+// 마커 HTML(색 도트 + 펄스) — 0364: 순서 폐기로 번호 라벨 제거, 고정 크기 도트.
+// 목록↔마커 대응은 색 + 선택 펄스(handleSpotSelect→triggerPulse)가 담당(번호 대체 수단 실측 확인).
 // 바깥 래퍼 translate(-50%,-50%) + anchor(0,0) = 카카오 중앙 앵커 상응. isDark는 그림자만 분기.
 // 펄스 애니메이션은 globals.css @keyframes spot-pulse(0.6s) 참조 — 제거 타이머(triggerPulse)와 페어.
-function markerContent(opts: {
-  label: string;
-  isMerge: boolean;
-  firstColor: string;
-  lastColor: string;
-  isPulse: boolean;
-  isDark: boolean;
-}): string {
-  const { label, isMerge, firstColor, lastColor, isPulse, isDark } = opts;
-  const background = isMerge ? `linear-gradient(135deg, ${firstColor}, ${lastColor})` : firstColor;
+function markerContent(opts: { color: string; isPulse: boolean; isDark: boolean }): string {
+  const { color, isPulse, isDark } = opts;
   const shadow = isDark ? '0 2px 6px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.3)';
   const pulse = isPulse
-    ? `<div style="position:absolute;inset:-5px;border-radius:9999px;background:linear-gradient(135deg, ${firstColor}, ${lastColor});z-index:0;animation:spot-pulse 0.6s ease-out forwards;pointer-events:none"></div>`
+    ? `<div style="position:absolute;inset:-5px;border-radius:9999px;background:${color};z-index:0;animation:spot-pulse 0.6s ease-out forwards;pointer-events:none"></div>`
     : '';
   return `<div style="transform:translate(-50%,-50%);position:relative;display:inline-flex">
-    <div style="position:relative;z-index:1;border-radius:9999px;background:${background};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${isMerge ? 11 : 12}px;font-weight:bold;border:2px solid #fff;box-shadow:${shadow};cursor:default;min-width:28px;height:28px;padding:${isMerge ? '0 6px' : '0'};white-space:nowrap">${label}</div>
+    <div style="position:relative;z-index:1;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:${shadow};cursor:default;width:18px;height:18px"></div>
     ${pulse}
   </div>`;
 }
 
-type Mode = 'menu' | 'pinning' | 'search' | 'reorder' | 'edit' | 'view';
+type Mode = 'menu' | 'pinning' | 'search' | 'edit' | 'view';
 
 // 글쓰기(fixedSideWidth) 사이드 카드 폭 — 실화면 비교용 단일 스위치.
 // 현재 426 고정: 카드 426 / 지도 422(=860−426−12). ↔ 'w-full md:w-2/5': 카드 344 / 지도 504.
@@ -109,9 +101,10 @@ export default function SpotMap({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<{ lat: number; lng: number; zoom: number } | null>(null); // 테마 재생성 시 직전 뷰 보존
   const lastSizeRef = useRef({ w: 0, h: 0 }); // relayout 재-observe 즉발 콜백 가드
-  // destroy한 지도를 자체 기록 — 마커·폴리라인 클린업이 파괴된 GL 지도에 setMap(null)을 호출해
+  // destroy한 지도를 자체 기록 — 마커 클린업이 파괴된 GL 지도에 setMap(null)을 호출해
   // removeLayer→getLayer 크래시가 나는 것을 차단. Naver 내부 프로퍼티(map.destroyed 등) 비의존.
   // WeakSet이라 지도 인스턴스 GC 시 자동 소거(누수 없음).
+  // (폴리라인은 0364 동선 폐기로 제거 — 이 가드의 나머지 보호 대상은 마커·지도 destroy 경로)
   const destroyedMapsRef = useRef<WeakSet<naver.maps.Map>>(new WeakSet());
 
   const modeRef = useRef<Mode>('menu');
@@ -209,16 +202,14 @@ export default function SpotMap({
   }, [mapInstance]);
 
   // 마커 구축 — 스팟·펄스·테마 변경 시 파괴·재생성(스팟 수 소규모라 비용 무시 가능).
-  // 같은 좌표(50m 이내) 병합 → "1·7" 라벨. 클릭은 마커 리스너(HTML 문자열엔 React 핸들러 불가).
+  // 같은 좌표(50m 이내) 병합 — 0364 번호 폐기로 병합은 겹침 축소 역할만, 색은 그룹 첫 스팟 기준.
+  // 클릭은 마커 리스너(HTML 문자열엔 React 핸들러 불가).
   useEffect(() => {
     if (!mapInstance) return;
     const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 가드용
     const isDark = resolvedTheme === 'dark';
     const items = groupByProximity(localSpots).map((group) => {
-      const isMerge = group.orders.length > 1;
-      const label = group.orders.join('·');
-      const firstColor = getSpotColor(group.orders[0] - 1, localSpots.length);
-      const lastColor = getSpotColor(group.orders[group.orders.length - 1] - 1, localSpots.length);
+      const color = getSpotColor(group.orders[0] - 1, localSpots.length);
       const isPulse = group.orders.some(o =>
         localSpots.find(s => s.order === o && pulsingIds.has(s.id))
       );
@@ -226,7 +217,7 @@ export default function SpotMap({
         map: mapInstance,
         position: new naver.maps.LatLng(group.representative.lat, group.representative.lng), // ★★★ lat first
         icon: {
-          content: markerContent({ label, isMerge, firstColor, lastColor, isPulse, isDark }),
+          content: markerContent({ color, isPulse, isDark }),
           anchor: new naver.maps.Point(0, 0), // 콘텐츠 translate(-50%,-50%)와 페어 = 중앙 앵커
         },
         zIndex: 1,
@@ -247,25 +238,7 @@ export default function SpotMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleMarkerClick은 안정 setter·prop만 사용(리빌드 트리거는 데이터·테마만)
   }, [mapInstance, localSpots, pulsingIds, resolvedTheme]);
 
-  // 폴리라인 — 단거리 2겹 실선 / 장거리(50km↑) 1겹 점선 (구 <Polyline> 시각 동일)
-  useEffect(() => {
-    if (!mapInstance || localSpots.length < 2) return;
-    const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 가드용
-    const lines: naver.maps.Polyline[] = [];
-    localSpots.slice(0, -1).forEach((spot, i) => {
-      const next = localSpots[i + 1];
-      const path = [new naver.maps.LatLng(spot.lat, spot.lng), new naver.maps.LatLng(next.lat, next.lng)];
-      if (haversineKm(spot, next) > LONG_DISTANCE_KM) {
-        lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 3, strokeColor: '#1a8cff', strokeOpacity: 0.7, strokeStyle: 'dash', zIndex: 1 }));
-      } else {
-        lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 10, strokeColor: '#0a5cc4', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 1 }));
-        lines.push(new naver.maps.Polyline({ map: mapInstance, path, strokeWeight: 6, strokeColor: '#1a8cff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 2 }));
-      }
-    });
-    // 파괴된 지도의 오버레이 해제는 GL removeLayer 크래시 유발 → 스킵(마커 클린업과 동일 가드)
-    return () => { if (!destroyedMaps.has(mapInstance)) lines.forEach(l => l.setMap(null)); };
-  }, [mapInstance, localSpots]);
-
+  // 폴리라인 없음(0364) — 동선 폐기로 렌더 제거. GL removeLayer→getLayer 크래시의 한 경로도 함께 소멸.
   // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
   // 테마 전환 = 파괴·재생성: customStyleId 런타임 교체는 호출은 통과하나 미반영(SpotFinderMapNaver 0297 실측).
   // 첫 렌더 resolvedTheme=undefined 가드로 이중 init 차단. 파괴 직전 viewRef 캡처로 보던 뷰 재개.
@@ -352,19 +325,6 @@ export default function SpotMap({
     setLocalSpots(next);
     setActiveSpot(null);
     onSpotsChange?.(next);
-  }
-
-  function handleDeleteInReorder(spotId: string) {
-    handleDelete(spotId);
-    if (localSpots.filter((s) => s.id !== spotId).length < 2) {
-      setMode('menu');
-    }
-  }
-
-  function handleReorder(newSpots: LocalSpot[]) {
-    const reindexed = newSpots.map((s, i) => ({ ...s, order: i + 1 }));
-    setLocalSpots(reindexed);
-    onSpotsChange?.(reindexed);
   }
 
   // 키워드 검색 — 서버 액션(lib/spot/searchPlaces, Kakao Local REST). 좌표 변환은 서버 완료.
@@ -530,8 +490,8 @@ export default function SpotMap({
           {readOnly ? (
             <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
               <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
-                <p className="text-base font-semibold text-fg mb-3">순서</p>
-                {/* 0342: 데스크톱 424 = 지도 md:h-[500px](위 472) − 카드 p-5 상하(40) − "순서" 타이틀(24)+mb-3(12).
+                <p className="text-base font-semibold text-fg mb-3">장소 목록</p>
+                {/* 0342: 데스크톱 424 = 지도 md:h-[500px](위 472) − 카드 p-5 상하(40) − 타이틀(24)+mb-3(12).
                     지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
                     명시 max-h — flex-1 grow는 §5 금지(iOS grow 미계산 붕괴, 0253) */}
                 <div className="max-h-[220px] md:max-h-[424px] overflow-y-auto">
@@ -632,43 +592,9 @@ export default function SpotMap({
                     뒤로
                   </button>
                 </>
-              ) : mode === 'reorder' ? (
-                <>
-                  <p className="text-base font-semibold text-fg">여행순서 바꾸기</p>
-                  {/* 0342: 데스크톱 300 = 지도 md:h-[500px](위 472) − p-5(40) − gap-4×3(48) − 타이틀(24)
-                      − 팁블록(≈47) − 뒤로버튼(≈28) = 313에서 안전 하향(팁 2줄 래핑 시 뒤로버튼 클립 방지).
-                      지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
-                      명시 max-h — flex-1 grow는 §5 금지(iOS grow 미계산 붕괴, 0253) */}
-                  <div className="max-h-[220px] md:max-h-[300px] overflow-y-auto">
-                    <SpotList
-                      spots={localSpots}
-                      onReorder={handleReorder}
-                      onDelete={handleDeleteInReorder}
-                      onDragStart={(spot) => panTo(spot.lat, spot.lng)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5 pt-2 border-t border-border">
-                    <div className="flex items-start gap-2">
-                      <Lightbulb size={12} className="text-muted mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted">⠿ 을 누르고 위아래로 옮기면 순서를 바꿀 수 있습니다.</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Lightbulb size={12} className="text-muted mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted">마커를 지우려면 × 를 누르세요.</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMode('menu')}
-                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
-                  >
-                    <ArrowLeft size={14} />
-                    뒤로
-                  </button>
-                </>
               ) : (
                 <>
-                  <p className="text-base font-semibold text-fg">나만의 경로 짜기</p>
+                  <p className="text-base font-semibold text-fg">나만의 여행리뷰 작성</p>
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
@@ -692,24 +618,9 @@ export default function SpotMap({
                         <p className="text-xs text-muted">지도를 눌러 위치 지정</p>
                       </div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setMode('reorder')}
-                      disabled={localSpots.length < 2}
-                      className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${localSpots.length >= 2
-                        ? 'border-border hover:bg-surface2'
-                        : 'border-border opacity-40 cursor-not-allowed bg-surface2'
-                        }`}
-                    >
-                      <ArrowUpDown size={20} className={`shrink-0 ${localSpots.length >= 2 ? 'text-muted' : 'text-muted'}`} />
-                      <div>
-                        <p className="text-sm font-medium text-fg">여행순서 바꾸기</p>
-                        <p className="text-xs text-muted">방문 순서 편집</p>
-                      </div>
-                    </button>
                   </div>
                   <div className="flex flex-col gap-3 pt-2 border-t border-border">
-                    <p className="text-xs font-semibold text-fg2">나만의 여행 동선 만들기</p>
+                    <p className="text-xs font-semibold text-fg2">나만의 여행리뷰 작성방법</p>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start gap-2">
                         <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">①</span>
@@ -719,14 +630,6 @@ export default function SpotMap({
                         <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">②</span>
                         <p className="text-xs text-muted">추가한 마커의 장소에 사진과 리뷰를 작성합니다.</p>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs text-muted mt-0.5 shrink-0 font-medium">③</span>
-                        <p className="text-xs text-muted">1,2를 반복하면 마커가 선으로 이어져 나만의 여행 동선이 완성됩니다.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Lightbulb size={12} className="text-muted mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted">마커 순서를 바꾸려면 여행순서 바꾸기 버튼을 누르면 됩니다.</p>
                     </div>
                   </div>
                 </>

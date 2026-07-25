@@ -239,7 +239,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
       {/* 눈썹 클래스 = WRITE/EDIT 헤더 눈썹과 동일 문자열(0341 규격 복제). 공용 <Eyebrow> 추출은 후속 정리 */}
       <div className="w-full pt-[46px]">
         <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
-        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행동선</h2>
+        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
         <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
       </div>
       {/* 등록 버튼: 시안 순서상 여행동선 아래 마지막. form 밖이라 form="story-write-form"으로 연결 —

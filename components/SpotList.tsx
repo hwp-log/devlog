@@ -119,12 +119,11 @@ export function SpotList({ spots, onReorder, onDelete, readOnly, onSelect, onDra
               onClick={() => onSelect?.(spot)}
               className="flex items-center gap-2 px-3 py-2 bg-surface2 rounded-lg border border-border cursor-pointer hover:bg-popover transition-colors"
             >
+              {/* 0364 순서 폐기 — 번호 없는 색 도트(마커 색과 대응, 선택 시 마커 펄스가 짝) */}
               <span
-                className="w-5 h-5 rounded-full flex-shrink-0 text-white text-[10px] font-bold flex items-center justify-center"
+                className="w-3.5 h-3.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: color }}
-              >
-                {i + 1}
-              </span>
+              />
               <span className="flex-1 text-sm text-fg truncate">{spot.name}</span>
             </li>
           );
