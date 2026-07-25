@@ -1,8 +1,8 @@
-// 새 글 본문 양식(서식) 5종 정의 — StoryWriteForm(프리필)·FormatMenu(교체)·StoryPlaceholder(과도기) 공유.
+// 새 글 본문 양식(서식) 5종 정의 — StoryWriteForm(프리필)·FormatMenu(교체) 공유.
 // 저장 형식이 HTML 문자열이므로 골격도 HTML로 둔다.
 // 0355: placeholder 방식 폐기 — 예시가 실제 텍스트로 본문에 통째로 들어간다(브런치 방식).
 // 정본: docs/design/mockups/dotrip-양식-프리필-최종본.html — 문구는 시안 그대로, 임의 다듬기 금지.
-// 양식 배열을 단일 소스로 두고 프리필 HTML·교체 삽입·예시 원문 서명·placeholder 매핑을 모두 파생 —
+// 양식 배열을 단일 소스로 두고 프리필 HTML·교체 삽입·예시 원문 서명을 모두 파생 —
 // 같은 사실이 두 곳에 정의되면 한쪽만 바뀌어 매칭이 조용히 끊기는 무음 실패를 막기 위함.
 // 모든 섹션 heading은 5양식 전체에서 유일해야 한다(survivor 매칭·예시 서명이 heading 텍스트 기준).
 // 장소명(서귀포 허니문하우스 류)은 일반 텍스트 — 장소 칩은 향후 스팟 링크 기능과 함께 도입(사용자 확정).
@@ -178,17 +178,4 @@ export const PRISTINE_TEXT_BY_HEADING: ReadonlyMap<string, string> = (() => {
     });
   }
   return m;
-})();
-
-// placeholder 섹션 매핑(StoryPlaceholder 소비) — 과도기: 프리필이 실제 텍스트가 되어 새 글에는
-// 안 뜨고, 사용자가 섹션 본문을 비웠을 때만 예시 텍스트가 회색으로 남는다.
-// StoryPlaceholder 제거(다음 커밋)와 함께 삭제 예정. prompt는 bodyHtml에서 파생(별도 정의 금지).
-export const STORY_ALL_SECTIONS: { heading: string; prompt: string }[] = (() => {
-  const seen = new Map<string, string>();
-  for (const form of STORY_FORMS) {
-    for (const s of form.sections) {
-      if (!seen.has(s.heading)) seen.set(s.heading, htmlToText(s.bodyHtml));
-    }
-  }
-  return [...seen].map(([heading, prompt]) => ({ heading, prompt }));
 })();

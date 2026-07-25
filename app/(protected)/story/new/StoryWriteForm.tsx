@@ -135,13 +135,13 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             </div>
             <div className="flex flex-col pt-[46px]">
               <label className="text-[12px] font-medium text-muted mb-[9px]">본문</label>
-              <TiptapEditor
-                content={content}
-                onChange={setContent}
-                userId={userId}
-                placeholder="그곳에서 어떤 장면을 만났나요?..."
-              />
+              <TiptapEditor content={content} onChange={setContent} userId={userId} />
               <input type="hidden" name="content" value={content} />
+              {/* 슬래시 발견성 안내(0358) — 본문 안 placeholder 폐지로 에디터 밖 보조 텍스트가 유일 채널.
+                  문구는 시안 spec 확정본 그대로. */}
+              <p className="text-xs text-muted mt-1.5">
+                양식 내용은 자유롭게 고치거나 지워도 돼요. &apos;/&apos;를 입력하면 블록을 추가할 수 있어요.
+              </p>
             </div>
             <div className="flex flex-col pt-[46px]">
               <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span>({tags.length}/5)</span></label>

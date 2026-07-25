@@ -457,14 +457,6 @@ body {
     margin-top: 0;
   }
 
-  .tiptap-content p.is-editor-empty:first-child::before {
-    color: var(--muted);
-    content: attr(data-placeholder);
-    float: left;
-    pointer-events: none;
-    height: 0;
-  }
-
   /* 드래그 핸들 (tiptap-extension-global-drag-handle) — 패키지가 뷰포트 좌표를
      style.left/top에 직접 대입하므로 fixed 필수 (absolute 금지, 0325 fixed와 같은 이유).
      스크롤·키입력 시 패키지가 .hide 토글 → fixed 좌표 어긋남 없음. */

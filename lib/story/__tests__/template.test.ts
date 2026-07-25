@@ -2,17 +2,12 @@ import { getSchema } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import { DOMParser as PMDOMParser } from '@tiptap/pm/model';
-import {
-  STORY_FORMS,
-  STORY_TEMPLATE_HTML,
-  STORY_ALL_SECTIONS,
-  resolveFormatInsertion,
-} from '../template';
+import { STORY_FORMS, STORY_TEMPLATE_HTML, resolveFormatInsertion } from '../template';
 import { classifyDocSections } from '../empty-sections-doc';
 import { Callout } from '@/app/(protected)/story/new/Callout';
 
 // 양식 5종 예시 본문화(0355) — 삽입 해석(resolveFormatInsertion)·문서 분류(classifyDocSections의
-// 예시 원문 판정 포함)·placeholder 매핑 검증.
+// 예시 원문 판정 포함) 검증.
 
 const pilgrimage = STORY_FORMS.find((f) => f.key === 'pilgrimage')!;
 
@@ -149,15 +144,5 @@ describe('classifyDocSections — 빈 구간/예시 원문 판정/살아남는 �
     const html = STORY_TEMPLATE_HTML.replace('<h2>방문 정보</h2>', '<h2>나의 방문 정보</h2>');
     const { survivingHeadings } = classifyDocSections(docFromHtml(html));
     expect([...survivingHeadings]).toEqual(['나의 방문 정보']);
-  });
-});
-
-describe('placeholder 매핑 — 5양식 전체 커버(과도기, StoryPlaceholder 제거 시 함께 삭제)', () => {
-  it('STORY_ALL_SECTIONS는 각 양식 섹션을 모두 포함하고 prompt는 예시에서 파생된다', () => {
-    const headings = STORY_ALL_SECTIONS.map((s) => s.heading);
-    expect(headings).toContain('작품과 장소'); // 순례형 도입 섹션
-    expect(headings).toContain('1일차'); // 일차별 코스형
-    expect(headings).toContain('그 장면, 그 자리'); // 촬영지 순례형
-    for (const s of STORY_ALL_SECTIONS) expect(s.prompt.length).toBeGreaterThan(0);
   });
 });

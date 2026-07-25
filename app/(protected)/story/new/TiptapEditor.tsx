@@ -15,12 +15,10 @@ import { uploadStoryImage } from '@/lib/supabase/storage';
 import { Callout } from './Callout';
 import { createSlashCommand } from './SlashCommand';
 import { FormatMenu } from './FormatMenu';
-import { createStoryPlaceholder } from './StoryPlaceholder';
 
 interface TiptapEditorProps {
   content: string;
   onChange: (html: string) => void;
-  placeholder?: string;
   userId: string;
 }
 
@@ -57,7 +55,7 @@ function ToolbarDivider() {
   return <div aria-hidden className="w-0.5 self-stretch bg-divider" />;
 }
 
-export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapEditorProps) {
+export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -67,9 +65,8 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       Image,
       Link.configure({ openOnClick: false }),
       Callout,
-      // 스톡 Placeholder 대신 커스텀(전 문서 스캔) — 스톡 뷰포트 윈도잉이 양식 전체 replace 후
-      // 데코를 소실시켜서(0336 증상 B). 상세 사유는 StoryPlaceholder.ts 상단 주석 참조.
-      createStoryPlaceholder(placeholder ?? '내용을 입력하세요...'),
+      // placeholder 확장 없음(0358) — 예시가 실제 텍스트(0355)라 본문 안 안내가 불필요하고,
+      // 자유형·빈 본문 무문구가 확정 사양. 슬래시 안내는 에디터 밖 하단 보조 텍스트(StoryWriteForm).
       createSlashCommand(() => fileInputRef.current?.click()),
       GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
@@ -228,20 +225,11 @@ export function TiptapEditor({ content, onChange, placeholder, userId }: TiptapE
       </BubbleMenu>
       {/* px-0 = 상자 제거된 4필드(제목·태그·플랜)와 함께 컨테이너 끝선 flush(0341). 카드가 없어져 핸들 gutter(옛 sm:pl-[38px]) 제거.
           드래그 핸들은 node.left-20에 뜨므로 텍스트 0 기준 [container-20, container] — 완전히 좌측 gutter로 빠짐(main px-6 안, 클리핑·가로스크롤 없음. 모바일은 hover 없어 미표시). */}
-      {/* [&_p.is-empty]:before:* = placeholder 렌더. is-empty는 StoryPlaceholder가 "문구 붙는 빈 문단"
-          (도입부 첫 문단 · heading 다음 첫 문단)에만 부여 → 여기서 전부 동일하게 in-flow block +
-          pre-line(\n 반영) + 트레일링 br 숨김으로 처리해 문단 높이 = 문구 높이(모바일 래핑 포함).
-          float/h-0·first-child 분기 제거 — 2줄 문구가 다음 줄과 겹치던 원인(0336). 문구 안 붙는 빈
-          문단은 is-empty가 없어 기존 동작(캐럿 정상) 유지.
-          globals.css의 p.is-editor-empty:first-child 규칙은 이제 死규칙(플러그인이 is-editor-empty를
-          안 붙임) — 무해하나 향후 정리 대상.
-          [&_.ProseMirror]:outline-none = 편집영역 포커스 시 브라우저 기본 파란 아웃라인 제거.
-          (래퍼의 focus-within:outline-none은 정작 포커스 받는 안쪽 .ProseMirror엔 안 먹어 남던 테두리)
-          block + br 숨김 유지 이유: prompt가 한 줄이어도 모바일(360px)에서 2~3줄로 래핑되므로
-          float+h-0(height:0)이면 넘친 줄이 다음 heading에 겹침. block이 문단 높이=래핑 포함 높이로 잡음. */}
+      {/* [&_.ProseMirror]:outline-none = 편집영역 포커스 시 브라우저 기본 파란 아웃라인 제거.
+          (래퍼의 focus-within:outline-none은 정작 포커스 받는 안쪽 .ProseMirror엔 안 먹어 남던 테두리) */}
       <EditorContent
         editor={editor}
-        className="tiptap-content min-h-[260px] px-0 py-3 text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none [&_p.is-empty]:before:content-[attr(data-placeholder)] [&_p.is-empty]:before:text-muted [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:block [&_p.is-empty_br]:hidden"
+        className="tiptap-content min-h-[260px] px-0 py-3 text-base leading-relaxed focus-within:outline-none [&_.ProseMirror]:outline-none"
       />
     </div>
   );
