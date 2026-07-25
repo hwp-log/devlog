@@ -47,6 +47,11 @@ type SpotFormValues = z.infer<typeof spotFormSchema>;
 export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput }: SpotPopupProps) {
   // UI 상태만 useState 잔류 (movieSuggestions는 서버 검색 캐시 — Query 프로바이더 부재로 잔류)
   const [isEditing, setIsEditing] = useState(initialEditing);
+  // 생성 직후 최초 편집 세션인가(0365) — 스팟은 addSpot 시점에 이미 localSpots·payload에 들어가
+  // 있으므로, 저장 전 이탈(취소·닫기)은 스팟 제거가 정합. 판정을 "이름 비었나"로 하면 검색·재사용
+  // 경로(이름 채워짐)가 새는 것이 원래 버그 — initialEditing 시작 + 미저장으로 판정한다.
+  // key={spot.id} 재마운트라 스팟 간 세션이 섞이지 않음. 저장(onValid)하면 확정 → false.
+  const [isCreationSession, setIsCreationSession] = useState(initialEditing);
   const [movieSuggestions, setMovieSuggestions] = useState<MovieSuggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -153,10 +158,17 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     setShowDropdown(false);
   }
 
+  // 닫기 공용(0365) — 생성 세션(저장 전)에 닫으면 취소와 동일하게 스팟 제거 후 메뉴 복귀.
+  // 같은 화면에서 취소=제거 / 닫기=잔존이면 비대칭이고, 이름 빈 스팟이 payload에 남는 문제도 차단.
+  function handleClose() {
+    if (isCreationSession) onDelete?.();
+    onClose?.();
+  }
+
+  // 취소 = 온 곳으로(0365) — 생성 세션이면 스팟 제거 + 메뉴, 기존 스팟 수정이면 보기 팝업 복귀.
   function cancelEdit() {
-    if (initialEditing && !spot.name.trim()) {
-      onDelete?.();
-      onClose?.();
+    if (isCreationSession) {
+      handleClose();
       return;
     }
     resetToSpot();
@@ -191,6 +203,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       // 비우기 = 부모에 의도 전달까지만 (지연 반영) — DB·Storage 반영은 상단 "수정" 제출(updateStoryAction)이 담당
       onFileSelect?.(null);
       onUpdate?.({ name: updatedName, review: updatedReview, rating: values.rating, photoUrl: null, ...movieFields });
+      setIsCreationSession(false); // 저장 = 스팟 확정 — 이후 수정→취소는 보기 팝업으로
       setIsEditing(false);
       return;
     }
@@ -209,6 +222,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       ...(updatedPhotoUrl !== undefined && { photoUrl: updatedPhotoUrl }),
       ...movieFields,
     });
+    setIsCreationSession(false); // 저장 = 스팟 확정 — 이후 수정→취소는 보기 팝업으로
     setIsEditing(false);
   }
 
@@ -258,7 +272,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <img src={spot.photoUrl} alt={spot.name} className="w-full h-48 object-cover" />
           <button
             type="button"
-            onClick={onClose}
+            aria-label="닫기"
+            onClick={handleClose}
             className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 hover:bg-white shadow flex items-center justify-center transition-colors"
           >
             <X size={16} />
@@ -280,7 +295,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <div className="flex items-start gap-2">
             <h3 className="flex-1 text-lg font-semibold text-fg">{spot.name}</h3>
             {!spot.photoUrl && (
-              <button type="button" onClick={onClose} className="w-6 h-6 rounded-full bg-surface2 hover:bg-popover flex items-center justify-center flex-shrink-0">
+              <button type="button" aria-label="닫기" onClick={handleClose} className="w-6 h-6 rounded-full bg-surface2 hover:bg-popover flex items-center justify-center flex-shrink-0">
                 <X size={12} />
               </button>
             )}

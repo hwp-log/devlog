@@ -284,3 +284,69 @@ describe('SpotPopup — 작품 검색', () => {
     expect(screen.queryByPlaceholderText('작품명 검색...')).not.toBeInTheDocument();
   });
 });
+
+describe('SpotPopup — 생성 세션 취소·닫기(0365)', () => {
+  // 생성 세션 = initialEditing 시작 + 미저장. 스팟은 addSpot 시점에 이미 payload에 있으므로
+  // 저장 전 이탈(취소·닫기)은 스팟 제거(onDelete)가 정합 — 이름 유무와 무관해야 한다.
+  const searchSpot: LocalSpot = { ...baseSpot, id: 'tmp_1', name: '삼청각', review: null };
+  const pinSpot: LocalSpot = { ...baseSpot, id: 'tmp_2', name: '', review: null };
+
+  it('검색 생성(이름 채워짐) 취소: 스팟 제거 + 닫기 — 보기 팝업으로 안 감', () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    render(<SpotPopup spot={searchSpot} initialEditing onDelete={onDelete} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('찍기 생성(이름 빈) 취소: 동일하게 스팟 제거 + 닫기(기존 동작 보존)', () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    render(<SpotPopup spot={pinSpot} initialEditing onDelete={onDelete} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('생성 세션에서 저장하면 확정 — 이후 × 닫기는 스팟을 지우지 않는다', async () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    const onUpdate = jest.fn();
+    render(
+      <SpotPopup spot={searchSpot} initialEditing onDelete={onDelete} onClose={onClose} onUpdate={onUpdate} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('생성 세션에서 저장 후 다시 수정→취소: 보기 팝업 복귀, 스팟 유지', async () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    const onUpdate = jest.fn();
+    render(
+      <SpotPopup spot={searchSpot} initialEditing onDelete={onDelete} onClose={onClose} onUpdate={onUpdate} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '수정' })).toBeInTheDocument(); // 보기 모드 복귀
+  });
+
+  it('기존 스팟 수정 취소: 보기 팝업 복귀(현행 유지), 스팟 유지', () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    render(<SpotPopup spot={baseSpot} onDelete={onDelete} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: '광화문' })).toBeInTheDocument(); // 보기 모드
+  });
+});
