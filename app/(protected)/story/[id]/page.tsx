@@ -84,7 +84,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
     <div className="max-w-[860px] mx-auto">
       {/* 본문 카드 제거(0371 — READ 블록 1단계): 읽기 표면은 페이지 배경 위 개방 캔버스(0319의
           상세판), 카드는 조작 표면(지도·목록)에만. 글쓰기 화면과 동일 문법.
-          하드코딩 색 백로그 중 제목 h1은 0375에서 text-fg로 해소(다크 실측), "← 목록으로" slate만 잔존 */}
+          하드코딩 색 백로그는 0375(h1 text-fg)·0377(목록 링크 → primary 버튼)로 전부 해소 — 이 페이지 잔재 0 */}
       <div>
           {/* STORY 눈썹(0375) — PLAN·SPOTMAP과 동일 문법으로 상세 눈썹 3종 정렬. 헤드라인 없음
               (읽는 화면엔 안내할 행동이 없고 제목이 곧 타이틀), 작품 등 분류 데이터 없음
@@ -188,12 +188,22 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               MapPin 아이콘 제거 — 눈썹+타이틀 구조로 통일 */}
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
           <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
-          <SpotMap spots={localSpots} readOnly />
+          {/* fixedSideWidth(0376) — 0373 폭 정합(상세도 860)으로 "상세=비율" 분기의 전제가 소멸,
+              글수정과 동일 크기(카드 426/지도 422)로 통일 */}
+          <SpotMap spots={localSpots} readOnly fixedSideWidth />
         </div>
       )}
-      <div className="mt-4">
-        <Link href="/story" className="text-xs text-slate-500 hover:text-slate-800 transition-colors">
-          ← 목록으로
+      {/* 다른 이야기 보기(0377) — 다 읽은 독자의 다음 행동이 이 화면의 주요 행동: 글쓰기 "스토리
+          등록"·수정 "수정"과 같은 위계 = 같은 클래스 문자열(StoryWriteForm 등록 버튼) + 같은
+          46px 리듬(글쓰기도 등록 버튼 앞이 pt-[46px] — "마무리 버튼도 블록 리듬"의 기존 선례).
+          화살표 없음(사용자 확정 — 텍스트만). 이 교체로 상세의 slate
+          하드코딩 잔재 소멸 */}
+      <div className="mt-[46px]">
+        <Link
+          href="/story"
+          className="w-full bg-primary text-white rounded-full py-[13px] text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center"
+        >
+          다른 이야기 보기
         </Link>
       </div>
     </div>
