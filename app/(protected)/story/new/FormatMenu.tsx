@@ -4,22 +4,25 @@ import type { Editor } from '@tiptap/core';
 import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom';
 import { LayoutTemplate } from 'lucide-react';
 import { STORY_FORMS, resolveFormatInsertion } from '@/lib/story/template';
-import { classifyDocSections } from '@/lib/story/empty-sections-doc';
+import { docHasUserContent } from '@/lib/story/empty-sections-doc';
 
-// 툴바 우측 끝 "서식" 버튼 + 팝오버. 양식 5종 중 하나를 고르면 본문 양식이 그것으로 바뀐다.
-// "삽입·보충"이 아니라 "양식 교체" — 빈 섹션과 예시 원문 그대로인 섹션(0355)은 걷어내고
-// 새 양식을 넣되, 사용자가 쓴 내용은 삭제하지 않는다. 표준(네이버·티스토리)도 템플릿을 통째로
-// 불러오는 방식.
+// 툴바 우측 끝 "서식" 버튼 + 팝오버. 양식 5종 중 하나를 고르면 본문이 그 양식으로 바뀐다.
+// 0359: 교체는 항상 전체 교체 — 업계 표준(Confluence·Google Docs: 템플릿은 생성 시점 적용,
+// 기존 문서 병합 없음)에 맞춰 survivor 병합(0355) 폐기. 파괴적 동작이므로 사용자가 쓴 내용이
+// 있으면 같은 팝오버가 확인 화면으로 전환된다(모달 금지 — 레이어 두 겹·모바일 답답함으로 기각).
+// 모바일엔 Ctrl+Z가 없어 확인 단계가 유일한 방어선 — 즉시 교체는 "내용 없음"(빈 본문·예시
+// 원문 그대로, docHasUserContent) 판정일 때만.
 // 팝오버는 React 트리 안에 인라인 렌더 — Pretendard가 상속으로 보존됨(0326 body-mount 문제 회피).
 // 위치만 @floating-ui/dom(strategy 'fixed', 0325 SlashCommand와 동일 — transform 조상 무관).
 export function FormatMenu({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  // 팝오버 열 때 읽은 "내용 있어 살아남는 섹션 수" 스냅샷 — 각주 표시용(열려 있는 동안 본문 불변)
-  const [survivorCount, setSurvivorCount] = useState(0);
+  // 확인 화면 상태 — null이면 목록, 양식이 담기면 그 양식으로의 교체 확인 화면
+  const [pendingForm, setPendingForm] = useState<(typeof STORY_FORMS)[number] | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   // 위치 계산 — 열릴 때만. autoUpdate가 스크롤·리사이즈 시 재계산 후 cleanup.
   useEffect(() => {
@@ -44,17 +47,27 @@ export function FormatMenu({ editor }: { editor: Editor }) {
     if (open) itemRefs.current[0]?.focus();
   }, [open]);
 
+  // 확인 화면 진입 시 포커스는 "취소" — 파괴적 확인은 안전한 쪽이 기본(Enter 습관 클릭 방지).
+  useEffect(() => {
+    if (pendingForm) cancelRef.current?.focus();
+  }, [pendingForm]);
+
+  // 확인 → 목록 복귀(취소·ESC 공용). 포커스는 직전 활성 항목으로(키보드 연속성) —
+  // 목록 버튼이 재마운트된 뒤여야 해서 rAF로 한 프레임 미룸(activeIndex를 이펙트 deps에
+  // 넣으면 hover 이동마다 포커스를 훔치는 부작용이 있어 핸들러 방식 채택).
+  function backToList() {
+    setPendingForm(null);
+    requestAnimationFrame(() => itemRefs.current[activeIndex]?.focus());
+  }
+
   function toggle() {
-    if (!open) {
-      // 열 때 살아남는 섹션 수 스냅샷 — 각주는 표시, 실제 교체는 클릭 때 같은 함수로 재판정(어긋남 방지)
-      const { survivingHeadings } = classifyDocSections(editor.state.doc);
-      setSurvivorCount(survivingHeadings.size);
-    }
     setActiveIndex(0); // 다음에 열 때 항상 첫 항목부터(닫힘 시엔 무의미, 무해)
+    setPendingForm(null); // 열 때 항상 목록부터
     setOpen((o) => !o);
   }
 
-  // 바깥 클릭 닫기 — 버튼·팝오버 밖 pointerdown이면 닫음(모달 아님)
+  // 바깥 클릭 닫기 — 버튼·팝오버 밖 pointerdown이면 닫음(모달 아님). 확인 화면에서도
+  // 닫힘 = 취소와 동일한 무해 동작이라 두 모드 공통.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
@@ -66,33 +79,32 @@ export function FormatMenu({ editor }: { editor: Editor }) {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
-  // 양식 교체 — 사용자가 쓴 내용은 어떤 경우에도 삭제하지 않는다.
-  function applyForm(form: (typeof STORY_FORMS)[number]) {
-    // 표시(각주)와 같은 classify — 예시 원문 그대로인 구간은 "빈 것"으로 재판정됨(0355)
-    const { survivingHeadings, emptyRanges, hasContent } = classifyDocSections(editor.state.doc);
-    // 살아남는 섹션과 heading이 겹치는 것은 제외 — 삽입 HTML 해석은 resolveFormatInsertion 단일 규칙
-    const html = resolveFormatInsertion(form, survivingHeadings);
-
-    if (!hasContent && form.sections.length > 0) {
-      // 사용자 내용이 하나도 없을 때(예시 원문 그대로 포함)만 전체 교체 — 지울 내용이 없어 비파괴.
-      // 이때 survivingHeadings는 빈 집합이라 html = 전체 골격(tail 콜아웃·끝 빈 문단 포함).
-      // setContent는 emitUpdate 기본 true라 hidden input 동기됨.
-      editor.chain().focus().setContent(html).run();
+  // 항목 선택 — 쓴 내용이 없으면(빈 본문·예시 원문 그대로) 즉시 교체, 있으면 확인 화면으로
+  function chooseForm(form: (typeof STORY_FORMS)[number]) {
+    if (docHasUserContent(editor.state.doc)) {
+      setPendingForm(form);
     } else {
-      // v1 절충: survivor가 있으면 새 섹션이 문서 끝에 append되어 양식 순서와 어긋날 수 있음
-      //   (예: 근처 볼거리만 써둔 뒤 촬영지 기록 선택 → 근처 볼거리 다음에 분위기·촬영지 정보).
-      //   양식 위치로 재배치하려면 survivor 재구성 + setContent가 필요한데 "빈 경우만 setContent"
-      //   제약과 충돌 → 순서 재배치는 v1.1로 이관. v1은 비파괴를 우선한다.
-      // 끝에 먼저 append(앞쪽 위치 불변) → 빈 구간을 뒤에서 앞으로 삭제(위치 안전). 단일 트랜잭션.
-      let c = editor.chain().focus();
-      if (html) c = c.insertContentAt(editor.state.doc.content.size, html);
-      for (const r of [...emptyRanges].reverse()) c = c.deleteRange(r);
-      c.run();
+      applyForm(form);
     }
+  }
+
+  // 전체 교체 — setContent 단일 트랜잭션(undo 1회로 교체 전 복원). 자유형은 '' → 빈 본문.
+  // setContent는 emitUpdate 기본 true라 hidden input 동기됨.
+  function applyForm(form: (typeof STORY_FORMS)[number]) {
+    editor.chain().focus().setContent(resolveFormatInsertion(form)).run();
+    setPendingForm(null);
     setOpen(false);
   }
 
   function onMenuKeyDown(e: React.KeyboardEvent) {
+    if (pendingForm) {
+      // 확인 화면: ESC = 취소(목록 복귀). 팝오버 닫기 ESC와 같은 핸들러의 분기라 충돌 없음.
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        backToList();
+      }
+      return; // 화살표 순회는 목록 모드 전용
+    }
     const count = STORY_FORMS.length;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -133,36 +145,62 @@ export function FormatMenu({ editor }: { editor: Editor }) {
         <div
           ref={popRef}
           id="format-menu"
-          role="menu"
-          aria-label="본문 양식"
+          // 같은 팝오버 셸(폭·위치)에서 내용만 전환 — 목록은 menu, 확인은 dialog 어휘
+          role={pendingForm ? 'dialog' : 'menu'}
+          aria-label={pendingForm ? '양식 바꾸기' : '본문 양식'}
           onKeyDown={onMenuKeyDown}
           style={{ position: 'fixed', top: 0, left: 0, zIndex: 50 }}
           className="min-w-[240px] rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg"
         >
-          {STORY_FORMS.map((form, i) => (
-            <button
-              key={form.key}
-              ref={(el) => {
-                itemRefs.current[i] = el;
-              }}
-              type="button"
-              role="menuitem"
-              tabIndex={i === activeIndex ? 0 : -1}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyForm(form)}
-              onMouseEnter={() => setActiveIndex(i)}
-              className={`w-full rounded px-2 py-1.5 text-left transition-colors ${
-                i === activeIndex ? 'bg-surface2' : 'hover:bg-popover'
-              }`}
-            >
-              <span className="block text-sm font-medium text-fg">{form.name}</span>
-              <span className="block text-xs text-muted">{form.description}</span>
-            </button>
-          ))}
-          {survivorCount > 0 && (
-            <p role="note" className="px-2 pt-1.5 pb-1 text-xs text-muted border-t border-border mt-1">
-              내용이 있는 섹션 {survivorCount}개는 지우지 않아요
-            </p>
+          {pendingForm ? (
+            <div className="px-2 pt-1.5 pb-1">
+              <p className="text-xs font-medium text-muted">양식 바꾸기</p>
+              <p className="mt-1.5 text-sm font-medium text-fg break-keep">
+                {pendingForm.name}으로 바꿀까요?
+              </p>
+              <p className="mt-1 text-xs text-muted break-keep">지금 쓴 내용은 사라져요.</p>
+              {/* 확인이 유일한 방어선(모바일 Ctrl+Z 부재) — 터치 타겟 44px·간격 8px(§5) */}
+              <div className="mt-3 flex gap-2">
+                <button
+                  ref={cancelRef}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={backToList}
+                  className="flex-1 min-h-[44px] rounded px-2 text-sm font-medium text-fg2 hover:bg-popover transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applyForm(pendingForm)}
+                  className="flex-1 min-h-[44px] rounded px-2 text-sm font-medium bg-surface2 text-fg hover:bg-popover transition-colors"
+                >
+                  바꾸기
+                </button>
+              </div>
+            </div>
+          ) : (
+            STORY_FORMS.map((form, i) => (
+              <button
+                key={form.key}
+                ref={(el) => {
+                  itemRefs.current[i] = el;
+                }}
+                type="button"
+                role="menuitem"
+                tabIndex={i === activeIndex ? 0 : -1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => chooseForm(form)}
+                onMouseEnter={() => setActiveIndex(i)}
+                className={`w-full rounded px-2 py-1.5 text-left transition-colors ${
+                  i === activeIndex ? 'bg-surface2' : 'hover:bg-popover'
+                }`}
+              >
+                <span className="block text-sm font-medium text-fg">{form.name}</span>
+                <span className="block text-xs text-muted">{form.description}</span>
+              </button>
+            ))
           )}
         </div>
       )}

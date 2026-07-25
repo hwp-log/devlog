@@ -4,7 +4,7 @@
 // 정본: docs/design/mockups/dotrip-양식-프리필-최종본.html — 문구는 시안 그대로, 임의 다듬기 금지.
 // 양식 배열을 단일 소스로 두고 프리필 HTML·교체 삽입·예시 원문 서명을 모두 파생 —
 // 같은 사실이 두 곳에 정의되면 한쪽만 바뀌어 매칭이 조용히 끊기는 무음 실패를 막기 위함.
-// 모든 섹션 heading은 5양식 전체에서 유일해야 한다(survivor 매칭·예시 서명이 heading 텍스트 기준).
+// 모든 섹션 heading은 5양식 전체에서 유일해야 한다(예시 원문 서명이 heading 텍스트 기준).
 // 장소명(서귀포 허니문하우스 류)은 일반 텍스트 — 장소 칩은 향후 스팟 링크 기능과 함께 도입(사용자 확정).
 // v1.1에서 사용자 저장 양식을 이 배열에 합칠 수 있는 형태로 둔다.
 //
@@ -145,30 +145,26 @@ export function normalizePristineText(text: string): string {
   return text.replace(/\s+/g, '');
 }
 
-// 양식 교체·프리필의 삽입 HTML 해석 — 삽입 HTML은 이 함수 하나로만 만든다
-// (FormatMenu의 전체 교체·부분 삽입 두 경로와 STORY_TEMPLATE_HTML이 공용).
-// 표시(각주)와 삽입은 같은 classifyDocSections 결과(survivingHeadings)를 공유해 어긋나지 않는다.
-// 살아남는 섹션과 heading이 겹치면 제외 — 사용자가 제목을 바꿨으면 다른 섹션으로 보고 삽입한다.
-// tailHtml은 마지막 섹션 구간 소속이라 "마지막 섹션이 삽입될 때만" 함께 넣는다
-// (마지막 섹션이 살아남았으면 옛 콜아웃이 그 구간에 남아 있어, 또 넣으면 팁·FAQ가 중복된다).
+// 양식의 전체 골격 HTML — 프리필과 양식 교체가 공용하는 단일 규칙.
+// 0359: 교체는 항상 전체 교체(업계 표준 — 템플릿은 생성 시점 적용이 원칙, survivor 병합 폐기).
+// 전체 = 섹션들 + tailHtml(hr+콜아웃) + 끝 빈 문단(자유형은 빈 문자열).
 // tail 뒤 빈 문단 1개: isolating 콜아웃이 문서 끝이면 이어쓰기 커서 자리가 없어서(사용자 확정).
-export function resolveFormatInsertion(
-  form: { sections: readonly { heading: string; bodyHtml: string }[]; tailHtml: string },
-  survivingHeadings: ReadonlySet<string>,
-): string {
-  const toInsert = form.sections.filter((s) => !survivingHeadings.has(s.heading));
-  const last = form.sections[form.sections.length - 1];
-  const withTail = last !== undefined && toInsert.includes(last);
-  return toInsert.map(sectionToHtml).join('') + (withTail ? `${form.tailHtml}<p></p>` : '');
+export function resolveFormatInsertion(form: {
+  sections: readonly { heading: string; bodyHtml: string }[];
+  tailHtml: string;
+}): string {
+  if (form.sections.length === 0) return '';
+  return form.sections.map(sectionToHtml).join('') + `${form.tailHtml}<p></p>`;
 }
 
 // 프리필 = 촬영지 순례형(④)에서 파생 — 골격 정의가 두 곳에 생기지 않게.
 // 분기(initialData?.content ?? STORY_TEMPLATE_HTML)는 StoryWriteForm 유지.
-export const STORY_TEMPLATE_HTML = resolveFormatInsertion(formByKey('pilgrimage'), new Set());
+export const STORY_TEMPLATE_HTML = resolveFormatInsertion(formByKey('pilgrimage'));
 
 // heading → 예시 본문 정규화 서명(전 양식 합집합 — heading 유일성 전제).
 // 마지막 섹션 서명엔 tailHtml 텍스트 포함(콜아웃이 그 구간에 속하므로 구간 텍스트와 대응).
-// 소비처: empty-sections-doc.ts 교체 판정 — "예시 원문 그대로인 구간 = 빈 것"의 비교 기준.
+// 소비처: empty-sections-doc.ts docHasUserContent(0359 교체 확인 분기) —
+// "예시 원문 그대로인 구간 = 사용자 내용 아님"의 비교 기준.
 export const PRISTINE_TEXT_BY_HEADING: ReadonlyMap<string, string> = (() => {
   const m = new Map<string, string>();
   for (const form of STORY_FORMS) {
