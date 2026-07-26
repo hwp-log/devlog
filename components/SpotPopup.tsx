@@ -284,11 +284,13 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {!isEditing && spot.photoUrl && (
         <div className="relative">
           <img src={spot.photoUrl} alt={spot.name} className="w-full h-48 object-cover" />
+          {/* bg-card(0378 실측) — 구 bg-white/80은 다크에서 흰 원 + fg 상속 아이콘(밝은 회백)이 겹쳐
+              ✕ 미독. 사진 위 부유 원은 SpotFinder 상세 ✕와 동일 상황 — 같은 토큰 페어(bg-card/80+text-fg) */}
           <button
             type="button"
             aria-label="닫기"
             onClick={handleClose}
-            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 hover:bg-white shadow flex items-center justify-center transition-colors"
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-card/80 hover:bg-card shadow flex items-center justify-center transition-colors"
           >
             <X size={16} />
           </button>

@@ -647,7 +647,11 @@ export default function SpotMap({
         {/* md:flex-1(0377 실측) — flex-1(=flex-basis 0%)은 세로 스택(모바일 flex-col)에서 h-[400px]을
             이기고 계산 높이 0으로 붕괴(자동 높이 컨테이너라 grow 배분 몫도 0 — Chrome 실측 0px).
             grow의 목적은 가로 행에서 남은 폭 채움뿐이므로 md 한정 = 의도 그대로, 모바일은 명시 높이(§5) */}
-        <div className="relative md:flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+        {/* isolate(0378 실측) — 네이버 SDK 내부 z-index(저작권 100·내부 최대 10000)가 래퍼(relative
+            z-auto = 무컨텍스트)를 지나 루트에서 모달 z-60을 이기고 위에 그려짐. isolation으로 지도
+            내부 z를 래퍼 안에 가둠 — 래퍼 자체는 z-auto라 팝오버(50)·탭바(40) 등 바깥 위계 불변.
+            모달 z 상향(>10000)안은 SDK 내부 상수와의 경쟁이라 기각 */}
+        <div className="isolate relative md:flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           {/* 리뷰장소 전체보기 오버레이(0369) — 확대해 돌아다닌 뒤 전체 뷰 복귀. 글쓰기·상세 공용
               (초기 뷰가 양쪽 적용이므로 복귀 수단도 양쪽). z-10 = 지도 위·팝오버(z-50) 아래.
               우상단 = 네이버 기본 컨트롤(로고·저작권·축척, 하단 계열)과 비충돌 — 실화면 확인 항목.
