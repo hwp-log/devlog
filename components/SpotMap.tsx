@@ -8,6 +8,10 @@ import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
+import { getSpotMeta } from '@/lib/spot/spotMeta';
+
+// getSpotMeta 반환 shape(구조 호환) — 'use server' 모듈에서 타입 import를 피하려 로컬 선언(런타임 export 규칙).
+type SpotMeta = { address: string | null; nearestStation: string | null; transitMinutes: number | null; transitMode: string | null };
 import { theme } from '@/lib/theme';
 import { Search, MapPin, ArrowLeft, List, Maximize2 } from 'lucide-react';
 
@@ -180,6 +184,7 @@ export default function SpotMap({
   const groupIndexRef = useRef<Map<string, string>>(new Map());
   const activeSpotRef = useRef<LocalSpot | null>(null); // rebuild가 activeSpot deps 없이 현재 선택을 읽음
   const prevSelectedRepRef = useRef<string | null>(null); // 직전 강조 대표id — 선택 전이 시 해제 대상
+  const localSpotsRef = useRef<LocalSpot[]>(spots); // 0392: getSpotMeta 비동기 응답이 await 사이 stale 없이 최신 목록 참조
 
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
@@ -415,8 +420,10 @@ export default function SpotMap({
 
   // modeRef·addSpotFromMapRef를 렌더마다 최신값으로 갱신 (stale closure 방지)
   modeRef.current = mode;
+  localSpotsRef.current = localSpots; // 0392: 비동기 메타 패치가 최신 목록을 읽도록 동기
   addSpotFromMapRef.current = async (lng: number, lat: number) => {
     const id = addSpot('', lng, lat);
+    void fetchAndApplyMeta(id, lat, lng, true); // 0392: 찍기 = 주소·교통 둘 다(주소 없음 → 역지오코딩)
     // S3-a: 근처 기존 촬영지 후보 조회 → 있으면 chooser(재사용/새등록 판단), 없으면 바로 편집.
     // 0384: try/catch — 세션 만료 등으로 액션이 throw해도 후보 없음으로 폴스루(스팟은 이미 addSpot됨,
     // 작성 중 글 보존). 성공 경로는 불변.
@@ -779,7 +786,10 @@ export default function SpotMap({
 
   async function handlePlaceSelect(place: PlaceResult) {
     const { lat, lng } = place; // x/y→lng/lat 변환은 서버 액션이 완료 — 클라엔 순수 숫자만
-    const id = addSpot(place.name, lng, lat, place.address); // 0391: 검색 주소(지번, address_name)를 스팟에 실음
+    const id = addSpot(place.name, lng, lat, place.address); // 0391: 검색 주소(도로명 우선)를 스팟에 실음
+    // 0392: 교통을 이어서 수신. includeAddress=!place.address — place.address가 ''인 POI는 역지오코딩 폴백
+    //   (false 고정이면 빈 주소 POI에서 폴백 소멸 — applySpotMeta의 `||` 병합과 짝).
+    void fetchAndApplyMeta(id, lat, lng, !place.address);
     // 중심·줌 원자 전환(카카오 jump 상응) — setZoom+setCenter는 0ms 점프라 기각(SpotFinderMapNaver 실측)
     mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS, SPOT_TRANSITION);
     // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집. 0384: try/catch 폴스루(위 addSpotFromMapRef 동일)
@@ -804,6 +814,42 @@ export default function SpotMap({
     return id;
   }
 
+  // 0392: 서버가 돌려준 주소·교통 4필드만 해당 스팟에 병합. 비동기 도착이라 localSpotsRef(최신)로 참조.
+  function applySpotMeta(spotId: string, meta: SpotMeta) {
+    const cur = localSpotsRef.current;
+    const target = cur.find((s) => s.id === spotId);
+    // 폐기 가드(삭제·재사용을 한자리에서):
+    //  - 스팟이 그 사이 삭제됐으면 no-op(유령 스팟·에러 방지).
+    //  - reusedSpotId가 붙었으면 no-op — 재사용은 공유 Spot 저장값이 정본(판단 ③). 찍기→getSpotMeta
+    //    인플라이트 중 chooser에서 재사용을 고른 순서에서 역지오코딩 값이 정본을 덮는 것을 차단.
+    if (!target || target.reusedSpotId) return;
+    // address는 검색이 이미 실은 도로명(truthy)을 보존, 없거나 ''면 역지오코딩 폴백(|| — 빈문자열 falsy).
+    const patch = (s: LocalSpot): LocalSpot => ({
+      ...s,
+      address: s.address || meta.address,
+      nearestStation: meta.nearestStation,
+      transitMinutes: meta.transitMinutes,
+      transitMode: meta.transitMode,
+    });
+    const next = cur.map((s) => (s.id === spotId ? patch(s) : s));
+    setLocalSpots(next);
+    onSpotsChange?.(next);
+    // 활성 시트가 이 스팟이면 함수형 패치로 갱신 — 사용자가 그동안 입력한 name/review/rating은 미손상
+    //   (patch가 4필드만 덮고 나머지는 spread 보존). 다른 스팟이면 그대로.
+    setActiveSpot((prev) => (prev && prev.id === spotId ? patch(prev) : prev));
+  }
+
+  // 0392: 좌표 한 왕복으로 메타 수신 후 병합. 실패는 무시(스팟은 이미 추가됨 — 주소·교통만 빔, goal 8).
+  //   includeAddress=false = 검색 경로(place.address 도로명 이미 보유 → 역지오코딩 스킵, 쿼터 절약).
+  async function fetchAndApplyMeta(spotId: string, lat: number, lng: number, includeAddress: boolean) {
+    try {
+      const meta = await getSpotMeta(lat, lng, { includeAddress });
+      applySpotMeta(spotId, meta);
+    } catch {
+      /* 미인증·네트워크 실패 등 — 조용히 폐기(0178). 스팟 추가·저장은 무방해 */
+    }
+  }
+
   // S3-a: 근처 기존 스팟 선택 → 새 Spot 안 만들고 그 spotId 참조(reusedSpotId). 이름도 기존값으로.
   function chooseNearby(candidate: NearbySpot) {
     if (!nearbyChooser) return;
@@ -815,9 +861,12 @@ export default function SpotMap({
             ...s,
             reusedSpotId: candidate.spotId,
             name: candidate.name,
-            // 0391: 검색 주소는 재사용 시 버림 — 저장 경로가 reusedSpotId면 공유 Spot 주소가 정본이고
-            //   후보(NearbySpot)엔 address가 없어 실을 수 없음(이번 범위 제외). 편집 중 폐기될 주소 미표시.
-            address: undefined,
+            // 0392: 재사용 = 공유 Spot 저장값이 정본 → nearby select로 받은 주소·교통을 그대로 표시
+            //   (getSpotMeta 재계산 아님 — 중복·drift 회피, 판단 ⑤). 검색 주소(도로명)는 후보값으로 대체.
+            address: candidate.address,
+            nearestStation: candidate.nearestStation,
+            transitMinutes: candidate.transitMinutes,
+            transitMode: candidate.transitMode,
             movieTitle: candidate.movies[0] ?? null,
             extraMovieCount: Math.max(0, candidate.movies.length - 1),
           }

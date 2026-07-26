@@ -13,6 +13,11 @@ export type NearbySpot = {
   distanceM: number;
   movies: string[];
   storyCount: number;
+  // 0392: 재사용 시 공유 Spot의 저장값을 작성 중 시트에 표시(재계산 대신 저장값 정본). 표시 전용.
+  address: string | null;
+  nearestStation: string | null;
+  transitMinutes: number | null;
+  transitMode: string | null;
 };
 
 const DEFAULT_RADIUS_M = 100; // 실측: 실중복 14m를 여유 포섭 + 대형 랜드마크 핀 편차(~100m) 흡수
@@ -46,6 +51,10 @@ export async function findNearbySpots(
       name: true,
       lat: true,
       lng: true,
+      address: true, // 0392: 재사용 표시용(공유 Spot 저장값)
+      nearestStation: true,
+      transitMinutes: true,
+      transitMode: true,
       spotMovies: { orderBy: { createdAt: 'desc' }, select: { movie: { select: { title: true } } } }, // 최신 연결 대표(0185)와 정합
       _count: { select: { storySpots: true } },
     },
@@ -58,6 +67,10 @@ export async function findNearbySpots(
       distanceM: Math.round(haversineM(lat, lng, s.lat, s.lng)),
       movies: s.spotMovies.map((sm) => sm.movie.title),
       storyCount: s._count.storySpots,
+      address: s.address,
+      nearestStation: s.nearestStation,
+      transitMinutes: s.transitMinutes,
+      transitMode: s.transitMode,
     }))
     .filter((s) => s.distanceM <= r)
     .sort((a, b) => a.distanceM - b.distanceM);
