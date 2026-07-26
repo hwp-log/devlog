@@ -133,12 +133,15 @@ const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(function SlashMenu
     // max-height는 size() 미들웨어가 가용 공간에 맞춰 --slash-max-h로 주입(캐럿이 화면 아래쪽일 때 화면 밖으로
     // 넘치지 않게). 넘치면 내부 스크롤 + overscroll-none으로 페이지 스크롤 전파 차단(0389 선례).
     <div
-      className="w-[250px] rounded-[12px] border border-border bg-card p-1.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)] overflow-y-auto overscroll-none"
+      // 상단 패딩 제거(pt-0) — 스크롤 셸에 padding-top이 있으면 sticky top-0 라벨이 그 패딩 박스
+      // 아래에 붙어, 노출된 상단 패딩 밴드로 스크롤된 항목이 비쳐 삐져나온다. 상단 여백은 라벨이 담당.
+      className="w-[250px] rounded-[12px] border border-border bg-card px-1.5 pb-1.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)] overflow-y-auto overscroll-none"
       style={{ maxHeight: 'var(--slash-max-h)' }}
     >
       {/* 눈썹 라벨 — 10px은 §5(12px 하한)의 확정 예외: 읽는 텍스트가 아닌 장식성 그룹 라벨.
-          sticky로 상단 고정 — 내부 스크롤 시에도 그룹 라벨이 보이게(bg-card로 항목 비침 차단) */}
-      <div className="sticky top-0 bg-card px-[9px] pt-1.5 pb-1 text-[10px] tracking-[0.08em] text-muted">블록</div>
+          sticky top-0으로 상단 고정 + 셸 pt-0이라 테두리에 밀착 → 스크롤된 항목을 bg-card로 완전히 가림(비침 없음).
+          pt-3은 셸에서 없앤 상단 여백 보전(기존 셸6+라벨6=12px 유지). */}
+      <div className="sticky top-0 bg-card px-[9px] pt-3 pb-1 text-[10px] tracking-[0.08em] text-muted">블록</div>
       {items.length === 0 ? (
         <div className="px-[9px] py-2 text-sm text-muted">결과 없음</div>
       ) : (
@@ -234,6 +237,7 @@ export function createSlashCommand(onImagePick: () => void) {
               // z를 헤더 아래로 둔 채(헤더 뒤 tuck 유지) 탭바 가림을 피하는 유일한 방법 — 메뉴가
               // 애초에 탭바에 닿지 않도록 size()가 가용 높이를 줄인다. 데스크톱은 탭바 height 0 → 8px.
               const tb = tabbarEl?.getBoundingClientRect();
+              const isMobile = !!(tb && tb.height > 0); // 탭바 노출 = 모바일 신호(데스크톱은 lg:hidden으로 height 0)
               const bottomReserve = tb && tb.height > 0 ? window.innerHeight - tb.top + 8 : 8;
               computePosition(virtualEl, el, {
                 strategy: 'fixed',
@@ -244,9 +248,15 @@ export function createSlashCommand(onImagePick: () => void) {
                   size({
                     padding: { top: 8, right: 8, bottom: bottomReserve, left: 8 },
                     // 가용 높이를 --slash-max-h로 주입 → 셸이 max-height로 읽어 넘치면 내부 스크롤.
-                    // 최소 120px 하한(캐럿이 탭바 바로 위일 때 메뉴가 사라지지 않게 — 그 경우 하단 일부는 탭바 뒤로).
+                    // 모바일은 고정 상한(MOBILE_MAX_H) — 키보드를 내려 공간이 넓어져도 커지지 않게(모양 일정).
+                    //   ≈ 라벨 24 + 항목 3.5행(52×3.5) + 상단 6 ≈ 208px(항목 2~3개 + 스크롤 어포던스).
+                    //   상한이지 하한이 아니라, 가용 공간이 더 작으면(키보드 위 등) 그에 맞춘다(min).
+                    // 데스크톱은 상한 없이 가용 공간에 맞춰 커짐(기존 동작).
+                    // 120px 하한은 탭바 바로 위 극단 케이스 방어(0398) — 그대로 유지.
                     apply({ availableHeight }) {
-                      el.style.setProperty('--slash-max-h', `${Math.max(120, availableHeight)}px`);
+                      const MOBILE_MAX_H = 208;
+                      const target = isMobile ? Math.min(MOBILE_MAX_H, availableHeight) : availableHeight;
+                      el.style.setProperty('--slash-max-h', `${Math.max(120, target)}px`);
                     },
                   }),
                 ],
