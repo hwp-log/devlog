@@ -131,6 +131,9 @@ const canMatchMedia = () => typeof window.matchMedia === 'function';
 // 아래 상수가 인라인 animationDuration과 JS failsafe 타이머를 동시에 구동해 드리프트 차단.
 const SHEET_OPEN_MS = 320; // detail-up (0378 값 유지)
 const SHEET_CLOSE_MS = 240; // detail-down
+// 0396: 검색 자동검색 — 타이핑 멈춤 300ms 뒤 발사(표준 검색 디바운스), 2자 미만은 미발사(1자=노이즈·과호출)
+const SEARCH_DEBOUNCE_MS = 300;
+const MIN_SEARCH_LEN = 2;
 // 열기 fullscreen 전환 커버(0370 방식) — 즉시 opaque로 덮고 이 홀드 뒤 페이드아웃.
 // double-rAF는 이르다(0370: 재생성 tilesloaded+300ms 선례) — autoResize·GL 재래스터 안착분 확보.
 const MAP_FADE_HOLD_MS = 120;
@@ -199,11 +202,15 @@ export default function SpotMap({
   const prevThemeRef = useRef<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
-  const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'ok' | 'zero' | 'error'>('idle');
   // S3-a: 마커 추가 시 근처 기존 촬영지 후보(있으면 재사용 선택 UI)
   const [nearbyChooser, setNearbyChooser] = useState<{ spotId: string; candidates: NearbySpot[] } | null>(null);
   // 0395: getSpotMeta 조회 진행 중인 스팟 id — 팝업이 "확인 중"을 대기/null 구분해 표시(fetchAndApplyMeta가 set·clear)
   const [metaPendingIds, setMetaPendingIds] = useState<Set<string>>(() => new Set());
+  // 0396 ②: findNearbySpots 조회 중인 스팟 id — 시트를 먼저 올리고(모바일) 콘텐츠는 대기로 둔다(chooser/편집 flash 방지)
+  const [nearbyPendingId, setNearbyPendingId] = useState<string | null>(null);
+  const searchSeqRef = useRef(0); // 0396 ①: 자동검색 응답 순서 역전 방지 — 최신 요청만 반영
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 0378: 팝업 마운트 슬롯 분기(카드 ↔ 전체화면 모달)의 단일 기준. CSS 노드 전환이 아닌 조건부
   // 마운트 두 슬롯 — 조상 overflow-hidden/transform 컨테이닝 블록 리스크 회피, SpotPopup 인스턴스는
   // 항상 1개(이중 폼 상태 방지). ssr:false(SpotMapWrapper)라 초기값 동기 판독 안전.
@@ -285,9 +292,11 @@ export default function SpotMap({
   //   생성 세션 스팟을 제거(0365 계열)한다. popstate가 이미 엔트리를 소비(pushedRef=false)했으므로 back() 재호출
   //   금지 → localSpots에서 직접 제거. SpotPopup 언마운트가 ref를 null로 비운 뒤(child cleanup) 이 parent
   //   effect가 대입하고, chooser 해소로 팝업이 뜨면 SpotPopup가 다시 소유(child effect 우선). 값 없을 땐 무대입.
+  // 0396: 조건에 nearbyPendingId 포함 — 후보 조회 대기 중에도 시트엔 SpotPopup이 아닌 대기 콘텐츠라
+  //   closeHandleRef를 여기서 소유해야 뒤로가기가 미저장 스팟을 제거(대기·chooser 둘 다 같은 배선).
   useEffect(() => {
-    if (!(isMobile && nearbyChooser)) return;
-    const spotId = nearbyChooser.spotId;
+    const spotId = nearbyChooser?.spotId ?? nearbyPendingId;
+    if (!(isMobile && spotId)) return;
     closeHandleRef.current = () => {
       const next = localSpotsRef.current
         .filter((s) => s.id !== spotId)
@@ -295,10 +304,11 @@ export default function SpotMap({
       setLocalSpots(next);
       onSpotsChange?.(next);
       setNearbyChooser(null);
+      setNearbyPendingId(null);
       setActiveSpot(null);
       setMode('menu');
     };
-  }, [isMobile, nearbyChooser, onSpotsChange]);
+  }, [isMobile, nearbyChooser, nearbyPendingId, onSpotsChange]);
 
   // 0383: 시트 열림 = 지도 래퍼를 fixed 풀스크린으로 토글(§1 클래스 분기)에도 재사용하는 파생.
   // isMobile 전제 — 데스크톱은 항상 false라 지도가 flow 카드에 머묾(무변, CDP 1280 실측 확인).
@@ -446,18 +456,20 @@ export default function SpotMap({
   addSpotFromMapRef.current = async (lng: number, lat: number) => {
     const id = addSpot('', lng, lat);
     void fetchAndApplyMeta(id, lat, lng, true); // 0392: 찍기 = 주소·교통 둘 다(주소 없음 → 역지오코딩)
-    // S3-a: 근처 기존 촬영지 후보 조회 → 있으면 chooser(재사용/새등록 판단), 없으면 바로 편집.
-    // 0384: try/catch — 세션 만료 등으로 액션이 throw해도 후보 없음으로 폴스루(스팟은 이미 addSpot됨,
-    // 작성 중 글 보존). 성공 경로는 불변.
+    // localSpotsRef 최신 스팟에서 세팅(0395 메타 레이스 방지 — 리터럴로 덮으면 병합된 주소·교통 누락).
+    const setActive = () => setActiveSpot(localSpotsRef.current.find((s) => s.id === id) ?? { id, name: '', lat, lng, order: localSpots.length + 1 });
+    // 0396 ②: 모바일은 후보 조회 전에 시트를 올린다 — 후보는 chooser 여부만 결정하지 편집 폼엔 불필요.
+    //   대기는 nearbyPending 콘텐츠가 덮어 편집 폼→chooser flash 방지(0394 속성 유지). 데스크톱은 사이드
+    //   카드 상시 노출이라 상승 지연이 없어 조회 뒤 세팅(무변).
+    if (isMobile) { setActive(); setNearbyPendingId(id); }
+    setMode('edit');
+    // S3-a: 근처 기존 촬영지 후보 조회. 0384: try/catch — throw해도 후보 없음으로 폴스루(스팟 보존, goal 8).
     let candidates: NearbySpot[] = [];
     try { candidates = await findNearbySpots(lat, lng); } catch { candidates = []; }
-    // 0394 ②: chooser든 편집이든 activeSpot 세팅으로 시트 상승(pin은 검색 상태 없음).
-    // 0395 원인 수정: localSpotsRef의 최신 스팟에서 세팅 — 리터럴로 덮으면 fetchAndApplyMeta가 먼저 도착해
-    //   localSpots에 병합한 주소·교통이 activeSpot엔 누락돼 시트에 안 뜨던 원인(찍기는 baseline 주소도 없어 전무).
-    //   메타가 아직이면 이후 applySpotMeta 함수형 패치가 activeSpot을 채운다(양 순서 모두 커버).
-    setActiveSpot(localSpotsRef.current.find((s) => s.id === id) ?? { id, name: '', lat, lng, order: localSpots.length + 1 });
-    setMode('edit');
-    if (candidates.length > 0) setNearbyChooser({ spotId: id, candidates });
+    setNearbyPendingId((prev) => (prev === id ? null : prev)); // 대기 종료
+    const alive = localSpotsRef.current.some((s) => s.id === id); // 조회 중 취소·삭제 가드(유령 chooser 방지)
+    if (!isMobile && alive) setActive();
+    if (candidates.length > 0 && alive) setNearbyChooser({ spotId: id, candidates });
   };
 
   // 초기 중심(생성 옵션 전용) — initialCenter props는 [lng, lat] 순서 유지(기존 호출 측 인터페이스) ★★★
@@ -794,10 +806,19 @@ export default function SpotMap({
   }
 
   // 키워드 검색 — 서버 액션(lib/spot/searchPlaces, Kakao Local REST). 좌표 변환은 서버 완료.
-  async function handleKeywordSearch() {
-    const kw = searchKeyword.trim();
-    if (!kw) return;
+  // 0396 ①: seq 가드 — 디바운스 자동검색은 늦게 보낸 요청이 먼저 올 수 있어, 최신 seq의 응답만 반영(옛 결과 덮기 방지).
+  async function runSearch(raw: string) {
+    const kw = raw.trim();
+    if (kw.length < MIN_SEARCH_LEN) { // 2자 미만: 미발사 + 진행 중 응답 무효화
+      searchSeqRef.current++;
+      setSearchResults([]);
+      setSearchStatus('idle');
+      return;
+    }
+    const seq = ++searchSeqRef.current;
+    setSearchStatus('loading'); // 왕복 중 로딩 표시(zero·error와 구분)
     const result = await searchPlaces(kw);
+    if (seq !== searchSeqRef.current) return; // 스테일 응답 폐기
     if (result.status === 'ok') {
       setSearchResults(result.places);
       setSearchStatus('ok');
@@ -806,6 +827,23 @@ export default function SpotMap({
       setSearchStatus(result.status);
     }
   }
+
+  // Enter·검색 버튼 — 대기 중 디바운스를 즉시 취소하고 곧장 검색(goal 1)
+  function handleKeywordSearch() {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    void runSearch(searchKeyword);
+  }
+
+  // 0396 ①: 입력 디바운스 자동검색 — 검색 모드에서 타이핑 멈춤 300ms 뒤 발사. 2자 미만은 0ms로 즉시 idle 정리.
+  //   모든 setState는 타이머 콜백(runSearch) 안에서만 — effect 본문 동기 setState 회피(캐스케이드 렌더 방지).
+  useEffect(() => {
+    if (mode !== 'search') return;
+    const kw = searchKeyword.trim();
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const delay = kw.length < MIN_SEARCH_LEN ? 0 : SEARCH_DEBOUNCE_MS; // 짧아지면 즉시 비우기
+    searchDebounceRef.current = setTimeout(() => void runSearch(kw), delay);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [searchKeyword, mode]);
 
   async function handlePlaceSelect(place: PlaceResult) {
     const { lat, lng } = place; // x/y→lng/lat 변환은 서버 액션이 완료 — 클라엔 순수 숫자만
@@ -818,16 +856,17 @@ export default function SpotMap({
     // 0394 ①: 항목 선택 = 검색 종료 — 결과·입력을 즉시 비우고 검색 모드 이탈(map 검색 오버레이 mode==='search' 해제).
     setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle');
     setMode('edit');
+    // localSpotsRef 최신 스팟에서 세팅(0395 메타 레이스 방지, addSpot가 place.address 실음).
+    const setActive = () => setActiveSpot(localSpotsRef.current.find((s) => s.id === id) ?? { id, name: place.name, lat, lng, order: localSpots.length + 1, address: place.address });
+    // 0396 ②: 찍기와 동형 — 모바일은 후보 조회 전에 시트 상승(대기는 nearbyPending이 덮음), 데스크톱은 조회 뒤(무변).
+    if (isMobile) { setActive(); setNearbyPendingId(id); }
     // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집. 0384: try/catch 폴스루(위 addSpotFromMapRef 동일)
     let candidates: NearbySpot[] = [];
     try { candidates = await findNearbySpots(lat, lng); } catch { candidates = []; }
-    // 0394 ②: chooser 유무와 무관하게 activeSpot을 세팅(모든 진입이 activeSpot 세팅 — :890 불변). 이것만으로
-    //   모바일 시트 상승·풀스크린(0383)·연출(0386)·전체보기 숨김(0387)이 기존 machinery 그대로 발동
-    //   (sheetOpen=isMobile&&(activeSpot||closingSpot) 파생·시트 마운트·WAAPI·EffectB 무개조). await 뒤 세팅으로
-    //   후보 있으면 편집 폼 flash 없이 곧장 chooser. 0391: 시트 즉시 주소 표시.
-    // 0395: localSpotsRef 최신 스팟에서 세팅(찍기와 동형 — 메타 레이스 방지). addSpot가 place.address를 이미 실었음.
-    setActiveSpot(localSpotsRef.current.find((s) => s.id === id) ?? { id, name: place.name, lat, lng, order: localSpots.length + 1, address: place.address });
-    if (candidates.length > 0) setNearbyChooser({ spotId: id, candidates });
+    setNearbyPendingId((prev) => (prev === id ? null : prev)); // 대기 종료
+    const alive = localSpotsRef.current.some((s) => s.id === id); // 조회 중 취소·삭제 가드(유령 chooser 방지)
+    if (!isMobile && alive) setActive();
+    if (candidates.length > 0 && alive) setNearbyChooser({ spotId: id, candidates });
   }
 
   // 0391: address는 optional — 검색 경로가 place.address를 실어 작성 중 시트에 즉시 표시.
@@ -960,6 +999,16 @@ export default function SpotMap({
 
   // 0394: chooser 1벌 정의 — 데스크톱 사이드 카드 슬롯과 모바일 시트 슬롯이 공유(0378 renderPopup과 대칭).
   //   카드 크롬(bg-card·rounded·border·overflow)은 슬롯이 제공, 여기선 내부 콘텐츠(p-5)만.
+  // 0396 ②: 후보 조회 중 시트 대기 콘텐츠 — 0395 metaPending과 같은 결(muted·animate-pulse "확인 중").
+  //   편집 폼을 먼저 보였다 chooser로 바꾸는 flash 방지. 시트 상승 애니(320ms)가 빠른 조회를 덮어 보통은 비가시.
+  function renderNearbyPending() {
+    return (
+      <div className="p-5 flex items-center justify-center min-h-[140px]">
+        <p className="text-sm text-muted animate-pulse">확인 중…</p>
+      </div>
+    );
+  }
+
   function renderChooser() {
     if (!nearbyChooser) return null;
     return (
@@ -1112,6 +1161,12 @@ export default function SpotMap({
                     검색
                   </button>
                 </div>
+                {searchStatus === 'loading' && (
+                  <div className="border-t border-border px-3 py-3">
+                    {/* 0396: 왕복 중 로딩 — 0395 "확인 중" 어휘와 같은 결(muted·animate-pulse) */}
+                    <p className="text-sm text-muted animate-pulse">검색 중…</p>
+                  </div>
+                )}
                 {searchStatus === 'zero' && (
                   <div className="border-t border-border px-3 py-3">
                     <p className="text-sm text-muted">검색 결과가 없습니다.</p>
@@ -1327,7 +1382,12 @@ export default function SpotMap({
           <div className="h-full overflow-y-auto overscroll-none pb-[calc(16px+env(safe-area-inset-bottom))]">
             {/* 0394: chooser 활성이면 시트에 chooser, 아니면 편집/보기 팝업. 선택 후 nearbyChooser=null →
                 같은 시트가 편집 폼으로 전환(activeSpot·시트 유지라 재애니 없음). */}
-            {nearbyChooser ? renderChooser() : renderPopup(activeSpot ?? closingSpot ?? undefined)}
+            {/* 0396 ②: chooser > 대기(후보 조회 중, 현재 시트 스팟에 한함) > 편집/보기 팝업. 대기는 flash 방지용. */}
+            {nearbyChooser
+              ? renderChooser()
+              : (nearbyPendingId && nearbyPendingId === activeSpot?.id)
+                ? renderNearbyPending()
+                : renderPopup(activeSpot ?? closingSpot ?? undefined)}
           </div>
         </div>
       )}
