@@ -1125,7 +1125,7 @@ export default function SpotMap({
           상단 필수부(사진 192+이름 58+리뷰 130=380)+여유 40, env는 pb 보정과 동기. 완전 리터럴(JIT).
           시트 밖(위 영역) 탭 = 닫힘 없음(스크림·백드롭 미도입) — 실수 닫힘이 0365 생성 세션
           삭제로 이어지는 것 차단, 닫기는 ✕·취소·뒤로가기만. 위 영역 포인터는 지도에 도달.
-          스크롤러: 명시 h-full(flex-grow 금지 §5·0253) + overscroll-contain(스크롤 락 페어) +
+          스크롤러: 명시 h-full(flex-grow 금지 §5·0253) + overscroll-none(스크롤 락 페어) +
           pb 88+env = 탭바 pill이 시트 위에 그려지는 기존 스태킹 사항 보정(SpotFinder :326 관례).
           overflow-hidden = 상단 radius 클립. */}
       {/* 0386: 마운트 조건에 closingSpot 포함 — 닫힘 애니 동안 시트를 살려둔다.
@@ -1138,9 +1138,11 @@ export default function SpotMap({
         >
           {/* 0383: pb 88(탭바 pill 겹침) 보정 제거 — 시트(z-60)가 탭바(z-40)를 덮으므로 불요.
               base 16 = §5 가장자리 여백(저장·취소 버튼이 화면 끝/홈바에 붙지 않게, env=0 기기 포함)
-              + 홈 인디케이터 safe-area. overscroll-contain = 시트 스크롤이 뒤로 새는 것 차단.
+              + 홈 인디케이터 safe-area. overscroll-none(0388) = 뒤로 새는 것 차단(contain 상위) +
+              iOS 고무줄 바운스 억제 — contain은 체이닝만 막고 자기 바운스는 허용해 시트 상단 빈 띠가
+              드러났음(실기기 ~170px 회색 띠). h-full이라 스크롤러=시트 동일 높이(높이 계산 무결).
               키보드 열림 시 저장 버튼 도달성은 별건(0384 visualViewport) */}
-          <div className="h-full overflow-y-auto overscroll-contain pb-[calc(16px+env(safe-area-inset-bottom))]">
+          <div className="h-full overflow-y-auto overscroll-none pb-[calc(16px+env(safe-area-inset-bottom))]">
             {renderPopup(activeSpot ?? closingSpot ?? undefined)}
           </div>
         </div>
