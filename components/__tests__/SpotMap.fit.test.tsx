@@ -65,7 +65,7 @@ beforeAll(() => {
       LatLng: MockLatLng,
       LatLngBounds: class { extend() {} },
       Point: class { constructor(public x: number, public y: number) {} },
-      Marker: class { setMap() {} },
+      Marker: class { setMap() {} setIcon() {} setZIndex() {} }, // 0390: 라벨 마커 선택 강조가 setIcon/setZIndex 호출 — 실 API 표면 반영
       Event: {
         once: (_m: unknown, _t: string, cb: () => void) => { initCallbacks.push(cb); return {}; },
         addListener: () => ({}),

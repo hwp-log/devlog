@@ -8,9 +8,16 @@ import { SpotList } from './SpotList';
 import { SpotPopup } from './SpotPopup';
 import { findNearbySpots, type NearbySpot } from '@/lib/spot/nearby';
 import { searchPlaces, type PlaceResult } from '@/lib/spot/searchPlaces';
+import { theme } from '@/lib/theme';
 import { Search, MapPin, ArrowLeft, List, Maximize2 } from 'lucide-react';
 
 const MERGE_EPSILON_KM = 0.05; // 50m 이내 = 같은 장소로 병합
+const PRIMARY = theme.common.primary; // 0390: 선택 pill 리터럴(0292 — 다크 var() 평탄화 회피, SpotFinder 미러)
+
+// 0390: HTML 문자열 아이콘에 들어가는 사용자 데이터(스팟명) 최소 이스케이프 — SpotFinderMapNaver:48 미러
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 // 줌 매핑(카카오 level→네이버 zoom 근사, 실화면 보정 대상): 기본 level5≈13 / 검색·찍기 확대 level3≈16
 const ZOOM_DEFAULT = 13;
@@ -55,21 +62,50 @@ function groupByProximity(spots: LocalSpot[]): MarkerGroup[] {
   return groups;
 }
 
-// 마커 HTML(파랑 도트 + 펄스) — 0364 번호 폐기에 이어 0368: 순서 파생 색(첫 초록/끝 빨강)도
-// 의미를 잃어 primary 단색 통일. var(--primary) — 지도 div가 테마 스코프 안이라 상속 작동, 다크 자동.
-// 목록↔마커 대응은 항목 클릭 시 확대 이동(focusSpot morph)·펄스가 담당(색 구분 불필요 — 0368 확정).
-// 바깥 래퍼 translate(-50%,-50%) + anchor(0,0) = 카카오 중앙 앵커 상응. isDark는 그림자만 분기.
+// 마커 HTML(장소명 라벨 pill + 파랑 도트 + 펄스) — 0390: SpotFinder markerContent 이식.
+//   색은 0368 primary 단색 유지(0364 순서색·getSpotColor 3색 부활 안 함). isDark 그림자 분기 유지.
+// 스택 구조 [라벨 pill][도트] 하단앵커 translate(-50%, calc(-100%+도트반경)) + anchor(0,0) →
+//   도트 중심이 좌표 고정(0368 중앙앵커와 동일 위치) → 클릭·펄스·focusSpot(0388) 위치 무변.
+// 라벨: 이름 있을 때만(원시 찍기 미명명 name:'' 은 pill 생략·도트만). max-width+ellipsis로 50자(0331)
+//   상한이 지도를 가리지 않게 끊음(SpotFinder는 nowrap 무보정 — 지도 크기 차이로 여기선 보강).
+// 병합(50m, groupByProximity) 그룹은 대표 이름만 나오므로 extraCount>0 이면 "+N"(SpotFinder 클러스터
+//   개수 어휘 — pill 문맥이라 총개수 아닌 추가분). 개별 병합 스팟은 사이드 목록에서 선택(기존 배선).
+// 다크 pill 색은 JS 인라인 리터럴(0292 — 인라인 var() 다크 평탄화 재발 방지, SpotFinder 바이트 원복).
+//   라이트는 var 토큰(--card/--border/--fg2) 경유. 선택 pill = primary(0368 단색) + zIndex 상향으로 겹침 승자.
 // 펄스 애니메이션은 globals.css @keyframes spot-pulse(0.6s) 참조 — 제거 타이머(triggerPulse)와 페어.
-function markerContent(opts: { isPulse: boolean; isDark: boolean }): string {
-  const { isPulse, isDark } = opts;
+function markerContent(opts: { name: string; extraCount: number; isPulse: boolean; selected: boolean; isDark: boolean }): string {
+  const { name, extraCount, isPulse, selected, isDark } = opts;
   const color = 'var(--primary)';
   const shadow = isDark ? '0 2px 6px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.3)';
   const pulse = isPulse
     ? `<div style="position:absolute;inset:-5px;border-radius:9999px;background:${color};z-index:0;animation:spot-pulse 0.6s ease-out forwards;pointer-events:none"></div>`
     : '';
-  return `<div style="transform:translate(-50%,-50%);position:relative;display:inline-flex">
-    <div style="position:relative;z-index:1;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:${shadow};cursor:default;width:18px;height:18px"></div>
+  const dot = `<div style="position:relative;display:inline-flex">
+    <div style="position:relative;z-index:1;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:${shadow};width:18px;height:18px"></div>
     ${pulse}
+  </div>`;
+
+  const trimmed = name.trim();
+  let pill = '';
+  if (trimmed) {
+    // 이름 span은 min-width:0 + ellipsis로 축약, +N은 flex:none으로 항상 노출(긴 이름에도 개수 확인 성립).
+    const nameSpan = `<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(trimmed)}</span>`;
+    const extraSpan = extraCount > 0
+      ? `<span style="flex:none;opacity:0.7;font-weight:700;margin-left:4px">+${extraCount}</span>`
+      : '';
+    const pillSize = selected ? 'font-size:14px;padding:4px 11px;' : 'font-size:12px;padding:3px 9px;';
+    const pillColor = selected
+      ? (isDark
+        ? `background:linear-gradient(to bottom,color-mix(in srgb,${PRIMARY} 82%,#fff),${PRIMARY});color:#fff;border:1px solid ${PRIMARY};box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),0 2px 6px rgba(0,0,0,0.4);`
+        : `background:${PRIMARY};color:#fff;border:1px solid ${PRIMARY};box-shadow:none;`)
+      : (isDark
+        ? 'background:linear-gradient(to bottom,#33383d,var(--surface2));color:var(--fg2);border:1px solid rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 2px 6px rgba(0,0,0,0.4);'
+        : 'background:var(--card);color:var(--fg2);border:1px solid var(--border);box-shadow:none;');
+    pill = `<span style="${pillSize}${pillColor}border-radius:999px;max-width:140px;display:flex;align-items:center;margin-bottom:4px">${nameSpan}${extraSpan}</span>`;
+  }
+
+  return `<div style="position:relative;width:0;height:0">
+    <div style="position:absolute;left:0;top:0;transform:translate(-50%, calc(-100% + 9px));display:flex;flex-direction:column;align-items:center;cursor:pointer">${pill}${dot}</div>
   </div>`;
 }
 
@@ -138,6 +174,12 @@ export default function SpotMap({
   const modeRef = useRef<Mode>('menu');
   const addSpotFromMapRef = useRef<((lng: number, lat: number) => void) | null>(null);
   const fitDoneRef = useRef(false);
+  // 0390: 선택 마커 강조를 rebuild 없이 setIcon으로 전이(SpotFinder 766-782 미러 — mass 탈부착=GL 프리즈
+  //   회피). markersRef = 대표id→{marker,렌더파라미터}, groupIndexRef = 스팟id→대표id(병합 스팟 역참조).
+  const markersRef = useRef<Map<string, { marker: naver.maps.Marker; name: string; extraCount: number; isPulse: boolean }>>(new Map());
+  const groupIndexRef = useRef<Map<string, string>>(new Map());
+  const activeSpotRef = useRef<LocalSpot | null>(null); // rebuild가 activeSpot deps 없이 현재 선택을 읽음
+  const prevSelectedRepRef = useRef<string | null>(null); // 직전 강조 대표id — 선택 전이 시 해제 대상
 
   const [mapInstance, setMapInstance] = useState<naver.maps.Map | null>(null);
   const [localSpots, setLocalSpots] = useState<LocalSpot[]>(spots);
@@ -510,24 +552,33 @@ export default function SpotMap({
     if (!mapInstance) return;
     const destroyedMaps = destroyedMapsRef.current; // 안정 WeakSet 참조 캡처(.current 재할당 없음) — 클린업 가드용
     const isDark = resolvedTheme === 'dark';
+    const markerIndex = markersRef.current; // 클린업 시점 ref 재조회 경고 회피 — 같은 Map 캡처
+    const groupIndex = new Map<string, string>();
+    markerIndex.clear();
+    const activeId = activeSpotRef.current?.id ?? null; // rebuild 시점 선택 유지(펄스 rebuild가 강조 지우지 않게)
     const items = groupByProximity(localSpots).map((group) => {
-      const isPulse = group.orders.some(o =>
-        localSpots.find(s => s.order === o && pulsingIds.has(s.id))
-      );
+      const rep = group.representative;
+      const members = group.orders.map(o => localSpots.find(s => s.order === o)).filter((s): s is LocalSpot => !!s);
+      members.forEach(s => groupIndex.set(s.id, rep.id)); // 병합 스팟도 대표 마커로 역참조(목록 선택 강조용)
+      const isPulse = members.some(s => pulsingIds.has(s.id));
+      const selected = !!activeId && members.some(s => s.id === activeId);
+      const extraCount = group.orders.length - 1;
       const marker = new naver.maps.Marker({
         map: mapInstance,
-        position: new naver.maps.LatLng(group.representative.lat, group.representative.lng), // ★★★ lat first
+        position: new naver.maps.LatLng(rep.lat, rep.lng), // ★★★ lat first
         icon: {
-          content: markerContent({ isPulse, isDark }),
-          anchor: new naver.maps.Point(0, 0), // 콘텐츠 translate(-50%,-50%)와 페어 = 중앙 앵커
+          content: markerContent({ name: rep.name, extraCount, isPulse, selected, isDark }),
+          anchor: new naver.maps.Point(0, 0), // 콘텐츠 하단앵커 translate와 페어 = 도트 중심이 좌표
         },
-        zIndex: 1,
+        zIndex: selected ? 10 : 1,
       });
+      markerIndex.set(rep.id, { marker, name: rep.name, extraCount, isPulse });
       const clickListener = naver.maps.Event.addListener(marker, 'click', () =>
-        handleMarkerClick(group.representative)
+        handleMarkerClick(rep)
       );
       return { marker, clickListener };
     });
+    groupIndexRef.current = groupIndex;
     return () => {
       // 파괴된 지도의 오버레이 해제는 GL removeLayer 크래시 유발 → 스킵(테마 전환 시 별도 커밋에서 발생)
       if (destroyedMaps.has(mapInstance)) return;
@@ -535,9 +586,36 @@ export default function SpotMap({
         naver.maps.Event.removeListener(clickListener); // 해제는 핸들 기반
         marker.setMap(null);
       });
+      markerIndex.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleMarkerClick은 안정 setter·prop만 사용(리빌드 트리거는 데이터·테마만)
   }, [mapInstance, localSpots, pulsingIds, resolvedTheme]);
+
+  // 0390: activeSpot을 ref로 미러 — 위 rebuild(펄스·데이터·테마)가 activeSpot을 deps에 넣지 않고도
+  //   현재 선택 강조를 유지(그래야 선택 변경이 rebuild=mass 탈부착을 유발하지 않음, GL 프리즈 회피).
+  useEffect(() => { activeSpotRef.current = activeSpot; }, [activeSpot]);
+
+  // 0390: 선택 마커 강조 전이 — SpotFinder 766-782 미러. setIcon만(탈부착 없음)이라 시트 애니 중 GL 프리즈
+  //   회피. 병합 스팟 선택은 groupIndexRef로 대표 마커에 귀속. 테마 전환은 rebuild가 재적용(파괴된 마커
+  //   setIcon 방지 위해 deps서 제외 — isDark는 선택 전이 시점 클로저값, 그 사이 테마 변경은 rebuild 담당).
+  useEffect(() => {
+    const isDark = resolvedTheme === 'dark';
+    const reIcon = (repId: string, selected: boolean) => {
+      const entry = markersRef.current.get(repId);
+      if (!entry) return;
+      entry.marker.setIcon({
+        content: markerContent({ name: entry.name, extraCount: entry.extraCount, isPulse: entry.isPulse, selected, isDark }),
+        anchor: new naver.maps.Point(0, 0),
+      });
+      entry.marker.setZIndex(selected ? 10 : 1);
+    };
+    const nextRepId = activeSpot ? (groupIndexRef.current.get(activeSpot.id) ?? null) : null;
+    const prevRepId = prevSelectedRepRef.current;
+    if (prevRepId && prevRepId !== nextRepId) reIcon(prevRepId, false);
+    if (nextRepId) reIcon(nextRepId, true);
+    prevSelectedRepRef.current = nextRepId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 선택 전이만 관측(테마 전환은 rebuild가 재적용); resolvedTheme 넣으면 파괴 중 마커 setIcon 위험
+  }, [activeSpot?.id]);
 
   // 폴리라인 없음(0364) — 동선 폐기로 렌더 제거. GL removeLayer→getLayer 크래시의 한 경로도 함께 소멸.
   // 지도 생성 — 명령형 init/destroy (StrictMode 이중 마운트 안전, GL 컨텍스트 해제).
