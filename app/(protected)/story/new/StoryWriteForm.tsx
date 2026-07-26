@@ -158,13 +158,6 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                   placeholder="태그 입력 후 Enter"
                   className="flex-1 px-0 min-h-[44px] pb-[8px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
                 />
-                <button
-                  type="button"
-                  onClick={addTag}
-                  className="min-h-[44px] px-2 text-[12.5px] text-muted hover:text-fg2 transition-colors"
-                >
-                  추가
-                </button>
               </div>
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
