@@ -612,13 +612,18 @@ export default function SpotMap({
     }, 600);
   }
 
-  // 스팟 포커스(0369) — 클릭한 좌표를 중심으로 부드럽게 확대(질감은 SPOT_TRANSITION 단일 소스).
-  // Math.max(현재줌, ZOOM_FOCUS) — 이미 더 확대해 둔 상태에서 클릭 시 축소되지 않게.
+  // 스팟 포커스(0369) — 클릭한 좌표를 중심으로 부드럽게 이동(질감은 SPOT_TRANSITION 단일 소스).
+  // 데스크톱(지도 422px): Math.max(현재줌, ZOOM_FOCUS) — 이미 더 확대해 둔 상태에서 클릭 시 축소되지 않게.
+  // 모바일(0387): 지도가 풀스크린(0383)이라 ZOOM_FOCUS 확대가 너무 가깝다 → 현재 배율에서 한 단계 축소
+  //   (getMinZoom 하한 클램프는 fitAllSpots와 동일 선례). isMobile로 가름 — 데스크톱 동작 무변.
   function focusSpot(spot: LocalSpot) {
     if (!mapInstance) return;
+    const zoom = isMobile
+      ? Math.max(mapInstance.getZoom() - 1, mapInstance.getMinZoom())
+      : Math.max(mapInstance.getZoom(), ZOOM_FOCUS);
     mapInstance.morph(
       new naver.maps.LatLng(spot.lat, spot.lng),
-      Math.max(mapInstance.getZoom(), ZOOM_FOCUS),
+      zoom,
       SPOT_TRANSITION,
     );
   }
@@ -835,8 +840,11 @@ export default function SpotMap({
               우상단 = 네이버 기본 컨트롤(로고·저작권·축척, 하단 계열)과 비충돌 — 실화면 확인 항목.
               모양: 알약(pill) + 아이콘 — 지도 위 부유 컨트롤 관례. 데스크톱은 컴팩트(sm:py-1.5),
               모바일만 min-h 44px 터치 타깃 유지(§5 — 축소 요구와 기준선의 양립은 반응형으로).
-              text-xs(12px) = §5 하한 준수. 토큰만 사용(다크 자동). smooth=true — 사용자 조작은 morph */}
-          {localSpots.length > 0 && (
+              text-xs(12px) = §5 하한 준수. 토큰만 사용(다크 자동). smooth=true — 사용자 조작은 morph.
+              !sheetOpen(0387) — 시트(좌표 1개 리뷰) 중엔 "전체보기"가 맥락에 안 맞고 작은 화면에 안 담김.
+              sheetOpen은 closingSpot 포함이라 닫힘 애니(240ms) 중에도 true → 버튼이 미리 깜빡이지 않음.
+              데스크톱은 sheetOpen never true(isMobile 전제)라 상시 표시 = 무변. */}
+          {localSpots.length > 0 && !sheetOpen && (
             <button
               type="button"
               onClick={() => { if (mapInstance) fitAllSpots(mapInstance, localSpots, true); }}
