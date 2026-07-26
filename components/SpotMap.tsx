@@ -80,6 +80,12 @@ type Mode = 'menu' | 'pinning' | 'search' | 'list' | 'edit' | 'view';
 // 현재 426 고정: 카드 426 / 지도 422(=860−426−12). ↔ 'w-full md:w-2/5': 카드 344 / 지도 504.
 const SIDE_CARD_WIDTH = 'w-full md:w-[426px]';
 
+// 모바일 판정(0378) — md 미만 = 지도/카드 세로 스택 구간(아래 flex-col md:flex-row와 페어).
+// 이 구간에서 팝업은 전체화면 모달로 마운트(기존 확정 표준 "전체화면 모달" 항 — SpotFinder 셸 이식).
+// jsdom엔 matchMedia가 없어 가드 — 테스트는 데스크톱 경로(false)로 렌더.
+const MOBILE_MQ = '(max-width: 767px)';
+const canMatchMedia = () => typeof window.matchMedia === 'function';
+
 type Props = {
   spots: LocalSpot[];
   initialCenter?: [number, number]; // [lng, lat] — 기존 호출 측 인터페이스 유지
@@ -135,6 +141,72 @@ export default function SpotMap({
   const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
   // S3-a: 마커 추가 시 근처 기존 촬영지 후보(있으면 재사용 선택 UI)
   const [nearbyChooser, setNearbyChooser] = useState<{ spotId: string; candidates: NearbySpot[] } | null>(null);
+  // 0378: 팝업 마운트 슬롯 분기(카드 ↔ 전체화면 모달)의 단일 기준. CSS 노드 전환이 아닌 조건부
+  // 마운트 두 슬롯 — 조상 overflow-hidden/transform 컨테이닝 블록 리스크 회피, SpotPopup 인스턴스는
+  // 항상 1개(이중 폼 상태 방지). ssr:false(SpotMapWrapper)라 초기값 동기 판독 안전.
+  const [isMobile, setIsMobile] = useState(() => canMatchMedia() && window.matchMedia(MOBILE_MQ).matches);
+  // 0378: 모달 history 배선. pushedRef = 우리가 쌓은 엔트리 유무(이중 back·이중 close 가드).
+  // closeHandleRef = SpotPopup.handleClose 핸들 — 뒤로가기(popstate)가 이 핸들을 경유해야 생성 세션
+  // 스팟 제거(0365)가 실행됨. 판정(isCreationSession)은 SpotPopup 단일 소스라 여기서 재추적 금지(§8-②).
+  const pushedRef = useRef(false);
+  const closeHandleRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!canMatchMedia()) return;
+    const mq = window.matchMedia(MOBILE_MQ);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // 0378: 모달 열림 = 엔트리 push. URL 무변경 state-only — SpotFinder(?detail=id)에서 의도적 이탈:
+  // 상세 URL은 공유 표면이고 새로고침 복원도 없는 쿼리라 오염만 남김. 네이티브 history(Next 라우터
+  // 미경유 = 재마운트 없음, SpotFinder 0224 선례). 스팟 전환(A마커→B마커)은 activeSpot 유지라 엔트리 1개 불변.
+  // 브레이크포인트 교차(모달 열린 채 회전 등)는 엔트리만 소비 — 팝업은 카드 슬롯으로 이동.
+  // 페이지 이탈 시 잔여 엔트리는 수용 엣지(SpotFinder 동일 — 미처리).
+  useEffect(() => {
+    if (isMobile && activeSpot && !pushedRef.current) {
+      window.history.pushState({ spotPopup: true }, '');
+      pushedRef.current = true;
+    }
+    if (!isMobile && pushedRef.current) {
+      pushedRef.current = false;
+      window.history.back();
+    }
+  }, [isMobile, activeSpot]);
+
+  // 0378: 뒤로가기 → 팝업 handleClose 핸들 경유(0365 생성 세션 삭제 포함). consumeHistoryEntry의
+  // 프로그램적 back()이 유발한 popstate는 pushedRef=false라 no-op(이중 실행 차단).
+  useEffect(() => {
+    const onPop = () => {
+      if (!pushedRef.current) return;
+      pushedRef.current = false;
+      if (closeHandleRef.current) closeHandleRef.current();
+      else {
+        // 핸들 미대입 폴백(대입은 SpotPopup effect — 첫 페인트 직후엔 항상 존재)
+        setActiveSpot(null);
+        setMode('menu');
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // 0378: 모달 열린 동안 배경 스크롤 락(iOS 스크롤 체이닝 방지) — html·body overflow 잠금, 셸
+  // 스크롤러 overscroll-contain과 페어. position:fixed body 락은 스크롤 복원 복잡도로 1차 미채택(실기기 잔존 시 후속).
+  useEffect(() => {
+    if (!(isMobile && activeSpot)) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, [isMobile, activeSpot]);
 
   // modeRef·addSpotFromMapRef를 렌더마다 최신값으로 갱신 (stale closure 방지)
   modeRef.current = mode;
@@ -421,6 +493,23 @@ export default function SpotMap({
     setLocalSpots(next);
     setActiveSpot(null);
     onSpotsChange?.(next);
+    consumeHistoryEntry(); // 보기 팝업의 [삭제]는 onClose 미경유 닫힘 — 엔트리 잔존 방지
+  }
+
+  // 0378: 우리가 쌓은 history 엔트리 소비 — 팝업 내부 닫기(✕·취소·삭제)가 상태를 먼저 정리한 뒤
+  // 호출. 사용자 가시 결과는 "✕=history.back()"과 동일, 배선만 역방향(0365 판정을 SpotPopup에
+  // 남기기 위해 — popstate 쪽이 핸들을 경유). back()이 재유발하는 popstate는 pushedRef 가드로 no-op.
+  function consumeHistoryEntry() {
+    if (!pushedRef.current) return;
+    pushedRef.current = false;
+    window.history.back();
+  }
+
+  // 팝업 onClose 단일 배선(0378) — 기존 2곳 인라인(setActiveSpot(null)+setMode('menu')) 흡수 + 엔트리 소비
+  function handlePopupClose() {
+    setActiveSpot(null);
+    setMode('menu');
+    consumeHistoryEntry();
   }
 
   // 키워드 검색 — 서버 액션(lib/spot/searchPlaces, Kakao Local REST). 좌표 변환은 서버 완료.
@@ -491,6 +580,36 @@ export default function SpotMap({
     setNearbyChooser(null);
   }
 
+  // 팝업 1벌 정의(0378) — 카드 슬롯(md 이상)과 전체화면 모달 슬롯(md 미만)이 공유(프롭 단일 소스).
+  // 진입 경로(마커 탭·목록 탭·검색 추가·좌표 찍기·chooser 선택)는 전부 activeSpot 세팅이라 분기 불요.
+  // readOnly 콘텐츠는 displayedSpot(카드 크로스페이드 중 잔존 표시용) — 가시성 자체는 activeSpot이 담당.
+  function renderPopup() {
+    if (readOnly) {
+      return displayedSpot ? (
+        <SpotPopup
+          key={displayedSpot.id}
+          spot={displayedSpot}
+          readOnly
+          closeHandleRef={closeHandleRef}
+          onClose={handlePopupClose}
+        />
+      ) : null;
+    }
+    return activeSpot ? (
+      <SpotPopup
+        key={activeSpot.id}
+        spot={activeSpot}
+        readOnly={!canAddSpot}
+        closeHandleRef={closeHandleRef}
+        onDelete={canAddSpot ? () => handleDelete(activeSpot.id) : undefined}
+        onClose={handlePopupClose}
+        onUpdate={handleSpotUpdate}
+        onFileSelect={(file) => onPhotoSelect?.(activeSpot.id, file)}
+        initialEditing={mode === 'edit'}
+      />
+    ) : null;
+  }
+
   if (!process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID) {
     return (
       <div className="w-full h-[400px] rounded-xl bg-card flex items-center justify-center text-sm text-muted">
@@ -525,7 +644,10 @@ export default function SpotMap({
     <div className="flex flex-col gap-2">
       <div className="flex flex-col md:flex-row gap-3">
         {/* 지도 컨테이너 — md:h-[500px]는 사이드 카드 목록 max-h(readOnly 424·reorder 300, 0342)의 파생 원본. 바꾸면 그 두 값도 함께 */}
-        <div className="relative flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+        {/* md:flex-1(0377 실측) — flex-1(=flex-basis 0%)은 세로 스택(모바일 flex-col)에서 h-[400px]을
+            이기고 계산 높이 0으로 붕괴(자동 높이 컨테이너라 grow 배분 몫도 0 — Chrome 실측 0px).
+            grow의 목적은 가로 행에서 남은 폭 채움뿐이므로 md 한정 = 의도 그대로, 모바일은 명시 높이(§5) */}
+        <div className="relative md:flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
           {/* 리뷰장소 전체보기 오버레이(0369) — 확대해 돌아다닌 뒤 전체 뷰 복귀. 글쓰기·상세 공용
               (초기 뷰가 양쪽 적용이므로 복귀 수단도 양쪽). z-10 = 지도 위·팝오버(z-50) 아래.
               우상단 = 네이버 기본 컨트롤(로고·저작권·축척, 하단 계열)과 비충돌 — 실화면 확인 항목.
@@ -607,7 +729,10 @@ export default function SpotMap({
           }`}>
           {readOnly ? (
             <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
-              <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'opacity-0 pointer-events-none absolute inset-0 p-5' : 'opacity-100'}`}>
+              {/* 0377: absolute 전환은 md 한정 — 모바일(flex-col)은 카드 높이=콘텐츠라 두 레이어가
+                  전부 absolute면 높이가 p-5만 남아 ~42px로 붕괴(팝업이 overflow-hidden에 클립).
+                  목록을 flow에 남겨 높이를 유지하고, 크로스페이드는 행 높이(지도 500px)가 있는 md 이상 전용 */}
+              <div className={`transition-opacity duration-200 flex flex-col h-full ${activeSpot ? 'md:opacity-0 md:pointer-events-none md:absolute md:inset-0 md:p-5' : 'opacity-100'}`}>
                 <p className="text-base font-semibold text-fg mb-3">장소 목록</p>
                 {/* 0342: 데스크톱 424 = 지도 md:h-[500px](위 472) − 카드 p-5 상하(40) − 타이틀(24)+mb-3(12).
                     지도 높이를 바꾸면 여기도 함께 (한쪽만 바꾸면 카드 아래 여백/클립).
@@ -616,15 +741,11 @@ export default function SpotMap({
                   <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                 </div>
               </div>
-              <div className={`absolute inset-0 transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                {displayedSpot && (
-                  <SpotPopup
-                    key={displayedSpot.id}
-                    spot={displayedSpot}
-                    readOnly
-                    onClose={() => { setActiveSpot(null); setMode('menu'); }}
-                  />
-                )}
+              {/* 0377: bg-card — 모바일에서 목록이 flow에 남으므로(위) 팝업 레이어가 투명하면 겹쳐 보임.
+                  md 크로스페이드에도 무해(같은 카드면 위 불투명 층) */}
+              <div className={`absolute inset-0 bg-card transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                {/* !isMobile — 모바일 팝업은 아래 전체화면 모달 슬롯(0378). 빈 레이어는 모달 뒤라 비가시 */}
+                {!isMobile && renderPopup()}
               </div>
             </div>
           ) : nearbyChooser ? (
@@ -665,18 +786,10 @@ export default function SpotMap({
                 새 장소로 등록
               </button>
             </div>
-          ) : activeSpot ? (
+          ) : activeSpot && !isMobile ? (
+            // !isMobile(0378) — 모바일 팝업은 아래 전체화면 모달 슬롯. 카드는 메뉴로 폴스루(닫힘 후 상태와 동일)
             <div className="bg-card rounded-xl shadow-lg h-full overflow-y-auto border border-border">
-              <SpotPopup
-                key={activeSpot.id}
-                spot={activeSpot}
-                readOnly={!canAddSpot}
-                onDelete={canAddSpot ? () => handleDelete(activeSpot.id) : undefined}
-                onClose={() => { setActiveSpot(null); setMode('menu'); }}
-                onUpdate={handleSpotUpdate}
-                onFileSelect={(file) => onPhotoSelect?.(activeSpot.id, file)}
-                initialEditing={mode === 'edit'}
-              />
+              {renderPopup()}
             </div>
           ) : canAddSpot ? (
             <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 flex flex-col gap-4">
@@ -796,6 +909,22 @@ export default function SpotMap({
           ) : null}
         </div>
       </div>
+      {/* 0378: 모바일 전체화면 팝업 모달 — SpotFinder 셸 레시피(SpotFinderMapNaver:1250)를 md 기준
+          이식. detail-up = globals.css 기존 키프레임 재사용(SpotFinder와 동일 리터럴 — JIT 스캔 기생성).
+          bg-card: SpotPopup은 카드 표면 문법으로 설계된 콘텐츠(SpotFinder bg-bg에서 의도적 이탈).
+          닫힘은 즉시 언마운트(SpotFinder 동일 — 퇴장 애니메이션 없음). 스크롤러 1개 명시 높이
+          (flex-grow 사이징 금지 §5·0253), overscroll-contain = 위 스크롤 락과 페어. pt = 노치,
+          pb 88+env = 탭바 pill이 모달 위에 그려지는 기존 스태킹 사항 보정(SpotFinder :326 관례). */}
+      {isMobile && activeSpot && (
+        <div
+          className="md:hidden fixed inset-0 z-[60] bg-card animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]"
+          style={{ height: '100svh' }}
+        >
+          <div className="h-full overflow-y-auto overscroll-contain pt-[env(safe-area-inset-top)] pb-[calc(88px+env(safe-area-inset-bottom))]">
+            {renderPopup()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
