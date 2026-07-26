@@ -916,18 +916,22 @@ export default function SpotMap({
           ) : null}
         </div>
       </div>
-      {/* 0378: 모바일 전체화면 팝업 모달 — SpotFinder 셸 레시피(SpotFinderMapNaver:1250)를 md 기준
-          이식. detail-up = globals.css 기존 키프레임 재사용(SpotFinder와 동일 리터럴 — JIT 스캔 기생성).
-          bg-card: SpotPopup은 카드 표면 문법으로 설계된 콘텐츠(SpotFinder bg-bg에서 의도적 이탈).
-          닫힘은 즉시 언마운트(SpotFinder 동일 — 퇴장 애니메이션 없음). 스크롤러 1개 명시 높이
-          (flex-grow 사이징 금지 §5·0253), overscroll-contain = 위 스크롤 락과 페어. pt = 노치,
-          pb 88+env = 탭바 pill이 모달 위에 그려지는 기존 스태킹 사항 보정(SpotFinder :326 관례). */}
+      {/* 0378: 모바일 팝업 시트 — 전체화면에서 하단 70svh 고정 시트로 전환(사용자 확정).
+          글쓰기에서 지도는 탐색 도구가 아니라 작업 캔버스라, 리뷰 작성 중 "방금 찍은 곳"이
+          위 영역으로 보여야 함(SpotFinder 상세는 탐색 종료 시점이라 전체화면 유지 — 별개).
+          고정 높이 — 드래그·스냅 3단 시트(기각된 안티패턴) 아님. 셸 어휘는 SpotFinder 모바일
+          시트(:1159)와 동일 계열(rounded-t-[22px]·border·shadow-2xl), z-60·detail-up 키프레임·
+          history·스크롤 락은 0378 그대로. bg-card: SpotPopup은 카드 표면 문법.
+          h = max(70svh, 420+env) — §5 "svh 하한 짝"(실기기 Safari svh 축소): 420 = 편집 폼
+          상단 필수부(사진 192+이름 58+리뷰 130=380)+여유 40, env는 pb 보정과 동기. 완전 리터럴(JIT).
+          시트 밖(위 영역) 탭 = 닫힘 없음(스크림·백드롭 미도입) — 실수 닫힘이 0365 생성 세션
+          삭제로 이어지는 것 차단, 닫기는 ✕·취소·뒤로가기만. 위 영역 포인터는 지도에 도달.
+          스크롤러: 명시 h-full(flex-grow 금지 §5·0253) + overscroll-contain(스크롤 락 페어) +
+          pb 88+env = 탭바 pill이 시트 위에 그려지는 기존 스태킹 사항 보정(SpotFinder :326 관례).
+          overflow-hidden = 상단 radius 클립. */}
       {isMobile && activeSpot && (
-        <div
-          className="md:hidden fixed inset-0 z-[60] bg-card animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]"
-          style={{ height: '100svh' }}
-        >
-          <div className="h-full overflow-y-auto overscroll-contain pt-[env(safe-area-inset-top)] pb-[calc(88px+env(safe-area-inset-bottom))]">
+        <div className="md:hidden fixed inset-x-0 bottom-0 z-[60] h-[max(70svh,calc(420px+env(safe-area-inset-bottom)))] bg-card rounded-t-[22px] border border-border shadow-2xl overflow-hidden animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]">
+          <div className="h-full overflow-y-auto overscroll-contain pb-[calc(88px+env(safe-area-inset-bottom))]">
             {renderPopup()}
           </div>
         </div>
