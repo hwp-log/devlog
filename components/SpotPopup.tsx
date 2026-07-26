@@ -390,8 +390,10 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
         </>
       )}
 
-      {/* 교통 기준점 — 저장 시 자동 계산 (읽기 전용), 표시 문구는 formatTransit 파생 */}
-      {!isEditing && spot.nearestStation && spot.transitMinutes != null && (
+      {/* 교통 기준점 — 표시 전용(입력란 아님). 값은 getSpotMeta(추가 시)·저장 시 자동 계산 파생.
+          0393: 주소 블록(:333)과 같은 방식 — isEditing 무관하게 값 있으면 렌더(편집 폼에도 보임).
+          문구·위치·스타일 단일 소스라 보기/편집이 다르게 보일 수 없음. 순서: 별점 다음·촬영 작품 앞. */}
+      {spot.nearestStation && spot.transitMinutes != null && (
         <>
           <div className="border-t border-border mx-4" />
           <div className="p-4">
