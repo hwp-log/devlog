@@ -147,8 +147,22 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             />
           </div>
       </div>
-      {/* 블록 순서(0374): PLAN → 방문장소 — 편집·수정 화면과 동일 순서(WYSIWYG, 0349~0350 통일의
-          잔여 항목). 두 블록 다 자체 mt-[46px] 조건부라 어느 쪽이 빠져도 간격 규칙 불변. */}
+      {/* 블록 순서(0387): 방문장소 → PLAN — 편집·수정 화면과 동일 순서(0374 정합 유지, WYSIWYG).
+          SPOTMAP을 하단 링크·버튼에서 떼어 좌표 리뷰 수정 혼동 차단이 목적(0387).
+          두 블록 다 자체 mt-[46px] 조건부라 어느 쪽이 빠져도 간격 규칙 불변. */}
+      {story.storySpots.length > 0 && (
+        // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
+        // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
+        <div className="mt-[46px]">
+          {/* 눈썹 문법(0375) — 같은 화면 PLAN 블록·편집 화면(0342 SPOTMAP)과 동일 클래스 문자열.
+              MapPin 아이콘 제거 — 눈썹+타이틀 구조로 통일 */}
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
+          {/* fixedSideWidth(0376) — 0373 폭 정합(상세도 860)으로 "상세=비율" 분기의 전제가 소멸,
+              글수정과 동일 크기(카드 426/지도 422)로 통일 */}
+          <SpotMap spots={localSpots} readOnly fixedSideWidth />
+        </div>
+      )}
       {/* PLAN 블록 — 타이틀 = 플랜 제목 겸 링크(본문색·→ 아이콘), 하단 "이 여행플랜 보기" 링크를 대체.
           총액 0이어도 눈썹+제목 링크는 유지(플랜 경로 보존 — 옛 하단 링크도 총액 무관이었음),
           트리맵만 ratios 있을 때 렌더. BUDGET(예산을 약속하는 헤더)과 달리 PLAN 타이틀은
@@ -178,19 +192,6 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             <p className="mb-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
           )}
           {publicSummary.ratios.length > 0 && <PublicCostSection summary={publicSummary} />}
-        </div>
-      )}
-      {story.storySpots.length > 0 && (
-        // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
-        // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
-        <div className="mt-[46px]">
-          {/* 눈썹 문법(0375) — 같은 화면 PLAN 블록·편집 화면(0342 SPOTMAP)과 동일 클래스 문자열.
-              MapPin 아이콘 제거 — 눈썹+타이틀 구조로 통일 */}
-          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
-          {/* fixedSideWidth(0376) — 0373 폭 정합(상세도 860)으로 "상세=비율" 분기의 전제가 소멸,
-              글수정과 동일 크기(카드 426/지도 422)로 통일 */}
-          <SpotMap spots={localSpots} readOnly fixedSideWidth />
         </div>
       )}
       {/* 다른 이야기 보기(0377) — 다 읽은 독자의 다음 행동이 이 화면의 주요 행동: 글쓰기 "스토리

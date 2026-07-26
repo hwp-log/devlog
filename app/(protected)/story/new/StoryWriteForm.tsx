@@ -184,54 +184,6 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               )}
               <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             </div>
-            {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
-                눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
-                비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9).
-                pt-[46px]는 위 태그 필드와의 간격 — 안내 문구 삭제 후 다른 필드 블록과 같은
-                46px 리듬으로 복귀(본문 pt-[46px]와 동일). */}
-            {availablePlans.length > 0 && (
-              <div className="flex flex-col pt-[46px]">
-                <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
-                <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행계획</h2>
-                {/* appearance-none + 직접 chevron: 네이티브 select는 CSS에 안 잡히는 내장 좌측
-                    여백(Chrome 4px·Safari 8px 실측)을 그려 트리맵 좌측선과 어긋남. pt-[8px]는
-                    텍스트를 밑줄 쪽으로 내려 텍스트↔밑줄(~12px) < 밑줄↔트리맵(16px) —
-                    밑줄이 select 소속으로 읽히게. pr-[24px]는 긴 제목의 chevron 침범 방지. */}
-                <div className="relative">
-                  <select
-                    aria-label="내 플랜 연결"
-                    value={selectedPlanId ?? ''}
-                    onChange={(e) => setSelectedPlanId(e.target.value || null)}
-                    className="w-full appearance-none pl-0 pr-[24px] pt-[8px] min-h-[44px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border focus:outline-none focus:border-primary"
-                  >
-                    <option value="">연결 안 함</option>
-                    {availablePlans.map((p) => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-0 bottom-[10px] text-muted" />
-                </div>
-                {/* 소개·트리맵은 서로 독립 렌더(소개만 있고 총액 0인 플랜 대응).
-                    소개는 상한 없는 필드라 2줄 클램프로 끊고 전문은 플랜에서. 비면 줄 자체 미렌더.
-                    트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략(블록 유지) */}
-                {selectedPlanId && (() => {
-                  const plan = availablePlans.find((p) => p.id === selectedPlanId);
-                  if (!plan) return null;
-                  return (
-                    <>
-                      {plan.description && (
-                        <p className="mt-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
-                      )}
-                      {plan.summary.ratios.length > 0 && (
-                        <div className="mt-[16px]">
-                          <PublicCostSection summary={plan.summary} />
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            )}
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
@@ -242,6 +194,54 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
         <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
         <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
       </div>
+      {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
+          눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
+          비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9).
+          pt-[46px]는 위 SPOTMAP 블록과의 간격 — 블록 순서 SPOTMAP→PLAN(0387, 하단 수정 버튼과 거리 벌림).
+          form 밖 배치: select는 name 없고 hidden plan_id(폼 내부)가 selectedPlanId로 제출(무접촉). */}
+      {availablePlans.length > 0 && (
+        <div className="flex flex-col pt-[46px]">
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행계획</h2>
+          {/* appearance-none + 직접 chevron: 네이티브 select는 CSS에 안 잡히는 내장 좌측
+              여백(Chrome 4px·Safari 8px 실측)을 그려 트리맵 좌측선과 어긋남. pt-[8px]는
+              텍스트를 밑줄 쪽으로 내려 텍스트↔밑줄(~12px) < 밑줄↔트리맵(16px) —
+              밑줄이 select 소속으로 읽히게. pr-[24px]는 긴 제목의 chevron 침범 방지. */}
+          <div className="relative">
+            <select
+              aria-label="내 플랜 연결"
+              value={selectedPlanId ?? ''}
+              onChange={(e) => setSelectedPlanId(e.target.value || null)}
+              className="w-full appearance-none pl-0 pr-[24px] pt-[8px] min-h-[44px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border focus:outline-none focus:border-primary"
+            >
+              <option value="">연결 안 함</option>
+              {availablePlans.map((p) => (
+                <option key={p.id} value={p.id}>{p.title}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-0 bottom-[10px] text-muted" />
+          </div>
+          {/* 소개·트리맵은 서로 독립 렌더(소개만 있고 총액 0인 플랜 대응).
+              소개는 상한 없는 필드라 2줄 클램프로 끊고 전문은 플랜에서. 비면 줄 자체 미렌더.
+              트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략(블록 유지) */}
+          {selectedPlanId && (() => {
+            const plan = availablePlans.find((p) => p.id === selectedPlanId);
+            if (!plan) return null;
+            return (
+              <>
+                {plan.description && (
+                  <p className="mt-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
+                )}
+                {plan.summary.ratios.length > 0 && (
+                  <div className="mt-[16px]">
+                    <PublicCostSection summary={plan.summary} />
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
       {/* 등록 버튼: 시안 순서상 여행동선 아래 마지막. form 밖이라 form="story-write-form"으로 연결 —
           클릭 시 폼 submit 이벤트가 발화해 handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}
       <div className="pt-[46px]">
