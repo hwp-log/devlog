@@ -150,6 +150,10 @@ export default function SpotMap({
   // 스팟 제거(0365)가 실행됨. 판정(isCreationSession)은 SpotPopup 단일 소스라 여기서 재추적 금지(§8-②).
   const pushedRef = useRef(false);
   const closeHandleRef = useRef<(() => void) | null>(null);
+  // 0382: 시트 열 때 지도 정렬·패딩 배선용. sheetRef = covered 측정 대상(시트 top),
+  // restoreScrollRef = 정렬 전 스크롤(닫을 때 복원 — 시트=임시 오버레이 멘탈 모델).
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const restoreScrollRef = useRef(0);
 
   useEffect(() => {
     if (!canMatchMedia()) return;
@@ -192,21 +196,57 @@ export default function SpotMap({
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // 0378: 모달 열린 동안 배경 스크롤 락(iOS 스크롤 체이닝 방지) — html·body overflow 잠금, 셸
-  // 스크롤러 overscroll-contain과 페어. position:fixed body 락은 스크롤 복원 복잡도로 1차 미채택(실기기 잔존 시 후속).
+  // 0382 Effect A: 시트 열 때 지도 정렬 → 배경 스크롤 락 → (닫힘) 복원. 순서가 핵심 —
+  // 정렬(scrollTo)이 lock보다 먼저여야 유효(잠기면 무효), lock은 iOS 스크롤 체이닝 방지(0378).
+  // 키를 activeSpot 객체가 아닌 불리언 sheetOpen으로 — 편집 입력(handleSpotUpdate)이 매번
+  // 새 activeSpot을 만들어도 재정렬·복원 중복이 안 생기게(열림/닫힘 전이에만 반응).
+  // 선언 순서상 Effect B(패딩·morph)보다 먼저 = 열림 커밋에서 정렬이 측정보다 앞섬.
+  const sheetOpen = isMobile && !!activeSpot;
   useEffect(() => {
-    if (!(isMobile && activeSpot)) return;
+    if (!sheetOpen) return;
     const html = document.documentElement;
     const body = document.body;
     const prevHtml = html.style.overflow;
     const prevBody = body.style.overflow;
+    // 정렬: 지도 top을 sticky 헤더 바로 아래로 (위 스트립에 지도를 놓기 위한 스크롤).
+    restoreScrollRef.current = window.scrollY;
+    const mapEl = mapDivRef.current;
+    if (mapEl) {
+      const headerH = document.querySelector('header')?.getBoundingClientRect().height ?? 0;
+      // instant — smooth는 뒤이은 lock과 경쟁해 잘림. 전환 질감은 시트 detail-up(320ms)이 담당.
+      window.scrollTo(0, window.scrollY + mapEl.getBoundingClientRect().top - headerH);
+    }
     html.style.overflow = 'hidden';
     body.style.overflow = 'hidden';
     return () => {
       html.style.overflow = prevHtml;
       body.style.overflow = prevBody;
+      window.scrollTo(0, restoreScrollRef.current);
     };
-  }, [isMobile, activeSpot]);
+  }, [sheetOpen]);
+
+  // 0382 Effect B: 지도 패딩(가림 높이)으로 morph가 마커를 가시 영역 중앙에 놓게 + 그 morph 소유.
+  // SpotFinder computeMapPadBottom 정신 계승 — 임베드 지도라 상수 산식 대신 실 rect 측정
+  // (헤더·실제 시트 svh·safe-area 자동 반영). Effect A 이후라 지도는 정렬됨. 키를 activeSpot?.id로
+  // — 객체 키는 편집 입력마다 재morph. cleanup에서 패딩 0 복원(닫힘·데스크톱·전체보기 정중앙).
+  useEffect(() => {
+    if (!(isMobile && activeSpot && mapInstance)) return;
+    const mapEl = mapDivRef.current;
+    const sheetEl = sheetRef.current;
+    if (mapEl && sheetEl) {
+      // 시트 top은 offsetHeight로 역산 — 이 시점 시트는 detail-up(translateY 100%) 진입 애니메이션
+      // 중이라 getBoundingClientRect().top이 화면 밖(≈뷰포트 하단)을 가리켜 covered=0이 됨(실측).
+      // offsetHeight는 transform 무관 레이아웃 높이 → 최종 top = 레이아웃 뷰포트 − 시트 높이(fixed bottom-0).
+      const sheetTop = document.documentElement.clientHeight - sheetEl.offsetHeight;
+      const covered = Math.max(0, mapEl.getBoundingClientRect().bottom - sheetTop);
+      mapInstance.setOptions('padding', { bottom: covered });
+    }
+    focusSpot(activeSpot);
+    return () => {
+      mapInstance.setOptions('padding', { bottom: 0 });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- id로만 재실행(편집 입력 재morph 방지), focusSpot/activeSpot 좌표는 id당 고정
+  }, [isMobile, activeSpot?.id, mapInstance]);
 
   // modeRef·addSpotFromMapRef를 렌더마다 최신값으로 갱신 (stale closure 방지)
   modeRef.current = mode;
@@ -464,7 +504,9 @@ export default function SpotMap({
     if (readOnly) {
       setDisplayedSpot(spot);
     }
-    focusSpot(spot); // 0369 — 편집 분기도 이동(기존엔 readOnly만 panTo, 편집은 이동 없던 결함 해소)
+    // 0382: 모바일은 morph를 Effect B가 소유(정렬·패딩 이후 실행 — 마커를 가시 영역 중앙에).
+    // 핸들러 동기 morph는 시트 정렬 전이라 마커가 시트 뒤로 감. 데스크톱만 즉시 focus.
+    if (!isMobile) focusSpot(spot); // 0369 — 편집 분기도 이동(기존엔 readOnly만 panTo, 편집은 이동 없던 결함 해소)
     setMode('view');
     triggerPulse(spot.id);
   }
@@ -473,7 +515,7 @@ export default function SpotMap({
     setDisplayedSpot(spot);
     setActiveSpot(spot);
     setMode('view');
-    focusSpot(spot); // 0369 — panTo(줌 불변) → 확대 중심 전환
+    if (!isMobile) focusSpot(spot); // 0369/0382 — 데스크톱 즉시 focus, 모바일은 Effect B 소유
     triggerPulse(spot.id);
   }
 
@@ -930,7 +972,7 @@ export default function SpotMap({
           pb 88+env = 탭바 pill이 시트 위에 그려지는 기존 스태킹 사항 보정(SpotFinder :326 관례).
           overflow-hidden = 상단 radius 클립. */}
       {isMobile && activeSpot && (
-        <div className="md:hidden fixed inset-x-0 bottom-0 z-[60] h-[max(70svh,calc(420px+env(safe-area-inset-bottom)))] bg-card rounded-t-[22px] border border-border shadow-2xl overflow-hidden animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]">
+        <div ref={sheetRef} className="md:hidden fixed inset-x-0 bottom-0 z-[60] h-[max(70svh,calc(420px+env(safe-area-inset-bottom)))] bg-card rounded-t-[22px] border border-border shadow-2xl overflow-hidden animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]">
           <div className="h-full overflow-y-auto overscroll-contain pb-[calc(88px+env(safe-area-inset-bottom))]">
             {renderPopup()}
           </div>
