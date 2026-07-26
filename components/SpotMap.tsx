@@ -728,8 +728,11 @@ export default function SpotMap({
           )}
         </div>
         {/* 사이드 카드 — 항상 DOM에 존재, transition으로 show/hide.
-            열림 폭: 글쓰기·상세=SIDE_CARD_WIDTH(426 고정, 0376 통일) / 비율 2/5는 fallback. 두 값 모두 완전 리터럴(JIT 스캔) */}
-        <div className={`overflow-hidden flex-shrink-0 transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? `${fixedSideWidth ? SIDE_CARD_WIDTH : 'w-full md:w-2/5'} opacity-100` : 'w-0 opacity-0 pointer-events-none'
+            열림 폭: 글쓰기·상세=SIDE_CARD_WIDTH(426 고정, 0376 통일) / 비율 2/5는 fallback. 두 값 모두 완전 리터럴(JIT 스캔).
+            md:max-h-[500px] = 지도 md:h-[500px]와 짝(0342 파생 계열) — 한쪽만 바꾸면 행 어긋남/클립.
+            상한이 없으면 stretch가 콘텐츠(편집 폼 ≈604)를 따라 행을 늘려 지도(500)와 어긋나고,
+            내부 카드의 기존 overflow-y-auto가 영구 미발동(실측 확정). 모바일은 무상한(스택+모달) */}
+        <div className={`overflow-hidden flex-shrink-0 md:max-h-[500px] transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? `${fixedSideWidth ? SIDE_CARD_WIDTH : 'w-full md:w-2/5'} opacity-100` : 'w-0 opacity-0 pointer-events-none'
           }`}>
           {readOnly ? (
             <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
