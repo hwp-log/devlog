@@ -22,6 +22,9 @@ type SpotPopupProps = {
   onFileSelect?: (file: File | null) => void;
   initialEditing?: boolean;
   initialNameInput?: string;
+  // 0378: 닫기 핸들 노출 — 모바일 전체화면 모달의 뒤로가기(popstate)가 handleClose를 경유해야
+  // 생성 세션 스팟 제거(0365)가 실행됨. 판정(isCreationSession)의 단일 소스는 이 컴포넌트 유지.
+  closeHandleRef?: { current: (() => void) | null };
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -44,7 +47,7 @@ const spotFormSchema = z.object({
 });
 type SpotFormValues = z.infer<typeof spotFormSchema>;
 
-export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput }: SpotPopupProps) {
+export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput, closeHandleRef }: SpotPopupProps) {
   // UI 상태만 useState 잔류 (movieSuggestions는 서버 검색 캐시 — Query 프로바이더 부재로 잔류)
   const [isEditing, setIsEditing] = useState(initialEditing);
   // 생성 직후 최초 편집 세션인가(0365) — 스팟은 addSpot 시점에 이미 localSpots·payload에 들어가
@@ -164,6 +167,17 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     if (isCreationSession) onDelete?.();
     onClose?.();
   }
+
+  // 0378: 핸들 대입은 effect에서 — 렌더 중 ref 쓰기 금지(기존 eslint refs-during-render 3건에
+  // 신규 불추가). 의존성 없는 매 커밋 재대입 = 최신 클로저(isCreationSession) 유지. 대입이 첫
+  // 페인트보다 늦어도 닫기는 사용자 조작 이후라 무해. 언마운트 시 해제(스테일 핸들 차단).
+  useEffect(() => {
+    if (!closeHandleRef) return;
+    closeHandleRef.current = handleClose;
+    return () => {
+      closeHandleRef.current = null;
+    };
+  });
 
   // 취소 = 온 곳으로(0365) — 생성 세션이면 스팟 제거 + 메뉴, 기존 스팟 수정이면 보기 팝업 복귀.
   function cancelEdit() {
