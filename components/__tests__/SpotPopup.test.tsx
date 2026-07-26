@@ -309,7 +309,10 @@ describe('SpotPopup — 생성 세션 취소·닫기(0365)', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('생성 세션에서 저장하면 확정 — 이후 × 닫기는 스팟을 지우지 않는다', async () => {
+  it('생성 세션에서 저장하면 확정 + 닫힘 — 스팟은 지우지 않는다(onClose는 삭제 미경유)', async () => {
+    // 저장 = 시트/카드 닫힘(표준). onValid가 onClose를 직접 호출하되 삭제 분기(handleClose)는 우회 —
+    // 방금 저장한 스팟이 지워지면 안 됨. 실제 앱에선 onClose가 팝업을 언마운트하나, 단위 테스트는
+    // 언마운트를 시뮬레이션하지 않으므로 여기선 onDelete 미호출·onClose 호출만 검증한다.
     const onDelete = jest.fn();
     const onClose = jest.fn();
     const onUpdate = jest.fn();
@@ -318,12 +321,13 @@ describe('SpotPopup — 생성 세션 취소·닫기(0365)', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
     expect(onDelete).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('생성 세션에서 저장 후 다시 수정→취소: 보기 팝업 복귀, 스팟 유지', async () => {
+  it('저장 후(언마운트 없이) 다시 수정→취소: 삭제 미발생, 보기 팝업 복귀', async () => {
+    // 저장 시 onClose가 호출되지만 단위 테스트는 언마운트를 시뮬레이션하지 않아 팝업이 남는다.
+    // 저장으로 isCreationSession=false 확정 → 재수정→취소는 삭제 없이 보기 모드로 복귀함을 검증.
     const onDelete = jest.fn();
     const onClose = jest.fn();
     const onUpdate = jest.fn();
@@ -332,10 +336,11 @@ describe('SpotPopup — 생성 세션 취소·닫기(0365)', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    expect(onClose).toHaveBeenCalledTimes(1); // 저장 = 닫힘 신호
     fireEvent.click(screen.getByRole('button', { name: '수정' }));
     fireEvent.click(screen.getByRole('button', { name: '취소' }));
     expect(onDelete).not.toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1); // 취소는 보기 복귀 — 추가 onClose 없음
     expect(screen.getByRole('button', { name: '수정' })).toBeInTheDocument(); // 보기 모드 복귀
   });
 

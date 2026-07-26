@@ -219,6 +219,11 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       onUpdate?.({ name: updatedName, review: updatedReview, rating: values.rating, photoUrl: null, ...movieFields });
       setIsCreationSession(false); // 저장 = 스팟 확정 — 이후 수정→취소는 보기 팝업으로
       setIsEditing(false);
+      // 저장 = 닫힘(시트/카드). handleClose가 아니라 onClose 직접 호출 —
+      // handleClose는 이 렌더의 stale isCreationSession(=true, setState 반영 전)을 읽어
+      // 방금 저장한 스팟을 onDelete로 지운다. onClose(=handlePopupClose)는 삭제 분기 없이
+      // consumeHistoryEntry까지 태운다. "닫기 통일" 리팩터링 시 handleClose로 바꾸면 삭제 버그 재발.
+      onClose?.();
       return;
     }
 
@@ -238,6 +243,11 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
     });
     setIsCreationSession(false); // 저장 = 스팟 확정 — 이후 수정→취소는 보기 팝업으로
     setIsEditing(false);
+    // 저장 = 닫힘(시트/카드). handleClose가 아니라 onClose 직접 호출 —
+    // handleClose는 이 렌더의 stale isCreationSession(=true, setState 반영 전)을 읽어
+    // 방금 저장한 스팟을 onDelete로 지운다. onClose(=handlePopupClose)는 삭제 분기 없이
+    // consumeHistoryEntry까지 태운다. "닫기 통일" 리팩터링 시 handleClose로 바꾸면 삭제 버그 재발.
+    onClose?.();
   }
 
   const showPhotoPreview = !!(photoFile || (spot.photoUrl && !photoCleared));
