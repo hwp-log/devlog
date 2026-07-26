@@ -25,6 +25,9 @@ type SpotPopupProps = {
   // 0378: 닫기 핸들 노출 — 모바일 전체화면 모달의 뒤로가기(popstate)가 handleClose를 경유해야
   // 생성 세션 스팟 제거(0365)가 실행됨. 판정(isCreationSession)의 단일 소스는 이 컴포넌트 유지.
   closeHandleRef?: { current: (() => void) | null };
+  // 0395: getSpotMeta(주소·교통) 조회 진행 중 — 값이 아직 없을 때만 "확인 중" 표시(대기/null 구분).
+  //   값이 도착하거나 null로 확정되면 SpotMap이 false로 내려 표시가 사라진다(영구 "확인 중" 금지).
+  metaPending?: boolean;
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -47,7 +50,7 @@ const spotFormSchema = z.object({
 });
 type SpotFormValues = z.infer<typeof spotFormSchema>;
 
-export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput, closeHandleRef }: SpotPopupProps) {
+export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput, closeHandleRef, metaPending = false }: SpotPopupProps) {
   // UI 상태만 useState 잔류 (movieSuggestions는 서버 검색 캐시 — Query 프로바이더 부재로 잔류)
   const [isEditing, setIsEditing] = useState(initialEditing);
   // 생성 직후 최초 편집 세션인가(0365) — 스팟은 addSpot 시점에 이미 localSpots·payload에 들어가
@@ -329,8 +332,12 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
         )}
       </div>
 
-      {/* 주소 */}
-      {spot.address && <p className="px-4 pb-2 text-sm text-muted">{spot.address}</p>}
+      {/* 주소 — 값 있으면 표시, 없고 조회 중이면 "확인 중"(0395), null 확정이면 미표시 */}
+      {spot.address ? (
+        <p className="px-4 pb-2 text-sm text-muted">{spot.address}</p>
+      ) : metaPending ? (
+        <p className="px-4 pb-2 text-sm text-muted animate-pulse">주소 확인 중…</p>
+      ) : null}
 
       {/* 리뷰 영역 */}
       {(!readOnly || spot.review) && (
@@ -393,15 +400,20 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 교통 기준점 — 표시 전용(입력란 아님). 값은 getSpotMeta(추가 시)·저장 시 자동 계산 파생.
           0393: 주소 블록(:333)과 같은 방식 — isEditing 무관하게 값 있으면 렌더(편집 폼에도 보임).
           문구·위치·스타일 단일 소스라 보기/편집이 다르게 보일 수 없음. 순서: 별점 다음·촬영 작품 앞. */}
-      {spot.nearestStation && spot.transitMinutes != null && (
+      {/* 0395: 값 있으면 formatTransit, 없고 조회 중이면 "확인 중", null 확정이면 블록 자체 미표시(주소와 동형) */}
+      {(spot.nearestStation && spot.transitMinutes != null) || metaPending ? (
         <>
           <div className="border-t border-border mx-4" />
           <div className="p-4">
             <span className="text-sm font-medium text-fg block mb-2">교통 기준점</span>
-            <p className="text-sm text-fg2">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</p>
+            {spot.nearestStation && spot.transitMinutes != null ? (
+              <p className="text-sm text-fg2">{formatTransit(spot.nearestStation, spot.transitMinutes, spot.transitMode)}</p>
+            ) : (
+              <p className="text-sm text-muted animate-pulse">확인 중…</p>
+            )}
           </div>
         </>
-      )}
+      ) : null}
 
       {/* 촬영 작품 */}
       {(!readOnly || (isEditing ? movieId : spot.movieTitle)) && (

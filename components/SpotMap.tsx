@@ -202,6 +202,8 @@ export default function SpotMap({
   const [searchStatus, setSearchStatus] = useState<'idle' | 'ok' | 'zero' | 'error'>('idle');
   // S3-a: 마커 추가 시 근처 기존 촬영지 후보(있으면 재사용 선택 UI)
   const [nearbyChooser, setNearbyChooser] = useState<{ spotId: string; candidates: NearbySpot[] } | null>(null);
+  // 0395: getSpotMeta 조회 진행 중인 스팟 id — 팝업이 "확인 중"을 대기/null 구분해 표시(fetchAndApplyMeta가 set·clear)
+  const [metaPendingIds, setMetaPendingIds] = useState<Set<string>>(() => new Set());
   // 0378: 팝업 마운트 슬롯 분기(카드 ↔ 전체화면 모달)의 단일 기준. CSS 노드 전환이 아닌 조건부
   // 마운트 두 슬롯 — 조상 overflow-hidden/transform 컨테이닝 블록 리스크 회피, SpotPopup 인스턴스는
   // 항상 1개(이중 폼 상태 방지). ssr:false(SpotMapWrapper)라 초기값 동기 판독 안전.
@@ -278,7 +280,7 @@ export default function SpotMap({
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // 0395: chooser 활성 시 closeHandleRef를 여기서 소유 — chooser는 SpotPopup 미마운트라(시트/카드가
+  // 0394: chooser 활성 시 closeHandleRef를 여기서 소유 — chooser는 SpotPopup 미마운트라(시트/카드가
   //   chooser UI 렌더) SpotPopup가 핸들을 대입하지 않는다. 뒤로가기(popstate)가 이 핸들을 경유해 미저장
   //   생성 세션 스팟을 제거(0365 계열)한다. popstate가 이미 엔트리를 소비(pushedRef=false)했으므로 back() 재호출
   //   금지 → localSpots에서 직접 제거. SpotPopup 언마운트가 ref를 null로 비운 뒤(child cleanup) 이 parent
@@ -449,8 +451,11 @@ export default function SpotMap({
     // 작성 중 글 보존). 성공 경로는 불변.
     let candidates: NearbySpot[] = [];
     try { candidates = await findNearbySpots(lat, lng); } catch { candidates = []; }
-    // 0395 ②: 검색 경로와 동일 — chooser든 편집이든 activeSpot 세팅으로 시트 상승(pin은 검색 상태 없음).
-    setActiveSpot({ id, name: '', lat, lng, order: localSpots.length + 1 });
+    // 0394 ②: chooser든 편집이든 activeSpot 세팅으로 시트 상승(pin은 검색 상태 없음).
+    // 0395 원인 수정: localSpotsRef의 최신 스팟에서 세팅 — 리터럴로 덮으면 fetchAndApplyMeta가 먼저 도착해
+    //   localSpots에 병합한 주소·교통이 activeSpot엔 누락돼 시트에 안 뜨던 원인(찍기는 baseline 주소도 없어 전무).
+    //   메타가 아직이면 이후 applySpotMeta 함수형 패치가 activeSpot을 채운다(양 순서 모두 커버).
+    setActiveSpot(localSpotsRef.current.find((s) => s.id === id) ?? { id, name: '', lat, lng, order: localSpots.length + 1 });
     setMode('edit');
     if (candidates.length > 0) setNearbyChooser({ spotId: id, candidates });
   };
@@ -810,17 +815,18 @@ export default function SpotMap({
     void fetchAndApplyMeta(id, lat, lng, !place.address);
     // 중심·줌 원자 전환(카카오 jump 상응) — setZoom+setCenter는 0ms 점프라 기각(SpotFinderMapNaver 실측)
     mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS, SPOT_TRANSITION);
-    // 0395 ①: 항목 선택 = 검색 종료 — 결과·입력을 즉시 비우고 검색 모드 이탈(map 검색 오버레이 mode==='search' 해제).
+    // 0394 ①: 항목 선택 = 검색 종료 — 결과·입력을 즉시 비우고 검색 모드 이탈(map 검색 오버레이 mode==='search' 해제).
     setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle');
     setMode('edit');
     // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집. 0384: try/catch 폴스루(위 addSpotFromMapRef 동일)
     let candidates: NearbySpot[] = [];
     try { candidates = await findNearbySpots(lat, lng); } catch { candidates = []; }
-    // 0395 ②: chooser 유무와 무관하게 activeSpot을 세팅(모든 진입이 activeSpot 세팅 — :890 불변). 이것만으로
+    // 0394 ②: chooser 유무와 무관하게 activeSpot을 세팅(모든 진입이 activeSpot 세팅 — :890 불변). 이것만으로
     //   모바일 시트 상승·풀스크린(0383)·연출(0386)·전체보기 숨김(0387)이 기존 machinery 그대로 발동
     //   (sheetOpen=isMobile&&(activeSpot||closingSpot) 파생·시트 마운트·WAAPI·EffectB 무개조). await 뒤 세팅으로
     //   후보 있으면 편집 폼 flash 없이 곧장 chooser. 0391: 시트 즉시 주소 표시.
-    setActiveSpot({ id, name: place.name, lat, lng, order: localSpots.length + 1, address: place.address });
+    // 0395: localSpotsRef 최신 스팟에서 세팅(찍기와 동형 — 메타 레이스 방지). addSpot가 place.address를 이미 실었음.
+    setActiveSpot(localSpotsRef.current.find((s) => s.id === id) ?? { id, name: place.name, lat, lng, order: localSpots.length + 1, address: place.address });
     if (candidates.length > 0) setNearbyChooser({ spotId: id, candidates });
   }
 
@@ -863,11 +869,20 @@ export default function SpotMap({
   // 0392: 좌표 한 왕복으로 메타 수신 후 병합. 실패는 무시(스팟은 이미 추가됨 — 주소·교통만 빔, goal 8).
   //   includeAddress=false = 검색 경로(place.address 도로명 이미 보유 → 역지오코딩 스킵, 쿼터 절약).
   async function fetchAndApplyMeta(spotId: string, lat: number, lng: number, includeAddress: boolean) {
+    setMetaPendingIds((prev) => new Set(prev).add(spotId)); // 0395: 대기 시작 — 팝업이 "확인 중" 표시
     try {
       const meta = await getSpotMeta(lat, lng, { includeAddress });
       applySpotMeta(spotId, meta);
     } catch {
       /* 미인증·네트워크 실패 등 — 조용히 폐기(0178). 스팟 추가·저장은 무방해 */
+    } finally {
+      // 0395: 값 도착·null 확정·실패 모두 대기 종료 — "확인 중" 제거(영구 표시 금지, goal 3·4)
+      setMetaPendingIds((prev) => {
+        if (!prev.has(spotId)) return prev;
+        const next = new Set(prev);
+        next.delete(spotId);
+        return next;
+      });
     }
   }
 
@@ -938,11 +953,12 @@ export default function SpotMap({
         onUpdate={handleSpotUpdate}
         onFileSelect={(file) => onPhotoSelect?.(s.id, file)}
         initialEditing={mode === 'edit'}
+        metaPending={metaPendingIds.has(s.id)} // 0395: 주소·교통 조회 중이면 "확인 중" 표시(값 없을 때만)
       />
     ) : null;
   }
 
-  // 0395: chooser 1벌 정의 — 데스크톱 사이드 카드 슬롯과 모바일 시트 슬롯이 공유(0378 renderPopup과 대칭).
+  // 0394: chooser 1벌 정의 — 데스크톱 사이드 카드 슬롯과 모바일 시트 슬롯이 공유(0378 renderPopup과 대칭).
   //   카드 크롬(bg-card·rounded·border·overflow)은 슬롯이 제공, 여기선 내부 콘텐츠(p-5)만.
   function renderChooser() {
     if (!nearbyChooser) return null;
@@ -1078,7 +1094,7 @@ export default function SpotMap({
               <div className="bg-card rounded-xl shadow-lg overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-2.5">
                   <Search size={14} className="text-muted shrink-0" />
-                  {/* 0395: 모바일 16px(iOS 자동 확대 방지 §5) / sm↑ 14px — 0341 태그 input 선례 */}
+                  {/* 0394: 모바일 16px(iOS 자동 확대 방지 §5) / sm↑ 14px — 0341 태그 input 선례 */}
                   <input
                     type="text"
                     value={searchKeyword}
@@ -1154,7 +1170,7 @@ export default function SpotMap({
               </div>
             </div>
           ) : nearbyChooser ? (
-            // 0395: 데스크톱 사이드 카드 슬롯 — 카드 크롬은 여기, 콘텐츠는 renderChooser 공유(모바일 시트와 동일 소스)
+            // 0394: 데스크톱 사이드 카드 슬롯 — 카드 크롬은 여기, 콘텐츠는 renderChooser 공유(모바일 시트와 동일 소스)
             <div className="bg-card rounded-xl shadow-lg h-full overflow-y-auto border border-border">
               {renderChooser()}
             </div>
@@ -1309,7 +1325,7 @@ export default function SpotMap({
               드러났음(실기기 ~170px 회색 띠). h-full이라 스크롤러=시트 동일 높이(높이 계산 무결).
               키보드 열림 시 저장 버튼 도달성은 별건(0384 visualViewport) */}
           <div className="h-full overflow-y-auto overscroll-none pb-[calc(16px+env(safe-area-inset-bottom))]">
-            {/* 0395: chooser 활성이면 시트에 chooser, 아니면 편집/보기 팝업. 선택 후 nearbyChooser=null →
+            {/* 0394: chooser 활성이면 시트에 chooser, 아니면 편집/보기 팝업. 선택 후 nearbyChooser=null →
                 같은 시트가 편집 폼으로 전환(activeSpot·시트 유지라 재애니 없음). */}
             {nearbyChooser ? renderChooser() : renderPopup(activeSpot ?? closingSpot ?? undefined)}
           </div>
