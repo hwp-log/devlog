@@ -261,7 +261,12 @@ export function createSlashCommand(onImagePick: () => void) {
                   }),
                 ],
               }).then(({ x, y }) => {
-                Object.assign(el.style, { left: `${x}px`, top: `${y}px` });
+                // 소수 좌표는 흐릿함·미세 떨림의 원인 — 기기 픽셀 그리드에 스냅(floating-ui roundByDPR 권장).
+                const dpr = window.devicePixelRatio || 1;
+                const rx = Math.round(x * dpr) / dpr;
+                const ry = Math.round(y * dpr) / dpr;
+                // top/left 대신 transform — 리페인트 대신 컴포지터 레이어에서 이동해 갱신이 매끄럽다(translate3d로 레이어 승격).
+                el.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
               });
             };
 
@@ -281,6 +286,9 @@ export function createSlashCommand(onImagePick: () => void) {
                 });
                 const el = component.element as HTMLElement;
                 el.style.position = 'fixed';
+                // transform으로 위치를 주므로 기준점을 0,0으로 고정 — computePosition의 x·y가 이 기준 위 오프셋이 된다.
+                el.style.left = '0';
+                el.style.top = '0';
                 // 헤더(sticky z-10)보다 낮게 — 스크롤로 캐럿이 헤더 위로 넘어가면 메뉴가 헤더 뒤로 스르륵 밀려 들어간다(사라지지 않음)
                 el.style.zIndex = '9';
                 // body 직속은 Pretendard 상속이 끊김 — EditorContent 래퍼에 마운트
@@ -290,8 +298,10 @@ export function createSlashCommand(onImagePick: () => void) {
                 // 모바일 탭바 컨테이너 캐시(nav 부모 = fixed 바) — size() 하단 여유 계산용. 없으면 null(데스크톱 무해).
                 tabbarEl =
                   document.querySelector('nav[aria-label="주요 메뉴"]')?.parentElement ?? null;
-                // FormatMenu와 같은 autoUpdate — 스크롤·리사이즈에 캐럿을 계속 따라가며 위치·가용높이 재계산.
-                cleanup = autoUpdate(virtualEl, el, reposition);
+                // animationFrame: true — 참조가 캐럿 '가상 요소'라 스크롤·리사이즈 리스너로는 한 프레임 늦게 잡혀
+                // 떨림으로 보인다. 매 프레임 rAF로 갱신해 캐럿에 즉시 붙는다. 메뉴 열림 동안만 돌고,
+                // 닫힘 시 destroy() → cleanup()으로 rAF 루프가 확실히 멈춘다(disposer 경로).
+                cleanup = autoUpdate(virtualEl, el, reposition, { animationFrame: true });
               },
               onUpdate: (props) => {
                 component?.updateProps({ items: props.items, command: props.command });
