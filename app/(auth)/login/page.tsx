@@ -6,8 +6,10 @@ const BRAND_TAGS = ['TRAVEL', 'PLAN', 'RECORD'] as const;
 
 export default function LoginPage() {
   return (
+    // 0394: data-allow-landscape = 이 화면만 가로 차단 예외(globals.css body:has([data-allow-landscape]))
     <div
       className="glass-outer grid w-full"
+      data-allow-landscape
       style={{ maxWidth: '900px', gridTemplateColumns: '1.1fr 1fr' }}
     >
       {/* 좌측: brand-side */}

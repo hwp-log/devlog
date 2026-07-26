@@ -225,6 +225,18 @@ body {
   }
 
   /* 뒤 깨진 레이아웃 스크롤 차단 */
+
+  /* 0394: 로그인 화면만 가로 차단 예외 — (auth) 900px 2단 레이아웃은 가로에서 정상 표시.
+     로그인 page 루트의 [data-allow-landscape] 마커를 body:has()로 스코프(오버레이는 body 직속 형제라
+     이 방식으로만 가려짐). 회원가입은 마커 없어 기존대로 차단(사용자 확정: 로그인만).
+     :has() 미지원 브라우저는 규칙 무시 → 안전하게 기존 차단으로 폴백. overflow도 함께 해제해 가로에서
+     로그인 카드가 넘칠 때 스크롤 가능. 특이도 body:has(...)(0,1,1) > body(0,0,1) 로 승. */
+  body:has([data-allow-landscape]) .landscape-blocker {
+    display: none;
+  }
+  body:has([data-allow-landscape]) {
+    overflow: auto;
+  }
 }
 
 .landscape-blocker__icon {
