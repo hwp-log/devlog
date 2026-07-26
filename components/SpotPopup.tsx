@@ -28,6 +28,9 @@ type SpotPopupProps = {
   // 0395: getSpotMeta(주소·교통) 조회 진행 중 — 값이 아직 없을 때만 "확인 중" 표시(대기/null 구분).
   //   값이 도착하거나 null로 확정되면 SpotMap이 false로 내려 표시가 사라진다(영구 "확인 중" 금지).
   metaPending?: boolean;
+  // 0397: 이름 input 자동 포커스 여부. 모바일은 false(키보드가 지도를 가림) / 데스크톱은 true(편의).
+  //   SpotMap이 !isMobile로 내린다. 검색·찍기 공통(진입 경로 무관, 플랫폼으로만 가름).
+  autoFocusName?: boolean;
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -50,7 +53,7 @@ const spotFormSchema = z.object({
 });
 type SpotFormValues = z.infer<typeof spotFormSchema>;
 
-export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput, closeHandleRef, metaPending = false }: SpotPopupProps) {
+export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate, onFileSelect, initialEditing = false, initialNameInput, closeHandleRef, metaPending = false, autoFocusName = true }: SpotPopupProps) {
   // UI 상태만 useState 잔류 (movieSuggestions는 서버 검색 캐시 — Query 프로바이더 부재로 잔류)
   const [isEditing, setIsEditing] = useState(initialEditing);
   // 생성 직후 최초 편집 세션인가(0365) — 스팟은 addSpot 시점에 이미 localSpots·payload에 들어가
@@ -318,7 +321,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
             {...register('name')}
             onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
             className="w-full border border-border rounded px-2 py-1 text-base font-semibold focus:outline-none"
-            autoFocus
+            autoFocus={autoFocusName} // 0397: 모바일 false(키보드가 지도 가림) / 데스크톱 true
           />
         ) : (
           <div className="flex items-start gap-2">

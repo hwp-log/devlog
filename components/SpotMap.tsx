@@ -993,6 +993,7 @@ export default function SpotMap({
         onFileSelect={(file) => onPhotoSelect?.(s.id, file)}
         initialEditing={mode === 'edit'}
         metaPending={metaPendingIds.has(s.id)} // 0395: 주소·교통 조회 중이면 "확인 중" 표시(값 없을 때만)
+        autoFocusName={!isMobile} // 0397: 모바일은 이름 자동 포커스 안 함(키보드가 지도 가림) — 검색·찍기 공통
       />
     ) : null;
   }
