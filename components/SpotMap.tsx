@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useNaverMapsLoader } from '@/lib/naver/useNaverMapsLoader';
 import type { LocalSpot } from '@/lib/types';
@@ -84,7 +84,21 @@ const SIDE_CARD_WIDTH = 'w-full md:w-[426px]';
 // 이 구간에서 팝업은 전체화면 모달로 마운트(기존 확정 표준 "전체화면 모달" 항 — SpotFinder 셸 이식).
 // jsdom엔 matchMedia가 없어 가드 — 테스트는 데스크톱 경로(false)로 렌더.
 const MOBILE_MQ = '(max-width: 767px)';
+const REDUCE_MQ = '(prefers-reduced-motion: reduce)';
 const canMatchMedia = () => typeof window.matchMedia === 'function';
+
+// 0386: 시트 열기·닫기 연출 단일 소스(goal 8). CSS 키프레임은 duration 무지정(from/to만) —
+// 아래 상수가 인라인 animationDuration과 JS failsafe 타이머를 동시에 구동해 드리프트 차단.
+const SHEET_OPEN_MS = 320; // detail-up (0378 값 유지)
+const SHEET_CLOSE_MS = 240; // detail-down
+// 열기 fullscreen 전환 커버(0370 방식) — 즉시 opaque로 덮고 이 홀드 뒤 페이드아웃.
+// double-rAF는 이르다(0370: 재생성 tilesloaded+300ms 선례) — autoResize·GL 재래스터 안착분 확보.
+const MAP_FADE_HOLD_MS = 120;
+// 0388: 커버 페이드아웃(걷힘) 지속. 닫기 페이드-인은 SHEET_CLOSE_MS 공유(하강 종료 = 완전 불투명, 드리프트
+// 없음). 닫기는 morph 없어 교체↔페이드아웃 사이 홀드 불요(페이드아웃 선단이 raster 안착 가림).
+// 값: 걷힘이 빨라 완화(2배→추가 1.5배: 열기 750 / 닫기·인터럽트 450).
+const SHEET_OPEN_COVER_OUT_MS = 750; // 열기 커버 걷힘
+const SHEET_COVER_OUT_MS = 450; // 닫기 커버 걷힘 + 인터럽트 정리
 
 type Props = {
   spots: LocalSpot[];
@@ -152,11 +166,34 @@ export default function SpotMap({
   const closeHandleRef = useRef<(() => void) | null>(null);
   // 0382→0383: sheetRef = 시트 실측(covered = 시트 offsetHeight — 지도 풀스크린이라 곧 가림 높이).
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  // 0386: 닫기 연출. closingSpot = activeSpot이 null로 정리된 뒤에도 시트에 그릴 스냅샷(exit 애니용) —
+  // source-of-truth(activeSpot·localSpots·history)는 즉시 정리하고 프레젠테이션만 SHEET_CLOSE_MS 지연.
+  const [closingSpot, setClosingSpot] = useState<LocalSpot | null>(null);
+  // 0386→0388: fullscreen↔카드 전환 커버(0370 방식). 열기·닫기 공용 단일 state — opacity(덮기)와
+  // ms(그 opacity에 도달하는 transition 지속)를 함께 지정. ms:0=즉시(열기-인), ms>0=페이드. 전이 규칙은
+  // §goal7: 인터럽트 시 열기 분기가 닫기-인을 덮어써 페이드아웃(last-writer-wins). persistent 노드라 0↔1 신뢰.
+  const [cover, setCover] = useState<{ opacity: 0 | 1; ms: number }>({ opacity: 0, ms: 0 });
+  const [reduced, setReduced] = useState(() => canMatchMedia() && window.matchMedia(REDUCE_MQ).matches);
+  const prevActiveIdRef = useRef<string | null>(null); // activeSpot?.id 이전값 — 열림/닫힘 전이 판정
+  const lastActiveSpotRef = useRef<LocalSpot | null>(null); // 마지막 non-null activeSpot — 닫힘 스냅샷 소스
+  const sheetAnimRef = useRef<Animation | null>(null); // 진행 중 시트 WAAPI 애니(인터럽트 cancel·언마운트 정리 대상)
+  const animedKeyRef = useRef<string | null>(null); // 마지막 재생 방향+id — 동일 phase 중복 재생 가드
+  const fadeHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 열기 커버 홀드
+  // 닫힘 애니 진행 플래그(ref — Effect B passive cleanup이 최신값을 읽어 padding 복원을 finishClose로 미룸).
+  const closingActiveRef = useRef(false);
 
   useEffect(() => {
     if (!canMatchMedia()) return;
     const mq = window.matchMedia(MOBILE_MQ);
     const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!canMatchMedia()) return;
+    const mq = window.matchMedia(REDUCE_MQ);
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, []);
@@ -196,7 +233,115 @@ export default function SpotMap({
 
   // 0383: 시트 열림 = 지도 래퍼를 fixed 풀스크린으로 토글(§1 클래스 분기)에도 재사용하는 파생.
   // isMobile 전제 — 데스크톱은 항상 false라 지도가 flow 카드에 머묾(무변, CDP 1280 실측 확인).
-  const sheetOpen = isMobile && !!activeSpot;
+  // 0386: closingSpot 동안도 true 유지 — 닫힘 애니(240ms) 내내 지도 풀스크린을 유지하고
+  // 시트가 다 내려간 뒤(finishClose) 카드로 복귀시킨다(지도가 먼저 튀지 않게, goal 2).
+  const sheetOpen = isMobile && (!!activeSpot || !!closingSpot);
+  const sheetClosing = isMobile && !activeSpot && !!closingSpot;
+
+  // 0386: 닫힘 애니 종료(WAAPI finished 프로미스가 호출) — 시트 언마운트 + 지도 카드 복귀 +
+  // 미뤄둔 padding 복원(확인 1). animedKeyRef 리셋 = 같은 스팟 재개방 시 재생되도록.
+  function finishClose() {
+    closingActiveRef.current = false;
+    if (mapInstance) mapInstance.setOptions('padding', { bottom: 0 });
+    sheetAnimRef.current = null;
+    animedKeyRef.current = null;
+    // 교체(fullscreen→card)와 커버 페이드아웃을 같은 배치로 — 커버 아래에서 카드 지도 등장(goal 2·3).
+    // 호출부(WAAPI finished)가 non-reduced 전용이라 reduced에선 커버 미동작.
+    setClosingSpot(null);
+    setCover({ opacity: 0, ms: SHEET_COVER_OUT_MS });
+  }
+
+  // 0386: activeSpot non-null↔null 전이만 관측 — 닫기 5경로(✕·취소·저장·삭제·popstate) 핸들러는 무변.
+  // useLayoutEffect(pre-paint): 열기 시 fullscreen 플립과 커버 opaque를 같은 프레임에 올려 stretched
+  // 프레임 노출을 막는다(확인 2). 데스크톱/reduced는 즉시 처리(연출 없음).
+  useLayoutEffect(() => {
+    const prevId = prevActiveIdRef.current;
+    prevActiveIdRef.current = activeSpot?.id ?? null;
+    if (activeSpot) lastActiveSpotRef.current = activeSpot;
+    if (!isMobile) {
+      // 닫힘 중 데스크톱 전환(회전 등) — 진행 중 닫힘 포기. stale-true로 남으면 Effect B cleanup의
+      // padding 복원이 계속 막혀 지도 앵커가 어긋난다(전이 effect는 layout이라 Effect B passive보다 먼저 실행).
+      if (closingActiveRef.current) {
+        closingActiveRef.current = false;
+        sheetAnimRef.current?.cancel(); // 고아 애니 취소(finished는 아래 effect의 catch가 흡수)
+        setClosingSpot(null);
+        setCover({ opacity: 0, ms: 0 }); // 래퍼가 카드가 되므로 커버 즉시 off(잔존 방지)
+      }
+      return;
+    }
+    const wasOpen = !!prevId;
+    const isOpen = !!activeSpot;
+    if (!wasOpen && isOpen) {
+      // 열기: 진행 중이던 닫힘 취소(재진입, goal 5) + fullscreen 전환 커버.
+      // interrupting = 닫힘 애니를 가로챈 재진입 → 지도가 이미 풀스크린이라 card→fullscreen 플립이
+      // 없음 → 커버 불요(불필요한 bg-card 플래시 방지).
+      const interrupting = closingActiveRef.current;
+      // 인터럽트: 아래 애니 effect의 cancel은 finished를 catch로 흘려 finishClose를 안 타므로,
+      // closingActiveRef 해제는 여기가 단일 지점(stale-true → padding 복원 차단 방지).
+      closingActiveRef.current = false;
+      setClosingSpot(null);
+      if (!reduced) {
+        if (interrupting) {
+          // 닫는 중 마커 탭: 진행 중이던 닫기 커버(페이드-인)를 페이드아웃으로 정리(§goal7, 깜빡임 방지).
+          // 지도는 이미 풀스크린이라 card→fullscreen 플립 없음 → 열기 커버(즉시 opaque) 불요.
+          if (fadeHoldTimerRef.current) clearTimeout(fadeHoldTimerRef.current);
+          setCover({ opacity: 0, ms: SHEET_COVER_OUT_MS });
+        } else {
+          setCover({ opacity: 1, ms: 0 }); // pre-paint 즉시 opaque(card→fullscreen 플립·stretched 프레임 가림)
+          if (fadeHoldTimerRef.current) clearTimeout(fadeHoldTimerRef.current);
+          // 홀드 뒤 페이드아웃 — autoResize(Effect B)·morph·GL 재래스터 안착분 확보(double-rAF 폐기)
+          fadeHoldTimerRef.current = setTimeout(() => setCover({ opacity: 0, ms: SHEET_OPEN_COVER_OUT_MS }), MAP_FADE_HOLD_MS);
+        }
+      }
+    } else if (wasOpen && !isOpen && !reduced) {
+      // 닫기: 스냅샷으로 시트·풀스크린 유지. detail-down 재생·종료 감지는 아래 WAAPI effect가 담당
+      // (finished 프로미스 → finishClose). padding 복원은 finishClose로 지연(확인 1).
+      closingActiveRef.current = true;
+      setClosingSpot(lastActiveSpotRef.current);
+      // 닫기 커버 페이드-인: 하강과 동시에 SHEET_CLOSE_MS 동안 불투명해짐(교체 순간을 가림, goal 1).
+      // 열기 직후 급속 닫힘 시 잔여 홀드 타이머가 닫기 중 커버를 꺼버리는 것 차단.
+      if (fadeHoldTimerRef.current) { clearTimeout(fadeHoldTimerRef.current); fadeHoldTimerRef.current = null; }
+      setCover({ opacity: 1, ms: SHEET_CLOSE_MS });
+    }
+    // reduced 닫기: closingSpot 미설정 → 즉시 언마운트(closingActiveRef false라 Effect B가 padding 즉시 복원).
+    // deps는 activeSpot 객체 — 편집(같은 id) 재실행 시 lastActiveSpotRef를 최신으로 유지(전이 분기는 no-op).
+  }, [activeSpot, isMobile, reduced]);
+
+  // 0387: 시트 슬라이드는 WAAPI로 — 노드 재사용 상태에서 animation-name 교체가 재시작 안 되는
+  // iOS Safari 거동 우회(el.animate는 명시적 재생). phase 기반(activeSpot=열기 / closingSpot=닫기)이라
+  // 닫힘 재마운트(render B) 시점에 sheetRef가 유효. useLayoutEffect = 첫 paint 전 시작(flash 없음).
+  useLayoutEffect(() => {
+    if (!isMobile || reduced) return; // reduced/데스크톱: animate 없이 즉시(goal 7)
+    const el = sheetRef.current;
+    if (!el) return; // render A(언마운트 순간)엔 null → 스킵, closingSpot 세팅된 render B에서 재생
+    const dir = activeSpot ? 'open' : (closingSpot ? 'close' : null);
+    const id = activeSpot?.id ?? closingSpot?.id ?? null;
+    if (!dir || !id) return;
+    const key = `${dir}:${id}`;
+    if (animedKeyRef.current === key) return; // 같은 방향 중복 재생 방지(인터럽트 후속 렌더 등)
+    animedKeyRef.current = key;
+    sheetAnimRef.current?.cancel(); // 진행 중 애니 취소 후 새로 시작(인터럽트, goal 3)
+    const frames = dir === 'open'
+      ? [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }]
+      : [{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }];
+    const anim = el.animate(frames, {
+      duration: dir === 'open' ? SHEET_OPEN_MS : SHEET_CLOSE_MS, // 상수 참조(goal 6)
+      easing: 'cubic-bezier(0.32,0.72,0,1)',
+      fill: 'forwards',
+    });
+    sheetAnimRef.current = anim;
+    // finished: 정상 완주 → finishClose / cancel(인터럽트·언마운트)이면 reject → catch로 흡수하고
+    // finishClose 미호출(goal 4). 열기도 cancel 가능성 있어 catch 필수(unhandled rejection 방지).
+    if (dir === 'close') anim.finished.then(() => finishClose()).catch(() => {});
+    else anim.finished.catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- id 전이 기준, finishClose/setClosingSpot는 안정 참조
+  }, [isMobile, reduced, activeSpot?.id, closingSpot?.id]);
+
+  useEffect(() => () => {
+    sheetAnimRef.current?.cancel(); // 진행 중 애니 취소(goal 5)
+    closingActiveRef.current = false; // 언마운트 시 stale-true 정리
+    if (fadeHoldTimerRef.current) clearTimeout(fadeHoldTimerRef.current);
+  }, []);
 
   // 0383 Effect B: 지도 풀스크린 전환을 확정(autoResize)하고 가림 높이만큼 padding.bottom을 줘
   // morph가 마커를 가시 상단 스트립 중앙에 놓게 + 그 morph를 소유(핸들러 동기 morph는 모바일 미실행).
@@ -219,7 +364,9 @@ export default function SpotMap({
     if (sheetEl) mapInstance.setOptions('padding', { bottom: sheetEl.offsetHeight });
     focusSpot(activeSpot);
     return () => {
-      mapInstance.setOptions('padding', { bottom: 0 });
+      // 0386: 닫힘 애니 진행 중이면 복원을 finishClose로 미룸 — 시트 내려가는 240ms 동안 지도가
+      // padding 재앵커로 슬금 움직이는 것 차단(확인 1). A→B 전환·isMobile 해제·테마 재생성은 false라 즉시 복원.
+      if (!closingActiveRef.current) mapInstance.setOptions('padding', { bottom: 0 });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- id로만 재실행(편집 입력 재morph 방지), focusSpot/activeSpot 좌표는 id당 고정
   }, [isMobile, activeSpot?.id, mapInstance]);
@@ -605,28 +752,33 @@ export default function SpotMap({
   // 팝업 1벌 정의(0378) — 카드 슬롯(md 이상)과 전체화면 모달 슬롯(md 미만)이 공유(프롭 단일 소스).
   // 진입 경로(마커 탭·목록 탭·검색 추가·좌표 찍기·chooser 선택)는 전부 activeSpot 세팅이라 분기 불요.
   // readOnly 콘텐츠는 displayedSpot(카드 크로스페이드 중 잔존 표시용) — 가시성 자체는 activeSpot이 담당.
-  function renderPopup() {
+  // 0386: sheetSpot = 모바일 시트 전용 오버라이드 — 닫힘 애니 중 activeSpot이 이미 null이어도
+  // closingSpot 스냅샷으로 콘텐츠를 그려 빈 시트가 내려가지 않게. 미전달(데스크톱/카드 슬롯)은
+  // 기존대로 activeSpot/displayedSpot — 완전 무변. key=s.id라 닫힘 중 같은 id면 인스턴스 보존(편집상태 flash 없음).
+  function renderPopup(sheetSpot?: LocalSpot) {
     if (readOnly) {
-      return displayedSpot ? (
+      const s = sheetSpot ?? displayedSpot;
+      return s ? (
         <SpotPopup
-          key={displayedSpot.id}
-          spot={displayedSpot}
+          key={s.id}
+          spot={s}
           readOnly
           closeHandleRef={closeHandleRef}
           onClose={handlePopupClose}
         />
       ) : null;
     }
-    return activeSpot ? (
+    const s = sheetSpot ?? activeSpot;
+    return s ? (
       <SpotPopup
-        key={activeSpot.id}
-        spot={activeSpot}
+        key={s.id}
+        spot={s}
         readOnly={!canAddSpot}
         closeHandleRef={closeHandleRef}
-        onDelete={canAddSpot ? () => handleDelete(activeSpot.id) : undefined}
+        onDelete={canAddSpot ? () => handleDelete(s.id) : undefined}
         onClose={handlePopupClose}
         onUpdate={handleSpotUpdate}
-        onFileSelect={(file) => onPhotoSelect?.(activeSpot.id, file)}
+        onFileSelect={(file) => onPhotoSelect?.(s.id, file)}
         initialEditing={mode === 'edit'}
       />
     ) : null;
@@ -699,6 +851,19 @@ export default function SpotMap({
           <div
             aria-hidden
             className={`pointer-events-none absolute inset-0 z-20 bg-card transition-opacity duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] ${themeFade ? 'opacity-100' : 'opacity-0'}`}
+          />
+          {/* 0386→0388: fullscreen↔카드 전환 커버(0370과 별개 오버레이 — semantics 상이). opacity·transition
+              지속을 cover state가 함께 구동: 열기-인 ms:0(즉시 opaque, 플립·stretched 프레임 가림) /
+              열기-아웃 SHEET_OPEN_COVER_OUT_MS / 닫기-인 SHEET_CLOSE_MS(하강 동기 페이드-인) / 닫기-아웃·인터럽트정리 SHEET_COVER_OUT_MS.
+              reduced-motion은 cover 미설정이라 상시 {0,0}(즉시 노출). 래퍼 내부라 다크서 교체 프레임 카드 바깥
+              페이지 노출은 구조적 — 실기기 다크 확인 항목(래퍼 밖 이동은 이번 제약 밖). */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-20 bg-card"
+            style={{
+              opacity: cover.opacity,
+              transition: cover.ms ? `opacity ${cover.ms}ms cubic-bezier(0.25,0.1,0.25,1)` : 'none',
+            }}
           />
           {/* 명령형 지도 마운트 지점 — 마커·폴리라인은 effect로 부착(② 단계), 선언형 자식 없음 */}
           <div ref={mapDivRef} className="w-full h-full" />
@@ -955,14 +1120,20 @@ export default function SpotMap({
           스크롤러: 명시 h-full(flex-grow 금지 §5·0253) + overscroll-contain(스크롤 락 페어) +
           pb 88+env = 탭바 pill이 시트 위에 그려지는 기존 스태킹 사항 보정(SpotFinder :326 관례).
           overflow-hidden = 상단 radius 클립. */}
-      {isMobile && activeSpot && (
-        <div ref={sheetRef} className="md:hidden fixed inset-x-0 bottom-0 z-[60] h-[max(70svh,calc(420px+env(safe-area-inset-bottom)))] bg-card rounded-t-[22px] border border-border shadow-2xl overflow-hidden animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]">
+      {/* 0386: 마운트 조건에 closingSpot 포함 — 닫힘 애니 동안 시트를 살려둔다.
+          0387: 슬라이드는 WAAPI(위 useLayoutEffect의 el.animate)가 구동 — 인라인 animation·onAnimationEnd
+          제거. sheetClosing이면 pointer-events-none(내려가는 시트 오조작 차단, goal 5). */}
+      {isMobile && (activeSpot || closingSpot) && (
+        <div
+          ref={sheetRef}
+          className={`md:hidden fixed inset-x-0 bottom-0 z-[60] h-[max(70svh,calc(420px+env(safe-area-inset-bottom)))] bg-card rounded-t-[22px] border border-border shadow-2xl overflow-hidden ${sheetClosing ? 'pointer-events-none' : ''}`}
+        >
           {/* 0383: pb 88(탭바 pill 겹침) 보정 제거 — 시트(z-60)가 탭바(z-40)를 덮으므로 불요.
               base 16 = §5 가장자리 여백(저장·취소 버튼이 화면 끝/홈바에 붙지 않게, env=0 기기 포함)
               + 홈 인디케이터 safe-area. overscroll-contain = 시트 스크롤이 뒤로 새는 것 차단.
               키보드 열림 시 저장 버튼 도달성은 별건(0384 visualViewport) */}
           <div className="h-full overflow-y-auto overscroll-contain pb-[calc(16px+env(safe-area-inset-bottom))]">
-            {renderPopup()}
+            {renderPopup(activeSpot ?? closingSpot ?? undefined)}
           </div>
         </div>
       )}
