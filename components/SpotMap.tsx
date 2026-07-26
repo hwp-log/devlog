@@ -150,10 +150,8 @@ export default function SpotMap({
   // 스팟 제거(0365)가 실행됨. 판정(isCreationSession)은 SpotPopup 단일 소스라 여기서 재추적 금지(§8-②).
   const pushedRef = useRef(false);
   const closeHandleRef = useRef<(() => void) | null>(null);
-  // 0382: 시트 열 때 지도 정렬·패딩 배선용. sheetRef = covered 측정 대상(시트 top),
-  // restoreScrollRef = 정렬 전 스크롤(닫을 때 복원 — 시트=임시 오버레이 멘탈 모델).
+  // 0382→0383: sheetRef = 시트 실측(covered = 시트 offsetHeight — 지도 풀스크린이라 곧 가림 높이).
   const sheetRef = useRef<HTMLDivElement | null>(null);
-  const restoreScrollRef = useRef(0);
 
   useEffect(() => {
     if (!canMatchMedia()) return;
@@ -196,51 +194,29 @@ export default function SpotMap({
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // 0382 Effect A: 시트 열 때 지도 정렬 → 배경 스크롤 락 → (닫힘) 복원. 순서가 핵심 —
-  // 정렬(scrollTo)이 lock보다 먼저여야 유효(잠기면 무효), lock은 iOS 스크롤 체이닝 방지(0378).
-  // 키를 activeSpot 객체가 아닌 불리언 sheetOpen으로 — 편집 입력(handleSpotUpdate)이 매번
-  // 새 activeSpot을 만들어도 재정렬·복원 중복이 안 생기게(열림/닫힘 전이에만 반응).
-  // 선언 순서상 Effect B(패딩·morph)보다 먼저 = 열림 커밋에서 정렬이 측정보다 앞섬.
+  // 0383: 시트 열림 = 지도 래퍼를 fixed 풀스크린으로 토글(§1 클래스 분기)에도 재사용하는 파생.
+  // isMobile 전제 — 데스크톱은 항상 false라 지도가 flow 카드에 머묾(무변, CDP 1280 실측 확인).
   const sheetOpen = isMobile && !!activeSpot;
-  useEffect(() => {
-    if (!sheetOpen) return;
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtml = html.style.overflow;
-    const prevBody = body.style.overflow;
-    // 정렬: 지도 top을 sticky 헤더 바로 아래로 (위 스트립에 지도를 놓기 위한 스크롤).
-    restoreScrollRef.current = window.scrollY;
-    const mapEl = mapDivRef.current;
-    if (mapEl) {
-      const headerH = document.querySelector('header')?.getBoundingClientRect().height ?? 0;
-      // instant — smooth는 뒤이은 lock과 경쟁해 잘림. 전환 질감은 시트 detail-up(320ms)이 담당.
-      window.scrollTo(0, window.scrollY + mapEl.getBoundingClientRect().top - headerH);
-    }
-    html.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
-    return () => {
-      html.style.overflow = prevHtml;
-      body.style.overflow = prevBody;
-      window.scrollTo(0, restoreScrollRef.current);
-    };
-  }, [sheetOpen]);
 
-  // 0382 Effect B: 지도 패딩(가림 높이)으로 morph가 마커를 가시 영역 중앙에 놓게 + 그 morph 소유.
-  // SpotFinder computeMapPadBottom 정신 계승 — 임베드 지도라 상수 산식 대신 실 rect 측정
-  // (헤더·실제 시트 svh·safe-area 자동 반영). Effect A 이후라 지도는 정렬됨. 키를 activeSpot?.id로
-  // — 객체 키는 편집 입력마다 재morph. cleanup에서 패딩 0 복원(닫힘·데스크톱·전체보기 정중앙).
+  // 0383 Effect B: 지도 풀스크린 전환을 확정(autoResize)하고 가림 높이만큼 padding.bottom을 줘
+  // morph가 마커를 가시 상단 스트립 중앙에 놓게 + 그 morph를 소유(핸들러 동기 morph는 모바일 미실행).
+  // 풀스크린이면 지도 bottom = 뷰포트 bottom, 시트 top = 뷰포트 − 시트높이 → covered = 시트 offsetHeight
+  // (측정 단순화, 지도 rect·detail-up 애니메이션 위치 의존 제거). 키를 activeSpot?.id로 — 객체 키는
+  // 편집 입력(handleSpotUpdate)마다 재morph. A→B 마커 전환은 id 변화로 재실행(패딩·morph 재적용).
+  // cleanup에서 패딩 0 복원(닫힘·데스크톱·전체보기 정중앙).
   useEffect(() => {
     if (!(isMobile && activeSpot && mapInstance)) return;
     const mapEl = mapDivRef.current;
     const sheetEl = sheetRef.current;
-    if (mapEl && sheetEl) {
-      // 시트 top은 offsetHeight로 역산 — 이 시점 시트는 detail-up(translateY 100%) 진입 애니메이션
-      // 중이라 getBoundingClientRect().top이 화면 밖(≈뷰포트 하단)을 가리켜 covered=0이 됨(실측).
-      // offsetHeight는 transform 무관 레이아웃 높이 → 최종 top = 레이아웃 뷰포트 − 시트 높이(fixed bottom-0).
-      const sheetTop = document.documentElement.clientHeight - sheetEl.offsetHeight;
-      const covered = Math.max(0, mapEl.getBoundingClientRect().bottom - sheetTop);
-      mapInstance.setOptions('padding', { bottom: covered });
+    if (mapEl) {
+      // ResizeObserver(relayout effect) 선점 — 풀스크린 크기를 lastSizeRef에 미리 기록하면
+      // 뒤이은 관찰자 콜백이 크기 불변 가드로 no-op → 관찰자의 setCenter가 아래 morph를 가로채지 못함.
+      // (0382는 지도 400 고정이라 관찰자 미발화 → 이 선점은 풀스크린 전환의 신규 필요분)
+      const r = mapEl.getBoundingClientRect();
+      lastSizeRef.current = { w: r.width, h: r.height };
+      mapInstance.autoResize(); // 풀스크린 캔버스 즉시 반영(관찰자 순서와 무관하게 morph 전 확정)
     }
+    if (sheetEl) mapInstance.setOptions('padding', { bottom: sheetEl.offsetHeight });
     focusSpot(activeSpot);
     return () => {
       mapInstance.setOptions('padding', { bottom: 0 });
@@ -692,8 +668,12 @@ export default function SpotMap({
         {/* isolate(0378 실측) — 네이버 SDK 내부 z-index(저작권 100·내부 최대 10000)가 래퍼(relative
             z-auto = 무컨텍스트)를 지나 루트에서 모달 z-60을 이기고 위에 그려짐. isolation으로 지도
             내부 z를 래퍼 안에 가둠 — 래퍼 자체는 z-auto라 팝오버(50)·탭바(40) 등 바깥 위계 불변.
-            모달 z 상향(>10000)안은 SDK 내부 상수와의 경쟁이라 기각 */}
-        <div className="isolate relative md:flex-1 h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+            모달 z 상향(>10000)안은 SDK 내부 상수와의 경쟁이라 기각. isolate는 풀스크린에서도 유지. */}
+        {/* 0383: sheetOpen 동안 fixed 풀스크린(z-55 < 시트 60) — 구글지도·Turo 표준(지도 풀스크린 +
+            시트 오버레이 + padding.bottom 보정). 같은 DOM 노드 클래스 토글이라 지도 재init·이동 없음
+            (0328 getLayer 크래시 경로 회피). sheetOpen=isMobile 전제라 else 분기(flow 카드)가 데스크톱
+            상시 = 무변. 풀스크린은 직각(rounded 미부여). 크기 변화 relayout은 Effect B가 선점 처리. */}
+        <div className={`isolate overflow-hidden ${sheetOpen ? 'fixed inset-0 z-[55]' : 'relative md:flex-1 h-[400px] md:h-[500px] rounded-xl'}`}>
           {/* 리뷰장소 전체보기 오버레이(0369) — 확대해 돌아다닌 뒤 전체 뷰 복귀. 글쓰기·상세 공용
               (초기 뷰가 양쪽 적용이므로 복귀 수단도 양쪽). z-10 = 지도 위·팝오버(z-50) 아래.
               우상단 = 네이버 기본 컨트롤(로고·저작권·축척, 하단 계열)과 비충돌 — 실화면 확인 항목.
@@ -973,7 +953,11 @@ export default function SpotMap({
           overflow-hidden = 상단 radius 클립. */}
       {isMobile && activeSpot && (
         <div ref={sheetRef} className="md:hidden fixed inset-x-0 bottom-0 z-[60] h-[max(70svh,calc(420px+env(safe-area-inset-bottom)))] bg-card rounded-t-[22px] border border-border shadow-2xl overflow-hidden animate-[detail-up_320ms_cubic-bezier(0.32,0.72,0,1)]">
-          <div className="h-full overflow-y-auto overscroll-contain pb-[calc(88px+env(safe-area-inset-bottom))]">
+          {/* 0383: pb 88(탭바 pill 겹침) 보정 제거 — 시트(z-60)가 탭바(z-40)를 덮으므로 불요.
+              base 16 = §5 가장자리 여백(저장·취소 버튼이 화면 끝/홈바에 붙지 않게, env=0 기기 포함)
+              + 홈 인디케이터 safe-area. overscroll-contain = 시트 스크롤이 뒤로 새는 것 차단.
+              키보드 열림 시 저장 버튼 도달성은 별건(0384 visualViewport) */}
+          <div className="h-full overflow-y-auto overscroll-contain pb-[calc(16px+env(safe-area-inset-bottom))]">
             {renderPopup()}
           </div>
         </div>
