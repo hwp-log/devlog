@@ -353,7 +353,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                 rows={3}
                 {...register('review')}
                 placeholder="리뷰를 입력하세요..."
-                className="border border-border rounded px-2 py-1 text-sm resize-none focus:outline-none w-full"
+                // 모바일 16px(iOS 포커스 자동확대 방지, CLAUDE.md §5·0341 패턴) / sm 이상은 기존 14px
+                className="border border-border rounded px-2 py-1 text-[16px] sm:text-[14px] resize-none focus:outline-none w-full"
               />
             ) : spot.review ? (
               <p className="text-sm text-fg2 whitespace-pre-wrap">{spot.review}</p>
@@ -446,7 +447,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
                     value={movieQuery}
                     onChange={(e) => handleMovieInput(e.target.value)}
                     placeholder="작품명 검색..."
-                    className="border border-border rounded px-2 py-1 text-sm focus:outline-none w-full"
+                    // 모바일 16px(iOS 포커스 자동확대 방지, CLAUDE.md §5·0341 패턴) / sm 이상은 기존 14px
+                    className="border border-border rounded px-2 py-1 text-[16px] sm:text-[14px] focus:outline-none w-full"
                   />
                   {showDropdown && movieQuery.trim() !== '' && (
                     <ul className="absolute z-10 left-0 right-0 mt-1 bg-popover border border-border rounded shadow text-sm max-h-48 overflow-y-auto">
