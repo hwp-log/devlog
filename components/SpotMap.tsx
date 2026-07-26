@@ -228,8 +228,11 @@ export default function SpotMap({
   modeRef.current = mode;
   addSpotFromMapRef.current = async (lng: number, lat: number) => {
     const id = addSpot('', lng, lat);
-    // S3-a: 근처 기존 촬영지 후보 조회 → 있으면 chooser(재사용/새등록 판단), 없으면 바로 편집
-    const candidates = await findNearbySpots(lat, lng);
+    // S3-a: 근처 기존 촬영지 후보 조회 → 있으면 chooser(재사용/새등록 판단), 없으면 바로 편집.
+    // 0384: try/catch — 세션 만료 등으로 액션이 throw해도 후보 없음으로 폴스루(스팟은 이미 addSpot됨,
+    // 작성 중 글 보존). 성공 경로는 불변.
+    let candidates: NearbySpot[] = [];
+    try { candidates = await findNearbySpots(lat, lng); } catch { candidates = []; }
     if (candidates.length > 0) {
       setNearbyChooser({ spotId: id, candidates });
     } else {
@@ -549,8 +552,9 @@ export default function SpotMap({
     const id = addSpot(place.name, lng, lat);
     // 중심·줌 원자 전환(카카오 jump 상응) — setZoom+setCenter는 0ms 점프라 기각(SpotFinderMapNaver 실측)
     mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS, SPOT_TRANSITION);
-    // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집
-    const candidates = await findNearbySpots(lat, lng);
+    // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집. 0384: try/catch 폴스루(위 addSpotFromMapRef 동일)
+    let candidates: NearbySpot[] = [];
+    try { candidates = await findNearbySpots(lat, lng); } catch { candidates = []; }
     if (candidates.length > 0) {
       setNearbyChooser({ spotId: id, candidates });
     } else {
