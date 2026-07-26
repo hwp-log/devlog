@@ -24,7 +24,7 @@ export type SearchPlacesResult =
   | { status: 'zero' }
   | { status: 'error' };
 
-type KakaoDoc = { id: string; place_name: string; address_name: string; x: string; y: string };
+type KakaoDoc = { id: string; place_name: string; address_name: string; road_address_name: string; x: string; y: string };
 
 export async function searchPlaces(keyword: string): Promise<SearchPlacesResult> {
   const kw = keyword.trim();
@@ -53,7 +53,9 @@ export async function searchPlaces(keyword: string): Promise<SearchPlacesResult>
       .map((d) => ({
         id: d.id,
         name: d.place_name,
-        address: d.address_name,
+        // 0391: 도로명(road_address_name) 우선 — 시드 주소가 도로명이라 지번 혼재 방지.
+        //   일부 POI는 road_address_name이 빈 문자열 → || 로 지번(address_name) 폴백.
+        address: d.road_address_name || d.address_name,
         lng: parseFloat(d.x), // x = 경도(lng) ★★★
         lat: parseFloat(d.y), // y = 위도(lat) ★★★
       }))

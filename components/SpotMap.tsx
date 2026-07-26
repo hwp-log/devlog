@@ -779,7 +779,7 @@ export default function SpotMap({
 
   async function handlePlaceSelect(place: PlaceResult) {
     const { lat, lng } = place; // x/y→lng/lat 변환은 서버 액션이 완료 — 클라엔 순수 숫자만
-    const id = addSpot(place.name, lng, lat);
+    const id = addSpot(place.name, lng, lat, place.address); // 0391: 검색 주소(지번, address_name)를 스팟에 실음
     // 중심·줌 원자 전환(카카오 jump 상응) — setZoom+setCenter는 0ms 점프라 기각(SpotFinderMapNaver 실측)
     mapInstance?.morph(new naver.maps.LatLng(lat, lng), ZOOM_FOCUS, SPOT_TRANSITION);
     // S3-a: 근처 기존 촬영지 후보 → chooser / 없으면 편집. 0384: try/catch 폴스루(위 addSpotFromMapRef 동일)
@@ -788,14 +788,16 @@ export default function SpotMap({
     if (candidates.length > 0) {
       setNearbyChooser({ spotId: id, candidates });
     } else {
-      setActiveSpot({ id, name: place.name, lat, lng, order: localSpots.length + 1 });
+      setActiveSpot({ id, name: place.name, lat, lng, order: localSpots.length + 1, address: place.address }); // 0391: 시트 즉시 주소 표시
       setMode('edit');
     }
   }
 
-  function addSpot(name: string, lng: number, lat: number): string {
+  // 0391: address는 optional — 검색 경로가 place.address를 실어 작성 중 시트에 즉시 표시.
+  //   찍기(addSpot('', …))·재사용은 미전달 = undefined(기존 동작). 저장 payload는 기존 지원(변경 불요).
+  function addSpot(name: string, lng: number, lat: number, address?: string | null): string {
     const id = `tmp_${crypto.randomUUID()}`;
-    const newSpot: LocalSpot = { id, name, lat, lng, order: localSpots.length + 1 };
+    const newSpot: LocalSpot = { id, name, lat, lng, order: localSpots.length + 1, address };
     const next = [...localSpots, newSpot];
     setLocalSpots(next);
     onSpotsChange?.(next);
@@ -813,6 +815,9 @@ export default function SpotMap({
             ...s,
             reusedSpotId: candidate.spotId,
             name: candidate.name,
+            // 0391: 검색 주소는 재사용 시 버림 — 저장 경로가 reusedSpotId면 공유 Spot 주소가 정본이고
+            //   후보(NearbySpot)엔 address가 없어 실을 수 없음(이번 범위 제외). 편집 중 폐기될 주소 미표시.
+            address: undefined,
             movieTitle: candidate.movies[0] ?? null,
             extraMovieCount: Math.max(0, candidate.movies.length - 1),
           }
