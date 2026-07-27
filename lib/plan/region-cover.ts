@@ -32,3 +32,9 @@ export function pickRegionCover(region: string | null | undefined): string | nul
   const pool = pools[key];
   return pool[Math.floor(Math.random() * pool.length)];
 }
+
+// 매칭된 지역 풀 전체(0410 pick-cover가 후보 수집에 재사용). 매칭 실패 시 빈 배열.
+export function regionCoverPool(region: string | null | undefined): string[] {
+  const key = normalizeRegionKey(region);
+  return key ? pools[key] : [];
+}
