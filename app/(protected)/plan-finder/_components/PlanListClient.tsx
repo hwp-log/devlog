@@ -98,7 +98,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
           이 가격대 플랜이 없습니다
         </div>
       ) : (
-        <div key={`${sort}-${filter}`} className="flex flex-col gap-[10px]">
+        <div key={`${sort}-${filter}`} className="grid grid-cols-1 sm:grid-cols-3 gap-[11px] sm:gap-[14px]">
           {sorted.map((plan, i) => (
             <div
               key={plan.id}

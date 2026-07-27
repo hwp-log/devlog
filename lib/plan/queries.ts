@@ -8,6 +8,10 @@ export type PublicPlanListItem = {
   region: string | null;
   movie: string | null;
   createdAt: Date;
+  coverUrl: string | null;
+  headcount: number;
+  spotCount: number;
+  dayCount: number | null;
   likeCount: number;
   isLiked: boolean;
   authorNickname: string;
@@ -25,7 +29,11 @@ export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListI
       movie: true,
       currency: true,
       createdAt: true,
-      _count: { select: { planLikes: true } },
+      coverUrl: true,
+      headcount: true,
+      startDate: true,
+      endDate: true,
+      _count: { select: { planLikes: true, spots: true } },
       costs: { select: { category: true, amount: true } },
       flight: { select: { totalAmount: true } },
       owner: { select: { nickname: true, avatarUrl: true } },
@@ -48,6 +56,13 @@ export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListI
     region: plan.region,
     movie: plan.movie,
     createdAt: plan.createdAt,
+    coverUrl: plan.coverUrl,
+    headcount: plan.headcount,
+    spotCount: plan._count.spots,
+    dayCount:
+      plan.startDate && plan.endDate
+        ? Math.max(1, Math.ceil((plan.endDate.getTime() - plan.startDate.getTime()) / 86_400_000) + 1)
+        : null,
     likeCount: plan._count.planLikes,
     isLiked: likedSet.has(plan.id),
     authorNickname: plan.owner.nickname,

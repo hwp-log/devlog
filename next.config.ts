@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
         pathname: '/storage/v1/object/public/**',
         search: '',
       },
+      {
+        // 0404 지역 대표 커버(TourAPI KorService2 firstimage). 플랜 카드 커버 next/image 최적화 대상.
+        protocol: 'https',
+        hostname: 'tong.visitkorea.or.kr',
+        port: '',
+        pathname: '/cms/resource/**',
+      },
     ],
   },
   experimental: {

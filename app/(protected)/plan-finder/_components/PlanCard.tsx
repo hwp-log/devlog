@@ -1,150 +1,89 @@
 import Link from 'next/link';
-import {
-  Heart,
-  Plane,
-  Bus,
-  Hotel,
-  Utensils,
-  Ticket,
-  Package,
-  MapPin,
-  Calendar,
-  User,
-} from 'lucide-react';
+import Image from 'next/image';
+import { Heart } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
-import { getAvatarInfo } from '@/lib/avatar/generate';
 
 type Props = PublicPlanListItem;
 
-const CATEGORY_ICON = {
-  FLIGHT: Plane,
-  TRANSPORT: Bus,
-  ACCOMMODATION: Hotel,
-  FOOD: Utensils,
-  ENTRANCE: Ticket,
-  ETC: Package,
-} as const;
+// 커버 위 어두운 그라디언트 — 하단 흰 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
+// 반투명 검정은 theme 토큰 예외 허용(0406). 하단이 가장 어둡고 위로 갈수록 옅어짐.
+const OVERLAY =
+  'linear-gradient(to top, rgba(10,10,16,0.92) 0%, rgba(10,10,16,0.6) 42%, rgba(10,10,16,0.12) 72%, rgba(10,10,16,0.28) 100%)';
 
-const PILL_CLASS =
-  'inline-flex items-center gap-1 text-xs px-[9px] py-0.5 rounded-full bg-surface2 text-fg2';
+// 지역 pill 반투명 검정(예외 허용)
+const PILL_BG = 'rgba(13,13,20,0.72)';
 
 export function PlanCard({
   id,
   title,
   region,
   movie,
-  createdAt,
+  coverUrl,
+  headcount,
+  spotCount,
+  dayCount,
   likeCount,
   isLiked,
-  authorNickname,
-  authorAvatarUrl,
   summary,
 }: Props) {
-  const dateStr = `${createdAt.getFullYear()}.${createdAt.getMonth() + 1}.${createdAt.getDate()}`;
-  const { initial, color } = getAvatarInfo(authorNickname);
+  const regionLabel = region ?? movie;
+  // 메타 한 줄 — 결측 세그먼트는 스킵
+  const meta = [
+    regionLabel,
+    dayCount ? `${dayCount}일` : null,
+    `스팟 ${spotCount}곳`,
+    `${headcount}인`,
+  ].filter(Boolean).join(' · ');
 
-  const visible = summary.ratios
-    .filter((r) => r.ratio > 0)
-    .sort((a, b) => b.ratio - a.ratio);
-  const mobileTop = visible.slice(0, 3);
-  const mobileRest = visible.length - mobileTop.length;
-  const desktopTop = visible.slice(0, 4);
-  const desktopRest = visible.length - desktopTop.length;
+  const priceLabel = summary.band
+    ? `약 ${Math.round((summary.band.lower + summary.band.upper) / 2 / 10_000).toLocaleString()}만원`
+    : '금액 없음';
 
   return (
     <Link
       href={`/plan-finder/${id}`}
-      className="group grid items-center gap-x-[15px] bg-card border border-border rounded-xl px-4 py-3 transition-all duration-[220ms] hover:-translate-y-0.5 hover:border-border [grid-template-columns:auto_1.25fr_1.05fr_auto]"
+      className="group relative flex flex-col h-[215px] sm:h-[235px] rounded-[14px] border border-border overflow-hidden transition-all duration-[220ms] hover:-translate-y-0.5"
     >
-      {/* ① 아바타 */}
-      <div
-        className="relative w-16 h-16 shrink-0 overflow-hidden"
-        style={{
-          borderRadius: '18px 18px 18px 4px',
-          backgroundColor: authorAvatarUrl ? undefined : color,
-        }}
-        aria-label={`${authorNickname} 아바타`}
-      >
-        {authorAvatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={authorAvatarUrl}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white select-none">
-            {initial}
+      {/* 배경 레이어 — 커버 or 무채 폴백 */}
+      {coverUrl ? (
+        <Image
+          src={coverUrl}
+          alt=""
+          fill
+          sizes="(max-width: 767px) 100vw, 33vw"
+          className="object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-fill2" aria-hidden />
+      )}
+
+      {/* 오버레이 */}
+      <div className="absolute inset-0" style={{ background: OVERLAY }} aria-hidden />
+
+      {/* 콘텐츠 — 상단 바 */}
+      <div className="relative flex items-start justify-between px-4 pt-[13px] sm:pt-[14px]">
+        {regionLabel && (
+          <span
+            className="inline-flex items-center text-[11px] leading-none text-white/95 px-[9px] py-[3px] rounded-full"
+            style={{ backgroundColor: PILL_BG }}
+          >
+            {regionLabel}
           </span>
         )}
-      </div>
-
-      {/* ② 제목 + 태그 pill */}
-      <div className="min-w-0">
-        <p className="text-[15px] font-medium text-fg truncate">{title}</p>
-        <div className="flex items-center gap-1.5 mt-[5px] flex-wrap">
-          {(region || movie) && (
-            <span className={PILL_CLASS}>
-              <MapPin size={11} className="text-muted" />
-              {region ?? movie}
-            </span>
-          )}
-          <span className={PILL_CLASS}>
-            <Calendar size={11} className="text-muted" />
-            {dateStr}
-          </span>
-          <span className={PILL_CLASS}>
-            <User size={11} className="text-muted" />
-            {authorNickname}
-          </span>
-        </div>
-      </div>
-
-      {/* ③ 카테고리 아이콘 */}
-      <div className="min-w-0">
-        <div className="flex sm:hidden items-center gap-2">
-          {mobileTop.map((item) => {
-            const Icon = CATEGORY_ICON[item.category];
-            return (
-              <span key={item.category} className="inline-flex items-center gap-0.5 text-sm text-fg2">
-                <Icon size={18} className="text-primary" />
-                {Math.round(item.ratio)}%
-              </span>
-            );
-          })}
-          {mobileRest > 0 && (
-            <span className="inline-flex items-center text-sm text-muted">+{mobileRest}</span>
-          )}
-        </div>
-        <div className="hidden sm:flex items-center gap-2">
-          {desktopTop.map((item) => {
-            const Icon = CATEGORY_ICON[item.category];
-            return (
-              <span key={item.category} className="inline-flex items-center gap-0.5 text-sm text-fg2">
-                <Icon size={18} className="text-primary" />
-                {Math.round(item.ratio)}%
-              </span>
-            );
-          })}
-          {desktopRest > 0 && (
-            <span className="inline-flex items-center text-sm text-muted">+{desktopRest}</span>
-          )}
-        </div>
-      </div>
-
-      {/* ④ 가격 + 좋아요 (한 줄) */}
-      <div className="flex items-center gap-3">
-        {summary.band ? (
-          <p className="text-base font-medium text-fg whitespace-nowrap">
-            약 {(summary.band.lower / 10_000).toLocaleString()}만~{(summary.band.upper / 10_000).toLocaleString()}만원
-          </p>
-        ) : (
-          <p className="text-base font-medium text-muted whitespace-nowrap">금액 없음</p>
-        )}
-        <p className="text-[13px] text-muted inline-flex items-center gap-0.5">
-          <Heart size={12} className={isLiked ? 'fill-heart-active text-heart-active' : 'text-muted'} />
+        <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-white/90">
+          <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : 'text-white/90'} />
           {likeCount}
-        </p>
+        </span>
+      </div>
+
+      {/* 콘텐츠 — 하단 */}
+      <div className="relative mt-auto px-4 pb-4">
+        <p className="text-[14px] font-semibold text-white truncate">{title}</p>
+        <p className="mt-1 text-[12.5px] text-white/75 truncate">{meta}</p>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[14px] font-medium text-white whitespace-nowrap">{priceLabel}</span>
+          <span className="text-[12.5px] font-medium text-primary whitespace-nowrap">코스 보기 →</span>
+        </div>
       </div>
     </Link>
   );
