@@ -4,8 +4,8 @@ import { usePathname } from 'next/navigation';
 
 // 데스크톱 full-bleed 라우트 — ThemeScope DARK_ROUTES와 동일 패턴, 추가 시 여기 1줄
 const FULL_BLEED_ROUTES = ['/spot-finder'];
-// 풀폭(max-w 없음) + 패딩 유지 라우트 — 목록 페이지만 정확 매칭(/story/new·/story/[id]은 폼·글이라 max-w 유지). 3단계
-const WIDE_ROUTES = ['/story'];
+// 풀폭(max-w 없음) + 패딩 유지 라우트 — 목록 페이지만 정확 매칭(/story/new·/story/[id]·/plan-finder/[id]은 폼·글·상세라 max-w 유지). 3단계
+const WIDE_ROUTES = ['/story', '/plan-finder'];
 
 export function ProtectedMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

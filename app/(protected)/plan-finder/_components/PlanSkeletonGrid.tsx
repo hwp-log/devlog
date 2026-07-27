@@ -7,7 +7,7 @@ export function PlanSkeletonGrid({ count }: { count: number }) {
   return (
     <div
       aria-hidden
-      className="grid grid-cols-1 sm:grid-cols-3 gap-[11px] sm:gap-[14px]"
+      className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[11px] sm:gap-[14px]"
     >
       {Array.from({ length: count }).map((_, i) => (
         <div

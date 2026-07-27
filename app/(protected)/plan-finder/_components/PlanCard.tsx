@@ -50,7 +50,7 @@ export function PlanCard({
           src={coverUrl}
           alt=""
           fill
-          sizes="(max-width: 767px) 100vw, 33vw"
+          sizes="(max-width: 767px) 100vw, 400px"
           className="object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]"
         />
       ) : (

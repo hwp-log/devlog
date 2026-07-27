@@ -113,7 +113,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
           </Link>
         </div>
       ) : (
-        <div key={`${sort}-${filter}`} className="grid grid-cols-1 sm:grid-cols-3 gap-[11px] sm:gap-[14px]">
+        <div key={`${sort}-${filter}`} className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[11px] sm:gap-[14px]">
           {sorted.map((plan, i) => (
             <div
               key={plan.id}
