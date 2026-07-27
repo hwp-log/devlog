@@ -93,8 +93,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         </div>
       </div>
 
-      <div className="bg-card rounded-xl p-5">
-
       {sorted.length === 0 ? (
         <div
           key={`empty-${sort}-${filter}`}
@@ -116,7 +114,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
           ))}
         </div>
       )}
-      </div>
     </div>
   );
 }
