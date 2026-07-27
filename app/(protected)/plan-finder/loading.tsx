@@ -1,36 +1,31 @@
-// 플랜파인더 첫 진입(서버 페치 중) 로딩 스켈레톤.
-// 헤더 행 + 카드 그리드를 실제 레이아웃과 동일 치수로 채운다.
-// 셔머 표면은 skeleton-shimmer 유틸 재사용(globals.css, popover/surface2 토큰 · 1.4s · reduced-motion 대응).
+// 플랜파인더 첫 진입(서버 페치 중) 로딩 스켈레톤 — 0414(0412 교체).
+// 스켈레톤은 "아직 모르는 것"에만 씌운다(0413 원칙):
+//  · 눈썹·타이틀은 서버 응답과 무관한 정적 텍스트 → 실제 PlanFinderHeader 그대로 렌더(셔머로 덮으면 같은 글자 재출현 = 깜빡임).
+//  · 요약줄·필터는 셔머 — 공개 코스 수·평균가·필터 상태는 데이터 의존.
+//  · 카드 그리드는 PlanSkeletonGrid 재사용, count=3(PlanListClient와 동일 치수 → 전환 시 시프트 없음).
+// 셔머는 skeleton-shimmer 유틸 재사용(globals.css, popover/surface2 토큰 · 라이트/다크 자동).
+import { PlanFinderHeader } from './_components/PlanFinderHeader';
+import { PlanSkeletonGrid } from './_components/PlanSkeletonGrid';
+
 export default function Loading() {
   return (
-    <div aria-hidden>
+    <div>
       {/* 헤더 행 — PlanListClient와 동일 레이아웃(눈썹·타이틀·요약 좌 / 필터 우) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
         <div>
-          <div className="skeleton-shimmer h-[11px] w-16 rounded" />
-          <div className="skeleton-shimmer h-5 w-36 rounded mt-3" />
-          <div className="skeleton-shimmer h-[14px] w-44 rounded mt-4 sm:mt-5" />
+          <PlanFinderHeader />
+          {/* 요약줄 자리 — PlanListClient의 text-[12.5px] mt-4 sm:mt-5 매칭 */}
+          <div className="skeleton-shimmer h-[13px] w-44 rounded mt-4 sm:mt-5" aria-hidden />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="skeleton-shimmer h-8 w-[72px] rounded-full" />
-          <div className="skeleton-shimmer h-8 w-[64px] rounded-full" />
+        {/* 필터 2개 자리 — FilterDropdown 버튼(px-4 py-1.5 rounded-full ≈ h-8) 근사 */}
+        <div className="flex flex-wrap gap-2" aria-hidden>
+          <div className="skeleton-shimmer h-8 w-[70px] rounded-full" />
+          <div className="skeleton-shimmer h-8 w-[80px] rounded-full" />
         </div>
       </div>
 
-      {/* 카드 그리드 — 데스크톱 3열 / 모바일 1열, 카드 3개 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-[11px] sm:gap-[14px]">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-card border border-border rounded-[14px] h-[240px] sm:h-[280px] flex flex-col justify-end gap-2.5 p-4"
-          >
-            <div className="skeleton-shimmer h-3 w-3/5 rounded" />
-            <div className="skeleton-shimmer h-3 w-[45%] rounded" />
-            <div className="skeleton-shimmer h-[26px] w-2/5 rounded" />
-            <div className="skeleton-shimmer h-3 w-[35%] rounded" />
-          </div>
-        ))}
-      </div>
+      {/* 카드 그리드 — 실제 PlanListClient 그리드와 동일 치수 */}
+      <PlanSkeletonGrid count={3} />
     </div>
   );
 }
