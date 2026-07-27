@@ -1,0 +1,34 @@
+{
+  "_source": {
+    "api": "한국관광공사 TourAPI KorService2/searchKeyword2",
+    "url": "https://api.visitkorea.or.kr",
+    "note": "지역 대표 이미지 풀. firstimage 원격 URL만 저장(Storage 미복사). 출처 표기 의무 있음 — components/DataAttribution.tsx",
+    "generatedAt": "2026-07-27T10:47:26.902Z"
+  },
+  "regions": {
+    "서울": [
+      "https://tong.visitkorea.or.kr/cms/resource/96/4019996_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/43/3464643_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/22/3481922_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/97/3524097_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/38/4021038_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/81/3571681_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/99/3393799_image2_1.JPG",
+      "https://tong.visitkorea.or.kr/cms/resource/39/3084439_image2_1.JPG",
+      "https://tong.visitkorea.or.kr/cms/resource/49/4045749_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/27/4045827_image2_1.jpg"
+    ],
+    "제주도": [
+      "https://tong.visitkorea.or.kr/cms/resource/55/3354155_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/18/1732618_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/21/3556321_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/85/3433085_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/68/780468_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/96/573996_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/99/3553099_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/75/3390175_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/55/2748055_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource/85/2869985_image2_1.jpg"
+    ]
+  }
+}
