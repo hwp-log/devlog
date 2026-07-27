@@ -26,7 +26,7 @@ const CATEGORY_ICON = {
 } as const;
 
 const PILL_CLASS =
-  'inline-flex items-center gap-1 text-xs px-[9px] py-0.5 rounded-full bg-slate-100 text-slate-600';
+  'inline-flex items-center gap-1 text-xs px-[9px] py-0.5 rounded-full bg-surface2 text-fg2';
 
 export function PlanCard({
   id,
@@ -54,7 +54,7 @@ export function PlanCard({
   return (
     <Link
       href={`/plan-finder/${id}`}
-      className="group grid items-center gap-x-[15px] bg-white border border-slate-200 rounded-xl px-4 py-3 transition-all duration-[220ms] hover:-translate-y-0.5 hover:border-slate-300 [grid-template-columns:auto_1.25fr_1.05fr_auto]"
+      className="group grid items-center gap-x-[15px] bg-card border border-border rounded-xl px-4 py-3 transition-all duration-[220ms] hover:-translate-y-0.5 hover:border-border [grid-template-columns:auto_1.25fr_1.05fr_auto]"
     >
       {/* ① 아바타 */}
       <div
@@ -81,20 +81,20 @@ export function PlanCard({
 
       {/* ② 제목 + 태그 pill */}
       <div className="min-w-0">
-        <p className="text-[15px] font-medium text-[#1A1A1A] truncate">{title}</p>
+        <p className="text-[15px] font-medium text-fg truncate">{title}</p>
         <div className="flex items-center gap-1.5 mt-[5px] flex-wrap">
           {(region || movie) && (
             <span className={PILL_CLASS}>
-              <MapPin size={11} className="text-slate-400" />
+              <MapPin size={11} className="text-muted" />
               {region ?? movie}
             </span>
           )}
           <span className={PILL_CLASS}>
-            <Calendar size={11} className="text-slate-400" />
+            <Calendar size={11} className="text-muted" />
             {dateStr}
           </span>
           <span className={PILL_CLASS}>
-            <User size={11} className="text-slate-400" />
+            <User size={11} className="text-muted" />
             {authorNickname}
           </span>
         </div>
@@ -106,28 +106,28 @@ export function PlanCard({
           {mobileTop.map((item) => {
             const Icon = CATEGORY_ICON[item.category];
             return (
-              <span key={item.category} className="inline-flex items-center gap-0.5 text-sm text-slate-700">
-                <Icon size={18} className="text-sky-500" />
+              <span key={item.category} className="inline-flex items-center gap-0.5 text-sm text-fg2">
+                <Icon size={18} className="text-primary" />
                 {Math.round(item.ratio)}%
               </span>
             );
           })}
           {mobileRest > 0 && (
-            <span className="inline-flex items-center text-sm text-slate-400">+{mobileRest}</span>
+            <span className="inline-flex items-center text-sm text-muted">+{mobileRest}</span>
           )}
         </div>
         <div className="hidden sm:flex items-center gap-2">
           {desktopTop.map((item) => {
             const Icon = CATEGORY_ICON[item.category];
             return (
-              <span key={item.category} className="inline-flex items-center gap-0.5 text-sm text-slate-700">
-                <Icon size={18} className="text-sky-500" />
+              <span key={item.category} className="inline-flex items-center gap-0.5 text-sm text-fg2">
+                <Icon size={18} className="text-primary" />
                 {Math.round(item.ratio)}%
               </span>
             );
           })}
           {desktopRest > 0 && (
-            <span className="inline-flex items-center text-sm text-slate-400">+{desktopRest}</span>
+            <span className="inline-flex items-center text-sm text-muted">+{desktopRest}</span>
           )}
         </div>
       </div>
@@ -135,14 +135,14 @@ export function PlanCard({
       {/* ④ 가격 + 좋아요 (한 줄) */}
       <div className="flex items-center gap-3">
         {summary.band ? (
-          <p className="text-base font-medium text-[#1A1A1A] whitespace-nowrap">
+          <p className="text-base font-medium text-fg whitespace-nowrap">
             약 {(summary.band.lower / 10_000).toLocaleString()}만~{(summary.band.upper / 10_000).toLocaleString()}만원
           </p>
         ) : (
-          <p className="text-base font-medium text-slate-400 whitespace-nowrap">금액 없음</p>
+          <p className="text-base font-medium text-muted whitespace-nowrap">금액 없음</p>
         )}
-        <p className="text-[13px] text-slate-400 inline-flex items-center gap-0.5">
-          <Heart size={12} className={isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'} />
+        <p className="text-[13px] text-muted inline-flex items-center gap-0.5">
+          <Heart size={12} className={isLiked ? 'fill-heart-active text-heart-active' : 'text-muted'} />
           {likeCount}
         </p>
       </div>

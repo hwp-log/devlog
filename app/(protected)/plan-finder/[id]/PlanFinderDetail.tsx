@@ -61,13 +61,13 @@ export function PlanFinderDetail({
     <div>
       <div className="mb-6">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold text-[#1A1A1A]">{title}</h1>
+          <h1 className="text-2xl font-bold text-fg">{title}</h1>
           <div className="flex items-center gap-2">
             {!isOwner && <CopyPlanFinderButton planId={planId} />}
             <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+        <div className="flex items-center gap-2 text-sm text-muted mt-1">
           <span>{createdAtLabel}</span>
           <span>·</span>
           <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
@@ -77,12 +77,12 @@ export function PlanFinderDetail({
         {(region || movie) && (
           <div className="flex gap-2 mt-2 flex-wrap">
             {region && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-surface2 text-fg2 border border-border">
                 {region}
               </span>
             )}
             {movie && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-surface2 text-fg2 border border-border">
                 {movie}
               </span>
             )}
@@ -90,23 +90,23 @@ export function PlanFinderDetail({
         )}
 
         {description && (
-          <div className="mt-3 glass-outer p-4">
-            <p className="text-xs font-semibold text-slate-500 mb-1">여행계획 간단소개</p>
-            <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{description}</p>
+          <div className="mt-3 bg-card border border-border rounded-[14px] p-4">
+            <p className="text-xs font-semibold text-muted mb-1">여행계획 간단소개</p>
+            <p className="text-sm text-fg whitespace-pre-wrap">{description}</p>
           </div>
         )}
       </div>
 
       {publicFlight && (
         <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">
             항공편 (예상)
           </p>
           <FlightLeg data={publicFlight} showDetails={false} />
         </div>
       )}
 
-      <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+      <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">
         여행 일정
       </p>
 
@@ -117,8 +117,8 @@ export function PlanFinderDetail({
             onClick={() => setSelectedDay(d)}
             className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
               selectedDay === d
-                ? 'bg-[#1A1A1A] text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                ? 'bg-fg text-bg'
+                : 'bg-card border border-border text-fg2 hover:bg-surface2'
             }`}
           >
             Day {d}
@@ -131,7 +131,7 @@ export function PlanFinderDetail({
       <PublicCostSection summary={summary} />
 
       <div className="mt-4">
-        <Link href="/plan-finder" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+        <Link href="/plan-finder" className="text-sm text-muted hover:text-fg transition-colors">
           ← 목록으로
         </Link>
       </div>

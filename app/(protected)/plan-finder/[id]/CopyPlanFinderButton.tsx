@@ -17,7 +17,7 @@ export function CopyPlanFinderButton({ planId }: { planId: string }) {
       type="button"
       onClick={handleCopy}
       disabled={isPending}
-      className="px-4 py-1.5 rounded-full text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+      className="px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50"
     >
       {isPending ? '담는 중...' : '내 여행으로 담기'}
     </button>

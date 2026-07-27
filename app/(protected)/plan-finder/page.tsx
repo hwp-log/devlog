@@ -12,7 +12,7 @@ export default async function PlanFinderPage() {
     <div>
       <PlanFinderHeader />
       {plans.length === 0 ? (
-        <div className="glass-outer p-12 text-center text-slate-500">
+        <div className="bg-card border border-border rounded-[14px] p-12 text-center text-fg2">
           아직 공개된 플랜이 없습니다
         </div>
       ) : (

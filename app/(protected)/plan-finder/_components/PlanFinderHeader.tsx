@@ -18,13 +18,13 @@ export function PlanFinderHeader() {
   return (
     <div className="mb-6">
       <p
-        className="text-xs font-semibold text-sky-500 mb-1 appear-up"
+        className="text-xs font-semibold text-primary mb-1 appear-up"
         style={{ animationDelay: '0s' }}
       >
         PlanFinder
       </p>
       <h1
-        className="text-2xl md:text-3xl font-bold text-[#1A1A1A] appear-up"
+        className="text-2xl md:text-3xl font-bold text-fg appear-up"
         style={{ animationDelay: '0.12s' }}
       >
         {headline}

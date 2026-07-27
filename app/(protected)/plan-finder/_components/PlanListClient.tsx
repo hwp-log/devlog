@@ -60,14 +60,14 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
     : null;
 
   return (
-    <div className="bg-slate-100 rounded-xl p-5">
+    <div className="bg-card rounded-xl p-5">
       {avgWon !== null && (
         <p
-          className="text-sm text-slate-500 mb-3 ml-0.5 appear-up"
+          className="text-sm text-muted mb-3 ml-0.5 appear-up"
           style={{ animationDelay: '0.24s' }}
         >
-          <span className="text-[#0369A1] font-semibold">{sorted.length}개</span> 코스 · 평균{' '}
-          <span className="text-[#0369A1] font-semibold">약 {avgWon.toLocaleString()}만원</span>
+          <span className="text-primary font-semibold">{sorted.length}개</span> 코스 · 평균{' '}
+          <span className="text-primary font-semibold">약 {avgWon.toLocaleString()}만원</span>
         </p>
       )}
 
@@ -92,7 +92,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       {sorted.length === 0 ? (
         <div
           key={`empty-${sort}-${filter}`}
-          className="glass-outer p-12 text-center text-slate-500 appear-up"
+          className="bg-card border border-border rounded-[14px] p-12 text-center text-fg2 appear-up"
           style={{ animationDelay: `${baseDelay}s` }}
         >
           이 가격대 플랜이 없습니다

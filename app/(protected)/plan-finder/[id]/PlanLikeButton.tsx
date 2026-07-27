@@ -34,13 +34,13 @@ export function PlanLikeButton({ planId, initialLiked, initialCount }: Props) {
       onClick={handleClick}
       aria-label={optimistic.liked ? '좋아요 취소' : '좋아요'}
       disabled={isPending}
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-rose-50"
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-surface2"
     >
       <Heart
         size={16}
-        className={optimistic.liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
+        className={optimistic.liked ? 'fill-heart-active text-heart-active' : 'text-muted'}
       />
-      <span className="text-slate-600">{optimistic.count}</span>
+      <span className="text-fg2">{optimistic.count}</span>
     </button>
   );
 }
