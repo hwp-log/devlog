@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PlanCard } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
+import { PlanFinderHeader } from './PlanFinderHeader';
 
 type SortKey = 'popular' | 'newest' | 'price_asc' | 'price_desc';
 type FilterKey = 'all' | 'under50' | '50to100' | 'over100';
@@ -60,34 +61,39 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
     : null;
 
   return (
-    <div className="bg-card rounded-xl p-5">
-      {avgWon !== null && (
-        <p
-          className="text-sm text-muted mb-3 ml-0.5 appear-up"
-          style={{ animationDelay: '0.24s' }}
+    <div>
+      {/* 헤더 행 — 눈썹·타이틀·요약(좌) / 필터(우). 데스크톱 flex-end 정렬, 모바일 세로 스택·필터 좌측 */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
+        <div>
+          <PlanFinderHeader />
+          <p
+            className="text-[12.5px] text-muted mt-4 sm:mt-5 appear-up"
+            style={{ animationDelay: '0.24s' }}
+          >
+            공개 코스 {sorted.length}개
+            {avgWon !== null && ` · 평균 약 ${avgWon.toLocaleString()}만원`}
+          </p>
+        </div>
+        <div
+          className="flex flex-wrap gap-2 appear-up relative z-10"
+          style={{ animationDelay: '0.36s' }}
         >
-          <span className="text-primary font-semibold">{sorted.length}개</span> 코스 · 평균{' '}
-          <span className="text-primary font-semibold">약 {avgWon.toLocaleString()}만원</span>
-        </p>
-      )}
-
-      <div
-        className="flex flex-wrap gap-2 mb-4 appear-up relative z-10"
-        style={{ animationDelay: '0.36s' }}
-      >
-        <FilterDropdown<FilterKey>
-          label="가격대"
-          options={FILTER_LABELS}
-          value={filter}
-          onChange={setFilter}
-        />
-        <FilterDropdown<SortKey>
-          label="정렬"
-          options={SORT_LABELS}
-          value={sort}
-          onChange={setSort}
-        />
+          <FilterDropdown<FilterKey>
+            label="가격대"
+            options={FILTER_LABELS}
+            value={filter}
+            onChange={setFilter}
+          />
+          <FilterDropdown<SortKey>
+            label="정렬"
+            options={SORT_LABELS}
+            value={sort}
+            onChange={setSort}
+          />
+        </div>
       </div>
+
+      <div className="bg-card rounded-xl p-5">
 
       {sorted.length === 0 ? (
         <div
@@ -110,6 +116,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

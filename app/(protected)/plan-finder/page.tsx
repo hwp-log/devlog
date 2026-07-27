@@ -10,11 +10,13 @@ export default async function PlanFinderPage() {
 
   return (
     <div>
-      <PlanFinderHeader />
       {plans.length === 0 ? (
-        <div className="bg-card border border-border rounded-[14px] p-12 text-center text-fg2">
-          아직 공개된 플랜이 없습니다
-        </div>
+        <>
+          <PlanFinderHeader />
+          <div className="bg-card border border-border rounded-[14px] p-12 text-center text-fg2">
+            아직 공개된 플랜이 없습니다
+          </div>
+        </>
       ) : (
         <PlanListClient plans={plans} />
       )}
