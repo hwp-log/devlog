@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PlanCard } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
@@ -95,10 +96,21 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       {sorted.length === 0 ? (
         <div
           key={`empty-${sort}-${filter}`}
-          className="bg-card border border-border rounded-[14px] p-12 text-center text-fg2 appear-up"
+          className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] flex flex-col items-center text-center gap-3 appear-up"
           style={{ animationDelay: `${baseDelay}s` }}
         >
-          이 가격대 플랜이 없습니다
+          <span className="w-2 h-2 rounded-full bg-primary" />
+          <p className="text-[13px] leading-[1.6] text-fg2 break-keep">
+            이 가격대의 코스가 아직 없어요.
+            <br />
+            첫 코스의 점을 찍어보세요.
+          </p>
+          <Link
+            href="/my-plan/new"
+            className="inline-flex items-center rounded-full border border-border px-4 py-2 text-[13px] text-fg2 hover:bg-surface2 transition-colors"
+          >
+            내 플랜 공개하기
+          </Link>
         </div>
       ) : (
         <div key={`${sort}-${filter}`} className="grid grid-cols-1 sm:grid-cols-3 gap-[11px] sm:gap-[14px]">
