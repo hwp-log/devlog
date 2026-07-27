@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PlanCard } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
@@ -34,11 +34,10 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const [sort, setSort]     = useState<SortKey>('popular');
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const isFirstRenderRef = useRef(true);
-  useEffect(() => {
-    isFirstRenderRef.current = false;
-  }, []);
-  const baseDelay = isFirstRenderRef.current ? 0.48 : 0;
+  // 첫 렌더에만 순차 지연(0.48)을 주고, 필터·정렬을 바꾸면 즉시 등장(0).
+  // 리렌더 원인이 sort/filter뿐이므로 "아직 안 바꿨나"를 state로 판별한다.
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const baseDelay = hasInteracted ? 0 : 0.48;
 
   const filtered = filter === 'all'
     ? plans
@@ -82,13 +81,13 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
             label="가격대"
             options={FILTER_LABELS}
             value={filter}
-            onChange={setFilter}
+            onChange={(next) => { if (next !== filter) setHasInteracted(true); setFilter(next); }}
           />
           <FilterDropdown<SortKey>
             label="정렬"
             options={SORT_LABELS}
             value={sort}
-            onChange={setSort}
+            onChange={(next) => { if (next !== sort) setHasInteracted(true); setSort(next); }}
           />
         </div>
       </div>
