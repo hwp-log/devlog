@@ -4,7 +4,7 @@ import { extractFirstImage } from '@/lib/story/extract-thumbnail';
 import type { StoryCardProps } from '@/app/(protected)/story/_components/StoryCard';
 
 // 한 페이지 크기 — fetchStoryPage 공용 단일 소스
-export const STORY_PAGE_SIZE = 15;
+export const STORY_PAGE_SIZE = 12;
 
 function escapeILike(s: string) {
   return s.replace(/[%_\\]/g, '\\$&');
