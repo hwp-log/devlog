@@ -17,11 +17,11 @@ const nextConfig: NextConfig = {
         search: '',
       },
       {
-        // 0404 지역 대표 커버(TourAPI KorService2 firstimage). 플랜 카드 커버 next/image 최적화 대상.
+        // 0404/0409 지역 대표 커버(TourAPI firstimage + 자체 Spot 커버). 플랜 카드 커버 next/image 최적화 대상.
+        // 0409: Spot 커버 경로가 /cms/resource·/cms2/website·/cms/resource_photo로 갈려 호스트 단위 허용(pathname 제약 제거).
         protocol: 'https',
         hostname: 'tong.visitkorea.or.kr',
         port: '',
-        pathname: '/cms/resource/**',
       },
     ],
   },

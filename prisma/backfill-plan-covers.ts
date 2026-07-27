@@ -4,13 +4,17 @@ import { pickRegionCover, normalizeRegionKey } from '../lib/plan/region-cover';
 // 0405 백필: coverUrl IS NULL 인 기존 플랜에 region 기반 커버(pickRegionCover)를 채운다.
 // 대상 = coverUrl null. 재실행 안전: IS NULL 필터라 이미 채워진 행은 자동 제외.
 // 지역 매칭 실패(null)는 skip(coverUrl 유지). region-covers.json 미수정, DDL 없음.
+// 0409: --force 옵션 — 전체 플랜을 대상으로 커버 강제 재부여(풀 갱신 반영). 기본 동작(null만 채움)은 불변.
+//   force여도 지역 매칭 실패 행은 skip(기존 커버 보존 — null로 지우지 않음).
+
+const force = process.argv.includes('--force');
 
 async function main() {
   const targets = await prisma.myPlan.findMany({
-    where: { coverUrl: null },
+    where: force ? {} : { coverUrl: null },
     select: { id: true, title: true, region: true },
   });
-  console.log(`coverUrl IS NULL ${targets.length}개\n`);
+  console.log(`${force ? '[--force] 전체' : 'coverUrl IS NULL'} ${targets.length}개\n`);
 
   let filled = 0;
   const skipped: { title: string; region: string | null }[] = [];
