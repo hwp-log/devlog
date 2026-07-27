@@ -31,6 +31,7 @@ import {
 import { CATEGORY_ICON } from '../_components/CostSection';
 import { CostSection } from '../_components/CostSection';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
+import { clampHeadcount, HEADCOUNT_MIN, HEADCOUNT_MAX } from '@/lib/plan/validate-input';
 
 export type PlanItem = {
   id: string;
@@ -52,6 +53,7 @@ export type EditorState = {
   region: string;
   movie: string;
   description: string;
+  headcount: number;
   days: DayPlan[];
   flight: FlightOffer | null;
 };
@@ -100,6 +102,7 @@ const DEFAULT_STATE: EditorState = {
   region: '',
   movie: '',
   description: '',
+  headcount: 1,
   days: [],
   flight: null,
 };
@@ -275,6 +278,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       region: editor.region,
       movie: editor.movie,
       description: editor.description,
+      headcount: editor.headcount,
       items: editor.days.flatMap((day) =>
         day.items
           .filter((item) => item.name.trim() !== '')
@@ -370,6 +374,21 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
               className={INPUT_CLASS}
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-[#1A1A1A]">인원수</label>
+          <input
+            type="number"
+            min={HEADCOUNT_MIN}
+            max={HEADCOUNT_MAX}
+            value={editor.headcount}
+            onChange={(e) => {
+              const raw = Number(e.target.value);
+              setEditor((p) => ({ ...p, headcount: isNaN(raw) ? HEADCOUNT_MIN : clampHeadcount(raw) }));
+            }}
+            className={`${INPUT_CLASS} w-28`}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

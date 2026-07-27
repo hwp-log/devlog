@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import type { Currency, CostCategory, TripType, Prisma } from '@prisma/client';
 import { searchFlights } from '@/lib/flights';
 import type { FlightOffer } from '@/lib/flights';
+import { pickRegionCover } from '@/lib/plan/region-cover';
+import { clampHeadcount } from '@/lib/plan/validate-input';
 
 type SaveItem = {
   day: number;
@@ -22,6 +24,7 @@ type SavePayload = {
   region: string;
   movie: string;
   description: string;
+  headcount: number;
   items: SaveItem[];
   flight: FlightOffer | null;
 };
@@ -82,6 +85,9 @@ export async function createPlanWithItemsAction(
           region: payload.region || null,
           movie: payload.movie || null,
           description: payload.description || null,
+          headcount: clampHeadcount(payload.headcount),
+          // 커버는 생성 시 1회만 부여(수정 시 재부여 안 함). 지역 매칭 실패 시 null 유지.
+          coverUrl: pickRegionCover(payload.region),
         },
       });
       await buildPlanRows(tx, plan.id, payload.items);
@@ -124,6 +130,8 @@ export async function updatePlanWithItemsAction(
           region: payload.region || null,
           movie: payload.movie || null,
           description: payload.description || null,
+          headcount: clampHeadcount(payload.headcount),
+          // coverUrl 미접촉: 생성 시 1회 부여 원칙(수정 시 재부여 안 함).
         },
       });
       await tx.planCost.deleteMany({ where: { planId } });

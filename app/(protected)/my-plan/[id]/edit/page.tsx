@@ -67,6 +67,7 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
     region: plan.region ?? '',
     movie: plan.movie ?? '',
     description: plan.description ?? '',
+    headcount: plan.headcount,
     days,
     flight: flightSlot,
   };
