@@ -1,6 +1,7 @@
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { prisma } from '../lib/prisma';
+import { SPOT_ADDR_PREFIX, addressMatchesRegionKey } from '../lib/plan/spot-addr-prefix';
 
 // 0409: 지역 대표 이미지 풀 = 자체 Spot 촬영지 커버(우선) + 한국관광공사 보충.
 // Spot 커버가 1장이라도 있으면 그 지역은 Spot만 사용(관광공사 보충 안 함) — 무관 POI 혼입 방지.
@@ -13,28 +14,6 @@ const REGIONS = [
   '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
   '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주도',
 ] as const;
-
-// 풀 키 → Spot.address 시·도 접두(startsWith 매칭). 신·구 명칭 공존 지역(전북특별자치도/전라북도 등)은 둘 다 나열.
-// 경상북/남·전라북/남은 '경상'·'전라'로 뭉뚱그리면 남↔북이 섞이므로 접두를 길게 잡는다.
-const SPOT_ADDR_PREFIX: Record<string, string[]> = {
-  서울: ['서울'],
-  부산: ['부산'],
-  대구: ['대구'],
-  인천: ['인천'],
-  광주: ['광주'],
-  대전: ['대전'],
-  울산: ['울산'],
-  세종: ['세종'],
-  경기: ['경기'],
-  강원: ['강원'],
-  충북: ['충청북'],
-  충남: ['충청남'],
-  전북: ['전라북', '전북'],
-  전남: ['전라남', '전남'],
-  경북: ['경상북', '경북'],
-  경남: ['경상남', '경남'],
-  제주도: ['제주'],
-};
 
 const PER_REGION_MAX = 10; // 지역당 목표 장수
 const SPOT_MIN = 3;        // 0419: Spot 커버가 이 수 미만이면 갤러리로 보충(목표 10까지). 이상이면 Spot만 사용.
@@ -141,8 +120,7 @@ const FORMAL_NAME: Record<string, string> = {
 
 // 지역의 Spot 커버 URL 수집(중복 제거). address가 해당 시·도 접두로 시작하는 coverUrl NOT NULL 행.
 async function spotCoversFor(region: string): Promise<string[]> {
-  const prefixes = SPOT_ADDR_PREFIX[region] ?? [];
-  if (!prefixes.length) return [];
+  if (!(SPOT_ADDR_PREFIX[region] ?? []).length) return [];
   const rows = await prisma.spot.findMany({
     where: { coverUrl: { not: null } },
     select: { address: true, coverUrl: true },
@@ -150,8 +128,7 @@ async function spotCoversFor(region: string): Promise<string[]> {
   const seen = new Set<string>();
   const urls: string[] = [];
   for (const r of rows) {
-    const a = r.address?.trim();
-    if (!a || !prefixes.some((p) => a.startsWith(p))) continue;
+    if (!addressMatchesRegionKey(r.address, region)) continue;
     const u = r.coverUrl!;
     if (seen.has(u)) continue;
     seen.add(u);
