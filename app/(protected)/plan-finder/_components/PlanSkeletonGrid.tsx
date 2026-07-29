@@ -7,7 +7,9 @@ export function PlanSkeletonGrid({ count }: { count: number }) {
   return (
     <div
       aria-hidden
-      className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[11px] sm:gap-[14px]"
+      // 0425: PlanListClient 그리드와 클래스 동일 유지 필수(한쪽만 바꾸면 로딩 전환 시 레이아웃 시프트).
+      // 열 수 1·2·3·4·6(PLAN_PAGE_SIZE 12의 약수)·브레이크포인트 근거는 PlanListClient 주석 참조.
+      className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]"
     >
       {Array.from({ length: count }).map((_, i) => (
         <div

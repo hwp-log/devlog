@@ -6,7 +6,8 @@ export function StorySkeletonGrid({ count, shimmer = true }: { count: number; sh
   return (
     <div
       aria-hidden
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
+      // 0425: StoryCardList 그리드와 클래스 동일 유지 필수(한쪽만 바꾸면 크로스페이드 시 레이아웃 시프트).
+      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-6"
     >
       {Array.from({ length: count }).map((_, i) => (
         <div key={i}>

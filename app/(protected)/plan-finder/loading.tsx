@@ -2,8 +2,9 @@
 // 스켈레톤은 "아직 모르는 것"에만 씌운다(0413 원칙):
 //  · 눈썹·타이틀은 서버 응답과 무관한 정적 텍스트 → 실제 PlanFinderHeader 그대로 렌더(셔머로 덮으면 같은 글자 재출현 = 깜빡임).
 //  · 요약줄·필터는 셔머 — 공개 코스 수·평균가·필터 상태는 데이터 의존.
-//  · 카드 그리드는 PlanSkeletonGrid 재사용, count=3(PlanListClient와 동일 치수 → 전환 시 시프트 없음).
+//  · 카드 그리드는 PlanSkeletonGrid 재사용, count=PLAN_PAGE_SIZE(한 페이지 카드 수와 동일 → 전환 시 시프트 없음).
 // 셔머는 skeleton-shimmer 유틸 재사용(globals.css, popover/surface2 토큰 · 라이트/다크 자동).
+import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
 import { PlanFinderHeader } from './_components/PlanFinderHeader';
 import { PlanSkeletonGrid } from './_components/PlanSkeletonGrid';
 
@@ -25,7 +26,7 @@ export default function Loading() {
       </div>
 
       {/* 카드 그리드 — 실제 PlanListClient 그리드와 동일 치수 */}
-      <PlanSkeletonGrid count={3} />
+      <PlanSkeletonGrid count={PLAN_PAGE_SIZE} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 // 페이지네이션(0416): 클라이언트 슬라이스 방식.
 // ⚠️ 이건 "이미지 로딩"만 해결한다 — page.tsx가 fetchPublicPlans로 공개 플랜을 여전히 전량 수신하고,
-//    여기서 정렬·필터·슬라이스한다. 데이터 전송량은 그대로. 현재 페이지 카드 15장만 마운트돼
-//    next/image가 15장만 요청하는 게 이득의 전부.
+//    여기서 정렬·필터·슬라이스한다. 데이터 전송량은 그대로. 현재 페이지 카드 12장만 마운트돼
+//    next/image가 12장만 요청하는 게 이득의 전부.
 // 서버 페이지네이션으로 전환하려면 선행 조건: 정렬·필터 기준인 가격대 band가 비용 합산 "파생값"이라
 //    SQL where/order로 못 쓴다 → 플랜 총액을 MyPlan 컬럼으로 저장(생성·수정 시 집계)해야
 //    DB LIMIT/OFFSET + 총액 필터/정렬이 가능해진다. 그 전엔 서버 전환 이득이 없다.
@@ -77,7 +77,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       )
     : null;
 
-  // 클라이언트 슬라이스: 정렬·필터 완료된 sorted를 15개씩 자름(개수는 sorted.length 그대로 노출).
+  // 클라이언트 슬라이스: 정렬·필터 완료된 sorted를 PLAN_PAGE_SIZE(12)개씩 자름(개수는 sorted.length 그대로 노출).
   // 필터·정렬 변경 시 setPage(1)로 되돌리므로 page는 항상 유효하나, 리셋 직전 프레임 방어로 클램프.
   const totalPages = Math.max(1, Math.ceil(sorted.length / PLAN_PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -136,7 +136,11 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
           </Link>
         </div>
       ) : (
-        <div key={`${sort}-${filter}-${currentPage}`} className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[11px] sm:gap-[14px]">
+        // 0425: 열 수를 1·2·3·4·6(PLAN_PAGE_SIZE 12의 약수)으로 제한 — auto-fill의 5·7열에서 마지막 줄이 비는 문제 해결.
+        // 브레이크포인트 = 카드 320px 하한 보장값(콘텐츠 폭 = 뷰포트−px-6 48, gap 14): 2열 702·3열 1036·4열 1370·6열 2038 절상.
+        // 1열 트랙 min(320px,100%): 320px 뷰포트(콘텐츠 272px)에서 컨테이너 폭까지 줄여 가로 넘침 방지, 넓은 화면 320 하한 유지.
+        // PlanSkeletonGrid와 클래스 동일 유지 필수(한쪽만 바꾸면 로딩 전환 시 레이아웃 시프트) — Tailwind JIT 때문에 리터럴 중복.
+        <div key={`${sort}-${filter}-${currentPage}`} className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]">
           {pageItems.map((plan, i) => (
             <div
               key={plan.id}
