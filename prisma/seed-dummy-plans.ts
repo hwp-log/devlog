@@ -13,8 +13,20 @@ const PREFIX = '[DUMMY] ';
 const OWNER_EMAIL = 'test@dotrip.com';
 const COUNT = 30;
 
-// 서울·제주도(지역 커버 풀 존재)를 가중, 그 외는 movie 후보에만 의존(일부 커버 null = 무채 폴백)
-const REGIONS = ['서울', '서울', '제주도', '제주도', '부산', '인천', '강원도 강릉', '경주'];
+// 0421: 무촬영지 작품 전용 랜덤 지역(전체의 소수만 사용). '경주'는 시·도 밖(풀 없음)이라
+// 커버 null 케이스가 일부 자연 발생 — 무채 폴백 화면 확인용으로 유지.
+const FALLBACK_REGIONS = ['서울', '서울', '제주도', '제주도', '부산', '인천', '강원도 강릉', '경주'];
+// 30개 중 무촬영지 작품 몫(소수). i % NO_SPOT_EVERY === 0 슬롯에 배정 → 6개.
+const NO_SPOT_EVERY = 5;
+
+// Spot.address 첫 토큰 → region 축약형(REGION_ALIAS가 해석 가능한 형태)
+const ADDR_PROV: Record<string, string> = {
+  서울특별시: '서울', 부산광역시: '부산', 대구광역시: '대구', 인천광역시: '인천', 광주광역시: '광주',
+  대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종', 경기도: '경기',
+  강원특별자치도: '강원', 강원도: '강원', 충청북도: '충북', 충청남도: '충남',
+  전북특별자치도: '전북', 전라북도: '전북', 전라남도: '전남', 경상북도: '경북', 경상남도: '경남',
+  제주특별자치도: '제주도', 제주도: '제주도',
+};
 const CATEGORIES: CostCategory[] = ['TRANSPORT', 'ACCOMMODATION', 'FOOD', 'ENTRANCE', 'ETC'];
 
 const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -89,14 +101,31 @@ async function report(tag: string) {
 
 async function insert() {
   const ownerId = await resolveOwnerId();
-  const movies = await prisma.movie.findMany({ select: { title: true } });
-  const movieTitles = movies.map((m) => m.title);
-  if (movieTitles.length === 0) throw new Error('Movie 데이터가 없습니다.');
+  // 0421: 작품을 먼저 고르고 그 작품의 촬영지 시·도를 region으로 (불가능 조합 방지).
+  const movies = await prisma.movie.findMany({
+    select: { title: true, spotMovies: { select: { spot: { select: { address: true } } } } },
+  });
+  if (movies.length === 0) throw new Error('Movie 데이터가 없습니다.');
+  const provsOf = new Map<string, string[]>(); // 작품 → 촬영지 시·도(축약, dedup)
+  for (const m of movies) {
+    const set = new Set<string>();
+    for (const sm of m.spotMovies) {
+      const first = sm.spot.address?.trim().split(/\s+/)[0];
+      const prov = first ? ADDR_PROV[first] : undefined;
+      if (prov) set.add(prov);
+    }
+    if (set.size) provsOf.set(m.title, [...set]);
+  }
+  const withProv = movies.map((m) => m.title).filter((t) => provsOf.has(t));
+  const withoutProv = movies.map((m) => m.title).filter((t) => !provsOf.has(t));
+  if (withProv.length === 0) throw new Error('촬영지 시·도가 있는 작품이 없습니다.');
 
   const base = new Date(2026, 7, 1); // 8월 1일 기준(일수 파생용, 값 자체는 무의미)
   for (let i = 0; i < COUNT; i++) {
-    const region = pick(REGIONS);
-    const movie = pick(movieTitles);
+    // 무촬영지 작품은 소수 슬롯(i%5==0 → 6개)만: 지역 랜덤(경주 포함 → 커버 null 일부 유지)
+    const noSpotSlot = i % NO_SPOT_EVERY === 0 && withoutProv.length > 0;
+    const movie = noSpotSlot ? pick(withoutProv) : pick(withProv);
+    const region = noSpotSlot ? pick(FALLBACK_REGIONS) : pick(provsOf.get(movie)!);
     const days = randInt(1, 5);
     const spots = randInt(1, 8);
     const headcount = randInt(1, 6);
