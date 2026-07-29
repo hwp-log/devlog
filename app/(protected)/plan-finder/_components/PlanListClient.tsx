@@ -49,11 +49,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [page, setPage]     = useState(1);
 
-  // 첫 렌더에만 순차 지연(0.48)을 주고, 필터·정렬을 바꾸면 즉시 등장(0).
-  // 리렌더 원인이 sort/filter뿐이므로 "아직 안 바꿨나"를 state로 판별한다.
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const baseDelay = hasInteracted ? 0 : 0.48;
-
   // 페이지 전환 크로스페이드(0427, 스토리 StoryListPaged 연출과 통일):
   //  아웃(280ms, opacity→0) → 스왑+최상단 스크롤(불투명 0 상태) → 인(280ms, opacity→100).
   // 스토리와 달리 서버 대기가 없어 스켈레톤 층은 두지 않고(가짜 로딩 금지),
@@ -64,9 +59,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   useEffect(() => () => {
     if (swapTimer.current) clearTimeout(swapTimer.current);
   }, []);
-
-  // 페이지 넘김엔 appear-up 미부여(스토리처럼 순수 페이드) — 첫 진입·필터 변경 리마운트에만 재생.
-  const [cardEntry, setCardEntry] = useState(true);
 
   // 페이지 변경 시 문서 최상단으로(스토리와 동일 UX). 첫 마운트는 skip.
   // useLayoutEffect: 스왑 커밋 후·페인트 전 실행 → 새 페이지가 이전 스크롤 위치로 그려지는 프레임 없음.
@@ -105,8 +97,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   // 페이지 넘김(스토리 goTo 가드 미러 — 전환 중 재클릭 차단은 disabled와 이중 방어)
   const goTo = (next: number) => {
     if (next < 1 || next > totalPages || next === currentPage || fading) return;
-    setHasInteracted(true);
-    setCardEntry(false);
     setFading(true);
     swapTimer.current = setTimeout(() => {
       setPage(next);      // opacity 0 상태에서 슬라이스 교체 + (layout effect) 최상단 스크롤
@@ -114,11 +104,10 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
     }, 280);
   };
 
-  // 필터·정렬 변경: 진행 중 페이드가 있으면 취소(새 그리드가 opacity 0에 갇히는 공백 방지) + appear-up 재생 복원.
+  // 필터·정렬 변경: 진행 중 페이드가 있으면 취소(새 그리드가 opacity 0에 갇히는 공백 방지).
   const resetTransition = () => {
     if (swapTimer.current) clearTimeout(swapTimer.current);
     setFading(false);
-    setCardEntry(true);
   };
 
   return (
@@ -143,23 +132,19 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
             label="가격대"
             options={FILTER_LABELS}
             value={filter}
-            onChange={(next) => { if (next !== filter) setHasInteracted(true); resetTransition(); setFilter(next); setPage(1); }}
+            onChange={(next) => { resetTransition(); setFilter(next); setPage(1); }}
           />
           <FilterDropdown<SortKey>
             label="정렬"
             options={SORT_LABELS}
             value={sort}
-            onChange={(next) => { if (next !== sort) setHasInteracted(true); resetTransition(); setSort(next); setPage(1); }}
+            onChange={(next) => { resetTransition(); setSort(next); setPage(1); }}
           />
         </div>
       </div>
 
       {sorted.length === 0 ? (
-        <div
-          key={`empty-${sort}-${filter}`}
-          className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] flex flex-col items-center text-center gap-3 appear-up"
-          style={{ animationDelay: `${baseDelay}s` }}
-        >
+        <div className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] flex flex-col items-center text-center gap-3">
           <span className="w-2 h-2 rounded-full bg-primary" />
           <p className="text-[13px] leading-[1.6] text-fg2 break-keep">
             이 가격대의 코스가 아직 없어요.
@@ -178,18 +163,12 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         // 브레이크포인트 = 카드 320px 하한 보장값(콘텐츠 폭 = 뷰포트−px-6 48, gap 14): 2열 702·3열 1036·4열 1370·6열 2038 절상.
         // 1열 트랙 min(320px,100%): 320px 뷰포트(콘텐츠 272px)에서 컨테이너 폭까지 줄여 가로 넘침 방지, 넓은 화면 320 하한 유지.
         // PlanSkeletonGrid와 클래스 동일 유지 필수(한쪽만 바꾸면 로딩 전환 시 레이아웃 시프트) — Tailwind JIT 때문에 리터럴 중복.
-        // key에 currentPage 미포함(0427): 페이지 넘김은 같은 엘리먼트에서 opacity 크로스페이드만
-        // (리마운트하면 transition이 안 걸리고 appear-up이 재생됨). 필터·정렬 변경만 리마운트.
+        // 그리드는 key 없이 항상 같은 엘리먼트 — 페이지 넘김의 opacity 크로스페이드(0427)가 걸리는 전제.
+        // 카드 등장 모션 없음(0428, 스토리 StoryCardList와 통일 — 등장은 진입 스켈레톤/크로스페이드가 담당).
         // duration-[280ms]는 goTo의 스왑 타이머 280ms와 짝 — 한쪽만 바꾸면 스왑이 노출된다.
-        <div key={`${sort}-${filter}`} className={`grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px] transition-opacity duration-[280ms] ${fading ? 'opacity-0' : 'opacity-100'}`}>
-          {pageItems.map((plan, i) => (
-            <div
-              key={plan.id}
-              className={cardEntry ? 'appear-up' : undefined}
-              style={cardEntry ? { animationDelay: `${baseDelay + (i < 8 ? i * 0.12 : 0.84)}s` } : undefined}
-            >
-              <PlanCard {...plan} />
-            </div>
+        <div className={`grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px] transition-opacity duration-[280ms] ${fading ? 'opacity-0' : 'opacity-100'}`}>
+          {pageItems.map((plan) => (
+            <PlanCard key={plan.id} {...plan} />
           ))}
         </div>
       )}
