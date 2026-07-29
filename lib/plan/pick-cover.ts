@@ -1,6 +1,6 @@
 import { prisma } from '../prisma';
 import { normalizeRegionKey, regionCoverPool } from './region-cover';
-import { addressMatchesRegionKey } from './spot-addr-prefix';
+import { regionKeyFromAddress } from '../region/provinces';
 
 // 0410: 플랜 카드 커버 선택. 후보 = 작품 촬영지 커버(SpotMovie→Spot.coverUrl) + 지역 풀(region-covers.json).
 // 전체 플랜 기준 사용 횟수가 최소인 후보를 뽑되, 최소 집합에 작품 후보가 있으면 작품 후보 우선.
@@ -38,7 +38,7 @@ export async function collectCandidates(
       for (const l of links) {
         const u = l.spot.coverUrl;
         if (!u || seen.has(u)) continue;
-        if (!addressMatchesRegionKey(l.spot.address, regionKey)) continue;
+        if (regionKeyFromAddress(l.spot.address) !== regionKey) continue;
         seen.add(u);
         movieCovers.push(u);
       }

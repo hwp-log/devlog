@@ -7,6 +7,7 @@
 //       실제 플랜 5개는 title 접두사 불일치로 절대 미접촉.
 import { prisma } from '../lib/prisma';
 import { pickPlanCover } from '../lib/plan/pick-cover';
+import { regionKeyFromAddress } from '../lib/region/provinces';
 import type { CostCategory } from '@prisma/client';
 
 const PREFIX = '[DUMMY] ';
@@ -19,14 +20,6 @@ const FALLBACK_REGIONS = ['서울', '서울', '제주도', '제주도', '부산'
 // 30개 중 무촬영지 작품 몫(소수). i % NO_SPOT_EVERY === 0 슬롯에 배정 → 6개.
 const NO_SPOT_EVERY = 5;
 
-// Spot.address 첫 토큰 → region 축약형(REGION_ALIAS가 해석 가능한 형태)
-const ADDR_PROV: Record<string, string> = {
-  서울특별시: '서울', 부산광역시: '부산', 대구광역시: '대구', 인천광역시: '인천', 광주광역시: '광주',
-  대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종', 경기도: '경기',
-  강원특별자치도: '강원', 강원도: '강원', 충청북도: '충북', 충청남도: '충남',
-  전북특별자치도: '전북', 전라북도: '전북', 전라남도: '전남', 경상북도: '경북', 경상남도: '경남',
-  제주특별자치도: '제주도', 제주도: '제주도',
-};
 const CATEGORIES: CostCategory[] = ['TRANSPORT', 'ACCOMMODATION', 'FOOD', 'ENTRANCE', 'ETC'];
 
 const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -110,8 +103,8 @@ async function insert() {
   for (const m of movies) {
     const set = new Set<string>();
     for (const sm of m.spotMovies) {
-      const first = sm.spot.address?.trim().split(/\s+/)[0];
-      const prov = first ? ADDR_PROV[first] : undefined;
+      // 주소 시·도 → region 축약형(normalizeRegionKey가 해석 가능한 풀 키)
+      const prov = regionKeyFromAddress(sm.spot.address);
       if (prov) set.add(prov);
     }
     if (set.size) provsOf.set(m.title, [...set]);
