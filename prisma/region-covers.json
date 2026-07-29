@@ -1,9 +1,9 @@
 {
   "_source": {
-    "api": "자체 Spot 촬영지 커버(우선) + 한국관광공사 TourAPI KorService2/searchKeyword2(보충)",
+    "api": "자체 Spot 촬영지 커버(우선) + 한국관광공사 TourAPI PhotoGalleryService1/gallerySearchList1(보충)",
     "url": "https://api.visitkorea.or.kr",
-    "note": "지역 대표 이미지 풀. Spot 커버(촬영지 검증됨)를 우선 사용하고, Spot 커버가 1장이라도 있는 지역은 관광공사 보충을 하지 않는다(무관 POI 혼입 방지 — 10장은 목표치지 정원이 아님). 보충은 Spot 0장 지역에만 적용하며 그 경우만 로드검증(200+image/*)을 태운다. firstimage 원격 URL만 저장(Storage 미복사). 출처 표기 의무 — components/DataAttribution.tsx",
-    "generatedAt": "2026-07-29T16:10:51.190Z"
+    "note": "지역 대표 이미지 풀. Spot 커버(촬영지 검증됨)를 앞에 우선 배치한다. 0419: 보충 소스를 KorService2/searchKeyword2 → PhotoGalleryService1/gallerySearchList1(홍보 큐레이션 사진)로 교체. 보충 규칙도 변경 — 기존 \"Spot 1장이라도 있으면 보충 안 함\"(0409, 관광공사 무관 POI 혼입 우려)에서 \"Spot 3장 미만이면 갤러리로 목표 10장까지 보충\"으로. 근거: 갤러리는 대표 랜드마크 큐레이션이라 무관 POI 위험이 사라졌고, Spot 1~2장뿐인 지역(대구·충남·경남 등)은 같은 사진 반복을 피해야 한다. 갤러리 수집: arrange를 B(조회순=인기)와 C(수정일순=최신) 두 번 호출해 galTitle 기준 합집합(지역마다 다양성 승자가 뒤집혀 합집합이 안전), 장소별 1장 dedup, pageNo 최대 5까지 확장, galWebImageUrl http→https, 로드검증(200+image/*) 통과분만. 지역 판정(galPhotographyLocation→시·도)은 startsWith가 아니라 \"포함된 시·도 명칭 집합\"으로 — 정식명(경기도·전라남도…)이 있으면 그것만(경기도 광주시→경기), 정식명 없는 합성명(\"전남광주통합특별시\" = 광주·전남 공용 라벨, TourAPI가 둘을 한 라벨로 묶어 위치만으론 구분 불가)만 약칭 집합{전남,광주}으로 반환하고 검색 키워드가 최종 결정. startsWith 오분류 및 단일 강제 시 반대쪽 0장 문제를 규칙 자체로 해결. 그래도 10 미달인 지역은 약칭 대신 정식명(충북→충청북도)으로 한 번 더 시도, 여전히 미달이면 있는 만큼. 원격 URL만 저장(Storage 미복사). 출처 표기 의무 — components/DataAttribution.tsx",
+    "generatedAt": "2026-07-29T17:50:00.959Z"
   },
   "regions": {
     "서울": [
@@ -18,71 +18,86 @@
       "https://tong.visitkorea.or.kr/cms/resource/25/3539625_image2_1.jpg"
     ],
     "부산": [
-      "https://tong.visitkorea.or.kr/cms/resource/20/3476820_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/60/2836060_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/76/4022876_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/22/4024022_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/77/4018677_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/58/4045958_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/36/4024136_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/63/4024063_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/28/4022828_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/09/4018509_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/78/1747378_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/97/4062797_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/46/1746346_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/27/2925827_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/23/2925823_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/30/2927130_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/38/2927138_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/28/2927128_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/22/2928622_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/41/2927541_image2_1.jpg"
     ],
     "대구": [
-      "https://tong.visitkorea.or.kr/cms/resource/73/3376273_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource/73/3376273_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/28/1950128.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/42/1732242.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/73/1733073.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/96/2951896.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/36/1734136.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/55/2907655_image2_1.JPG",
+      "https://tong.visitkorea.or.kr/cms2/website/84/3567284.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/98/2804398_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/24/2804424_image2_1.jpg"
     ],
     "인천": [
       "https://tong.visitkorea.or.kr/cms/resource/10/3515110_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/30/3518130_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource/30/3518130_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/32/1990932_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/69/1990969_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/82/4061982_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/83/4061983_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/86/4061986_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/77/1840377_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/66/713766_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/68/1769068_image2_1.jpg"
     ],
     "광주": [
-      "https://tong.visitkorea.or.kr/cms/resource/42/3527342_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/82/4043982_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/57/3514657_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/37/3366737_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource_photo/52/3404852_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/81/3367381_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/01/3421301_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/68/2480268_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/27/1587327_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/89/3367489_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/91/1812291_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/13/1990513_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/42/1990542_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/15/1990615_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/40/1812240_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/79/1990579_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/87/1990487_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/80/1990480_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/39/1633539_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/79/1812179_image2_1.jpg"
     ],
     "대전": [
-      "https://tong.visitkorea.or.kr/cms/resource/00/4044500_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/32/4024732_image2_1.jpeg",
-      "https://tong.visitkorea.or.kr/cms/resource/88/4044288_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/83/4044283_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/93/4044193_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/32/4044232_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/63/4017163_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/84/3513184_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/88/3051788_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/63/3512563_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms2/website/45/2505945.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/67/2657967_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/58/1225358.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/00/2819900_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/11/2768011_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/39/2907539_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/12/2907712_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/07/2048407.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/81/3567281.jpeg",
+      "https://tong.visitkorea.or.kr/cms2/website/86/3567286.jpg"
     ],
     "울산": [
-      "https://tong.visitkorea.or.kr/cms/resource/15/3057715_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/39/4042839_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/51/4019751_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/40/4042840_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/41/4042841_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/13/4019913_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/76/4020176_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/60/4023960_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/62/4023862_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/00/3049300_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/38/4062638_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/70/4062770_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/71/4062771_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/00/2814100_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/00/2814300_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/48/2814048_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/14/2814114_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/88/2814188_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/83/1961683.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/10/1410010.jpg"
     ],
     "세종": [
-      "https://tong.visitkorea.or.kr/cms/resource/89/4065589_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/38/2871738_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/64/4042864_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/27/4044927_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/42/4042842_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/78/4045678_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/43/4042843_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/16/4017316_image2_1.jpeg",
-      "https://tong.visitkorea.or.kr/cms/resource/08/2740508_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/71/2771971_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/10/4064310_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/35/4062635_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/71/3038071.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/81/3585781.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/02/3572002.JPG",
+      "https://tong.visitkorea.or.kr/cms2/website/96/3543196.JPG",
+      "https://tong.visitkorea.or.kr/cms2/website/09/2820009.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/76/3454276.jpg"
     ],
     "경기": [
       "https://tong.visitkorea.or.kr/cms2/website/96/3553096.jpg",
@@ -94,7 +109,7 @@
       "https://tong.visitkorea.or.kr/cms/resource/67/3331967_image2_1.jpg",
       "https://tong.visitkorea.or.kr/cms/resource/77/3558777_image2_1.jpg",
       "https://tong.visitkorea.or.kr/cms/resource/44/3050044_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/77/3020677_image2_1.jpeg"
+      "https://tong.visitkorea.or.kr/cms2/website/06/2620306.jpg"
     ],
     "강원": [
       "https://tong.visitkorea.or.kr/cms/resource/74/2799174_image2_1.JPG",
@@ -107,59 +122,88 @@
       "https://tong.visitkorea.or.kr/cms/resource/63/3069363_image2_1.jpg"
     ],
     "충북": [
-      "https://tong.visitkorea.or.kr/cms/resource/96/3357496_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/62/3357562_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/46/4010546_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/17/3571717_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/90/2858190_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/63/3339763_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/17/3335717_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/40/4029140_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/80/3390480_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/07/4063007_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms2/website/55/3503055.JPG",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/93/4062593_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/30/4062630_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/29/4064329_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/80/4062580_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/12/2612412_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/18/2728418_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/77/2728577_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/00/2909200_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/00/2924400_image2_1.jpg"
     ],
     "충남": [
-      "https://tong.visitkorea.or.kr/cms/resource/50/3567550_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource/50/3567550_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/13/2576113.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/57/569357.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/10/2048210.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/20/1791120.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/83/4070683_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/31/4070731_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/41/689741_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/64/2596864_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/68/2596868_image2_1.jpg"
     ],
     "전북": [
-      "https://tong.visitkorea.or.kr/cms/resource/30/3503330_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/87/3396487_image2_1.JPG",
-      "https://tong.visitkorea.or.kr/cms/resource/12/3445512_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/53/3518653_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/64/2678864_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/49/2615249_image2_1.bmp",
-      "https://tong.visitkorea.or.kr/cms/resource/54/4042454_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/07/4029007_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/23/4029023_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/88/4020488_image2_1.jpeg"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/18/4062918_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/72/4069872_image2_1.JPG",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/10/4062810_image2_1.JPG",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/23/409123_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/96/4062896_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/38/409038_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/46/3414846_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/21/1987821_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/10/1987910_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/57/4069957_image2_1.jpg"
     ],
     "전남": [
-      "https://tong.visitkorea.or.kr/cms/resource/88/3040988_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/32/3587032_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/46/4066446_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/88/4028988_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/72/4028972_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/78/4028978_image2_1.jpeg",
-      "https://tong.visitkorea.or.kr/cms/resource/85/4028985_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/05/4029005_image2_1.png",
-      "https://tong.visitkorea.or.kr/cms/resource/41/3562741_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/16/3553016_image2_1.JPG"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/11/409011_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/87/408887_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/71/452671_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/86/408486_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/77/408977_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/86/408686_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/46/1961846_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/04/1961904_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/85/1963885_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/20/408520_image2_1.jpg"
     ],
     "경북": [
       "https://tong.visitkorea.or.kr/cms/resource/58/3067958_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/17/3586617_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource/17/3586617_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/43/1961943.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/47/1988447.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/42/1801242.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/75/1812375.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/58/3047358.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/18/1924918.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/22/3543622.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/56/3543456.jpg"
     ],
     "경남": [
-      "https://tong.visitkorea.or.kr/cms2/website/02/3042902.jpg"
+      "https://tong.visitkorea.or.kr/cms2/website/02/3042902.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/50/1171450.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/94/2001194.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/11/1915911.jpg",
+      "https://tong.visitkorea.or.kr/cms2/website/27/2001127.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/19/4062719_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/58/4062758_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/46/641646_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/99/674199_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/64/2463764_image2_1.jpg"
     ],
     "제주도": [
-      "https://tong.visitkorea.or.kr/cms/resource/55/3354155_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/21/3556321_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/85/3433085_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/99/3553099_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/75/3390175_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/55/2748055_image2_1.jpg",
-      "https://tong.visitkorea.or.kr/cms/resource/85/2869985_image2_1.jpg"
+      "https://tong.visitkorea.or.kr/cms/resource_photo/23/4062923_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/41/4062941_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/08/1804608_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/04/1834504_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/96/1862596_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/16/1862716_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/87/2496987_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/33/2647833_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/55/2728255_image2_1.jpg",
+      "https://tong.visitkorea.or.kr/cms/resource_photo/15/4070015_image2_1.jpg"
     ]
   }
 }
