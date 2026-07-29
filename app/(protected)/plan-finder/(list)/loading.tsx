@@ -5,8 +5,8 @@
 //  · 카드 그리드는 PlanSkeletonGrid 재사용, count=PLAN_PAGE_SIZE(한 페이지 카드 수와 동일 → 전환 시 시프트 없음).
 // 셔머는 skeleton-shimmer 유틸 재사용(globals.css, popover/surface2 토큰 · 라이트/다크 자동).
 import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
-import { PlanFinderHeader } from './_components/PlanFinderHeader';
-import { PlanSkeletonGrid } from './_components/PlanSkeletonGrid';
+import { PlanFinderHeader } from '../_components/PlanFinderHeader';
+import { PlanSkeletonGrid } from '../_components/PlanSkeletonGrid';
 
 export default function Loading() {
   return (

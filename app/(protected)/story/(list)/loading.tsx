@@ -5,8 +5,8 @@
 //  · 검색바는 셔머로 — 실제 input을 그리면 입력 가능해 보이나 핸들러가 없어 입력이 유실됨.
 //  · 카드 그리드는 StorySkeletonGrid 재사용, count=STORY_PAGE_SIZE로 초기 페인트 스켈레톤과 동일 치수(전환 시 시프트 없음).
 // 셔머는 skeleton-shimmer 유틸 재사용(globals.css, popover/surface2 토큰 · 라이트/다크 자동).
-import { StoryHeader } from './_components/StoryHeader';
-import { StorySkeletonGrid } from './_components/StorySkeletonGrid';
+import { StoryHeader } from '../_components/StoryHeader';
+import { StorySkeletonGrid } from '../_components/StorySkeletonGrid';
 import { STORY_PAGE_SIZE } from '@/lib/story/queries';
 
 export default function Loading() {

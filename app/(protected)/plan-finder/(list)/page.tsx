@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { fetchPublicPlans } from '@/lib/plan/queries';
-import { PlanListClient } from './_components/PlanListClient';
-import { PlanFinderHeader } from './_components/PlanFinderHeader';
+import { PlanListClient } from '../_components/PlanListClient';
+import { PlanFinderHeader } from '../_components/PlanFinderHeader';
 
 export default async function PlanFinderPage() {
   const supabase = await createClient();

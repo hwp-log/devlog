@@ -1,5 +1,5 @@
 import { fetchStoryPage, fetchPopularTags, STORY_PAGE_SIZE } from '@/lib/story/queries';
-import { StoryBrowser } from './_components/StoryBrowser';
+import { StoryBrowser } from '../_components/StoryBrowser';
 
 export default async function StoryPage({
   searchParams,
