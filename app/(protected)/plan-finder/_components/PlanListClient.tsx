@@ -6,7 +6,7 @@
 // 서버 페이지네이션으로 전환하려면 선행 조건: 정렬·필터 기준인 가격대 band가 비용 합산 "파생값"이라
 //    SQL where/order로 못 쓴다 → 플랜 총액을 MyPlan 컬럼으로 저장(생성·수정 시 집계)해야
 //    DB LIMIT/OFFSET + 총액 필터/정렬이 가능해진다. 그 전엔 서버 전환 이득이 없다.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
@@ -14,6 +14,10 @@ import { PlanCard } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
 import { PlanFinderHeader } from './PlanFinderHeader';
 import { Pagination } from '../../_components/Pagination';
+
+// SSR useLayoutEffect 경고 회피 — 스크롤은 클라 전용 (StoryListPaged와 동일 1줄 alias.
+// lib 추출은 스토리 파일 수정을 수반해 미룸 — 바꿀 땐 두 곳 함께)
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type SortKey = 'popular' | 'newest' | 'price_asc' | 'price_desc';
 type FilterKey = 'all' | 'under50' | '50to100' | 'over100';
@@ -50,9 +54,24 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const [hasInteracted, setHasInteracted] = useState(false);
   const baseDelay = hasInteracted ? 0 : 0.48;
 
+  // 페이지 전환 크로스페이드(0427, 스토리 StoryListPaged 연출과 통일):
+  //  아웃(280ms, opacity→0) → 스왑+최상단 스크롤(불투명 0 상태) → 인(280ms, opacity→100).
+  // 스토리와 달리 서버 대기가 없어 스켈레톤 층은 두지 않고(가짜 로딩 금지),
+  // 스토리의 revealing/idle 구분(셔머 정지 전용)도 셔머가 없어 fading 2-상태로 축소.
+  // 280ms 타이머는 아래 그리드의 duration-[280ms]와 짝 — 한쪽만 바꾸면 스왑이 노출된다.
+  const [fading, setFading] = useState(false);
+  const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (swapTimer.current) clearTimeout(swapTimer.current);
+  }, []);
+
+  // 페이지 넘김엔 appear-up 미부여(스토리처럼 순수 페이드) — 첫 진입·필터 변경 리마운트에만 재생.
+  const [cardEntry, setCardEntry] = useState(true);
+
   // 페이지 변경 시 문서 최상단으로(스토리와 동일 UX). 첫 마운트는 skip.
+  // useLayoutEffect: 스왑 커밋 후·페인트 전 실행 → 새 페이지가 이전 스크롤 위치로 그려지는 프레임 없음.
   const didMount = useRef(false);
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
     if (!didMount.current) { didMount.current = true; return; }
     window.scrollTo(0, 0);
   }, [page]);
@@ -83,6 +102,25 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const currentPage = Math.min(page, totalPages);
   const pageItems = sorted.slice((currentPage - 1) * PLAN_PAGE_SIZE, currentPage * PLAN_PAGE_SIZE);
 
+  // 페이지 넘김(스토리 goTo 가드 미러 — 전환 중 재클릭 차단은 disabled와 이중 방어)
+  const goTo = (next: number) => {
+    if (next < 1 || next > totalPages || next === currentPage || fading) return;
+    setHasInteracted(true);
+    setCardEntry(false);
+    setFading(true);
+    swapTimer.current = setTimeout(() => {
+      setPage(next);      // opacity 0 상태에서 슬라이스 교체 + (layout effect) 최상단 스크롤
+      setFading(false);   // 같은 커밋에서 0→100 페이드인 시작
+    }, 280);
+  };
+
+  // 필터·정렬 변경: 진행 중 페이드가 있으면 취소(새 그리드가 opacity 0에 갇히는 공백 방지) + appear-up 재생 복원.
+  const resetTransition = () => {
+    if (swapTimer.current) clearTimeout(swapTimer.current);
+    setFading(false);
+    setCardEntry(true);
+  };
+
   return (
     <div>
       {/* 헤더 행 — 눈썹·타이틀·요약(좌) / 필터(우). 데스크톱 flex-end 정렬, 모바일 세로 스택·필터 좌측 */}
@@ -105,13 +143,13 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
             label="가격대"
             options={FILTER_LABELS}
             value={filter}
-            onChange={(next) => { if (next !== filter) setHasInteracted(true); setFilter(next); setPage(1); }}
+            onChange={(next) => { if (next !== filter) setHasInteracted(true); resetTransition(); setFilter(next); setPage(1); }}
           />
           <FilterDropdown<SortKey>
             label="정렬"
             options={SORT_LABELS}
             value={sort}
-            onChange={(next) => { if (next !== sort) setHasInteracted(true); setSort(next); setPage(1); }}
+            onChange={(next) => { if (next !== sort) setHasInteracted(true); resetTransition(); setSort(next); setPage(1); }}
           />
         </div>
       </div>
@@ -140,12 +178,15 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         // 브레이크포인트 = 카드 320px 하한 보장값(콘텐츠 폭 = 뷰포트−px-6 48, gap 14): 2열 702·3열 1036·4열 1370·6열 2038 절상.
         // 1열 트랙 min(320px,100%): 320px 뷰포트(콘텐츠 272px)에서 컨테이너 폭까지 줄여 가로 넘침 방지, 넓은 화면 320 하한 유지.
         // PlanSkeletonGrid와 클래스 동일 유지 필수(한쪽만 바꾸면 로딩 전환 시 레이아웃 시프트) — Tailwind JIT 때문에 리터럴 중복.
-        <div key={`${sort}-${filter}-${currentPage}`} className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]">
+        // key에 currentPage 미포함(0427): 페이지 넘김은 같은 엘리먼트에서 opacity 크로스페이드만
+        // (리마운트하면 transition이 안 걸리고 appear-up이 재생됨). 필터·정렬 변경만 리마운트.
+        // duration-[280ms]는 goTo의 스왑 타이머 280ms와 짝 — 한쪽만 바꾸면 스왑이 노출된다.
+        <div key={`${sort}-${filter}`} className={`grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px] transition-opacity duration-[280ms] ${fading ? 'opacity-0' : 'opacity-100'}`}>
           {pageItems.map((plan, i) => (
             <div
               key={plan.id}
-              className="appear-up"
-              style={{ animationDelay: `${baseDelay + (i < 8 ? i * 0.12 : 0.84)}s` }}
+              className={cardEntry ? 'appear-up' : undefined}
+              style={cardEntry ? { animationDelay: `${baseDelay + (i < 8 ? i * 0.12 : 0.84)}s` } : undefined}
             >
               <PlanCard {...plan} />
             </div>
@@ -156,7 +197,8 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       <Pagination
         page={currentPage}
         totalPages={totalPages}
-        onGo={(next) => { setHasInteracted(true); setPage(next); }}
+        onGo={goTo}
+        disabled={fading}
       />
     </div>
   );
