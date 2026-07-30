@@ -26,6 +26,12 @@ const OVERLAY =
 // 오프셋 1px·번짐 3px로 작게 — 과하면 글씨가 뭉갬. 반투명 검정 예외 허용(0406).
 const TEXT_SHADOW = '0 1px 3px rgba(0,0,0,0.7)';
 
+// 커버 없음 폴백 — 테마 무관 고정 다크(0441). 카드 내부는 "사진 위"를 전제(스크림·흰 글씨·다크 칩)라
+// bg-fill2 토큰을 쓰면 라이트에서 밝은 회색이 돼 흰 글씨 카드와 충돌한다 → 다크에서 잘 보이던 값으로 통일.
+// CARD_PILL_BG·OVERLAY와 같은 카드 내부 리터럴 예외(0406).
+const FALLBACK_BG = '#343943';
+const FALLBACK_FG = '#7a7870';
+
 export function PlanCard({
   id,
   title,
@@ -55,7 +61,7 @@ export function PlanCard({
   return (
     <Link
       href={`/plan-finder/${id}`}
-      className="group relative flex flex-col h-[240px] sm:h-[280px] rounded-[14px] border border-border overflow-hidden"
+      className="group relative flex flex-col h-[240px] sm:h-[280px] rounded-[14px] overflow-hidden"
     >
       {/* 배경 레이어 — 커버 or 무채 폴백 */}
       {coverUrl ? (
@@ -67,7 +73,14 @@ export function PlanCard({
           className="object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]"
         />
       ) : (
-        <div className="absolute inset-0 bg-fill2" aria-hidden />
+        // 커버 없음 폴백 — "이미지 없음" 중앙. 배경·글씨는 테마 무관 고정 다크(FALLBACK_*)라
+        // 라이트/다크 모두 다크 카드로 통일(흰 글씨·스크림 카드와 정합). 텍스트는 오버레이 알파 0 구간이라 간섭 없음.
+        <div
+          className="absolute inset-0 flex items-center justify-center text-xs"
+          style={{ backgroundColor: FALLBACK_BG, color: FALLBACK_FG }}
+        >
+          이미지 없음
+        </div>
       )}
 
       {/* 오버레이 */}
