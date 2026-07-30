@@ -18,7 +18,9 @@ interface AppHeaderProps {
 export function AppHeader({ isLoggedIn, email, avatarUrl, nickname, isAdmin, widthClassName }: AppHeaderProps) {
   return (
     <HeaderGate>
-      <header className="sticky top-0 z-10 glass-header">
+      {/* z-50 = 전역 크롬 최상위 단계(globals.css 상단 z 계층표 참조). 페이지 콘텐츠·인페이지 팝오버(≤50) 위,
+          풀스크린 지도 테이크오버(SpotMap z-55 / SpotFinderMap z-60) 아래 — 스토리 지도 풀스크린은 헤더를 덮어야 하므로 55 미만 유지. */}
+      <header className="sticky top-0 z-50 glass-header">
         <div className={`${widthClassName ?? ''} px-6 h-14 grid grid-cols-[1fr_auto_1fr] items-center`}>
           <div className="justify-self-start">
             <Logo />
