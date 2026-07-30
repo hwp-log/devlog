@@ -141,10 +141,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
             공개 코스 {sorted.length}개
           </p>
         </div>
-        <div
-          className="flex flex-wrap gap-2 appear-up relative z-10"
-          style={{ animationDelay: '0.36s' }}
-        >
+        <div className="flex flex-wrap gap-2 relative z-10">
           <FilterDropdown<FilterKey>
             label="가격대"
             options={FILTER_LABELS}
