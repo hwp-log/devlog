@@ -9,13 +9,24 @@ type Props = PublicPlanListItem;
 // getImageProps에 이 값을 그대로 넣어야 한다. 단일 소스: 아래 <Image>와 프리로더가 공유(한쪽만 바꾸면 캐시 어긋남).
 export const PLAN_CARD_SIZES = '(max-width: 767px) 100vw, 400px';
 
-// 커버 위 어두운 그라디언트 — 하단 흰 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
-// 반투명 검정은 theme 토큰 예외 허용(0406). 하단이 가장 어둡고 위로 갈수록 옅어짐.
+// 커버 위 스크림 — 하단 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
+// 반투명 검정은 theme 토큰 예외 허용(0406).
+// 0435: 그라디언트가 텍스트 블록 안에서 옅어져 밝은 사진에서 4.5:1을 못 만들던 문제 해결.
+// 하단 텍스트 블록(측정 ≈89px = 240px 카드의 37% / 280px의 32%)을 alpha 0.65 스크림으로 덮는다.
+// 어둠 총높이를 좁혀 사진을 더 보이게: 0%~32% 균일 → 44%에서 0(전환 12%≈30px).
+// 균일 0.65 → 순백 배경에서도 흰 글씨 ≈7:1, 반투명 메타(75%) ≈4.8:1 (WCAG 4.5:1 충족).
+// 주의: 균일 끝(32%)이 블록 상단(≈37%)보다 살짝 아래라 제목 상단 획은 전환 구간에 걸쳐
+// 순백 배경 최악점에서 fill 대비 ≈3.3:1까지 내려감 — TEXT_SHADOW(보조)로 국소 대비 보강.
+// 전환 경계가 선처럼 보이면 44% → 48%로 넓힐 것.
 const OVERLAY =
-  'linear-gradient(to top, rgba(10,10,16,0.92) 0%, rgba(10,10,16,0.6) 42%, rgba(10,10,16,0.12) 72%, rgba(10,10,16,0.28) 100%)';
+  'linear-gradient(to top, rgba(10,10,16,0.65) 0%, rgba(10,10,16,0.65) 32%, rgba(10,10,16,0) 44%)';
 
 // 지역 pill 반투명 검정(예외 허용)
 const PILL_BG = 'rgba(13,13,20,0.72)';
+
+// 0435: 하단 텍스트 그늘 — 밝은 커버에서도 흰/파랑 글씨 가독. 컨테이너에 한 번(상속으로 4요소 공유).
+// 오프셋 1px·번짐 3px로 작게 — 과하면 글씨가 뭉갬. 반투명 검정 예외 허용(0406).
+const TEXT_SHADOW = '0 1px 3px rgba(0,0,0,0.7)';
 
 export function PlanCard({
   id,
@@ -74,19 +85,24 @@ export function PlanCard({
             {regionLabel}
           </span>
         )}
-        <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-white/90">
+        <span
+          className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-white/90 px-[9px] py-[3px] rounded-full leading-none"
+          style={{ backgroundColor: PILL_BG }}
+        >
           <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : 'text-white/90'} />
           {likeCount}
         </span>
       </div>
 
       {/* 콘텐츠 — 하단 */}
-      <div className="relative mt-auto px-4 pb-4">
+      <div className="relative mt-auto px-4 pb-4" style={{ textShadow: TEXT_SHADOW }}>
         <p className="text-[14px] font-semibold text-white truncate">{title}</p>
         <p className="mt-1 text-[12.5px] text-white/75 truncate">{meta}</p>
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[14px] font-medium text-white whitespace-nowrap">{priceLabel}</span>
-          <span className="text-[12.5px] font-medium text-primary whitespace-nowrap">코스 보기 →</span>
+          {/* 0435: 강조색(#4d9eff)은 12.5px 작은 글씨라 스크림 위 4.5:1 미달(≈2.1:1) → 흰색.
+              카드 전체가 링크이므로 별개 버튼이 아닌 방향 라벨이고, →가 클릭 신호를 담당. */}
+          <span className="text-[12.5px] font-medium text-white whitespace-nowrap">코스 보기 →</span>
         </div>
       </div>
     </Link>
