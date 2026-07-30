@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
-import { CARD_PILL_BG } from '@/lib/card-tokens';
+import { CARD_PILL_CLASS } from '@/lib/card-tokens';
 
 type Props = PublicPlanListItem;
 
@@ -28,7 +28,7 @@ const TEXT_SHADOW = '0 1px 3px rgba(0,0,0,0.7)';
 
 // 커버 없음 폴백 — 테마 무관 고정 다크(0441). 카드 내부는 "사진 위"를 전제(스크림·흰 글씨·다크 칩)라
 // bg-fill2 토큰을 쓰면 라이트에서 밝은 회색이 돼 흰 글씨 카드와 충돌한다 → 다크에서 잘 보이던 값으로 통일.
-// CARD_PILL_BG·OVERLAY와 같은 카드 내부 리터럴 예외(0406).
+// OVERLAY와 같은 카드 내부 리터럴 예외(0406). (칩 스타일은 0449에서 card-tokens.ts CARD_PILL_CLASS로 이관)
 const FALLBACK_BG = '#343943';
 const FALLBACK_FG = '#7a7870';
 
@@ -90,17 +90,16 @@ export function PlanCard({
       <div className="relative flex items-start justify-between px-4 pt-[13px] sm:pt-[14px]">
         {regionLabel && (
           <span
-            className="inline-flex items-center text-[11px] leading-none text-white/95 px-[9px] py-[3px] rounded-full"
-            style={{ backgroundColor: CARD_PILL_BG }}
+            className={`inline-flex items-center text-[11px] leading-none px-[9px] py-[3px] rounded-full ${CARD_PILL_CLASS}`}
           >
             {regionLabel}
           </span>
         )}
         <span
-          className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-white/90 px-[9px] py-[3px] rounded-full leading-none"
-          style={{ backgroundColor: CARD_PILL_BG }}
+          className={`ml-auto inline-flex items-center gap-1 text-[12.5px] px-[9px] py-[3px] rounded-full leading-none ${CARD_PILL_CLASS}`}
         >
-          <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : 'text-white/90'} />
+          {/* 비활성 하트는 칩 글씨색(currentColor) 상속 — 라이트=어두움/다크=흰색. 눌렀을 때만 빨강(양쪽 카드 동일). */}
+          <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
           {likeCount}
         </span>
       </div>

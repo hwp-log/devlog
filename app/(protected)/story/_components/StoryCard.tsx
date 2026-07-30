@@ -2,18 +2,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, MapPin } from 'lucide-react';
 import { formatStoryCardDate } from '@/lib/format-date';
+import { CARD_PILL_CLASS } from '@/lib/card-tokens';
 
-// 칩·좋아요 재질 — 거의 불투명한 흰색 배경 + 어두운 글씨(블러 없음).
-// 1.0은 사진을 완전히 막아 오려 붙인 듯 딱딱하고, 0.72는 뒤가 너무 통과해 밝은 사진에서 대비가 무너진다.
-// 0.92는 사진이 거의 안 통과할 정도만 열어 재질감을 주면서 어떤 밝기에서도 어두운 글씨 대비를 유지한다.
-// PlanCard(스크림 위 반투명 검정)와 의도적으로 다름 — 스토리 썸네일엔 스크림이 없다.
-const STORY_PILL_BG = 'rgba(255,255,255,0.92)';
-// text-fg 토큰은 다크에서 밝게 뒤집혀 흰 배경 위 가독이 붕괴 → 라이트 fg(theme.ts #191a1c) 리터럴로 고정.
-const STORY_PILL_FG = '#191a1c';
-// 그림자로 칩을 사진 위에 띄우고(0 1px 3px), 하단 inset 링으로 밝은 사진에서 윤곽을 잡는다(0436의 shadow-sm 역할).
-// 테두리를 real `border`로 주면 intrinsic-width 칩은 box-sizing:border-box여도 외곽이 0.5px씩 커져
-// 플랜파인더 칩과 크기가 어긋난다(auto width엔 border-box가 흡수 못 함) → inset box-shadow 링으로 레이아웃 영향 0.
-const STORY_PILL_SHADOW = '0 1px 3px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(0,0,0,0.08)';
+// 칩·좋아요 스타일은 PlanCard와 공유(lib/card-tokens.ts CARD_PILL_CLASS) — 테마 분기·그림자·헤어라인 포함.
+// inset 링(테두리 대신)은 auto-width 칩이 real border로 0.5px 커져 플랜파인더 칩과 어긋나는 걸 막는다(레이아웃 영향 0).
 
 export interface StoryCardProps {
   id: string;
@@ -53,8 +45,7 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
               뒤집혀 흰 배경 위 가독 붕괴하므로 금지(칩 전체가 리터럴 fg를 쓰는 이유와 동일). */}
           {work && (
             <span
-              className="min-w-0 inline-flex items-center rounded-full px-[9px] py-[3px] text-[11px] leading-none font-medium"
-              style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
+              className={`min-w-0 inline-flex items-center rounded-full px-[9px] py-[3px] text-[11px] leading-none font-medium ${CARD_PILL_CLASS}`}
             >
               <span className="truncate min-w-0">{work}</span>
               {extraWorkCount ? <span className="shrink-0 ml-1 opacity-55">+{extraWorkCount}</span> : null}
@@ -62,8 +53,7 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
           )}
           {/* 좋아요 — 우측(PlanCard와 같은 크기). ml-auto=칩 유무와 무관하게 우측, shrink-0=칩이 길어도 온전. */}
           <span
-            className="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium"
-            style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
+            className={`ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium ${CARD_PILL_CLASS}`}
           >
             {/* 내가 누른 좋아요만 빨강 채움. 다른 사람 좋아요·미좋아요는 이전 디자인(어두운 하트). */}
             <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
