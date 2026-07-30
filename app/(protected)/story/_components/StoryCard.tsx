@@ -22,10 +22,11 @@ export interface StoryCardProps {
   createdAt: Date;
   likeCount: number;
   work?: string | null;
+  extraWorkCount?: number; // 대표 작품 외 나머지 distinct 작품 수 ("호텔 델루나 +N" 신호, 0437)
   location?: string | null;
 }
 
-export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, location }: StoryCardProps) {
+export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, extraWorkCount, location }: StoryCardProps) {
   return (
     <Link href={`/story/${id}`} className="group block cursor-pointer">
       <div className="relative aspect-[4/3] rounded-[12px] overflow-hidden bg-surface2">
@@ -40,13 +41,17 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, lo
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted text-xs">이미지 없음</div>
         )}
-        {/* 칩 — 지오메트리(11px·3/9·radius-full)는 PlanCard와 동일, 재질은 불투명 흰+어두운 글씨. */}
+        {/* 칩 — 지오메트리(11px·3/9·radius-full)는 PlanCard와 동일, 재질은 불투명 흰+어두운 글씨.
+            "호텔 델루나 +2": 이름만 truncate(min-w-0), +N은 shrink-0으로 이름이 잘려도 항상 보임
+            (신호 소실 방지). +N은 같은 고정 fg를 opacity로 옅게 — text-muted 같은 토큰은 다크에서
+            뒤집혀 흰 배경 위 가독 붕괴하므로 금지(칩 전체가 리터럴 fg를 쓰는 이유와 동일). */}
         {work && (
           <span
-            className="absolute top-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full px-[9px] py-[3px] text-[11px] leading-none font-medium"
+            className="absolute top-2 left-2 max-w-[calc(100%-1rem)] inline-flex items-center rounded-full px-[9px] py-[3px] text-[11px] leading-none font-medium"
             style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
           >
-            {work}
+            <span className="truncate min-w-0">{work}</span>
+            {extraWorkCount ? <span className="shrink-0 ml-1 opacity-55">+{extraWorkCount}</span> : null}
           </span>
         )}
         {/* 좋아요 — 상단 우측(PlanCard와 같은 크기). 칩과 동일 불투명 흰 배경. 0도 그대로 표시. */}

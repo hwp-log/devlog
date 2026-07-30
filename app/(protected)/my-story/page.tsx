@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { MapPin, PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { extractFirstImage } from '@/lib/story/extract-thumbnail';
-import { fetchStoriesWithMeta, fetchMyStoryTags } from '@/lib/story/queries';
+import { fetchStoriesWithMeta, fetchMyStoryTags, mapStoryToCard } from '@/lib/story/queries';
 import { getAvatarInfo } from '@/lib/avatar/generate';
 import { TagSearchBar } from '@/app/(protected)/story/_components/TagSearchBar';
 import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
@@ -109,20 +108,7 @@ export default async function MyStoryPage({
             </div>
           )
         ) : (
-          <MyStoryCardGrid
-            stories={stories.map((story) => {
-              const spot = story.storySpots[0]?.spot;
-              return {
-                id: story.id,
-                thumbnail: extractFirstImage(story.content),
-                title: story.title,
-                createdAt: story.createdAt,
-                likeCount: story._count.likes,
-                work: spot?.spotMovies[0]?.movie.title ?? null,
-                location: spot?.name ?? null,
-              };
-            })}
-          />
+          <MyStoryCardGrid stories={stories.map(mapStoryToCard)} />
         )}
       </ViewTransition>
     </div>

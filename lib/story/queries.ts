@@ -35,10 +35,12 @@ export async function fetchStoriesWithMeta(options?: {
       tags: true,
       _count: { select: { likes: true } },
       user: { select: { nickname: true, avatarUrl: true } },
-      // 카드 배지·메타용 대표 스팟 1개(order asc). 작품은 상세페이지와 동일한 0185 대표 규칙(spotMovies createdAt desc 첫 번째).
+      // 카드 대표: 첫 스팟(order asc)의 첫 작품(spotMovies createdAt desc) — 0185 대표 규칙.
+      // 0437: storySpots take:1만 풀어 전체 스팟을 받는다 — 스팟별 대표작품(spotMovies[0])을
+      // distinct 집계해 대표 칩에 "+N"을 붙이기 위함. spotMovies는 스팟당 대표 1개(take:1)면 충분 —
+      // 장소가 겸하는 다른 촬영지(예: 롯데월드몰의 도깨비)는 이 글 주제가 아니라 세지 않는다.
       storySpots: {
         orderBy: { order: 'asc' },
-        take: 1,
         select: {
           spot: {
             select: {
@@ -56,16 +58,33 @@ export async function fetchStoriesWithMeta(options?: {
 
 export type StoryWithMeta = Awaited<ReturnType<typeof fetchStoriesWithMeta>>[number];
 
-/** StoryWithMeta → 카드 props. fetchStoryPage의 단일 매핑 소스. */
-function mapStoryToCard(story: StoryWithMeta): StoryCardProps {
+/**
+ * 스토리가 다루는 distinct 작품 수 — 카드 "+N" 신호 파생용(0437).
+ * 스팟마다 대표작품 1개(spotMovies[0], 0185 규칙 = 카드 이름과 동일 기준)만 모아 센다.
+ * 장소가 겸하는 다른 촬영지는 그 글의 주제가 아니므로 제외 → 이름과 +N이 한 규칙.
+ */
+function countDistinctWorks(storySpots: StoryWithMeta['storySpots']): number {
+  const titles = new Set<string>();
+  for (const ss of storySpots) {
+    const rep = ss.spot.spotMovies[0]?.movie.title;
+    if (rep) titles.add(rep);
+  }
+  return titles.size;
+}
+
+/** StoryWithMeta → 카드 props. 스토리 목록·마이스토리 공용 단일 매핑 소스. */
+export function mapStoryToCard(story: StoryWithMeta): StoryCardProps {
   const spot = story.storySpots[0]?.spot;
+  const work = spot?.spotMovies[0]?.movie.title ?? null;
   return {
     id: story.id,
     thumbnail: extractFirstImage(story.content),
     title: story.title,
     createdAt: story.createdAt,
     likeCount: story._count.likes,
-    work: spot?.spotMovies[0]?.movie.title ?? null,
+    work,
+    // 대표 외 나머지 distinct 작품 수. 대표(work)가 없으면 칩 자체가 안 뜨므로 0.
+    extraWorkCount: work ? Math.max(0, countDistinctWorks(story.storySpots) - 1) : 0,
     location: spot?.name ?? null,
   };
 }
