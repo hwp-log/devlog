@@ -14,7 +14,8 @@ export default function Loading() {
     <div>
       {/* 헤더 행 — StoryBrowser와 동일 레이아웃(눈썹·타이틀 좌 / 검색바 우) */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-        <StoryHeader />
+        {/* 진입 로딩에서만 등장 애니메이션 재생 — 콘텐츠 헤더는 정적이라 로딩→콘텐츠 전환 시 이중 재생 없음(0445) */}
+        <StoryHeader animate />
         {/* 검색바 자리 — TagSearchBar input의 w-full md:w-70 · rounded-full 매칭 */}
         <div className="skeleton-shimmer h-10 w-full md:w-70 rounded-full" aria-hidden />
       </div>

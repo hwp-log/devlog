@@ -14,7 +14,8 @@ export default function Loading() {
       {/* 헤더 행 — PlanListClient와 동일 레이아웃(눈썹·타이틀·요약 좌 / 필터 우) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
         <div>
-          <PlanFinderHeader />
+          {/* 진입 로딩에서만 등장 애니메이션 재생 — 콘텐츠 헤더는 정적이라 로딩→콘텐츠 전환 시 이중 재생 없음(0445) */}
+          <PlanFinderHeader animate />
           {/* 요약줄 자리 — PlanListClient의 text-[12.5px] mt-4 sm:mt-5 매칭 */}
           <div className="skeleton-shimmer h-[13px] w-44 rounded mt-4 sm:mt-5" aria-hidden />
         </div>

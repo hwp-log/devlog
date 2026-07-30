@@ -135,10 +135,8 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
         <div>
           <PlanFinderHeader />
-          <p
-            className="text-[12.5px] text-muted mt-4 sm:mt-5 appear-up"
-            style={{ animationDelay: '0.24s' }}
-          >
+          {/* 공개 코스 수는 서버 데이터(sorted.length) 파생 → 카드와 함께 뜨므로 등장 애니메이션 없이 바로 표시. */}
+          <p className="text-[12.5px] text-muted mt-4 sm:mt-5">
             {/* 평균 금액 제거(0441) — 인원수가 1인·4인 등 제각각이라 평균이 유의미하지 않음. */}
             공개 코스 {sorted.length}개
           </p>
