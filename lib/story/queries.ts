@@ -86,6 +86,10 @@ export function mapStoryToCard(story: StoryWithMeta): StoryCardProps {
     // 대표 외 나머지 distinct 작품 수. 대표(work)가 없으면 칩 자체가 안 뜨므로 0.
     extraWorkCount: work ? Math.max(0, countDistinctWorks(story.storySpots) - 1) : 0,
     location: spot?.name ?? null,
+    // 첫 장소 외 나머지 장소 수 ("외 N곳" 신호). 장소가 없으면 0.
+    // 작품 +N(spotMovies 대표작 distinct)과 세는 대상이 다름 — 여긴 순수 storySpots 개수.
+    // storySpots는 0437에서 전량 로드 중이라 .length로 추가 쿼리·count 없이 산출한다.
+    extraLocationCount: spot ? Math.max(0, story.storySpots.length - 1) : 0,
   };
 }
 

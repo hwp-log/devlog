@@ -24,9 +24,10 @@ export interface StoryCardProps {
   work?: string | null;
   extraWorkCount?: number; // 대표 작품 외 나머지 distinct 작품 수 ("호텔 델루나 +N" 신호, 0437)
   location?: string | null;
+  extraLocationCount?: number; // 첫 장소 외 나머지 장소 수 ("외 N곳" 신호, 0439). 작품 +N과 세는 대상 다름.
 }
 
-export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, extraWorkCount, location }: StoryCardProps) {
+export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, extraWorkCount, location, extraLocationCount }: StoryCardProps) {
   return (
     <Link href={`/story/${id}`} className="group block cursor-pointer">
       <div className="relative aspect-[4/3] rounded-[12px] overflow-hidden bg-surface2">
@@ -74,7 +75,10 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, ex
             <span className="text-border shrink-0" aria-hidden>·</span>
             <span className="flex items-center gap-0.5 min-w-0 text-fg2">
               <MapPin size={12} className="shrink-0" />
-              <span className="truncate">{location}</span>
+              {/* 이름만 truncate(min-w-0), "외 N곳"은 shrink-0으로 이름이 잘려도 항상 보임(작품 칩 +N과 동일).
+                  색은 부모 text-fg2 상속 — 장소명과 같은 톤으로 진하게. */}
+              <span className="truncate min-w-0">{location}</span>
+              {extraLocationCount ? <span className="shrink-0">외 {extraLocationCount}곳</span> : null}
             </span>
           </>
         )}
