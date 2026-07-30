@@ -49,19 +49,12 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [page, setPage]     = useState(1);
 
-  // 페이지 전환 크로스페이드(0427, 스토리 StoryListPaged 연출과 통일):
-  //  아웃(280ms, opacity→0) → 스왑+최상단 스크롤(불투명 0 상태) → 인(280ms, opacity→100).
-  // 스토리와 달리 서버 대기가 없어 스켈레톤 층은 두지 않고(가짜 로딩 금지),
-  // 스토리의 revealing/idle 구분(셔머 정지 전용)도 셔머가 없어 fading 2-상태로 축소.
-  // 280ms 타이머는 아래 그리드의 duration-[280ms]와 짝 — 한쪽만 바꾸면 스왑이 노출된다.
-  const [fading, setFading] = useState(false);
-  const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (swapTimer.current) clearTimeout(swapTimer.current);
-  }, []);
+  // 페이지 전환 애니메이션 없음(0430, 0427·0429 되돌림): 데이터가 이미 클라이언트에 있어
+  // 즉시 교체하면 빈 구간도 번쩍임도 없다. 서버 대기가 0이라 스켈레톤이 한 프레임만 스쳐 번쩍이던 문제 제거.
+  // 진입 로딩(loading.tsx)은 실제 서버 대기이므로 그대로 유지.
 
   // 페이지 변경 시 문서 최상단으로(스토리와 동일 UX). 첫 마운트는 skip.
-  // useLayoutEffect: 스왑 커밋 후·페인트 전 실행 → 새 페이지가 이전 스크롤 위치로 그려지는 프레임 없음.
+  // useLayoutEffect: 슬라이스 교체 커밋 후·페인트 전 실행 → 새 페이지가 이전 스크롤 위치로 그려지는 프레임 없음.
   const didMount = useRef(false);
   useIsoLayoutEffect(() => {
     if (!didMount.current) { didMount.current = true; return; }
@@ -94,20 +87,10 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const currentPage = Math.min(page, totalPages);
   const pageItems = sorted.slice((currentPage - 1) * PLAN_PAGE_SIZE, currentPage * PLAN_PAGE_SIZE);
 
-  // 페이지 넘김(스토리 goTo 가드 미러 — 전환 중 재클릭 차단은 disabled와 이중 방어)
+  // 페이지 넘김: 즉시 슬라이스 교체(+ layout effect 최상단 스크롤). 클라 데이터라 대기·전환 없음.
   const goTo = (next: number) => {
-    if (next < 1 || next > totalPages || next === currentPage || fading) return;
-    setFading(true);
-    swapTimer.current = setTimeout(() => {
-      setPage(next);      // opacity 0 상태에서 슬라이스 교체 + (layout effect) 최상단 스크롤
-      setFading(false);   // 같은 커밋에서 0→100 페이드인 시작
-    }, 280);
-  };
-
-  // 필터·정렬 변경: 진행 중 페이드가 있으면 취소(새 그리드가 opacity 0에 갇히는 공백 방지).
-  const resetTransition = () => {
-    if (swapTimer.current) clearTimeout(swapTimer.current);
-    setFading(false);
+    if (next < 1 || next > totalPages || next === currentPage) return;
+    setPage(next);
   };
 
   return (
@@ -132,13 +115,13 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
             label="가격대"
             options={FILTER_LABELS}
             value={filter}
-            onChange={(next) => { resetTransition(); setFilter(next); setPage(1); }}
+            onChange={(next) => { setFilter(next); setPage(1); }}
           />
           <FilterDropdown<SortKey>
             label="정렬"
             options={SORT_LABELS}
             value={sort}
-            onChange={(next) => { resetTransition(); setSort(next); setPage(1); }}
+            onChange={(next) => { setSort(next); setPage(1); }}
           />
         </div>
       </div>
@@ -162,11 +145,9 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         // 0425: 열 수를 1·2·3·4·6(PLAN_PAGE_SIZE 12의 약수)으로 제한 — auto-fill의 5·7열에서 마지막 줄이 비는 문제 해결.
         // 브레이크포인트 = 카드 320px 하한 보장값(콘텐츠 폭 = 뷰포트−px-6 48, gap 14): 2열 702·3열 1036·4열 1370·6열 2038 절상.
         // 1열 트랙 min(320px,100%): 320px 뷰포트(콘텐츠 272px)에서 컨테이너 폭까지 줄여 가로 넘침 방지, 넓은 화면 320 하한 유지.
-        // PlanSkeletonGrid와 클래스 동일 유지 필수(한쪽만 바꾸면 로딩 전환 시 레이아웃 시프트) — Tailwind JIT 때문에 리터럴 중복.
-        // 그리드는 key 없이 항상 같은 엘리먼트 — 페이지 넘김의 opacity 크로스페이드(0427)가 걸리는 전제.
-        // 카드 등장 모션 없음(0428, 스토리 StoryCardList와 통일 — 등장은 진입 스켈레톤/크로스페이드가 담당).
-        // duration-[280ms]는 goTo의 스왑 타이머 280ms와 짝 — 한쪽만 바꾸면 스왑이 노출된다.
-        <div className={`grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px] transition-opacity duration-[280ms] ${fading ? 'opacity-0' : 'opacity-100'}`}>
+        // 카드 등장 모션 없음(0428, 스토리 StoryCardList와 통일).
+        // 0430: 페이지 전환 애니메이션 제거 — 즉시 슬라이스 교체(클라 데이터라 대기 없음, 번쩍임·빈 구간 없음).
+        <div className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]">
           {pageItems.map((plan) => (
             <PlanCard key={plan.id} {...plan} />
           ))}
@@ -177,7 +158,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
         page={currentPage}
         totalPages={totalPages}
         onGo={goTo}
-        disabled={fading}
       />
     </div>
   );
