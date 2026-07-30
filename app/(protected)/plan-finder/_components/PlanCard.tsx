@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
+import { CARD_PILL_BG } from '@/lib/card-tokens';
 
 type Props = PublicPlanListItem;
 
@@ -20,9 +21,6 @@ export const PLAN_CARD_SIZES = '(max-width: 767px) 100vw, 400px';
 // 전환 경계가 선처럼 보이면 44% → 48%로 넓힐 것.
 const OVERLAY =
   'linear-gradient(to top, rgba(10,10,16,0.65) 0%, rgba(10,10,16,0.65) 32%, rgba(10,10,16,0) 44%)';
-
-// 지역 pill 반투명 검정(예외 허용)
-const PILL_BG = 'rgba(13,13,20,0.72)';
 
 // 0435: 하단 텍스트 그늘 — 밝은 커버에서도 흰/파랑 글씨 가독. 컨테이너에 한 번(상속으로 4요소 공유).
 // 오프셋 1px·번짐 3px로 작게 — 과하면 글씨가 뭉갬. 반투명 검정 예외 허용(0406).
@@ -80,14 +78,14 @@ export function PlanCard({
         {regionLabel && (
           <span
             className="inline-flex items-center text-[11px] leading-none text-white/95 px-[9px] py-[3px] rounded-full"
-            style={{ backgroundColor: PILL_BG }}
+            style={{ backgroundColor: CARD_PILL_BG }}
           >
             {regionLabel}
           </span>
         )}
         <span
           className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-white/90 px-[9px] py-[3px] rounded-full leading-none"
-          style={{ backgroundColor: PILL_BG }}
+          style={{ backgroundColor: CARD_PILL_BG }}
         >
           <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : 'text-white/90'} />
           {likeCount}
