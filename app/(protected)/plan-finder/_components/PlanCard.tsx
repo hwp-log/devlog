@@ -5,6 +5,10 @@ import type { PublicPlanListItem } from '@/lib/plan/queries';
 
 type Props = PublicPlanListItem;
 
+// 커버 이미지 sizes — 인접 페이지 프리로더(PlanListClient)가 같은 srcSet을 얻으려면
+// getImageProps에 이 값을 그대로 넣어야 한다. 단일 소스: 아래 <Image>와 프리로더가 공유(한쪽만 바꾸면 캐시 어긋남).
+export const PLAN_CARD_SIZES = '(max-width: 767px) 100vw, 400px';
+
 // 커버 위 어두운 그라디언트 — 하단 흰 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
 // 반투명 검정은 theme 토큰 예외 허용(0406). 하단이 가장 어둡고 위로 갈수록 옅어짐.
 const OVERLAY =
@@ -50,7 +54,7 @@ export function PlanCard({
           src={coverUrl}
           alt=""
           fill
-          sizes="(max-width: 767px) 100vw, 400px"
+          sizes={PLAN_CARD_SIZES}
           className="object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]"
         />
       ) : (

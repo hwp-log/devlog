@@ -8,9 +8,10 @@
 //    DB LIMIT/OFFSET + 총액 필터/정렬이 가능해진다. 그 전엔 서버 전환 이득이 없다.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { getImageProps } from 'next/image';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
 import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
-import { PlanCard } from './PlanCard';
+import { PlanCard, PLAN_CARD_SIZES } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
 import { PlanFinderHeader } from './PlanFinderHeader';
 import { Pagination } from '../../_components/Pagination';
@@ -51,6 +52,7 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
 
   // 페이지 전환 애니메이션 없음(0430, 0427·0429 되돌림): 데이터가 이미 클라이언트에 있어
   // 즉시 교체하면 빈 구간도 번쩍임도 없다. 서버 대기가 0이라 스켈레톤이 한 프레임만 스쳐 번쩍이던 문제 제거.
+  // 0431: 인접 페이지 커버까지 프리로드해 넘김 순간 이미지 pop-in도 없앤다(아래 프리로드 effect).
   // 진입 로딩(loading.tsx)은 실제 서버 대기이므로 그대로 유지.
 
   // 페이지 변경 시 문서 최상단으로(스토리와 동일 UX). 첫 마운트는 skip.
@@ -86,6 +88,48 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PLAN_PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageItems = sorted.slice((currentPage - 1) * PLAN_PAGE_SIZE, currentPage * PLAN_PAGE_SIZE);
+
+  // 0431: 인접 페이지(이전·다음) 커버를 미리 받아 페이지 넘김 순간의 깜빡임 제거.
+  //   원인(네트워크 실측): 넘기는 순간 다음 12장이 그제서야 요청돼 폴백→채움이 보인 것.
+  //   전환 연출로는 못 감추고 미리 받는 게 유일한 해법이라 프리로드로 해결(전환 방식은 즉시 교체 유지).
+  //   currentPage 기준 앞뒤 한 페이지분만. coverUrl null은 제외.
+  const adjacentCovers: string[] = [];
+  if (currentPage > 1) {
+    for (const p of sorted.slice((currentPage - 2) * PLAN_PAGE_SIZE, (currentPage - 1) * PLAN_PAGE_SIZE)) {
+      if (p.coverUrl) adjacentCovers.push(p.coverUrl);
+    }
+  }
+  if (currentPage < totalPages) {
+    for (const p of sorted.slice(currentPage * PLAN_PAGE_SIZE, (currentPage + 1) * PLAN_PAGE_SIZE)) {
+      if (p.coverUrl) adjacentCovers.push(p.coverUrl);
+    }
+  }
+  // 매 렌더 새 배열이라 effect 재실행 방지용 문자열 키(내용이 바뀔 때만 실행).
+  const adjacentKey = adjacentCovers.join('|');
+
+  // 0431: 인접 페이지 커버 프리로드. 핵심은 next/image가 실제 요청할 최적화 URL과 같아야 캐시가 맞는다는 것.
+  //   getImageProps에 PlanCard와 동일한 props(fill + PLAN_CARD_SIZES)를 넣어 같은 srcSet을 얻고,
+  //   detached Image에 srcset+sizes를 그대로 세팅 → 브라우저가 카드 렌더 때와 동일한 후보를 선택·요청.
+  //   이미 받은 URL은 Set으로 기억해 중복 요청 방지. 실패는 조용히 무시(화면 영향 없음).
+  const preloadedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const coverUrl of adjacentCovers) {
+      if (preloadedRef.current.has(coverUrl)) continue;
+      preloadedRef.current.add(coverUrl);
+      try {
+        const { props } = getImageProps({ src: coverUrl, alt: '', fill: true, sizes: PLAN_CARD_SIZES });
+        const img = new Image();
+        img.onerror = () => {};        // 실패는 조용히 무시
+        if (props.sizes) img.sizes = props.sizes;
+        if (props.srcSet) img.srcset = props.srcSet;
+        img.src = props.src;           // srcSet 미지원 폴백
+      } catch {
+        // getImageProps/Image 생성 실패도 무시
+      }
+    }
+    // adjacentCovers는 매 렌더 새 배열 → adjacentKey(내용 문자열)로 안정화
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adjacentKey]);
 
   // 페이지 넘김: 즉시 슬라이스 교체(+ layout effect 최상단 스크롤). 클라 데이터라 대기·전환 없음.
   const goTo = (next: number) => {
