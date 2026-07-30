@@ -75,14 +75,6 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
     return sort === 'price_asc' ? aLower - bLower : bLower - aLower;
   });
 
-  const withBand = sorted.filter((p) => p.summary.band);
-  const avgWon = withBand.length > 0
-    ? Math.round(
-        withBand.reduce((s, p) => s + (p.summary.band!.lower + p.summary.band!.upper) / 2, 0)
-        / withBand.length / 10_000,
-      )
-    : null;
-
   // 클라이언트 슬라이스: 정렬·필터 완료된 sorted를 PLAN_PAGE_SIZE(12)개씩 자름(개수는 sorted.length 그대로 노출).
   // 필터·정렬 변경 시 setPage(1)로 되돌리므로 page는 항상 유효하나, 리셋 직전 프레임 방어로 클램프.
   const totalPages = Math.max(1, Math.ceil(sorted.length / PLAN_PAGE_SIZE));
@@ -147,8 +139,8 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
             className="text-[12.5px] text-muted mt-4 sm:mt-5 appear-up"
             style={{ animationDelay: '0.24s' }}
           >
+            {/* 평균 금액 제거(0441) — 인원수가 1인·4인 등 제각각이라 평균이 유의미하지 않음. */}
             공개 코스 {sorted.length}개
-            {avgWon !== null && ` · 평균 약 ${avgWon.toLocaleString()}만원`}
           </p>
         </div>
         <div

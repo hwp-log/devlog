@@ -40,16 +40,16 @@ export function PlanCard({
   summary,
 }: Props) {
   const regionLabel = region ?? movie;
-  // 메타 한 줄 — 결측 세그먼트는 스킵
+  // 메타 한 줄 — 결측 세그먼트는 스킵. 인원수(N인)는 금액 줄로 이동(0441) — 총액 규모를 인원 옆에서 납득시키기 위함.
   const meta = [
     regionLabel,
     dayCount ? `${dayCount}일` : null,
     `스팟 ${spotCount}곳`,
-    `${headcount}인`,
   ].filter(Boolean).join(' · ');
 
+  // "총" = 총액 신호. 인원과 나란히 둘 때 1인당으로 오해되지 않도록("N인 기준"은 여행상품 1인당 관행이라 회피).
   const priceLabel = summary.band
-    ? `약 ${Math.round((summary.band.lower + summary.band.upper) / 2 / 10_000).toLocaleString()}만원`
+    ? `총 약 ${Math.round((summary.band.lower + summary.band.upper) / 2 / 10_000).toLocaleString()}만원`
     : '금액 없음';
 
   return (
@@ -96,11 +96,16 @@ export function PlanCard({
       <div className="relative mt-auto px-4 pb-4" style={{ textShadow: TEXT_SHADOW }}>
         <p className="text-[14px] font-semibold text-white truncate">{title}</p>
         <p className="mt-1 text-[12.5px] text-white/75 truncate">{meta}</p>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-[14px] font-medium text-white whitespace-nowrap">{priceLabel}</span>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          {/* 인원수를 금액 앞에 — 비싼 총액도 인원 옆이면 납득된다(0441). 인원·금액 같은 흰색으로 한 덩어리.
+              금액 없음 카드도 "N인 · 금액 없음"으로 인원 유지. */}
+          <span className="text-[14px] font-medium text-white whitespace-nowrap">
+            {headcount}인 · {priceLabel}
+          </span>
           {/* 0435: 강조색(#4d9eff)은 12.5px 작은 글씨라 스크림 위 4.5:1 미달(≈2.1:1) → 흰색.
-              카드 전체가 링크이므로 별개 버튼이 아닌 방향 라벨이고, →가 클릭 신호를 담당. */}
-          <span className="text-[12.5px] font-medium text-white whitespace-nowrap">코스 보기 →</span>
+              카드 전체가 링크이므로 별개 버튼이 아닌 방향 라벨이고, →가 클릭 신호를 담당.
+              (0441에서 파랑·볼드를 시도했으나 스크림 위 가독이 흰색만 못해 환원.) */}
+          <span className="text-[12.5px] font-medium text-white whitespace-nowrap shrink-0">코스 보기 →</span>
         </div>
       </div>
     </Link>
