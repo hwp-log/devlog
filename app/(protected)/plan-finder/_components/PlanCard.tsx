@@ -46,7 +46,7 @@ export function PlanCard({
   return (
     <Link
       href={`/plan-finder/${id}`}
-      className="group relative flex flex-col h-[240px] sm:h-[280px] rounded-[14px] border border-border overflow-hidden transition-all duration-[220ms] hover:-translate-y-0.5"
+      className="group relative flex flex-col h-[240px] sm:h-[280px] rounded-[14px] border border-border overflow-hidden"
     >
       {/* 배경 레이어 — 커버 or 무채 폴백 */}
       {coverUrl ? (

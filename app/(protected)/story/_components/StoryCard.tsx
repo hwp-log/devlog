@@ -23,7 +23,7 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, lo
             alt=""
             fill
             sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, (max-width: 1535px) 20vw, 17vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted text-xs">이미지 없음</div>
