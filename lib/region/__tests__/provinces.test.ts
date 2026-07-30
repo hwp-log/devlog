@@ -19,6 +19,8 @@ describe('regionKeyFromFreeText — 자유 입력 첫 토큰 판정', () => {
     ['제주', '제주도'],
     ['제주시 애월읍', '제주도'],
     ['제주특별자치도 서귀포시', '제주도'],
+    ['서귀포시', '제주도'],
+    ['서귀포 중문', '제주도'],
   ])('약칭·정식명·구어 별칭 모두 매핑: %s → %s', (input, expected) => {
     expect(regionKeyFromFreeText(input)).toBe(expected);
   });
@@ -31,8 +33,17 @@ describe('regionKeyFromFreeText — 자유 입력 첫 토큰 판정', () => {
     expect(regionKeyFromFreeText(input)).toBe(expected);
   });
 
-  it.each([['경주'], [''], ['  '], [null], [undefined]])(
-    '판정 실패(시 단위·빈 입력)는 null: %s',
+  it.each([
+    ['경주', '경북'],
+    ['강릉시', '강원'],
+    ['영월군', '강원'],
+    ['강남구', '서울'],
+  ])('시·군·구 이름은 소속 시·도로 수렴(0432): %s → %s', (input, expected) => {
+    expect(regionKeyFromFreeText(input)).toBe(expected);
+  });
+
+  it.each([['없는도시시'], ['중구'], [''], ['  '], [null], [undefined]])(
+    '판정 실패(미등록·공유 자치구·빈 입력)는 null: %s',
     (input) => {
       expect(regionKeyFromFreeText(input)).toBeNull();
     },
