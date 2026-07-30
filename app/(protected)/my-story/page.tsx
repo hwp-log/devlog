@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { MapPin, PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { fetchStoriesWithMeta, fetchMyStoryTags, mapStoryToCard } from '@/lib/story/queries';
+import { fetchStoriesWithMeta, fetchMyStoryTags, mapStoryToCard, fetchLikedStoryIds } from '@/lib/story/queries';
 import { getAvatarInfo } from '@/lib/avatar/generate';
 import { TagSearchBar } from '@/app/(protected)/story/_components/TagSearchBar';
 import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
@@ -26,6 +26,8 @@ export default async function MyStoryPage({
 
   const stories = await fetchStoriesWithMeta({ userId: user!.id, tag: keyword || undefined });
   const myTags = await fetchMyStoryTags(user!.id);
+  // 내가 누른 좋아요(빨강 하트) 판정 — 공용 mapStoryToCard가 두 화면에서 일관되게 하트를 칠하도록 뷰어 좋아요 집합을 넘긴다.
+  const likedSet = await fetchLikedStoryIds(user!.id, stories.map((s) => s.id));
 
   const listKey = stories.map(s => s.id).join('-') || '__empty__';
 
@@ -108,7 +110,7 @@ export default async function MyStoryPage({
             </div>
           )
         ) : (
-          <MyStoryCardGrid stories={stories.map(mapStoryToCard)} />
+          <MyStoryCardGrid stories={stories.map((s) => mapStoryToCard(s, likedSet))} />
         )}
       </ViewTransition>
     </div>

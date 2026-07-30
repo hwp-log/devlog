@@ -21,13 +21,14 @@ export interface StoryCardProps {
   title: string;
   createdAt: Date;
   likeCount: number;
+  isLiked?: boolean; // 뷰어가 누른 좋아요면 하트를 빨강으로 (0439, PlanCard와 동일 원리)
   work?: string | null;
   extraWorkCount?: number; // 대표 작품 외 나머지 distinct 작품 수 ("호텔 델루나 +N" 신호, 0437)
   location?: string | null;
   extraLocationCount?: number; // 첫 장소 외 나머지 장소 수 ("외 N곳" 신호, 0439). 작품 +N과 세는 대상 다름.
 }
 
-export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, extraWorkCount, location, extraLocationCount }: StoryCardProps) {
+export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked, work, extraWorkCount, location, extraLocationCount }: StoryCardProps) {
   return (
     <Link href={`/story/${id}`} className="group block cursor-pointer">
       <div className="relative aspect-[4/3] rounded-[12px] overflow-hidden bg-surface2">
@@ -60,7 +61,8 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, work, ex
           className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium"
           style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
         >
-          <Heart size={13} />
+          {/* 내가 누른 좋아요만 빨강 채움. 다른 사람 좋아요·미좋아요는 이전 디자인(어두운 하트). */}
+          <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
           {likeCount}
         </span>
       </div>

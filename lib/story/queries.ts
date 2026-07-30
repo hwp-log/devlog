@@ -72,8 +72,25 @@ function countDistinctWorks(storySpots: StoryWithMeta['storySpots']): number {
   return titles.size;
 }
 
+/**
+ * 뷰어가 좋아요한 스토리 id 집합 — 카드 "내가 누른 하트" 판정용(0439).
+ * plan/queries fetchPublicPlans의 likedSet 패턴 동일: 뷰어 없거나 대상 없으면 빈 Set.
+ * 여기 userId는 작성자 필터가 아니라 조회자(뷰어) — story 목록의 userId(작성자)와 구분.
+ */
+export async function fetchLikedStoryIds(
+  viewerId: string | undefined,
+  storyIds: string[],
+): Promise<Set<string>> {
+  if (!viewerId || storyIds.length === 0) return new Set();
+  const likes = await prisma.like.findMany({
+    where: { userId: viewerId, storyId: { in: storyIds } },
+    select: { storyId: true },
+  });
+  return new Set(likes.map((l) => l.storyId));
+}
+
 /** StoryWithMeta → 카드 props. 스토리 목록·마이스토리 공용 단일 매핑 소스. */
-export function mapStoryToCard(story: StoryWithMeta): StoryCardProps {
+export function mapStoryToCard(story: StoryWithMeta, likedSet?: ReadonlySet<string>): StoryCardProps {
   const spot = story.storySpots[0]?.spot;
   const work = spot?.spotMovies[0]?.movie.title ?? null;
   return {
@@ -82,6 +99,8 @@ export function mapStoryToCard(story: StoryWithMeta): StoryCardProps {
     title: story.title,
     createdAt: story.createdAt,
     likeCount: story._count.likes,
+    // 뷰어가 누른 좋아요만 true — 하트를 빨강으로. 다른 사람 좋아요는 어두운 하트(likeCount로만 집계).
+    isLiked: likedSet?.has(story.id) ?? false,
     work,
     // 대표 외 나머지 distinct 작품 수. 대표(work)가 없으면 칩 자체가 안 뜨므로 0.
     extraWorkCount: work ? Math.max(0, countDistinctWorks(story.storySpots) - 1) : 0,
@@ -98,11 +117,12 @@ export function mapStoryToCard(story: StoryWithMeta): StoryCardProps {
  * 반환 page = 실제(클램프된) 페이지. 서버 주도(page.tsx가 searchParams로 호출) — 단일 데이터 경로.
  */
 export async function fetchStoryPage(options: {
-  userId?: string;
+  userId?: string; // 작성자 필터 (whose stories)
+  viewerId?: string; // 조회자 — 내가 누른 좋아요(빨강 하트) 판정. 작성자 필터와 별개.
   keyword?: string;
   page: number;
 }): Promise<{ items: StoryCardProps[]; totalPages: number; page: number }> {
-  const { userId, keyword, page } = options;
+  const { userId, viewerId, keyword, page } = options;
   const tag = keyword || undefined;
   const total = await prisma.story.count({ where: storyWhere({ userId, tag }) });
   const totalPages = Math.max(1, Math.ceil(total / STORY_PAGE_SIZE));
@@ -113,7 +133,8 @@ export async function fetchStoryPage(options: {
     skip: (safePage - 1) * STORY_PAGE_SIZE,
     take: STORY_PAGE_SIZE,
   });
-  return { items: rows.map(mapStoryToCard), totalPages, page: safePage };
+  const likedSet = await fetchLikedStoryIds(viewerId, rows.map((r) => r.id));
+  return { items: rows.map((r) => mapStoryToCard(r, likedSet)), totalPages, page: safePage };
 }
 
 export async function fetchPopularTags(limit = 8): Promise<string[]> {
