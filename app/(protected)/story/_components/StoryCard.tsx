@@ -43,28 +43,33 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted text-xs">이미지 없음</div>
         )}
-        {/* 칩 — 지오메트리(11px·3/9·radius-full)는 PlanCard와 동일, 재질은 불투명 흰+어두운 글씨.
-            "호텔 델루나 +2": 이름만 truncate(min-w-0), +N은 shrink-0으로 이름이 잘려도 항상 보임
-            (신호 소실 방지). +N은 같은 고정 fg를 opacity로 옅게 — text-muted 같은 토큰은 다크에서
-            뒤집혀 흰 배경 위 가독 붕괴하므로 금지(칩 전체가 리터럴 fg를 쓰는 이유와 동일). */}
-        {work && (
+        {/* 상단 바 — 칩(좌)·좋아요(우)를 flex 한 줄로 배치(PlanCard 상단 바와 동일 원리).
+            이전엔 둘 다 absolute라 긴 작품명 칩의 max-w가 좋아요 폭을 못 빼 겹쳤다(0447).
+            이제 칩은 min-w-0로 줄어들며 잘리고, 좋아요는 ml-auto·shrink-0로 항상 온전히 보인다. */}
+        <div className="absolute inset-x-2 top-2 flex items-start gap-2">
+          {/* 칩 — 지오메트리(11px·3/9·radius-full)는 PlanCard와 동일, 재질은 불투명 흰+어두운 글씨.
+              "호텔 델루나 +2": 이름만 truncate(min-w-0), +N은 shrink-0으로 이름이 잘려도 항상 보임
+              (신호 소실 방지). +N은 같은 고정 fg를 opacity로 옅게 — text-muted 같은 토큰은 다크에서
+              뒤집혀 흰 배경 위 가독 붕괴하므로 금지(칩 전체가 리터럴 fg를 쓰는 이유와 동일). */}
+          {work && (
+            <span
+              className="min-w-0 inline-flex items-center rounded-full px-[9px] py-[3px] text-[11px] leading-none font-medium"
+              style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
+            >
+              <span className="truncate min-w-0">{work}</span>
+              {extraWorkCount ? <span className="shrink-0 ml-1 opacity-55">+{extraWorkCount}</span> : null}
+            </span>
+          )}
+          {/* 좋아요 — 우측(PlanCard와 같은 크기). ml-auto=칩 유무와 무관하게 우측, shrink-0=칩이 길어도 온전. */}
           <span
-            className="absolute top-2 left-2 max-w-[calc(100%-1rem)] inline-flex items-center rounded-full px-[9px] py-[3px] text-[11px] leading-none font-medium"
+            className="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium"
             style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
           >
-            <span className="truncate min-w-0">{work}</span>
-            {extraWorkCount ? <span className="shrink-0 ml-1 opacity-55">+{extraWorkCount}</span> : null}
+            {/* 내가 누른 좋아요만 빨강 채움. 다른 사람 좋아요·미좋아요는 이전 디자인(어두운 하트). */}
+            <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
+            {likeCount}
           </span>
-        )}
-        {/* 좋아요 — 상단 우측(PlanCard와 같은 크기). 칩과 동일 불투명 흰 배경. 0도 그대로 표시. */}
-        <span
-          className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium"
-          style={{ backgroundColor: STORY_PILL_BG, color: STORY_PILL_FG, boxShadow: STORY_PILL_SHADOW }}
-        >
-          {/* 내가 누른 좋아요만 빨강 채움. 다른 사람 좋아요·미좋아요는 이전 디자인(어두운 하트). */}
-          <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
-          {likeCount}
-        </span>
+        </div>
       </div>
       {/* 0436: 제목·날짜·위치 12px(text-xs, §5 하한). 제목은 흰 배경+어두운 글씨라 같은 500이어도
           사진 위 흰 글씨보다 굵게 읽혀 기본 굵기(400)로 낮춰 플랜파인더 제목 체감과 맞춘다. */}
