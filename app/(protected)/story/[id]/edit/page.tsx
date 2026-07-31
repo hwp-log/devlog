@@ -35,7 +35,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
       OR: [{ story: null }, { story: { id: story.id } }],
     },
     select: {
-      id: true, title: true, description: true, currency: true,
+      id: true, title: true, description: true, currency: true, coverUrl: true,
       costs: { select: { category: true, amount: true } },
       flight: { select: { totalAmount: true } },
     },
@@ -46,6 +46,7 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
     id: p.id,
     title: p.title,
     description: p.description,
+    coverUrl: p.coverUrl,
     summary: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY'),
   }));
 

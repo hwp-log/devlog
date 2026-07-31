@@ -1,5 +1,6 @@
 'use client';
 import { useActionState, useMemo, useState, useTransition } from 'react';
+import Image from 'next/image';
 import { TiptapEditor } from './TiptapEditor';
 import SpotMap from '@/components/SpotMapWrapper';
 import { ChevronDown } from 'lucide-react';
@@ -27,6 +28,7 @@ export type PlanWithSummary = {
   id: string;
   title: string;
   description: string | null; // MyPlan.description — 상한 없는 필드라 표시층 2줄 클램프가 방어선
+  coverUrl: string | null; // MyPlan.coverUrl — 저장값 그대로. null 0건(실측)이나 방어로 있을 때만 렌더
   summary: PublicCostSummary;
 };
 
@@ -214,16 +216,27 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             </select>
             <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-0 bottom-[10px] text-muted" />
           </div>
-          {/* 소개·트리맵은 서로 독립 렌더(소개만 있고 총액 0인 플랜 대응).
-              소개는 상한 없는 필드라 2줄 클램프로 끊고 전문은 플랜에서. 비면 줄 자체 미렌더.
-              트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략(블록 유지) */}
+          {/* 커버·소개·트리맵은 플랜 선택 시에만. 미선택 시 eyebrow·h2·select만 남고 커버 미렌더(0451).
+              커버 미디어 오브젝트 — 넓으면 좌 커버 140×105 + 우 소개, min-[480px] 미만 세로 스택.
+              coverUrl 있을 때만 커버 렌더(null 0건 실측). 소개는 상한 없는 필드라 2줄 클램프.
+              트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략. */}
           {selectedPlanId && (() => {
             const plan = availablePlans.find((p) => p.id === selectedPlanId);
             if (!plan) return null;
             return (
               <>
-                {plan.description && (
-                  <p className="mt-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
+                {(plan.coverUrl || plan.description) && (
+                  <div className="mt-[16px] flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
+                    {plan.coverUrl && (
+                      // radius = --radius-base(tiptap img와 동일 어휘). 상세 PLAN 커버와 같은 마크업.
+                      <div className="relative w-full aspect-[4/3] min-[480px]:w-[140px] min-[480px]:h-[105px] min-[480px]:aspect-auto shrink-0 overflow-hidden rounded-[var(--radius-base)]">
+                        <Image src={plan.coverUrl} alt="" fill sizes="(min-width: 480px) 140px, 100vw" className="object-cover" />
+                      </div>
+                    )}
+                    {plan.description && (
+                      <p className="min-w-0 flex-1 text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
+                    )}
+                  </div>
                 )}
                 {plan.summary.ratios.length > 0 && (
                   <div className="mt-[16px]">
