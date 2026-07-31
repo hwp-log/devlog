@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { LocalSpot } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -6,9 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
-import { ArrowRight } from 'lucide-react';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
-import { PublicCostSection } from './PublicCostSection';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +36,12 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             description: true,
             isPublic: true,
             currency: true,
+            coverUrl: true,
+            // 요약 한 줄(일수·스팟·인원) 소스 — plan-finder fetchPublicPlans와 동일 방식
+            startDate: true,
+            endDate: true,
+            headcount: true,
+            _count: { select: { spots: true } },
             costs: { select: { category: true, amount: true } },
             flight: { select: { totalAmount: true } },
           },
@@ -77,6 +82,26 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         story.plan.currency as 'KRW' | 'USD' | 'JPY',
       )
     : null;
+
+  // PLAN 카드 요약 한 줄 — 값 소스는 plan-finder 카드 재사용(계산 신설 없음). 없는 값은 그 조각만 생략.
+  // 일수 식 = lib/plan/queries.ts dayCount와 동기(전용 유틸 없어 복제 — 출처 명시).
+  // 금액 = band(구간) 중앙값, plan-finder PlanCard priceLabel과 같은 식. band는 총액을
+  //   10만/25만/50만원 폭 구간으로 뭉갠 공개 수준(목록 카드 노출 선례). 비공개 플랜은 금액
+  //   조각만 생략(소개·링크의 isPublic 게이트와 같은 방향 — 사용자 확정).
+  const planSummaryLine = story.plan
+    ? [
+        story.plan.startDate && story.plan.endDate
+          ? `${Math.max(1, Math.ceil((story.plan.endDate.getTime() - story.plan.startDate.getTime()) / 86_400_000) + 1)}일`
+          : null,
+        story.plan._count.spots > 0 ? `스팟 ${story.plan._count.spots}곳` : null,
+        `${story.plan.headcount}인`,
+        story.plan.isPublic && publicSummary?.band
+          ? `총 약 ${Math.round((publicSummary.band.lower + publicSummary.band.upper) / 2 / 10_000).toLocaleString()}만원`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   return (
     // 폭 단일 소스(0373 — 0321 일원화 방식): 860 = 글쓰기·수정과 동일 리터럴(0322 확정).
@@ -125,27 +150,6 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             className="tiptap-content text-base leading-relaxed mb-6"
             dangerouslySetInnerHTML={{ __html: story.content }}
           />
-          {/* 태그·좋아요 한 줄 양끝(0372 시안): 본문 종결선(border-t) 아래. 태그 div는 0개여도
-              빈 채 렌더 — justify-between에서 좋아요 우측 고정 유지. slate 칩 → surface2+border 토큰 */}
-          <div className="mt-[36px] pt-[20px] border-t border-border flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              {story.tags.map((tag) => (
-                <Link
-                  key={tag.id}
-                  href={`/story?q=${encodeURIComponent(tag.name)}`}
-                  className="text-[12.5px] px-[12px] py-[5px] rounded-full bg-surface2 border border-border text-fg2 cursor-pointer hover:bg-popover transition-colors"
-                >
-                  #{tag.name}
-                </Link>
-              ))}
-            </div>
-            <LikeButton
-              storyId={story.id}
-              initialLiked={!!myLike}
-              initialCount={story._count.likes}
-              isLoggedIn={!!currentUser}
-            />
-          </div>
       </div>
       {/* 블록 순서(0387): 방문장소 → PLAN — 편집·수정 화면과 동일 순서(0374 정합 유지, WYSIWYG).
           SPOTMAP을 하단 링크·버튼에서 떼어 좌표 리뷰 수정 혼동 차단이 목적(0387).
@@ -154,10 +158,8 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
         // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
         <div className="mt-[46px]">
-          {/* 눈썹 문법(0375) — 같은 화면 PLAN 블록·편집 화면(0342 SPOTMAP)과 동일 클래스 문자열.
-              MapPin 아이콘 제거 — 눈썹+타이틀 구조로 통일 */}
-          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
+          {/* 눈썹 라벨 제거(글 톤 정리) — h2만 유지. mt-[6px]는 눈썹→h2 간격이었어서 함께 제거 */}
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문장소</h2>
           {/* fixedSideWidth(0376) — 0373 폭 정합(상세도 860)으로 "상세=비율" 분기의 전제가 소멸,
               글수정과 동일 크기(카드 426/지도 422)로 통일 */}
           <SpotMap spots={localSpots} readOnly fixedSideWidth />
@@ -168,32 +170,67 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           트리맵만 ratios 있을 때 렌더. BUDGET(예산을 약속하는 헤더)과 달리 PLAN 타이틀은
           플랜 제목 자체가 정보이자 링크라 단독 성립 — 0343 "헤더만 뜬다"류 문제 아님. */}
       {story.plan && publicSummary && (
-        <div className="mt-[46px]">
-          {/* 눈썹 클래스 = 0342 SPOTMAP 눈썹과 동일 문자열. 공용 <Eyebrow> 추출은 후속 정리 */}
-          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
-          {/* h2 mb: 소개 표시 시 10px(제목↔소개), 소개가 자기 mb-[16px]로 트리맵 간격을 이어받음.
-              소개 미표시(비공개·빈 값) 시 기존 16px — 음수 마진 상쇄 대신 명시 분기(값 의도 보존). */}
-          <h2 className={`text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] ${story.plan.isPublic && story.plan.description ? 'mb-[10px]' : 'mb-[16px]'} break-keep`}>
-            {story.plan.isPublic && story.planId ? (
-              // 비공개 플랜은 plan-finder 상세가 없어 링크 미제공(기존 하단 링크의 isPublic 조건 승계)
-              <Link
-                href={`/plan-finder/${story.planId}`}
-                className="inline-flex items-center gap-1 hover:text-fg2 transition-colors"
-              >
-                {story.plan.title}
-                <ArrowRight size={18} aria-hidden />
-              </Link>
-            ) : (
-              story.plan.title
+        // PLAN 카드(눈썹·트리맵 제거) — 면·테두리·radius는 기존 토큰 어휘만(card/border/radius-base).
+        // 트리맵(PublicCostSection)은 이 화면에서만 렌더 제거 — 컴포넌트는 플랜 상세·글쓰기가 계속 사용.
+        <div className="mt-[46px] rounded-[var(--radius-base)] border border-border bg-card p-4">
+          {/* 커버 미디어 오브젝트(0451) — 넓으면 좌 커버 140×105 + 우 텍스트, min-[480px] 미만은 세로 스택.
+              coverUrl null 0건(실측)이나 방어로 있을 때만 렌더. */}
+          <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
+            {story.plan.coverUrl && (
+              // radius = --radius-base(tiptap img와 동일 어휘). 커버 도메인은 PlanCard가 이미 쓰는 remotePatterns.
+              <div className="relative w-full aspect-[4/3] min-[480px]:w-[140px] min-[480px]:h-[105px] min-[480px]:aspect-auto shrink-0 overflow-hidden rounded-[var(--radius-base)]">
+                <Image src={story.plan.coverUrl} alt="" fill sizes="(min-width: 480px) 140px, 100vw" className="object-cover" />
+              </div>
             )}
-          </h2>
-          {/* 소개 — 비공개 플랜 미표시(링크 미제공과 같은 isPublic 조건). 상한 없는 필드라 2줄 클램프 */}
-          {story.plan.isPublic && story.plan.description && (
-            <p className="mb-[16px] text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
-          )}
-          {publicSummary.ratios.length > 0 && <PublicCostSection summary={publicSummary} />}
+            <div className="min-w-0 flex-1">
+              <h2 className={`text-[20px] font-bold tracking-[-0.02em] text-fg ${story.plan.isPublic && story.plan.description ? 'mb-[10px]' : ''} break-keep`}>
+                {story.plan.isPublic && story.planId ? (
+                  // 비공개 플랜은 plan-finder 상세가 없어 링크 미제공(기존 하단 링크의 isPublic 조건 승계).
+                  // '→' 화살표 제거(글 톤 정리) — 링크 어포던스는 hover 명도 반응이 담당
+                  <Link
+                    href={`/plan-finder/${story.planId}`}
+                    className="hover:text-fg2 transition-colors"
+                  >
+                    {story.plan.title}
+                  </Link>
+                ) : (
+                  story.plan.title
+                )}
+              </h2>
+              {/* 소개 — 비공개 플랜 미표시(링크 미제공과 같은 isPublic 조건). 상한 없는 필드라 2줄 클램프 */}
+              {story.plan.isPublic && story.plan.description && (
+                <p className="text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
+              )}
+              {/* 요약 한 줄(트리맵 대체) — 소스·게이트 규칙은 planSummaryLine 파생부 주석 참조 */}
+              {planSummaryLine && (
+                <p className="mt-[8px] text-[13px] text-muted">{planSummaryLine}</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
+      {/* 태그·좋아요(0372) — 본문 직후에서 PLAN 카드 뒤로 이동(글 흐름 유지). 구분선(border-t)
+          동반 이동, 상단 마진은 블록 리듬 46px로 통일(본문 직후 전제였던 36px 폐기).
+          태그 div는 0개여도 빈 채 렌더 — justify-between에서 좋아요 우측 고정 유지 */}
+      <div className="mt-[46px] pt-[20px] border-t border-border flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          {story.tags.map((tag) => (
+            <Link
+              key={tag.id}
+              href={`/story?q=${encodeURIComponent(tag.name)}`}
+              className="text-[12.5px] px-[12px] py-[5px] rounded-full bg-surface2 border border-border text-fg2 cursor-pointer hover:bg-popover transition-colors"
+            >
+              #{tag.name}
+            </Link>
+          ))}
+        </div>
+        <LikeButton
+          storyId={story.id}
+          initialLiked={!!myLike}
+          initialCount={story._count.likes}
+          isLoggedIn={!!currentUser}
+        />
+      </div>
       {/* 다른 이야기 보기(0377) — 다 읽은 독자의 다음 행동이 이 화면의 주요 행동: 글쓰기 "스토리
           등록"·수정 "수정"과 같은 위계 = 같은 클래스 문자열(StoryWriteForm 등록 버튼) + 같은
           46px 리듬(글쓰기도 등록 버튼 앞이 pt-[46px] — "마무리 버튼도 블록 리듬"의 기존 선례).
