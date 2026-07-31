@@ -151,9 +151,55 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
             dangerouslySetInnerHTML={{ __html: story.content }}
           />
       </div>
-      {/* 블록 순서(0387): 방문장소 → PLAN — 편집·수정 화면과 동일 순서(0374 정합 유지, WYSIWYG).
-          SPOTMAP을 하단 링크·버튼에서 떼어 좌표 리뷰 수정 혼동 차단이 목적(0387).
+      {/* 블록 순서: 방문계획(PLAN) → 방문장소(지도) — 블로그 후기 관행상 지도는 글 마지막
+          (사용자 확정). 편집 화면 순서(SPOTMAP→PLAN, 0387)와의 정합보다 읽기 관행 우선.
           두 블록 다 자체 mt-[46px] 조건부라 어느 쪽이 빠져도 간격 규칙 불변. */}
+      {/* PLAN 카드 — 섹션 h2("방문계획") + 카드(면·테두리·radius 기존 토큰 어휘).
+          카드 안 타이틀 = 플랜 제목 겸 링크(isPublic일 때만 — 비공개는 plan-finder 상세가
+          없어 미제공). 트리맵은 요약 한 줄로 대체(0452). */}
+      {story.plan && publicSummary && (
+        <div className="mt-[46px]">
+          {/* h2 클래스 = 방문장소 h2와 동일 문자열(섹션 제목 한 벌) */}
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문계획</h2>
+          <div className="rounded-[var(--radius-base)] border border-border bg-card p-4">
+            {/* 커버 미디어 오브젝트(0451) — 넓으면 좌 커버 140×105 + 우 텍스트, min-[480px] 미만은 세로 스택.
+                coverUrl null 0건(실측)이나 방어로 있을 때만 렌더. */}
+            <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
+              {story.plan.coverUrl && (
+                // radius = --radius-base(tiptap img와 동일 어휘). 커버 도메인은 PlanCard가 이미 쓰는 remotePatterns.
+                <div className="relative w-full aspect-[4/3] min-[480px]:w-[140px] min-[480px]:h-[105px] min-[480px]:aspect-auto shrink-0 overflow-hidden rounded-[var(--radius-base)]">
+                  <Image src={story.plan.coverUrl} alt="" fill sizes="(min-width: 480px) 140px, 100vw" className="object-cover" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                {/* h3 — 섹션 h2("방문계획") 신설로 카드 내 제목은 한 단계 아래(위계 정정, 클래스 불변) */}
+                <h3 className={`text-[20px] font-bold tracking-[-0.02em] text-fg ${story.plan.isPublic && story.plan.description ? 'mb-[10px]' : ''} break-keep`}>
+                  {story.plan.isPublic && story.planId ? (
+                    // 비공개 플랜은 plan-finder 상세가 없어 링크 미제공(기존 하단 링크의 isPublic 조건 승계).
+                    // '→' 화살표 제거(글 톤 정리) — 링크 어포던스는 hover 명도 반응이 담당
+                    <Link
+                      href={`/plan-finder/${story.planId}`}
+                      className="hover:text-fg2 transition-colors"
+                    >
+                      {story.plan.title}
+                    </Link>
+                  ) : (
+                    story.plan.title
+                  )}
+                </h3>
+                {/* 소개 — 비공개 플랜 미표시(링크 미제공과 같은 isPublic 조건). 상한 없는 필드라 2줄 클램프 */}
+                {story.plan.isPublic && story.plan.description && (
+                  <p className="text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
+                )}
+                {/* 요약 한 줄(트리맵 대체) — 소스·게이트 규칙은 planSummaryLine 파생부 주석 참조 */}
+                {planSummaryLine && (
+                  <p className="mt-[8px] text-[13px] text-muted">{planSummaryLine}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {story.storySpots.length > 0 && (
         // mt-[46px](0371) — 시안 섹션 리듬 46px, 글쓰기 필드 블록 리듬(pt-[46px], 0357)과 통일.
         // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
@@ -165,52 +211,8 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           <SpotMap spots={localSpots} readOnly fixedSideWidth />
         </div>
       )}
-      {/* PLAN 블록 — 타이틀 = 플랜 제목 겸 링크(본문색·→ 아이콘), 하단 "이 여행플랜 보기" 링크를 대체.
-          총액 0이어도 눈썹+제목 링크는 유지(플랜 경로 보존 — 옛 하단 링크도 총액 무관이었음),
-          트리맵만 ratios 있을 때 렌더. BUDGET(예산을 약속하는 헤더)과 달리 PLAN 타이틀은
-          플랜 제목 자체가 정보이자 링크라 단독 성립 — 0343 "헤더만 뜬다"류 문제 아님. */}
-      {story.plan && publicSummary && (
-        // PLAN 카드(눈썹·트리맵 제거) — 면·테두리·radius는 기존 토큰 어휘만(card/border/radius-base).
-        // 트리맵(PublicCostSection)은 이 화면에서만 렌더 제거 — 컴포넌트는 플랜 상세·글쓰기가 계속 사용.
-        <div className="mt-[46px] rounded-[var(--radius-base)] border border-border bg-card p-4">
-          {/* 커버 미디어 오브젝트(0451) — 넓으면 좌 커버 140×105 + 우 텍스트, min-[480px] 미만은 세로 스택.
-              coverUrl null 0건(실측)이나 방어로 있을 때만 렌더. */}
-          <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
-            {story.plan.coverUrl && (
-              // radius = --radius-base(tiptap img와 동일 어휘). 커버 도메인은 PlanCard가 이미 쓰는 remotePatterns.
-              <div className="relative w-full aspect-[4/3] min-[480px]:w-[140px] min-[480px]:h-[105px] min-[480px]:aspect-auto shrink-0 overflow-hidden rounded-[var(--radius-base)]">
-                <Image src={story.plan.coverUrl} alt="" fill sizes="(min-width: 480px) 140px, 100vw" className="object-cover" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <h2 className={`text-[20px] font-bold tracking-[-0.02em] text-fg ${story.plan.isPublic && story.plan.description ? 'mb-[10px]' : ''} break-keep`}>
-                {story.plan.isPublic && story.planId ? (
-                  // 비공개 플랜은 plan-finder 상세가 없어 링크 미제공(기존 하단 링크의 isPublic 조건 승계).
-                  // '→' 화살표 제거(글 톤 정리) — 링크 어포던스는 hover 명도 반응이 담당
-                  <Link
-                    href={`/plan-finder/${story.planId}`}
-                    className="hover:text-fg2 transition-colors"
-                  >
-                    {story.plan.title}
-                  </Link>
-                ) : (
-                  story.plan.title
-                )}
-              </h2>
-              {/* 소개 — 비공개 플랜 미표시(링크 미제공과 같은 isPublic 조건). 상한 없는 필드라 2줄 클램프 */}
-              {story.plan.isPublic && story.plan.description && (
-                <p className="text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
-              )}
-              {/* 요약 한 줄(트리맵 대체) — 소스·게이트 규칙은 planSummaryLine 파생부 주석 참조 */}
-              {planSummaryLine && (
-                <p className="mt-[8px] text-[13px] text-muted">{planSummaryLine}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {/* 태그·좋아요(0372) — 본문 직후에서 PLAN 카드 뒤로 이동(글 흐름 유지). 구분선(border-t)
-          동반 이동, 상단 마진은 블록 리듬 46px로 통일(본문 직후 전제였던 36px 폐기).
+      {/* 태그·좋아요(0372) — 지도 뒤 페이지 마무리 행(글 흐름 유지). 구분선(border-t) 동반,
+          상단 마진은 블록 리듬 46px(본문 직후 전제였던 36px 폐기).
           태그 div는 0개여도 빈 채 렌더 — justify-between에서 좋아요 우측 고정 유지 */}
       <div className="mt-[46px] pt-[20px] border-t border-border flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
