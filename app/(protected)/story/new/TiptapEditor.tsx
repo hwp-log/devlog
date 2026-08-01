@@ -29,12 +29,17 @@ interface TiptapEditorProps {
 function ToolbarButton({
   onClick,
   isActive,
+  disabled,
   label,
   className = '',
   children,
 }: {
   onClick: () => void;
   isActive?: boolean;
+  // 0464-d: 적용 불가 시 비활성(워드·한글 방식 — 눌러도 무반응보다 처음부터 회색이 납득).
+  // native disabled라 mousedown 자체가 안 와서 아래 핸들러 가드 불요. 어휘는 기존
+  // disabled:opacity-40 disabled:cursor-not-allowed(Pagination 선례) 재사용
+  disabled?: boolean;
   label?: string; // 아이콘만 있는 버튼용 — aria-label·title(툴팁) 겸용
   // 0461 반응형 표시·순서(order-N) 패스스루. 숨김은 반드시 max-sm:hidden —
   // 베이스에 inline-flex(display 유틸)가 있어 무접두 hidden은 v4 출력 순서(알파벳: h<i)상
@@ -50,8 +55,9 @@ function ToolbarButton({
       type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors ${
+      className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
       } ${className}`}
     >
@@ -135,6 +141,23 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
             code: e.isActive('code'),
             size: e.isActive('size'),
             link: e.isActive('link'),
+            // can 맵(0464-d) — "현재 선택에 적용 불가"의 단일 소스. tiptap canSetMark가
+            // mark excludes를 반영(코드 마크가 전체 배제 "_")해 실질 발동은 선택 전체가
+            // 인라인 코드일 때. 범위 선택은 적용 가능 노드가 하나라도 있으면 true(부분 겹침 활성).
+            // 블록 4종·콜아웃은 스키마 제약(콜아웃 content: paragraph+, 중첩 금지) 반영.
+            canBold: e.can().toggleBold(),
+            canItalic: e.can().toggleItalic(),
+            canStrike: e.can().toggleStrike(),
+            canCode: e.can().toggleCode(),
+            // 작게×제목은 PM 무차단인 우리 문제(13px 고정이 제목 크기를 이김) — 여기서 금지 확정.
+            // globals.css의 제목 안 [data-size] 가드와 짝(기존 저장 글 표시 정상화는 CSS 몫)
+            canSize: e.can().toggleSmall() && !e.isActive('heading'),
+            canLink: e.can().setMark('link'), // setLink는 href 검증이 겹쳐 setMark로 canSetMark만 판단
+            canHeading2: e.can().toggleHeading({ level: 2 }),
+            canHeading3: e.can().toggleHeading({ level: 3 }),
+            canBulletList: e.can().toggleBulletList(),
+            canBlockquote: e.can().toggleBlockquote(),
+            canCallout: e.can().insertCallout('tip'), // 콜아웃 안 재삽입 금지(Callout.ts 명시 false) — kind 무관
           }
         : null,
   });
@@ -168,13 +191,10 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   // 버블의 자식이라 shouldShow·언마운트로 숨기면 목록까지 사라지고, rect가 유지돼야
   // floating-ui 앵커가 흔들리지 않는다. BubbleMore의 통지가 클린업 경유라 선택 붕괴로
   // 버블이 내려가 언마운트돼도 false가 보장됨(invisible 잔류 없음).
+  // 0464-d: blur 시도(0464-c) 제거 — iOS 자체 선택 메뉴는 웹에서 차단 불가 확정
+  // (-webkit-touch-callout iOS15+ 미동작 실기기 확인), blur는 선택을 깨뜨려 기각. 겹침 수용.
   function handleBubbleMoreOpenChange(open: boolean) {
     setBubbleListOpen(open);
-    // blur(0464-c) — iOS 자체 선택 메뉴(오려두기·복사하기)가 겹치는 문제의 1단계 억제.
-    // PM 상태 선택(state.selection)은 DOM 포커스와 무관해 유지되고, 항목 실행은 전부
-    // chain().focus() 경로라 refocus 시 선택 복원 후 적용. 버블은 안 내려감 —
-    // 플러그인 blurHandler가 ⋯ mousedown의 preventHide를 소비해 hide를 건너뛴다.
-    if (open) editor?.commands.blur();
     handleMoreOpenChange(open); // 슬래시 억제 배선(0463)은 그대로 승계
   }
 
@@ -215,6 +235,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={active?.heading2}
+          disabled={active?.canHeading2 === false}
           label="제목"
           className="order-1 sm:order-none"
         >
@@ -223,6 +244,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           isActive={active?.heading3}
+          disabled={active?.canHeading3 === false}
           label="소제목"
           className="max-sm:hidden"
         >
@@ -234,6 +256,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleSmall().run()}
           isActive={active?.size}
+          disabled={active?.canSize === false}
           label="작게"
           className="max-sm:hidden"
         >
@@ -243,6 +266,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={active?.bulletList}
+          disabled={active?.canBulletList === false}
           label="목록"
           className="order-4 sm:order-none"
         >
@@ -251,6 +275,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={active?.blockquote}
+          disabled={active?.canBlockquote === false}
           label="인용"
           className="max-sm:hidden"
         >
@@ -260,6 +285,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().insertCallout('tip').run()}
           isActive={active?.calloutTip}
+          disabled={active?.canCallout === false}
           label="팁 콜아웃"
           className="max-sm:hidden"
         >
@@ -268,6 +294,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().insertCallout('faq').run()}
           isActive={active?.calloutFaq}
+          disabled={active?.canCallout === false}
           label="FAQ 콜아웃"
           className="max-sm:hidden"
         >
@@ -276,6 +303,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().insertCallout('warn').run()}
           isActive={active?.calloutWarn}
+          disabled={active?.canCallout === false}
           label="주의 콜아웃"
           className="max-sm:hidden"
         >
@@ -285,6 +313,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={active?.bold}
+          disabled={active?.canBold === false}
           label="굵게"
           className="order-2 sm:order-none"
         >
@@ -293,6 +322,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={active?.italic}
+          disabled={active?.canItalic === false}
           label="기울임"
           className="order-3 sm:order-none"
         >
@@ -302,6 +332,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleStrike().run()}
           isActive={active?.strike}
+          disabled={active?.canStrike === false}
           label="취소선"
           className="max-sm:hidden"
         >
@@ -310,6 +341,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleCode().run()}
           isActive={active?.code}
+          disabled={active?.canCode === false}
           label="인라인 코드"
           className="max-sm:hidden"
         >
@@ -318,6 +350,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={handleLink}
           isActive={active?.link}
+          disabled={active?.canLink === false}
           label="링크"
           className="max-sm:hidden"
         >
@@ -349,24 +382,25 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         // (!important는 같은 엘리먼트 캐스케이드에만 작용, 상속엔 전파 안 됨)
         className={`flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg ${bubbleListOpen ? 'invisible!' : ''}`}
       >
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={active?.bold} label="굵게">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} disabled={active?.canBold === false} isActive={active?.bold} label="굵게">
           B
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={active?.italic} label="기울임">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} disabled={active?.canItalic === false} isActive={active?.italic} label="기울임">
           I
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={active?.heading2}
           label="제목"
+          disabled={active?.canHeading2 === false}
         >
           H2
         </ToolbarButton>
         {/* 작게 — 선택 후 즉시 거는 성격이라 버블이 주 진입점(툴바와 동일 아이콘·라벨) */}
-        <ToolbarButton onClick={() => editor.chain().focus().toggleSmall().run()} isActive={active?.size} label="작게">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleSmall().run()} disabled={active?.canSize === false} isActive={active?.size} label="작게">
           <AArrowDown size={16} />
         </ToolbarButton>
-        <ToolbarButton onClick={handleLink} isActive={active?.link} label="링크">
+        <ToolbarButton onClick={handleLink} disabled={active?.canLink === false} isActive={active?.link} label="링크">
           <LinkIcon size={16} />
         </ToolbarButton>
         {/* 더보기(0463·0464) — 모바일에서 버블이 실질 주 경로인데 접힌 항목 진입로가 없던 것을
@@ -377,7 +411,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
             "이미 있는 글의 변환" 자리라 마크 4종+블록 변환 4종만.
             구분선은 인라인 div — ToolbarDivider는 max-sm:hidden이라 모바일 표시가 필요한 버블엔 부적합 */}
         <div aria-hidden className="w-0.5 self-stretch bg-divider" />
-        <BubbleMore editor={editor} onLink={handleLink} onOpenChange={handleBubbleMoreOpenChange} />
+        <BubbleMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleBubbleMoreOpenChange} />
       </BubbleMenu>
       {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
           구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)

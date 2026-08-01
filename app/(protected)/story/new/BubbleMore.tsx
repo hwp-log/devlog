@@ -17,16 +17,30 @@ import {
 // 셸·행·그룹 헤더 클래스는 SlashCommand의 SlashMenu와 동일 문자열 복제 —
 // 슬래시 UI 무접촉 제약(0464)으로 추출 대신 복제, 공용 추출은 후속 정리(0341 눈썹 선례).
 
+// 비활성 판정(0464-d) — TiptapEditor useEditorState can 맵 공유(단일 소스, 툴바·버블과 동일).
+// 필요한 필드만 명시 — 전달되는 실제 객체는 상위 맵 전체(구조적 타이핑)
+type CanMap = {
+  canSize: boolean;
+  canStrike: boolean;
+  canCode: boolean;
+  canLink: boolean;
+  canHeading2: boolean;
+  canHeading3: boolean;
+  canBulletList: boolean;
+  canBlockquote: boolean;
+} | null;
+
 interface BubbleMoreProps {
   editor: Editor;
+  active: CanMap;
   onLink: () => void; // TiptapEditor.handleLink — URL prompt 로직 중복 금지
   // 0463 억제 배선 그대로 수신 — 목록 열림 중 "/" 타이핑 억제·슬래시 열림 중 목록 열기 시 슬래시 닫기
   onOpenChange?: (open: boolean) => void;
 }
 
-type Item = { label: string; description: string; icon: LucideIcon; run: () => void };
+type Item = { label: string; description: string; icon: LucideIcon; disabled: boolean; run: () => void };
 
-export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
+export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreProps) {
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -36,23 +50,26 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
   // 그룹 헤더를 두는 이유(사용자 확정): 텍스트 마크는 고른 구간에만 걸리고,
   // 블록 변환은 선택이 걸친 문단 전체가 바뀐다 — 적용 결과가 달라 구분 표기.
   // 라벨·설명·아이콘은 툴바·슬래시 기존 어휘 재사용.
+  // disabled(0464-d) — can 맵 false만 비활성(맵 null=판정 불가 시 활성 유지).
+  // 실질 발동: 마크 4종=선택 전체가 인라인 코드(excludes "_")·작게는 제목 안 추가,
+  // 블록 4종=콜아웃 안(content: paragraph+)
   const groups: { header: string; items: Item[] }[] = [
     {
       header: '텍스트',
       items: [
-        { label: '작게', description: '선택한 글자를 작게', icon: AArrowDown, run: () => editor.chain().focus().toggleSmall().run() },
-        { label: '취소선', description: '가운데 줄 긋기', icon: Strikethrough, run: () => editor.chain().focus().toggleStrike().run() },
-        { label: '인라인 코드', description: '코드 서식', icon: Code, run: () => editor.chain().focus().toggleCode().run() },
-        { label: '링크', description: 'URL 연결', icon: LinkIcon, run: onLink },
+        { label: '작게', description: '선택한 글자를 작게', icon: AArrowDown, disabled: active?.canSize === false, run: () => editor.chain().focus().toggleSmall().run() },
+        { label: '취소선', description: '가운데 줄 긋기', icon: Strikethrough, disabled: active?.canStrike === false, run: () => editor.chain().focus().toggleStrike().run() },
+        { label: '인라인 코드', description: '코드 서식', icon: Code, disabled: active?.canCode === false, run: () => editor.chain().focus().toggleCode().run() },
+        { label: '링크', description: 'URL 연결', icon: LinkIcon, disabled: active?.canLink === false, run: onLink },
       ],
     },
     {
       header: '블록으로 바꾸기',
       items: [
-        { label: '제목', description: '섹션 제목(H2)', icon: Heading2, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
-        { label: '소제목', description: '소제목(H3)', icon: Heading3, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
-        { label: '목록', description: '글머리 기호·번호', icon: List, run: () => editor.chain().focus().toggleBulletList().run() },
-        { label: '인용', description: '왼쪽 선 강조', icon: Quote, run: () => editor.chain().focus().toggleBlockquote().run() },
+        { label: '제목', description: '섹션 제목(H2)', icon: Heading2, disabled: active?.canHeading2 === false, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+        { label: '소제목', description: '소제목(H3)', icon: Heading3, disabled: active?.canHeading3 === false, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+        { label: '목록', description: '글머리 기호·번호', icon: List, disabled: active?.canBulletList === false, run: () => editor.chain().focus().toggleBulletList().run() },
+        { label: '인용', description: '왼쪽 선 강조', icon: Quote, disabled: active?.canBlockquote === false, run: () => editor.chain().focus().toggleBlockquote().run() },
       ],
     },
   ];
@@ -67,7 +84,10 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
     return autoUpdate(btn, pop, () => {
       computePosition(btn, pop, {
         strategy: 'fixed',
-        placement: 'bottom-end',
+        // top-end(0464-d) — 버블은 선택 위에 뜨므로 목록도 위쪽(이미 읽은 이전 줄 방향)으로
+        // 열어야 선택 텍스트를 안 가린다. bottom-end였을 땐 invisible 버블의 잔존 레이아웃
+        // 아래 = 본문 위로 떨어지던 실기기 문제. 상단 공간 부족 시 flip()이 아래 폴백
+        placement: 'top-end',
         middleware: [offset(8), flip(), shift({ padding: 8 })],
       }).then(({ x, y }) => {
         Object.assign(pop.style, { left: `${x}px`, top: `${y}px` });
@@ -110,6 +130,7 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
   }
 
   function runItem(item: Item) {
+    if (item.disabled) return; // aria-disabled 행 — 포커스·순회는 유지, 실행만 차단
     item.run();
     setOpen(false);
   }
@@ -206,13 +227,17 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
                         type="button"
                         role="menuitem"
                         tabIndex={i === selectedIndex ? 0 : -1}
+                        // native disabled 아닌 aria-disabled(0464-d) — 메뉴 패턴 표준: 비활성 항목도
+                        // 포커스·화살표 순회에 남겨 발견 가능하게(WAI-ARIA), roving tabindex 무파손.
+                        // 실행 차단은 runItem 가드. 스타일은 disabled: 의사클래스가 안 걸려 조건부 클래스
+                        aria-disabled={item.disabled || undefined}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => runItem(item)}
                         onMouseEnter={() => setSelectedIndex(i)}
                         // hover 클래스 없음 — onMouseEnter가 selectedIndex를 옮겨 hover=선택=surface2 단일 상태 언어(SlashMenu 규칙)
                         className={`flex w-full items-center gap-2.5 rounded-lg px-[9px] py-2 text-left transition-colors ${
                           i === selectedIndex ? 'bg-surface2' : ''
-                        }`}
+                        } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border-[0.5px] border-border bg-surface2 text-muted">
                           <item.icon size={16} />

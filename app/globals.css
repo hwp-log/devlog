@@ -365,6 +365,13 @@ body {
     font-size: 13px;
   }
 
+  /* 제목 안 "작게" 가드(0464-d) — 위 13px 고정과 짝: 안쪽 요소라 제목 크기(h2 20px·h3 18px)를
+     이겨 13px 굵은 제목으로 깨지던 조합의 표시 무효화. 기존 저장 글의 조합도 정상화.
+     작게 버튼은 제목 안에서 비활성(TiptapEditor canSize) — 신규 유입은 UI가, 표시는 여기가 차단 */
+  .tiptap-content :is(h1, h2, h3, h4, h5, h6) [data-size='sm'] {
+    font-size: inherit;
+  }
+
   /* 인라인 코드(StarterKit Code) — 규칙 부재 시 preflight 모노스페이스만 적용돼 칩 식별 불가.
      기존 토큰만(surface2·border), radius 6px = drag-handle 어휘. 0.875em: 본문 14px·콜아웃
      12.25px(§5 하한 12px 위). 콜아웃(surface2 면) 안에선 배경 동색 — 테두리가 구분 담당 */

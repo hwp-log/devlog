@@ -26,6 +26,14 @@ type ActiveMap = {
   strike: boolean;
   code: boolean;
   link: boolean;
+  // can 필드(0464-d) — 적용 불가 항목 비활성 판정(같은 맵의 확장, BubbleMore와 동일 소스)
+  canHeading3: boolean;
+  canSize: boolean;
+  canBlockquote: boolean;
+  canCallout: boolean;
+  canStrike: boolean;
+  canCode: boolean;
+  canLink: boolean;
 } | null;
 
 interface ToolbarMoreProps {
@@ -45,17 +53,19 @@ export function ToolbarMore({ editor, active, onLink, className = '', onOpenChan
   const popRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // 접힘 항목 목록 — 데스크톱 툴바의 라벨·아이콘·체인과 1:1 동일(어휘 일치)
-  const items: { label: string; icon: LucideIcon; isActive: boolean; run: () => void }[] = [
-    { label: '소제목', icon: Heading3, isActive: !!active?.heading3, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
-    { label: '작게', icon: AArrowDown, isActive: !!active?.size, run: () => editor.chain().focus().toggleSmall().run() },
-    { label: '인용', icon: Quote, isActive: !!active?.blockquote, run: () => editor.chain().focus().toggleBlockquote().run() },
-    { label: '취소선', icon: Strikethrough, isActive: !!active?.strike, run: () => editor.chain().focus().toggleStrike().run() },
-    { label: '인라인 코드', icon: Code, isActive: !!active?.code, run: () => editor.chain().focus().toggleCode().run() },
-    { label: '링크', icon: LinkIcon, isActive: !!active?.link, run: onLink },
-    { label: '팁 콜아웃', icon: Lightbulb, isActive: !!active?.calloutTip, run: () => editor.chain().focus().insertCallout('tip').run() },
-    { label: 'FAQ 콜아웃', icon: MessageCircleQuestion, isActive: !!active?.calloutFaq, run: () => editor.chain().focus().insertCallout('faq').run() },
-    { label: '주의 콜아웃', icon: TriangleAlert, isActive: !!active?.calloutWarn, run: () => editor.chain().focus().insertCallout('warn').run() },
+  // 접힘 항목 목록 — 데스크톱 툴바의 라벨·아이콘·체인과 1:1 동일(어휘 일치).
+  // disabled(0464-d) — can false만 비활성(맵 null=활성 유지). 실질 발동: 마크=선택 전체가
+  // 인라인 코드·작게는 제목 안 추가, 인용·콜아웃=콜아웃 안(스키마 제약·중첩 금지)
+  const items: { label: string; icon: LucideIcon; isActive: boolean; disabled: boolean; run: () => void }[] = [
+    { label: '소제목', icon: Heading3, isActive: !!active?.heading3, disabled: active?.canHeading3 === false, run: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+    { label: '작게', icon: AArrowDown, isActive: !!active?.size, disabled: active?.canSize === false, run: () => editor.chain().focus().toggleSmall().run() },
+    { label: '인용', icon: Quote, isActive: !!active?.blockquote, disabled: active?.canBlockquote === false, run: () => editor.chain().focus().toggleBlockquote().run() },
+    { label: '취소선', icon: Strikethrough, isActive: !!active?.strike, disabled: active?.canStrike === false, run: () => editor.chain().focus().toggleStrike().run() },
+    { label: '인라인 코드', icon: Code, isActive: !!active?.code, disabled: active?.canCode === false, run: () => editor.chain().focus().toggleCode().run() },
+    { label: '링크', icon: LinkIcon, isActive: !!active?.link, disabled: active?.canLink === false, run: onLink },
+    { label: '팁 콜아웃', icon: Lightbulb, isActive: !!active?.calloutTip, disabled: active?.canCallout === false, run: () => editor.chain().focus().insertCallout('tip').run() },
+    { label: 'FAQ 콜아웃', icon: MessageCircleQuestion, isActive: !!active?.calloutFaq, disabled: active?.canCallout === false, run: () => editor.chain().focus().insertCallout('faq').run() },
+    { label: '주의 콜아웃', icon: TriangleAlert, isActive: !!active?.calloutWarn, disabled: active?.canCallout === false, run: () => editor.chain().focus().insertCallout('warn').run() },
   ];
 
   // 위치 계산 — FormatMenu와 동일(열릴 때만, autoUpdate가 스크롤·리사이즈 재계산)
@@ -111,6 +121,7 @@ export function ToolbarMore({ editor, active, onLink, className = '', onOpenChan
   }
 
   function runItem(item: (typeof items)[number]) {
+    if (item.disabled) return; // aria-disabled 행 — 포커스·순회는 유지, 실행만 차단
     item.run();
     closeAll();
   }
@@ -173,12 +184,16 @@ export function ToolbarMore({ editor, active, onLink, className = '', onOpenChan
                   type="button"
                   role="menuitem"
                   tabIndex={i === activeIndex ? 0 : -1}
+                  // native disabled 아닌 aria-disabled(0464-d) — 메뉴 패턴 표준: 비활성 항목도
+                  // 포커스·화살표 순회에 남겨 발견 가능하게(WAI-ARIA), roving tabindex 무파손.
+                  // 실행 차단은 runItem 가드. 스타일은 disabled: 의사클래스가 안 걸려 조건부 클래스
+                  aria-disabled={item.disabled || undefined}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => runItem(item)}
                   onMouseEnter={() => setActiveIndex(i)}
                   className={`flex items-center gap-2 min-h-[44px] rounded px-2 text-left text-sm font-medium transition-colors ${
                     item.isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
-                  }`}
+                  } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   <item.icon size={16} className="shrink-0" />
                   {item.label}
