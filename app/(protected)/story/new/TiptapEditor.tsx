@@ -18,6 +18,7 @@ import { SizeMark } from './SizeMark';
 import { createSlashCommand } from './SlashCommand';
 import { FormatMenu } from './FormatMenu';
 import { ToolbarMore } from './ToolbarMore';
+import { BubbleMore } from './BubbleMore';
 
 interface TiptapEditorProps {
   content: string;
@@ -346,13 +347,15 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton onClick={handleLink} isActive={active?.link} label="링크">
           <LinkIcon size={16} />
         </ToolbarButton>
-        {/* 더보기(0463) — 모바일에서 버블이 실질 주 경로인데 접힌 항목 진입로가 없던 것을 해소.
-            데스크톱 버블에도 표시: 툴바가 문서 상단 in-flow(비고정)라 긴 글 중간에선 데스크톱도
-            같은 스크롤 이탈 문제 — 두 환경 버블 구성 한 벌 유지. H2가 버블에 남는 이유도 동일
-            전제(노션은 키보드 위 상시 툴바, 우리는 상단 비고정 — 사용자 확정).
+        {/* 더보기(0463·0464) — 모바일에서 버블이 실질 주 경로인데 접힌 항목 진입로가 없던 것을
+            해소. 데스크톱 버블에도 표시: 툴바가 문서 상단 in-flow(비고정)라 긴 글 중간에선
+            데스크톱도 같은 스크롤 이탈 문제 — 두 환경 버블 구성 한 벌 유지. H2가 버블에 남는
+            이유도 동일 전제(노션은 키보드 위 상시 툴바, 우리는 상단 비고정 — 사용자 확정).
+            내용은 툴바 그리드가 아닌 버블 전용 선택 도구 목록(BubbleMore, 0464) — 버블은
+            "이미 있는 글의 변환" 자리라 마크 4종+블록 변환 4종만.
             구분선은 인라인 div — ToolbarDivider는 max-sm:hidden이라 모바일 표시가 필요한 버블엔 부적합 */}
         <div aria-hidden className="w-0.5 self-stretch bg-divider" />
-        <ToolbarMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleMoreOpenChange} />
+        <BubbleMore editor={editor} onLink={handleLink} onOpenChange={handleMoreOpenChange} />
       </BubbleMenu>
       {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
           구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)
