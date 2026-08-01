@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -89,6 +89,33 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
     },
   });
 
+  // 활성 표시 구독(v3 권장 useEditorState) — 트랜잭션마다 셀렉터만 실행되고, 불리언 맵이
+  // 실제로 바뀔 때만(deepEqual) 리렌더. v3 useEditor는 트랜잭션에 리렌더하지 않아 선택만으로는
+  // isActive가 갱신되지 않던 문제의 해소 지점. 툴바·버블 메뉴가 이 한 맵을 공유한다.
+  // 전량 리렌더(shouldRerenderOnTransaction)안은 무한 리렌더 사고로 기각 — extensions 고정(0457)과
+  // 짝: 리렌더가 와도 setOptions 재실행이 없어 고리가 성립하지 않는다.
+  const active = useEditorState({
+    editor,
+    selector: ({ editor: e }) =>
+      e
+        ? {
+            bold: e.isActive('bold'),
+            italic: e.isActive('italic'),
+            heading2: e.isActive('heading', { level: 2 }),
+            heading3: e.isActive('heading', { level: 3 }),
+            bulletList: e.isActive('bulletList'),
+            blockquote: e.isActive('blockquote'),
+            calloutTip: e.isActive('callout', { kind: 'tip' }),
+            calloutFaq: e.isActive('callout', { kind: 'faq' }),
+            calloutWarn: e.isActive('callout', { kind: 'warn' }),
+            strike: e.isActive('strike'),
+            code: e.isActive('code'),
+            size: e.isActive('size'),
+            link: e.isActive('link'),
+          }
+        : null,
+  });
+
   if (!editor) return null;
 
   function handleLink() {
@@ -138,14 +165,14 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
       <div className="border-b border-border p-2 flex gap-1 flex-wrap">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive('heading', { level: 2 })}
+          isActive={active?.heading2}
           label="제목"
         >
           H2
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          isActive={editor.isActive('heading', { level: 3 })}
+          isActive={active?.heading3}
           label="소제목"
         >
           H3
@@ -155,7 +182,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarDivider />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleSmall().run()}
-          isActive={editor.isActive('size')}
+          isActive={active?.size}
           label="작게"
         >
           <AArrowDown size={16} />
@@ -163,14 +190,14 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarDivider />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive('bulletList')}
+          isActive={active?.bulletList}
           label="목록"
         >
           <List size={16} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive('blockquote')}
+          isActive={active?.blockquote}
           label="인용"
         >
           <Quote size={16} />
@@ -178,21 +205,21 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         {/* 콜아웃 3종 — 블록 구조 계열이라 그룹1(인용 옆). 삽입 그룹(3)은 외부 자산 어휘라 부적합 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().insertCallout('tip').run()}
-          isActive={editor.isActive('callout', { kind: 'tip' })}
+          isActive={active?.calloutTip}
           label="팁 콜아웃"
         >
           <Lightbulb size={16} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().insertCallout('faq').run()}
-          isActive={editor.isActive('callout', { kind: 'faq' })}
+          isActive={active?.calloutFaq}
           label="FAQ 콜아웃"
         >
           <MessageCircleQuestion size={16} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().insertCallout('warn').run()}
-          isActive={editor.isActive('callout', { kind: 'warn' })}
+          isActive={active?.calloutWarn}
           label="주의 콜아웃"
         >
           <TriangleAlert size={16} />
@@ -200,14 +227,14 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarDivider />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive('bold')}
+          isActive={active?.bold}
           label="굵게"
         >
           B
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive('italic')}
+          isActive={active?.italic}
           label="기울임"
         >
           I
@@ -215,21 +242,21 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         {/* 취소선·인라인 코드 = StarterKit 기등록 마크의 UI 노출 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          isActive={editor.isActive('strike')}
+          isActive={active?.strike}
           label="취소선"
         >
           <Strikethrough size={16} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleCode().run()}
-          isActive={editor.isActive('code')}
+          isActive={active?.code}
           label="인라인 코드"
         >
           <Code size={16} />
         </ToolbarButton>
         <ToolbarButton
           onClick={handleLink}
-          isActive={editor.isActive('link')}
+          isActive={active?.link}
           label="링크"
         >
           <LinkIcon size={16} />
@@ -251,24 +278,24 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         }
         className="flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg"
       >
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} label="굵게">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={active?.bold} label="굵게">
           B
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} label="기울임">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={active?.italic} label="기울임">
           I
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive('heading', { level: 2 })}
+          isActive={active?.heading2}
           label="제목"
         >
           H2
         </ToolbarButton>
         {/* 작게 — 선택 후 즉시 거는 성격이라 버블이 주 진입점(툴바와 동일 아이콘·라벨) */}
-        <ToolbarButton onClick={() => editor.chain().focus().toggleSmall().run()} isActive={editor.isActive('size')} label="작게">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleSmall().run()} isActive={active?.size} label="작게">
           <AArrowDown size={16} />
         </ToolbarButton>
-        <ToolbarButton onClick={handleLink} isActive={editor.isActive('link')} label="링크">
+        <ToolbarButton onClick={handleLink} isActive={active?.link} label="링크">
           <LinkIcon size={16} />
         </ToolbarButton>
       </BubbleMenu>
