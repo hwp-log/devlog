@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -60,9 +60,13 @@ function ToolbarDivider() {
 export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
+  // extensions 렌더 간 고정 — useEditor.compareOptions가 배열 항목 동일성(!==)으로 비교하는데
+  // configure()·createSlashCommand() 재호출 산물은 매번 새 객체라 항상 불일치 판정 →
+  // 매 렌더 setOptions()·view.updateState() 전체 재갱신이 일어나던 근본 원인.
+  // 의존성 []인 근거: 유일한 외부 참조(슬래시 이미지 콜백)가 ref를 호출 시점에 읽는
+  // 지연 참조라(ref 객체는 렌더 간 안정) 1회 생성 클로저가 영구 유효.
+  const extensions = useMemo(
+    () => [
       StarterKit.configure({ link: false }),
       Image,
       Link.configure({ openOnClick: false }),
@@ -73,6 +77,12 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
       createSlashCommand(() => fileInputRef.current?.click()),
       GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
+    [],
+  );
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions,
     content,
     onUpdate({ editor }) {
       onChange(editor.getHTML());
