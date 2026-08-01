@@ -1205,7 +1205,7 @@ export default function SpotMap({
         <div className={`overflow-hidden flex-shrink-0 md:max-h-[500px] transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? `${fixedSideWidth ? SIDE_CARD_WIDTH : 'w-full md:w-2/5'} opacity-100` : 'w-0 opacity-0 pointer-events-none'
           }`}>
           {readOnly ? (
-            <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 relative overflow-hidden">
+            <div className="bg-surface2 rounded-xl shadow-lg h-full p-5 relative overflow-hidden">
               {/* 0377: absolute 전환은 md 한정 — 모바일(flex-col)은 카드 높이=콘텐츠라 두 레이어가
                   전부 absolute면 높이가 p-5만 남아 ~42px로 붕괴(팝업이 overflow-hidden에 클립).
                   목록을 flow에 남겨 높이를 유지하고, 크로스페이드는 행 높이(지도 500px)가 있는 md 이상 전용 */}
@@ -1218,9 +1218,9 @@ export default function SpotMap({
                   <SpotList readOnly spots={localSpots} onSelect={handleSpotSelect} />
                 </div>
               </div>
-              {/* 0377: bg-card — 모바일에서 목록이 flow에 남으므로(위) 팝업 레이어가 투명하면 겹쳐 보임.
-                  md 크로스페이드에도 무해(같은 카드면 위 불투명 층) */}
-              <div className={`absolute inset-0 bg-card transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              {/* 0377: bg-surface2 — 모바일에서 목록이 flow에 남으므로(위) 팝업 레이어가 투명하면 겹쳐 보임.
+                  md 크로스페이드에도 무해(같은 카드면 위 불투명 층) — 카드 프레임(위 1208)과 동색 유지 필수 */}
+              <div className={`absolute inset-0 bg-surface2 transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 {/* !isMobile — 모바일 팝업은 아래 전체화면 모달 슬롯(0378). 빈 레이어는 모달 뒤라 비가시 */}
                 {!isMobile && renderPopup()}
               </div>

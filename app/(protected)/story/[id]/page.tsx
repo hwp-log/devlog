@@ -161,7 +161,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         <div className="mt-[46px]">
           {/* h2 클래스 = 방문장소 h2와 동일 문자열(섹션 제목 한 벌) */}
           <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문계획</h2>
-          <div className="rounded-[var(--radius-base)] border border-border bg-card p-4">
+          <div className="rounded-[var(--radius-base)] bg-surface2 p-4">
             {/* 커버 미디어 오브젝트(0451) — 넓으면 좌 커버 140×105 + 우 텍스트, min-[480px] 미만은 세로 스택.
                 coverUrl null 0건(실측)이나 방어로 있을 때만 렌더. */}
             <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
