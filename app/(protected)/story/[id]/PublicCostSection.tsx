@@ -24,7 +24,7 @@ const NAME_MIN_RATIO = 12;
  * 타일 폭 = flexGrow(비중), flexBasis 0이 비례 폭의 전제.
  * 카드 껍데기 없음 — 카드는 조작 가능 영역 표시이고 트리맵은 보기 전용이라 여백으로 구분
  * (0341 글쓰기 예산 껍데기 제거와 같은 규칙). 바깥 여백은 소비처 소관.
- * 소비처: story/[id] · plan-finder/[id] · story/new(글쓰기 PLAN 블록).
+ * 소비처: plan-finder/[id]뿐 — story/[id]는 0452(요약 한 줄 대체)·story/new는 0459(상세 정합)에서 폐기.
  */
 export function PublicCostSection({ summary }: Props) {
   const { ratios } = summary;

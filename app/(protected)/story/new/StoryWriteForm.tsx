@@ -16,20 +16,17 @@ type LoadedStorySpot = {
   spot: Spot & { spotMovies: { movie: { id: string; title: string } }[] };
 };
 import { STORY_TEMPLATE_HTML } from '@/lib/story/template';
-// server-only 모듈에서 타입만 — 런타임 import 없음(PublicCostSection과 동일 선례)
-import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
-import { PublicCostSection } from '@/app/(protected)/story/[id]/PublicCostSection';
 
 type ActionState = { error: string } | null;
 
-// 비중 요약은 서버 page가 summarizePlanCost(server-only)로 사전 계산해 내려줌 —
+// 요약 한 줄은 서버 page가 buildPlanSummaryLine(server-only)으로 문자열 완성해 내려줌 —
 // 원 금액(costs·flight)은 클라로 안 옴. 드롭다운 변경은 이 배열 룩업(서버 왕복 없음).
 export type PlanWithSummary = {
   id: string;
   title: string;
   description: string | null; // MyPlan.description — 상한 없는 필드라 표시층 2줄 클램프가 방어선
   coverUrl: string | null; // MyPlan.coverUrl — 저장값 그대로. null 0건(실측)이나 방어로 있을 때만 렌더
-  summary: PublicCostSummary;
+  summaryLine: string; // "N일 · 스팟 N곳 · N인 · 총 약 N만원" — 상세 PLAN 카드와 단일 소스(0459)
 };
 
 interface StoryWriteFormProps {
@@ -216,34 +213,36 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             </select>
             <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-0 bottom-[10px] text-muted" />
           </div>
-          {/* 커버·소개·트리맵은 플랜 선택 시에만. 미선택 시 eyebrow·h2·select만 남고 커버 미렌더(0451).
-              커버 미디어 오브젝트 — 넓으면 좌 커버 140×105 + 우 소개, min-[480px] 미만 세로 스택.
-              coverUrl 있을 때만 커버 렌더(null 0건 실측). 소개는 상한 없는 필드라 2줄 클램프.
-              트리맵 — 금액 없이 비중만(상세와 같은 공개 수준). 총액 0이면 트리맵만 생략. */}
+          {/* 미리보기 카드는 플랜 선택 시에만. 미선택 시 h2·select만 남는다(0451).
+              카드 구조 = 상세 PLAN 카드와 동일(0459 정합): surface2 면 + 커버 미디어 오브젝트 +
+              h3 제목 + 소개 2줄 클램프 + 요약 한 줄. 트리맵은 상세와 함께 폐기(0452 방향).
+              상세 카드와 의도적 차이 2가지 — h3에 plan-finder 링크 없음(작성 중 이탈 방지),
+              소개에 isPublic 게이트 없음(본인 소유 플랜만 노출되는 화면이라 제3자 독자 전제가 없음). */}
           {selectedPlanId && (() => {
             const plan = availablePlans.find((p) => p.id === selectedPlanId);
             if (!plan) return null;
             return (
-              <>
-                {(plan.coverUrl || plan.description) && (
-                  <div className="mt-[16px] flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
-                    {plan.coverUrl && (
-                      // radius = --radius-base(tiptap img와 동일 어휘). 상세 PLAN 커버와 같은 마크업.
-                      <div className="relative w-full aspect-[4/3] min-[480px]:w-[140px] min-[480px]:h-[105px] min-[480px]:aspect-auto shrink-0 overflow-hidden rounded-[var(--radius-base)]">
-                        <Image src={plan.coverUrl} alt="" fill sizes="(min-width: 480px) 140px, 100vw" className="object-cover" />
-                      </div>
-                    )}
+              <div className="mt-[16px] rounded-[var(--radius-base)] bg-surface2 p-4">
+                <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-start gap-4">
+                  {plan.coverUrl && (
+                    // radius = --radius-base(tiptap img와 동일 어휘). 상세 PLAN 커버와 같은 마크업.
+                    <div className="relative w-full aspect-[4/3] min-[480px]:w-[140px] min-[480px]:h-[105px] min-[480px]:aspect-auto shrink-0 overflow-hidden rounded-[var(--radius-base)]">
+                      <Image src={plan.coverUrl} alt="" fill sizes="(min-width: 480px) 140px, 100vw" className="object-cover" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className={`text-[20px] font-bold tracking-[-0.02em] text-fg ${plan.description ? 'mb-[10px]' : ''} break-keep`}>
+                      {plan.title}
+                    </h3>
                     {plan.description && (
-                      <p className="min-w-0 flex-1 text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
+                      <p className="text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
+                    )}
+                    {plan.summaryLine && (
+                      <p className="mt-[8px] text-[13px] text-muted">{plan.summaryLine}</p>
                     )}
                   </div>
-                )}
-                {plan.summary.ratios.length > 0 && (
-                  <div className="mt-[16px]">
-                    <PublicCostSection summary={plan.summary} />
-                  </div>
-                )}
-              </>
+                </div>
+              </div>
             );
           })()}
         </div>

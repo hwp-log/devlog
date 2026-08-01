@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { StoryWriteForm } from '@/app/(protected)/story/new/StoryWriteForm';
 import { updateStoryAction } from '../actions';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
+import { buildPlanSummaryLine } from '@/lib/plan/summary-line';
 
 export default async function StoryEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,18 +37,28 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
     },
     select: {
       id: true, title: true, description: true, currency: true, coverUrl: true,
+      // 요약 한 줄(일수·스팟·인원·금액) 소스 — 상세 PLAN 카드와 동일 필드(0459 정합)
+      startDate: true, endDate: true, headcount: true, isPublic: true,
+      _count: { select: { spots: true } },
       costs: { select: { category: true, amount: true } },
       flight: { select: { totalAmount: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
-  // 비중 요약은 server-only(summarizePlanCost) — 여기서 계산해 결과만 클라로(new/page.tsx와 동일 패턴)
+  // 요약 한 줄은 서버에서 문자열로 완성해 내림 — 원 금액 비노출(new/page.tsx와 동일 패턴)
   const availablePlans = plans.map((p) => ({
     id: p.id,
     title: p.title,
     description: p.description,
     coverUrl: p.coverUrl,
-    summary: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY'),
+    summaryLine: buildPlanSummaryLine({
+      startDate: p.startDate,
+      endDate: p.endDate,
+      spotCount: p._count.spots,
+      headcount: p.headcount,
+      showCost: p.isPublic,
+      band: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY').band,
+    }),
   }));
 
   const boundAction = updateStoryAction.bind(null, story.id);
