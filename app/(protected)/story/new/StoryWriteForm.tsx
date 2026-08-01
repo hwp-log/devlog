@@ -137,45 +137,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
               <TiptapEditor content={content} onChange={setContent} userId={userId} />
               <input type="hidden" name="content" value={content} />
             </div>
-            <div className="flex flex-col pt-[46px]">
-              <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span>({tags.length}/5)</span></label>
-              <div className="flex items-end gap-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  // isComposing 가드(0366) — 한글 IME 조합 중 Enter는 keydown이 2회 옴(조합 커밋 +
-                  // 실제 Enter). 커밋 keydown에서 addTag하면 비워진 input에 IME가 마지막 음절을
-                  // 재커밋해 태그가 2개(#수리남·#남) 생김. isComposing은 UI Events 표준 속성이라
-                  // 상태 추적(compositionstart/end)·비표준 keyCode 229 없이 한 줄로 판별 가능.
-                  // React 합성 이벤트엔 없어 nativeEvent 경유.
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
-                    e.preventDefault();
-                    addTag();
-                  }}
-                  placeholder="태그 입력 후 Enter"
-                  className="flex-1 px-0 min-h-[44px] pb-[8px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
-                />
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {tags.map((tag) => (
-                    <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface2 text-fg2 text-xs">
-                      #{tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="text-muted hover:text-fg2 transition-colors leading-none"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <input type="hidden" name="tags" value={JSON.stringify(tags)} />
-            </div>
+            <input type="hidden" name="tags" value={JSON.stringify(tags)} />
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
@@ -245,7 +207,47 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
         <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문장소</h2>
         <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
       </div>
-      {/* 등록 버튼: 방문장소 아래 마지막(읽기 화면의 "다른 이야기 보기" 위치와 동일 리듬).
+      {/* 태그 — 읽기 화면과 같은 자리(방문장소 아래 마무리 행, 0459 정합). 입력 UI는 form 밖,
+          hidden tags(폼 내부)가 state로 제출 — 플랜 select와 같은 무접촉 패턴 */}
+      <div className="flex flex-col pt-[46px]">
+        <label className="text-[12px] font-medium text-muted mb-[9px]">태그 <span>({tags.length}/5)</span></label>
+        <div className="flex items-end gap-2">
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            // isComposing 가드(0366) — 한글 IME 조합 중 Enter는 keydown이 2회 옴(조합 커밋 +
+            // 실제 Enter). 커밋 keydown에서 addTag하면 비워진 input에 IME가 마지막 음절을
+            // 재커밋해 태그가 2개(#수리남·#남) 생김. isComposing은 UI Events 표준 속성이라
+            // 상태 추적(compositionstart/end)·비표준 keyCode 229 없이 한 줄로 판별 가능.
+            // React 합성 이벤트엔 없어 nativeEvent 경유.
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+              e.preventDefault();
+              addTag();
+            }}
+            placeholder="태그 입력 후 Enter"
+            className="flex-1 px-0 min-h-[44px] pb-[8px] text-[16px] sm:text-[14px] text-fg bg-transparent border-0 border-b border-border placeholder:text-muted focus:outline-none focus:border-primary"
+          />
+        </div>
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {tags.map((tag) => (
+              <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface2 text-fg2 text-xs">
+                #{tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="text-muted hover:text-fg2 transition-colors leading-none"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* 등록 버튼: 태그 아래 마지막(읽기 화면의 "다른 이야기 보기" 위치와 동일 리듬).
           form 밖이라 form="story-write-form"으로 연결 — 클릭 시 폼 submit 이벤트가 발화해
           handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}
       <div className="pt-[46px]">
