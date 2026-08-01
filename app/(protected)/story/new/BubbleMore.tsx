@@ -128,9 +128,16 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
       itemRefs.current[n]?.focus();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      setOpen(false);
-      buttonRef.current?.focus();
+      close();
     }
+  }
+
+  // 닫기 공용(뒤로·ESC) — 트리거 포커스 복귀는 rAF 한 프레임 지연(0464-b): 닫는 시점엔 버블이
+  // 아직 invisible(상태 플러시 전)이라 visibility:hidden 요소는 포커스 불가 — 복귀 렌더 후 포커스
+  // (FormatMenu backToList의 rAF 선례)
+  function close() {
+    setOpen(false);
+    requestAnimationFrame(() => buttonRef.current?.focus());
   }
 
   return (
@@ -158,7 +165,9 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
           role="menu"
           aria-label="선택 도구"
           onKeyDown={onMenuKeyDown}
-          style={{ position: 'fixed', top: 0, left: 0, zIndex: 50 }}
+          // visibility:visible(0464-b) — 목록 열림 중 부모 버블이 invisible이 되는데,
+          // visibility는 상속되지만 자손이 visible로 역전 가능(CSS 명세) — 목록만 살린다
+          style={{ position: 'fixed', top: 0, left: 0, zIndex: 50, visibility: 'visible' }}
           // 셸 = SlashMenu와 동일 문자열(패딩만 아래 스크롤 영역으로 이동 — 뒤로 행은 스크롤 밖 고정)
           className="w-[250px] rounded-[12px] border border-border bg-card shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)]"
         >
@@ -168,10 +177,7 @@ export function BubbleMore({ editor, onLink, onOpenChange }: BubbleMoreProps) {
             <button
               type="button"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setOpen(false);
-                buttonRef.current?.focus();
-              }}
+              onClick={close}
               className="flex w-full items-center gap-1.5 min-h-[44px] rounded px-2 text-sm text-fg2 hover:bg-popover transition-colors"
             >
               <ArrowLeft size={14} />
