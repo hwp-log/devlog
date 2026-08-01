@@ -1230,16 +1230,18 @@ export default function SpotMap({
             </div>
           ) : nearbyChooser ? (
             // 0394: 데스크톱 사이드 카드 슬롯 — 카드 크롬은 여기, 콘텐츠는 renderChooser 공유(모바일 시트와 동일 소스)
-            <div className="bg-card rounded-xl shadow-lg h-full overflow-y-auto border border-border">
+            <div className="bg-surface2 rounded-xl shadow-lg h-full overflow-y-auto">
               {renderChooser()}
             </div>
           ) : activeSpot && !isMobile ? (
             // !isMobile(0378) — 모바일 팝업은 아래 전체화면 모달 슬롯. 카드는 메뉴로 폴스루(닫힘 후 상태와 동일)
-            <div className="bg-card rounded-xl shadow-lg h-full overflow-y-auto border border-border">
+            <div className="bg-surface2 rounded-xl shadow-lg h-full overflow-y-auto">
               {renderPopup()}
             </div>
           ) : canAddSpot ? (
-            <div className="bg-card rounded-xl shadow-lg h-full border border-border p-5 flex flex-col gap-4">
+            // 면 = bg-surface2·무테두리(0459) — readOnly 분기(위 1211)와 동일 어휘로 읽기·편집 카드면 동조.
+            // 세 크롬(chooser·popup·menu) 동시 전환 — 한 곳만 바꾸면 상태 전환마다 카드 색이 튐
+            <div className="bg-surface2 rounded-xl shadow-lg h-full p-5 flex flex-col gap-4">
               {mode === 'pinning' ? (
                 <>
                   <div className="flex-1 flex flex-col items-center justify-center gap-3">
