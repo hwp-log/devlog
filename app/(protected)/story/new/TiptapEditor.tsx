@@ -70,12 +70,17 @@ function ToolbarDivider() {
 
 export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 0463: 더보기 패널·슬래시 메뉴 동시 표시 방지 배선 — 지연 참조 ref 2개.
+  // 읽기·쓰기 전부 이벤트 핸들러·플러그인 콜백 시점(렌더 중 접근 없음). useMemo 고정 객체
+  // 대안은 react-hooks/immutability(훅 산출물 변경 금지)에 걸려 기각 — 가변 비렌더 상태는 ref가 정위치.
+  const moreOpenRef = useRef(false); // 더보기 패널(툴바·버블 어느 쪽이든) 열림 여부
+  const slashCloseRef = useRef<(() => void) | null>(null); // 열린 슬래시 메뉴의 destroy 핸들
 
   // extensions 렌더 간 고정 — useEditor.compareOptions가 배열 항목 동일성(!==)으로 비교하는데
   // configure()·createSlashCommand() 재호출 산물은 매번 새 객체라 항상 불일치 판정 →
   // 매 렌더 setOptions()·view.updateState() 전체 재갱신이 일어나던 근본 원인.
-  // 의존성 []인 근거: 유일한 외부 참조(슬래시 이미지 콜백)가 ref를 호출 시점에 읽는
-  // 지연 참조라(ref 객체는 렌더 간 안정) 1회 생성 클로저가 영구 유효.
+  // 의존성 []인 근거: 외부 참조(슬래시 이미지 콜백·moreOpenRef·slashCloseRef)가 전부
+  // 호출 시점에 .current를 읽는 지연 참조라(ref 객체는 렌더 간 안정) 1회 생성 클로저가 영구 유효.
   const extensions = useMemo(
     () => [
       StarterKit.configure({ link: false }),
@@ -85,7 +90,11 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
       SizeMark, // "작게" 마크 — <span data-size="sm">, 크기는 globals.css 파생
       // placeholder 확장 없음(0358) — 예시가 실제 텍스트(0355)라 본문 안 안내가 불필요하고,
       // 자유형·빈 본문 무문구가 확정 사양. 슬래시 안내는 에디터 밖 하단 보조 텍스트(StoryWriteForm).
-      createSlashCommand(() => fileInputRef.current?.click()),
+      // react-hooks/refs 오탐: 세 ref 모두 렌더 중이 아니라 플러그인 콜백 호출 시점에만 읽힘
+      // (위 "의존성 []인 근거" 참조). 이 disable로 기존 톨러레이트하던 이미지 콜백 오탐 1건도
+      // 함께 침묵됨 — 이 줄에 실제 렌더 중 ref 접근을 추가하면 가려지므로 주의.
+      // eslint-disable-next-line react-hooks/refs
+      createSlashCommand(() => fileInputRef.current?.click(), () => moreOpenRef.current, slashCloseRef),
       GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
     [],
@@ -142,6 +151,13 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
 
   function handleImageUpload() {
     fileInputRef.current?.click();
+  }
+
+  // 0463: 패널 열림 통지 — 열리는 순간 열려 있던 슬래시 메뉴를 닫고(destroy, ESC와 동일 경로),
+  // 열림 동안 moreOpenRef가 슬래시 allow를 억제한다. 툴바·버블 두 ToolbarMore 인스턴스 공용.
+  function handleMoreOpenChange(open: boolean) {
+    moreOpenRef.current = open;
+    if (open) slashCloseRef.current?.();
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -296,8 +312,9 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         {/* 3b: 서식 팝오버 — ml-auto로 우측 끝 분리(삽입 성격이 달라 다른 그룹과 구분).
             모바일은 더보기 안 FormatMenuContent가 대체(0461)라 데스크톱 전용 */}
         <FormatMenu editor={editor} />
-        {/* 더보기(0461) — 모바일 전용, ml-auto 우측 끝(이미지와의 여백 슬랙 흡수) */}
-        <ToolbarMore editor={editor} active={active} onLink={handleLink} className="order-6 ml-auto sm:hidden" />
+        {/* 더보기(0461) — 모바일 전용. ml-auto 없음(0463): flex-wrap에서 auto 마진이 더보기를
+            다음 줄로 밀던 원인 — 좌측 연속 배치로 6개 한 줄(284px ≤ 360px 가용 294) */}
+        <ToolbarMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleMoreOpenChange} className="order-6 sm:hidden" />
       </div>
       {/* 버블 메뉴 — 선택 서식(B/I/H2/작게/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
           이미지는 선택 서식이 아니라 제외. 상단 툴바와 하이브리드(둘 다 유지). */}
@@ -329,6 +346,13 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton onClick={handleLink} isActive={active?.link} label="링크">
           <LinkIcon size={16} />
         </ToolbarButton>
+        {/* 더보기(0463) — 모바일에서 버블이 실질 주 경로인데 접힌 항목 진입로가 없던 것을 해소.
+            데스크톱 버블에도 표시: 툴바가 문서 상단 in-flow(비고정)라 긴 글 중간에선 데스크톱도
+            같은 스크롤 이탈 문제 — 두 환경 버블 구성 한 벌 유지. H2가 버블에 남는 이유도 동일
+            전제(노션은 키보드 위 상시 툴바, 우리는 상단 비고정 — 사용자 확정).
+            구분선은 인라인 div — ToolbarDivider는 max-sm:hidden이라 모바일 표시가 필요한 버블엔 부적합 */}
+        <div aria-hidden className="w-0.5 self-stretch bg-divider" />
+        <ToolbarMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleMoreOpenChange} />
       </BubbleMenu>
       {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
           구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)

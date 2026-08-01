@@ -177,7 +177,14 @@ const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(function SlashMenu
   );
 });
 
-export function createSlashCommand(onImagePick: () => void) {
+// isSuppressed·closeHandleRef(0463) — 더보기 패널과의 동시 표시 방지 양방향 배선.
+// 둘 다 ref 지연 참조 패턴(0457 이미지 콜백과 동일): extensions가 useMemo []로 고정돼
+// 값을 갈아끼울 수 없으므로, 호출 시점에 ref를 읽는 함수/핸들만 1회 주입한다.
+export function createSlashCommand(
+  onImagePick: () => void,
+  isSuppressed?: () => boolean,
+  closeHandleRef?: { current: (() => void) | null },
+) {
   const allItems = buildItems(onImagePick);
 
   return Extension.create({
@@ -191,6 +198,8 @@ export function createSlashCommand(onImagePick: () => void) {
           // 제목·인용 등 다른 블록 내부에서는 발동하지 않음 (문단만).
           // 콜아웃 내부 문단도 제외 — 스키마상 중첩 불가지만 메뉴 자체를 안 띄워 UX로도 차단
           allow: ({ state, range }) => {
+            // 더보기 패널 열림 중엔 억제(0463) — "/"는 일반 문자로만 입력, 오버레이 동시 표시 금지
+            if (isSuppressed?.()) return false;
             const $pos = state.doc.resolve(range.from);
             if ($pos.parent.type.name !== 'paragraph') return false;
             for (let d = $pos.depth; d > 0; d--) {
@@ -276,6 +285,8 @@ export function createSlashCommand(onImagePick: () => void) {
               (component?.element as HTMLElement | undefined)?.remove();
               component?.destroy();
               component = null;
+              // 닫힘 핸들 해제(0463) — 스테일 핸들 차단(SpotPopup closeHandleRef 0378과 동일 규칙)
+              if (closeHandleRef) closeHandleRef.current = null;
             };
 
             return {
@@ -302,6 +313,8 @@ export function createSlashCommand(onImagePick: () => void) {
                 // 떨림으로 보인다. 매 프레임 rAF로 갱신해 캐럿에 즉시 붙는다. 메뉴 열림 동안만 돌고,
                 // 닫힘 시 destroy() → cleanup()으로 rAF 루프가 확실히 멈춘다(disposer 경로).
                 cleanup = autoUpdate(virtualEl, el, reposition, { animationFrame: true });
+                // 닫힘 핸들 노출(0463) — 더보기 패널이 열릴 때 이 메뉴를 닫는다(ESC와 같은 destroy 경로)
+                if (closeHandleRef) closeHandleRef.current = destroy;
               },
               onUpdate: (props) => {
                 component?.updateProps({ items: props.items, command: props.command });

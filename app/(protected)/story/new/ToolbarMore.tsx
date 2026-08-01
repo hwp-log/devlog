@@ -33,9 +33,11 @@ interface ToolbarMoreProps {
   active: ActiveMap;
   onLink: () => void; // TiptapEditor.handleLink 전달 — URL prompt 로직 중복 금지
   className?: string; // 부모 flex row에서의 표시·순서 제어(sm:hidden·order)
+  // 0463: 패널 열림 상태를 부모(TiptapEditor)에 통지 — 슬래시 메뉴 억제·닫기 배선용
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function ToolbarMore({ editor, active, onLink, className = '' }: ToolbarMoreProps) {
+export function ToolbarMore({ editor, active, onLink, className = '', onOpenChange }: ToolbarMoreProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'list' | 'format'>('list');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -77,6 +79,14 @@ export function ToolbarMore({ editor, active, onLink, className = '' }: ToolbarM
   useEffect(() => {
     if (open && view === 'list') itemRefs.current[0]?.focus();
   }, [open, view]);
+
+  // 열림 상태 통지(0463) — 클린업 경유라 닫힘뿐 아니라 언마운트(버블 숨김)에도 false가 보장됨.
+  // 버블 안 인스턴스가 열린 채 사라져도 슬래시 억제 플래그가 남지 않는다(스테일 방지).
+  useEffect(() => {
+    if (!open) return;
+    onOpenChange?.(true);
+    return () => onOpenChange?.(false);
+  }, [open, onOpenChange]);
 
   // 바깥 클릭 닫기 — FormatMenu와 동일(모달 아님)
   useEffect(() => {
@@ -137,7 +147,9 @@ export function ToolbarMore({ editor, active, onLink, className = '' }: ToolbarM
         aria-controls="toolbar-more-menu"
         onMouseDown={(e) => e.preventDefault()}
         onClick={toggle}
-        className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] rounded text-sm font-medium transition-colors ${
+        // sm 리셋(0463) — 버블(데스크톱에도 표시)에서 다른 ToolbarButton과 같은 28px 정합.
+        // 툴바 쪽 사용처는 sm:hidden 래퍼라 무영향
+        className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors ${
           open ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
         }`}
       >
