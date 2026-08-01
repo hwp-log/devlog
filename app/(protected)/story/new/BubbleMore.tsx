@@ -46,6 +46,11 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  // 키보드로 열었는지(0466 후속) — 터치·마우스는 트리거 mousedown preventDefault로 포커스를
+  // 안 받아 false. 터치 열림에 항목 auto-focus를 걸면 에디터가 blur돼 iOS가 선택 표시를
+  // 거둔다(실기기 "선택 풀림"의 실제 원인 — invisible 아님. PM 상태 선택은 blur 중
+  // selectionchange를 PM이 게이팅해 안 무너짐을 실증). 키보드 열림만 포커스해 순회 보존
+  const openedByKeyboardRef = useRef(false);
 
   // 그룹 헤더를 두는 이유(사용자 확정): 텍스트 마크는 고른 구간에만 걸리고,
   // 블록 변환은 선택이 걸친 문단 전체가 바뀐다 — 적용 결과가 달라 구분 표기.
@@ -101,12 +106,13 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
     });
   }, [open, editor]);
 
-  // 열림 시 첫 "활성" 항목 포커스(키보드 진입) — 프로그래매틱 focus는 PM 상태 선택
-  // 비파괴(0464 조사). 비활성 행은 선택 대상 제외(0465 후속) — 초기 진입도 건너뛴다.
+  // 키보드 열림일 때만 첫 "활성" 항목 포커스(0466 후속) — 터치 열림은 에디터 포커스를
+  // 유지해 선택 표시를 보존한다. 비활성 행은 선택 대상 제외(0465 후속) — 초기 진입도 스킵.
   // 선택 인덱스 설정은 toggle(이벤트 핸들러)에서 — effect 내 setState는 lint 금지
   const initialIndex = Math.max(0, flatItems.findIndex((it) => !it.disabled));
   useEffect(() => {
-    if (open) itemRefs.current[initialIndex]?.focus();
+    // openedByKeyboardRef: 열림 순간(toggle) 기록값을 effect 시점에 읽는 지연 참조
+    if (open && openedByKeyboardRef.current) itemRefs.current[initialIndex]?.focus();
   }, [open, initialIndex]);
 
   // 내부 스크롤에서 키보드 이동 시 선택 항목 가시화 — SlashMenu와 동일(nearest = 보이면 no-op)
@@ -134,6 +140,7 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
   }, [open]);
 
   function toggle() {
+    openedByKeyboardRef.current = document.activeElement === buttonRef.current;
     setSelectedIndex(initialIndex); // 첫 활성 행부터(비활성 스킵) — 포커스는 열림 effect가 담당
     setOpen((o) => !o);
   }
@@ -173,12 +180,13 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
     }
   }
 
-  // 닫기 공용(뒤로·ESC) — 트리거 포커스 복귀는 rAF 한 프레임 지연(0464-b): 닫는 시점엔 버블이
-  // 아직 invisible(상태 플러시 전)이라 visibility:hidden 요소는 포커스 불가 — 복귀 렌더 후 포커스
-  // (FormatMenu backToList의 rAF 선례)
+  // 닫기 공용(뒤로·ESC) — 트리거 포커스 복귀는 포커스가 메뉴 안일 때만(0466 후속):
+  // 터치 열림에선 에디터가 포커스를 갖고 있어, 무조건 복귀시키면 여기서 에디터 포커스를
+  // 뺏어 선택 표시가 사라진다. 버블이 항상 보이므로(invisible 철회) rAF 지연도 불요
   function close() {
+    const focusInMenu = popRef.current?.contains(document.activeElement) ?? false;
     setOpen(false);
-    requestAnimationFrame(() => buttonRef.current?.focus());
+    if (focusInMenu) buttonRef.current?.focus();
   }
 
   return (
@@ -206,9 +214,7 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
           role="menu"
           aria-label="선택 도구"
           onKeyDown={onMenuKeyDown}
-          // visibility:visible(0464-b) — 목록 열림 중 부모 버블이 invisible이 되는데,
-          // visibility는 상속되지만 자손이 visible로 역전 가능(CSS 명세) — 목록만 살린다
-          style={{ position: 'fixed', top: 0, left: 0, zIndex: 50, visibility: 'visible' }}
+          style={{ position: 'fixed', top: 0, left: 0, zIndex: 50 }}
           // 셸 = SlashMenu와 동일 문자열(패딩만 아래 스크롤 영역으로 이동 — 뒤로 행은 스크롤 밖 고정)
           className="w-[250px] rounded-[12px] border border-border bg-card shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)]"
         >

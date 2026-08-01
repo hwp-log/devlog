@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -79,8 +79,6 @@ function ToolbarDivider() {
 
 export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // 0464-b: 버블 ⋯ 목록 열림 여부 — 열림 중 버블 메뉴를 invisible 처리(오버레이 단일화)
-  const [bubbleListOpen, setBubbleListOpen] = useState(false);
   // 0463: 더보기 패널·슬래시 메뉴 동시 표시 방지 배선 — 지연 참조 ref 2개.
   // 읽기·쓰기 전부 이벤트 핸들러·플러그인 콜백 시점(렌더 중 접근 없음). useMemo 고정 객체
   // 대안은 react-hooks/immutability(훅 산출물 변경 금지)에 걸려 기각 — 가변 비렌더 상태는 ref가 정위치.
@@ -193,13 +191,6 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   // 버블의 자식이라 shouldShow·언마운트로 숨기면 목록까지 사라지고, rect가 유지돼야
   // floating-ui 앵커가 흔들리지 않는다. BubbleMore의 통지가 클린업 경유라 선택 붕괴로
   // 버블이 내려가 언마운트돼도 false가 보장됨(invisible 잔류 없음).
-  // 0464-d: blur 시도(0464-c) 제거 — iOS 자체 선택 메뉴는 웹에서 차단 불가 확정
-  // (-webkit-touch-callout iOS15+ 미동작 실기기 확인), blur는 선택을 깨뜨려 기각. 겹침 수용.
-  function handleBubbleMoreOpenChange(open: boolean) {
-    setBubbleListOpen(open);
-    handleMoreOpenChange(open); // 슬래시 억제 배선(0463)은 그대로 승계
-  }
-
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !editor) return;
@@ -377,12 +368,10 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         shouldShow={({ editor: e, state }) =>
           !state.selection.empty && !e.isActive('image') // 빈 선택·이미지 노드 선택 시 숨김
         }
-        // invisible!(0464-c) — 목록 열림 중 버블 숨김. !important 필수: BubbleMenuView가
-        // show()·updatePosition()마다 같은 엘리먼트에 inline style visibility:visible을 재설정해
-        // 무접미 invisible은 항상 짐(0464-b가 무효였던 원인). visibility라 레이아웃·트리거 rect 보존
-        // (목록 앵커 무이동), 자식인 목록 팝오버는 자체 visibility:visible로 역전해 살아남는다
-        // (!important는 같은 엘리먼트 캐스케이드에만 작용, 상속엔 전파 안 됨)
-        className={`flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg ${bubbleListOpen ? 'invisible!' : ''}`}
+        // 목록 열림 중에도 버블 유지(0466 후속) — 0464-b~c의 invisible/!important 숨김은 철회.
+        // 목록이 선택 rect 기준 top-end(BubbleMore)라 버블 구간을 수직으로 완전히 덮어(z-50이 위)
+        // 오버레이가 기하로 단일화되고, 선택 유지(에디터 포커스 보존)가 우선이라 숨김 처리 불요
+        className="flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg"
       >
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} disabled={active?.canBold === false} isActive={active?.bold} label="굵게">
           B
@@ -413,7 +402,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
             "이미 있는 글의 변환" 자리라 마크 4종+블록 변환 4종만.
             구분선은 인라인 div — ToolbarDivider는 max-sm:hidden이라 모바일 표시가 필요한 버블엔 부적합 */}
         <div aria-hidden className="w-0.5 self-stretch bg-divider" />
-        <BubbleMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleBubbleMoreOpenChange} />
+        <BubbleMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleMoreOpenChange} />
       </BubbleMenu>
       {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
           구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)
