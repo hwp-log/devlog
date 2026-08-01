@@ -192,7 +192,8 @@ export function FormatMenu({ editor }: { editor: Editor }) {
   }, [open]);
 
   return (
-    <div className="ml-auto">
+    // hidden sm:block(0461) — 모바일 진입점은 ToolbarMore 안 FormatMenuContent, 이 트리거는 데스크톱 전용
+    <div className="ml-auto hidden sm:block">
       <button
         ref={buttonRef}
         type="button"

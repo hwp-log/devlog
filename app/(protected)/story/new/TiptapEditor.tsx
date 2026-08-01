@@ -17,6 +17,7 @@ import { Callout } from './Callout';
 import { SizeMark } from './SizeMark';
 import { createSlashCommand } from './SlashCommand';
 import { FormatMenu } from './FormatMenu';
+import { ToolbarMore } from './ToolbarMore';
 
 interface TiptapEditorProps {
   content: string;
@@ -28,22 +29,27 @@ function ToolbarButton({
   onClick,
   isActive,
   label,
+  className = '',
   children,
 }: {
   onClick: () => void;
   isActive?: boolean;
   label?: string; // 아이콘만 있는 버튼용 — aria-label·title(툴팁) 겸용
+  className?: string; // 0461: 반응형 표시(hidden sm:inline-flex)·순서(order-N) 제어용 패스스루
   children: React.ReactNode;
 }) {
   return (
+    // min 44px는 모바일 터치 타겟(§5), sm 이상은 기존 28px(포인터 환경 — 데스크톱 현행 유지 확정).
+    // 버블 메뉴도 이 컴포넌트 공유라 모바일 버블 버튼이 함께 44px — 의도된 §5 파급(0461 plan).
+    // inline-flex 센터링: min-height에서 내용 수직 중앙을 브라우저 기본에 안 맡김(양 모드 동일 28px 계산 유지)
     <button
       type="button"
       aria-label={label}
       title={label}
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      className={`px-2 py-1 rounded text-sm font-medium transition-colors ${
+      className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors ${
         isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
-      }`}
+      } ${className}`}
     >
       {children}
     </button>
@@ -54,7 +60,8 @@ function ToolbarButton({
    식별 불가(헤어라인 알파가 긴 수평선 전제)라 별도 토큰. 폭 2px(w-0.5): 1px는 밝은 주변광에서
    다크 배경 반사 리프트에 묻힘(실측 — 색 레버는 아이콘 밝기 직전까지 소진). 장식이라 aria-hidden */
 function ToolbarDivider() {
-  return <div aria-hidden className="w-0.5 self-stretch bg-divider" />;
+  // hidden sm:block(0461) — 모바일 한 줄(5버튼+더보기)엔 그룹이 없어 구분선 미표시
+  return <div aria-hidden className="hidden sm:block w-0.5 self-stretch bg-divider" />;
 }
 
 export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
@@ -160,13 +167,18 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         className="hidden"
         onChange={handleFileChange}
       />
-      {/* 3그룹: 블록 서식 │ 인라인 서식 │ 삽입. 본문 H1 버튼 없음 — 페이지 제목 input이 최상위(0332 h1=h2 병합).
-          H2·H3·B·I는 텍스트(서식 버튼 관례), 나머지는 lucide 아이콘으로 통일 */}
+      {/* 데스크톱(sm+) 3그룹: 블록 서식 │ 인라인 서식 │ 삽입 — 현행 유지(0461 확정). 본문 H1 버튼
+          없음 — 페이지 제목 input이 최상위(0332 h1=h2 병합). H2·H3·B·I는 텍스트(서식 버튼 관례).
+          모바일(sm 미만, 0461 점진 공개): H2·B·I·목록·이미지 + 더보기 한 줄 — 슬래시로 대체
+          가능한 블록은 접고, 진입점이 툴바·버블뿐인 마크(B·I)를 남김(사용자 확정). DOM 순서는
+          데스크톱 그룹 기준이라 모바일 순서는 order-1~6으로 부여(sm:order-none 복원).
+          접힘 9종 + 서식은 ToolbarMore 팝오버로 — H3·취소선·코드는 그 패널이 유일 진입점 */}
       <div className="border-b border-border p-2 flex gap-1 flex-wrap">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={active?.heading2}
           label="제목"
+          className="order-1 sm:order-none"
         >
           H2
         </ToolbarButton>
@@ -174,6 +186,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           isActive={active?.heading3}
           label="소제목"
+          className="hidden sm:inline-flex"
         >
           H3
         </ToolbarButton>
@@ -184,6 +197,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleSmall().run()}
           isActive={active?.size}
           label="작게"
+          className="hidden sm:inline-flex"
         >
           <AArrowDown size={16} />
         </ToolbarButton>
@@ -192,6 +206,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={active?.bulletList}
           label="목록"
+          className="order-4 sm:order-none"
         >
           <List size={16} />
         </ToolbarButton>
@@ -199,6 +214,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={active?.blockquote}
           label="인용"
+          className="hidden sm:inline-flex"
         >
           <Quote size={16} />
         </ToolbarButton>
@@ -207,6 +223,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().insertCallout('tip').run()}
           isActive={active?.calloutTip}
           label="팁 콜아웃"
+          className="hidden sm:inline-flex"
         >
           <Lightbulb size={16} />
         </ToolbarButton>
@@ -214,6 +231,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().insertCallout('faq').run()}
           isActive={active?.calloutFaq}
           label="FAQ 콜아웃"
+          className="hidden sm:inline-flex"
         >
           <MessageCircleQuestion size={16} />
         </ToolbarButton>
@@ -221,6 +239,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().insertCallout('warn').run()}
           isActive={active?.calloutWarn}
           label="주의 콜아웃"
+          className="hidden sm:inline-flex"
         >
           <TriangleAlert size={16} />
         </ToolbarButton>
@@ -229,6 +248,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={active?.bold}
           label="굵게"
+          className="order-2 sm:order-none"
         >
           B
         </ToolbarButton>
@@ -236,6 +256,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={active?.italic}
           label="기울임"
+          className="order-3 sm:order-none"
         >
           I
         </ToolbarButton>
@@ -244,6 +265,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleStrike().run()}
           isActive={active?.strike}
           label="취소선"
+          className="hidden sm:inline-flex"
         >
           <Strikethrough size={16} />
         </ToolbarButton>
@@ -251,6 +273,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleCode().run()}
           isActive={active?.code}
           label="인라인 코드"
+          className="hidden sm:inline-flex"
         >
           <Code size={16} />
         </ToolbarButton>
@@ -258,15 +281,19 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={handleLink}
           isActive={active?.link}
           label="링크"
+          className="hidden sm:inline-flex"
         >
           <LinkIcon size={16} />
         </ToolbarButton>
         <ToolbarDivider />
-        <ToolbarButton onClick={handleImageUpload} label="이미지">
+        <ToolbarButton onClick={handleImageUpload} label="이미지" className="order-5 sm:order-none">
           <ImageIcon size={16} />
         </ToolbarButton>
-        {/* 3b: 서식 팝오버 — ml-auto로 우측 끝 분리(삽입 성격이 달라 다른 그룹과 구분) */}
+        {/* 3b: 서식 팝오버 — ml-auto로 우측 끝 분리(삽입 성격이 달라 다른 그룹과 구분).
+            모바일은 더보기 안 FormatMenuContent가 대체(0461)라 데스크톱 전용 */}
         <FormatMenu editor={editor} />
+        {/* 더보기(0461) — 모바일 전용, ml-auto 우측 끝(이미지와의 여백 슬랙 흡수) */}
+        <ToolbarMore editor={editor} active={active} onLink={handleLink} className="order-6 ml-auto sm:hidden" />
       </div>
       {/* 버블 메뉴 — 선택 서식(B/I/H2/작게/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
           이미지는 선택 서식이 아니라 제외. 상단 툴바와 하이브리드(둘 다 유지). */}
