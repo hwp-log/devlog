@@ -358,6 +358,24 @@ body {
     margin: var(--tiptap-p-gap) 0;
   }
 
+  /* "작게" 마크(SizeMark) — 보조 텍스트 어휘 13px(상세 메타·PLAN 소개 등과 동일 "본문 16 /
+     보조 13"). 14px안은 문단 단위 인지 약해 기각. 고정값: em 상대값이면 콜아웃 p(14px) 안에서
+     중첩 축소돼 §5 하한(12px 미만 금지)에 접근. 저장 규약은 SizeMark.ts */
+  .tiptap-content [data-size='sm'] {
+    font-size: 13px;
+  }
+
+  /* 인라인 코드(StarterKit Code) — 규칙 부재 시 preflight 모노스페이스만 적용돼 칩 식별 불가.
+     기존 토큰만(surface2·border), radius 6px = drag-handle 어휘. 0.875em: 본문 14px·콜아웃
+     12.25px(§5 하한 12px 위). 콜아웃(surface2 면) 안에선 배경 동색 — 테두리가 구분 담당 */
+  .tiptap-content code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 5px;
+    font-size: 0.875em;
+  }
+
   /* 본문 제목은 시각 1종 — h1은 h2에 병합(페이지 제목 input이 최상위, DB h1 0건이라 기존 글 무영향).
      leading-relaxed(1.625) 상속이 제목엔 과해 1.4 명시 */
   .tiptap-content h1,

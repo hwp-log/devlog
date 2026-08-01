@@ -10,9 +10,11 @@ import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 import {
   Image as ImageIcon, Link as LinkIcon, List, Quote,
   Lightbulb, MessageCircleQuestion, TriangleAlert,
+  Strikethrough, Code, AArrowDown,
 } from 'lucide-react';
 import { uploadStoryImage } from '@/lib/supabase/storage';
 import { Callout } from './Callout';
+import { SizeMark } from './SizeMark';
 import { createSlashCommand } from './SlashCommand';
 import { FormatMenu } from './FormatMenu';
 
@@ -65,6 +67,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
       Image,
       Link.configure({ openOnClick: false }),
       Callout,
+      SizeMark, // "작게" 마크 — <span data-size="sm">, 크기는 globals.css 파생
       // placeholder 확장 없음(0358) — 예시가 실제 텍스트(0355)라 본문 안 안내가 불필요하고,
       // 자유형·빈 본문 무문구가 확정 사양. 슬래시 안내는 에디터 밖 하단 보조 텍스트(StoryWriteForm).
       createSlashCommand(() => fileInputRef.current?.click()),
@@ -126,15 +129,28 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={editor.isActive('heading', { level: 2 })}
+          label="제목"
         >
           H2
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           isActive={editor.isActive('heading', { level: 3 })}
+          label="소제목"
         >
           H3
         </ToolbarButton>
+        {/* 작게(SizeMark) — 사용자 인식은 "글자 크기 조절"이라 헤딩 옆 배치. 단 구분선
+            양쪽 샌드위치로 헤딩(좌)·블록(우) 어느 계열로도 오해되지 않게 격리 */}
+        <ToolbarDivider />
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleSmall().run()}
+          isActive={editor.isActive('size')}
+          label="작게"
+        >
+          <AArrowDown size={16} />
+        </ToolbarButton>
+        <ToolbarDivider />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive('bulletList')}
@@ -175,14 +191,31 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive('bold')}
+          label="굵게"
         >
           B
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive('italic')}
+          label="기울임"
         >
           I
+        </ToolbarButton>
+        {/* 취소선·인라인 코드 = StarterKit 기등록 마크의 UI 노출 */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          isActive={editor.isActive('strike')}
+          label="취소선"
+        >
+          <Strikethrough size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleCode().run()}
+          isActive={editor.isActive('code')}
+          label="인라인 코드"
+        >
+          <Code size={16} />
         </ToolbarButton>
         <ToolbarButton
           onClick={handleLink}
@@ -198,7 +231,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         {/* 3b: 서식 팝오버 — ml-auto로 우측 끝 분리(삽입 성격이 달라 다른 그룹과 구분) */}
         <FormatMenu editor={editor} />
       </div>
-      {/* 버블 메뉴 — 선택 서식(B/I/H2/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
+      {/* 버블 메뉴 — 선택 서식(B/I/H2/작게/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
           이미지는 선택 서식이 아니라 제외. 상단 툴바와 하이브리드(둘 다 유지). */}
       <BubbleMenu
         editor={editor}
@@ -208,17 +241,22 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         }
         className="flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg"
       >
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')}>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} label="굵게">
           B
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')}>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} label="기울임">
           I
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={editor.isActive('heading', { level: 2 })}
+          label="제목"
         >
           H2
+        </ToolbarButton>
+        {/* 작게 — 선택 후 즉시 거는 성격이라 버블이 주 진입점(툴바와 동일 아이콘·라벨) */}
+        <ToolbarButton onClick={() => editor.chain().focus().toggleSmall().run()} isActive={editor.isActive('size')} label="작게">
+          <AArrowDown size={16} />
         </ToolbarButton>
         <ToolbarButton onClick={handleLink} isActive={editor.isActive('link')} label="링크">
           <LinkIcon size={16} />
