@@ -35,7 +35,10 @@ function ToolbarButton({
   onClick: () => void;
   isActive?: boolean;
   label?: string; // 아이콘만 있는 버튼용 — aria-label·title(툴팁) 겸용
-  className?: string; // 0461: 반응형 표시(hidden sm:inline-flex)·순서(order-N) 제어용 패스스루
+  // 0461 반응형 표시·순서(order-N) 패스스루. 숨김은 반드시 max-sm:hidden —
+  // 베이스에 inline-flex(display 유틸)가 있어 무접두 hidden은 v4 출력 순서(알파벳: h<i)상
+  // 동특이도로 덮여 무효(0462 실측). 미디어 스코프 규칙은 베이스 뒤라 순서 무관하게 이김.
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -60,8 +63,9 @@ function ToolbarButton({
    식별 불가(헤어라인 알파가 긴 수평선 전제)라 별도 토큰. 폭 2px(w-0.5): 1px는 밝은 주변광에서
    다크 배경 반사 리프트에 묻힘(실측 — 색 레버는 아이콘 밝기 직전까지 소진). 장식이라 aria-hidden */
 function ToolbarDivider() {
-  // hidden sm:block(0461) — 모바일 한 줄(5버튼+더보기)엔 그룹이 없어 구분선 미표시
-  return <div aria-hidden className="hidden sm:block w-0.5 self-stretch bg-divider" />;
+  // max-sm:hidden(0461·0462) — 모바일 한 줄(5버튼+더보기)엔 그룹이 없어 구분선 미표시.
+  // 무접두 hidden 관용구는 이 파일에서 금지(ToolbarButton 주석의 v4 순서 함정) — 한 벌로 통일
+  return <div aria-hidden className="max-sm:hidden w-0.5 self-stretch bg-divider" />;
 }
 
 export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
@@ -186,7 +190,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           isActive={active?.heading3}
           label="소제목"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           H3
         </ToolbarButton>
@@ -197,7 +201,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleSmall().run()}
           isActive={active?.size}
           label="작게"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <AArrowDown size={16} />
         </ToolbarButton>
@@ -214,7 +218,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={active?.blockquote}
           label="인용"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <Quote size={16} />
         </ToolbarButton>
@@ -223,7 +227,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().insertCallout('tip').run()}
           isActive={active?.calloutTip}
           label="팁 콜아웃"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <Lightbulb size={16} />
         </ToolbarButton>
@@ -231,7 +235,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().insertCallout('faq').run()}
           isActive={active?.calloutFaq}
           label="FAQ 콜아웃"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <MessageCircleQuestion size={16} />
         </ToolbarButton>
@@ -239,7 +243,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().insertCallout('warn').run()}
           isActive={active?.calloutWarn}
           label="주의 콜아웃"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <TriangleAlert size={16} />
         </ToolbarButton>
@@ -265,7 +269,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleStrike().run()}
           isActive={active?.strike}
           label="취소선"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <Strikethrough size={16} />
         </ToolbarButton>
@@ -273,7 +277,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={() => editor.chain().focus().toggleCode().run()}
           isActive={active?.code}
           label="인라인 코드"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <Code size={16} />
         </ToolbarButton>
@@ -281,7 +285,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           onClick={handleLink}
           isActive={active?.link}
           label="링크"
-          className="hidden sm:inline-flex"
+          className="max-sm:hidden"
         >
           <LinkIcon size={16} />
         </ToolbarButton>

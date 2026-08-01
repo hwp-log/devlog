@@ -192,8 +192,9 @@ export function FormatMenu({ editor }: { editor: Editor }) {
   }, [open]);
 
   return (
-    // hidden sm:block(0461) — 모바일 진입점은 ToolbarMore 안 FormatMenuContent, 이 트리거는 데스크톱 전용
-    <div className="ml-auto hidden sm:block">
+    // max-sm:hidden(0461·0462) — 모바일 진입점은 ToolbarMore 안 FormatMenuContent, 이 트리거는 데스크톱 전용.
+    // 숨김 관용구는 툴바 한 벌(max-sm:hidden)로 통일 — 무접두 hidden의 v4 순서 함정은 TiptapEditor 주석 참조
+    <div className="ml-auto max-sm:hidden">
       <button
         ref={buttonRef}
         type="button"
