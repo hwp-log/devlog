@@ -145,7 +145,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           />
       </div>
       {/* 블록 순서: 방문계획(PLAN) → 방문장소(지도) — 블로그 후기 관행상 지도는 글 마지막
-          (사용자 확정). 편집 화면 순서(SPOTMAP→PLAN, 0387)와의 정합보다 읽기 관행 우선.
+          (사용자 확정). 편집 화면도 0459에서 같은 순서로 정합(0387의 SPOTMAP→PLAN 폐기).
           두 블록 다 자체 mt-[46px] 조건부라 어느 쪽이 빠져도 간격 규칙 불변. */}
       {/* PLAN 카드 — 섹션 h2("방문계획") + 카드(면·테두리·radius 기존 토큰 어휘).
           카드 안 타이틀 = 플랜 제목 겸 링크(isPublic일 때만 — 비공개는 plan-finder 상세가

@@ -179,22 +179,15 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
             <input type="hidden" name="spots" value={spotsJson} />
             <input type="hidden" name="plan_id" value={selectedPlanId ?? ''} />
       </form>
-      {/* SpotMap: 페이지 컨테이너(860) 폭 상속 — 카드 426 고정은 SpotMap fixedSideWidth가 담당 */}
-      {/* 눈썹 클래스 = WRITE/EDIT 헤더 눈썹과 동일 문자열(0341 규격 복제). 공용 <Eyebrow> 추출은 후속 정리 */}
-      <div className="w-full pt-[46px]">
-        <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">SPOTMAP</p>
-        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">방문장소</h2>
-        <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
-      </div>
-      {/* PLAN 블록(목업 구조) — 눈썹·타이틀·select·트리맵이 한 블록. 미선택 상태에도
-          눈썹·타이틀·select는 항상 표시(select가 연결 UI라 블록의 본체), 트리맵만 선택 플랜의
-          비중이 있을 때 붙는다. 눈썹·타이틀 어휘는 상세 PLAN 블록과 동일(화면 간 일관, §9).
-          pt-[46px]는 위 SPOTMAP 블록과의 간격 — 블록 순서 SPOTMAP→PLAN(0387, 하단 수정 버튼과 거리 벌림).
+      {/* PLAN 블록 — h2·select·미리보기 카드가 한 블록. 미선택 상태에도 h2·select는 항상
+          표시(select가 연결 UI라 블록의 본체), 카드는 선택 시에만. h2 어휘·클래스는 읽기 화면
+          "방문계획" h2와 동일 문자열(0459 정합 — 눈썹 제거·mt-[6px] 동반 제거도 읽기와 같은 정리).
+          블록 순서 PLAN→SPOTMAP = 읽기 화면 방문계획→방문장소 순서와 동일(0459 — 0387의
+          SPOTMAP→PLAN 확정을 두 화면 정합 우선으로 뒤집음).
           form 밖 배치: select는 name 없고 hidden plan_id(폼 내부)가 selectedPlanId로 제출(무접촉). */}
       {availablePlans.length > 0 && (
         <div className="flex flex-col pt-[46px]">
-          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">PLAN</p>
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mt-[6px] mb-[16px] break-keep">여행계획</h2>
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문계획</h2>
           {/* appearance-none + 직접 chevron: 네이티브 select는 CSS에 안 잡히는 내장 좌측
               여백(Chrome 4px·Safari 8px 실측)을 그려 트리맵 좌측선과 어긋남. pt-[8px]는
               텍스트를 밑줄 쪽으로 내려 텍스트↔밑줄(~12px) < 밑줄↔트리맵(16px) —
@@ -247,8 +240,14 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
           })()}
         </div>
       )}
-      {/* 등록 버튼: 시안 순서상 여행동선 아래 마지막. form 밖이라 form="story-write-form"으로 연결 —
-          클릭 시 폼 submit 이벤트가 발화해 handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}
+      {/* SpotMap: 페이지 컨테이너(860) 폭 상속 — 카드 426 고정은 SpotMap fixedSideWidth가 담당 */}
+      <div className="w-full pt-[46px]">
+        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문장소</h2>
+        <SpotMap spots={initialLocalSpots} canAddSpot={true} onSpotsChange={handleSpotsChange} onPhotoSelect={handlePhotoSelect} fixedSideWidth />
+      </div>
+      {/* 등록 버튼: 방문장소 아래 마지막(읽기 화면의 "다른 이야기 보기" 위치와 동일 리듬).
+          form 밖이라 form="story-write-form"으로 연결 — 클릭 시 폼 submit 이벤트가 발화해
+          handleSubmit(사진 append 포함)이 그대로 실행됨(payload 불변). */}
       <div className="pt-[46px]">
       {state && 'error' in state && (
         <p role="alert" className="text-sm text-red-600 mb-3">{state.error}</p>
