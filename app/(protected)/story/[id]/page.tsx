@@ -8,6 +8,7 @@ import { DeleteButton } from './DeleteButton';
 import { LikeButton } from './LikeButton';
 import SpotMap from '@/components/SpotMapWrapper';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
+import { buildPlanSummaryLine } from '@/lib/plan/summary-line';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -83,24 +84,16 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       )
     : null;
 
-  // PLAN 카드 요약 한 줄 — 값 소스는 plan-finder 카드 재사용(계산 신설 없음). 없는 값은 그 조각만 생략.
-  // 일수 식 = lib/plan/queries.ts dayCount와 동기(전용 유틸 없어 복제 — 출처 명시).
-  // 금액 = band(구간) 중앙값, plan-finder PlanCard priceLabel과 같은 식. band는 총액을
-  //   10만/25만/50만원 폭 구간으로 뭉갠 공개 수준(목록 카드 노출 선례). 비공개 플랜은 금액
-  //   조각만 생략(소개·링크의 isPublic 게이트와 같은 방향 — 사용자 확정).
+  // PLAN 카드 요약 한 줄 — 문구·게이트 규칙은 buildPlanSummaryLine(공용, 작성 화면과 단일 소스) 주석 참조
   const planSummaryLine = story.plan
-    ? [
-        story.plan.startDate && story.plan.endDate
-          ? `${Math.max(1, Math.ceil((story.plan.endDate.getTime() - story.plan.startDate.getTime()) / 86_400_000) + 1)}일`
-          : null,
-        story.plan._count.spots > 0 ? `스팟 ${story.plan._count.spots}곳` : null,
-        `${story.plan.headcount}인`,
-        story.plan.isPublic && publicSummary?.band
-          ? `총 약 ${Math.round((publicSummary.band.lower + publicSummary.band.upper) / 2 / 10_000).toLocaleString()}만원`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
+    ? buildPlanSummaryLine({
+        startDate: story.plan.startDate,
+        endDate: story.plan.endDate,
+        spotCount: story.plan._count.spots,
+        headcount: story.plan.headcount,
+        showCost: story.plan.isPublic,
+        band: publicSummary?.band ?? null,
+      })
     : '';
 
   return (
