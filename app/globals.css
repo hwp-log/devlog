@@ -425,11 +425,12 @@ body {
   /* 콜아웃(Callout.ts) — 저장 HTML: div[data-callout=tip|faq|warn] > p+(첫 p = 제목).
      이모지는 데이터에 없고 data-callout 값에서 ::before로 파생 — 편집(.ProseMirror 아래)·
      상세(innerHTML 직계) 모두 후손 셀렉터 한 벌로 커버(blockquote와 같은 패턴).
-     시안(dotrip-양식-프리필-최종본): bg #f4f6f8→card(컨테이너 면 어휘, surface2는 활성 상태
-     ·popover는 부유 레이어라 부적합), radius 10→radius-base, 본문 #4a5058→fg2. 다크는 토큰 자동 */
+     시안(dotrip-양식-프리필-최종본): bg #f4f6f8→surface2, radius 10→radius-base, 본문 #4a5058→fg2.
+     면 색은 card→surface2(0455) — 읽기 카드 면의 surface2 승격(0454)에 동조(같은 컨테이너 톤 한 벌).
+     popover는 부유 레이어라 여전히 부적합. 다크는 토큰 자동 */
   .tiptap-content div[data-callout] {
     position: relative;
-    background: var(--card);
+    background: var(--surface2);
     border-radius: var(--radius-base);
     padding: 14px 16px 14px 48px;
     /* 48 = 16(패딩) + 이모지 폭 ~20 + gap 12 — 시안 flex gap:12의 등가(문단 직계 유지 위해 flex 대신 absolute) */

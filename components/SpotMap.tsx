@@ -1201,8 +1201,11 @@ export default function SpotMap({
             열림 폭: 글쓰기·상세=SIDE_CARD_WIDTH(426 고정, 0376 통일) / 비율 2/5는 fallback. 두 값 모두 완전 리터럴(JIT 스캔).
             md:max-h-[500px] = 지도 md:h-[500px]와 짝(0342 파생 계열) — 한쪽만 바꾸면 행 어긋남/클립.
             상한이 없으면 stretch가 콘텐츠(편집 폼 ≈604)를 따라 행을 늘려 지도(500)와 어긋나고,
-            내부 카드의 기존 overflow-y-auto가 영구 미발동(실측 확정). 모바일은 무상한(스택+모달) */}
-        <div className={`overflow-hidden flex-shrink-0 md:max-h-[500px] transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? `${fixedSideWidth ? SIDE_CARD_WIDTH : 'w-full md:w-2/5'} opacity-100` : 'w-0 opacity-0 pointer-events-none'
+            내부 카드의 기존 overflow-y-auto가 영구 미발동(실측 확정). 모바일은 무상한(스택+모달)
+            rounded-xl(0455) — 카드 하단 경계가 이 슬롯의 클립선과 정확히 겹치는 구조(위 500 파생)라
+            직각 클립이 서브픽셀 반올림에서 카드 하단 노치를 깎음(실화면: 위 둥긂·아래 직각).
+            클립 자체를 내부 카드들과 같은 곡률로 — 내부 카드 전원이 rounded-xl이라 전 모드 무해 */}
+        <div className={`overflow-hidden rounded-xl flex-shrink-0 md:max-h-[500px] transition-all duration-200 ${(canAddSpot || activeSpot || readOnly) ? `${fixedSideWidth ? SIDE_CARD_WIDTH : 'w-full md:w-2/5'} opacity-100` : 'w-0 opacity-0 pointer-events-none'
           }`}>
           {readOnly ? (
             <div className="bg-surface2 rounded-xl shadow-lg h-full p-5 relative overflow-hidden">
@@ -1220,7 +1223,7 @@ export default function SpotMap({
               </div>
               {/* 0377: bg-surface2 — 모바일에서 목록이 flow에 남으므로(위) 팝업 레이어가 투명하면 겹쳐 보임.
                   md 크로스페이드에도 무해(같은 카드면 위 불투명 층) — 카드 프레임(위 1208)과 동색 유지 필수 */}
-              <div className={`absolute inset-0 bg-surface2 transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <div className={`absolute inset-0 rounded-xl bg-surface2 transition-opacity duration-200 overflow-y-auto ${activeSpot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 {/* !isMobile — 모바일 팝업은 아래 전체화면 모달 슬롯(0378). 빈 레이어는 모달 뒤라 비가시 */}
                 {!isMobile && renderPopup()}
               </div>
