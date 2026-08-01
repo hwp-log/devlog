@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { Editor } from '@tiptap/core';
+import { posToDOMRect, type Editor } from '@tiptap/core';
 import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom';
 import {
   Ellipsis, ArrowLeft, AArrowDown, Strikethrough, Code, Link as LinkIcon,
@@ -75,30 +75,39 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
   ];
   const flatItems = groups.flatMap((g) => g.items);
 
-  // 위치 계산 — FormatMenu·ToolbarMore와 동일(열릴 때만, autoUpdate 재계산)
+  // 위치 계산 — 앵커는 ⋯ 버튼이 아니라 선택 rect 가상 엘리먼트(0465 후속). 트리거 앵커는
+  // invisible 버블의 잔존 레이아웃 위(top-end여도 선택 위 ~68px = 버블 높이+오프셋 2회의
+  // 죽은 공간)에 목록을 띄워 그만큼 위 본문을 더 가리던 원인. 버블 플러그인과 같은 기준
+  // (posToDOMRect)으로 목록이 버블이 있던 자리(선택 위 8px)에 얹힌다. from/to는 열림 시점
+  // 고정 — 목록 열림 중 PM 선택 불변. contextElement로 autoUpdate 조상 스크롤 추적 유지.
   useEffect(() => {
     if (!open) return;
-    const btn = buttonRef.current;
     const pop = popRef.current;
-    if (!btn || !pop) return;
-    return autoUpdate(btn, pop, () => {
-      computePosition(btn, pop, {
+    if (!pop) return;
+    const { from, to } = editor.state.selection;
+    const virtualEl = {
+      getBoundingClientRect: () => posToDOMRect(editor.view, from, to),
+      contextElement: editor.view.dom,
+    };
+    return autoUpdate(virtualEl, pop, () => {
+      computePosition(virtualEl, pop, {
         strategy: 'fixed',
-        // top-end(0464-d) — 버블은 선택 위에 뜨므로 목록도 위쪽(이미 읽은 이전 줄 방향)으로
-        // 열어야 선택 텍스트를 안 가린다. bottom-end였을 땐 invisible 버블의 잔존 레이아웃
-        // 아래 = 본문 위로 떨어지던 실기기 문제. 상단 공간 부족 시 flip()이 아래 폴백
+        // top-end(0464-d) — 목록은 위쪽(이미 읽은 이전 줄 방향), 상단 공간 부족 시 flip() 아래 폴백
         placement: 'top-end',
         middleware: [offset(8), flip(), shift({ padding: 8 })],
       }).then(({ x, y }) => {
         Object.assign(pop.style, { left: `${x}px`, top: `${y}px` });
       });
     });
-  }, [open]);
+  }, [open, editor]);
 
-  // 열림 시 첫 항목 포커스(키보드 진입) — 프로그래매틱 focus는 PM 상태 선택 비파괴(0464 조사)
+  // 열림 시 첫 "활성" 항목 포커스(키보드 진입) — 프로그래매틱 focus는 PM 상태 선택
+  // 비파괴(0464 조사). 비활성 행은 선택 대상 제외(0465 후속) — 초기 진입도 건너뛴다.
+  // 선택 인덱스 설정은 toggle(이벤트 핸들러)에서 — effect 내 setState는 lint 금지
+  const initialIndex = Math.max(0, flatItems.findIndex((it) => !it.disabled));
   useEffect(() => {
-    if (open) itemRefs.current[0]?.focus();
-  }, [open]);
+    if (open) itemRefs.current[initialIndex]?.focus();
+  }, [open, initialIndex]);
 
   // 내부 스크롤에서 키보드 이동 시 선택 항목 가시화 — SlashMenu와 동일(nearest = 보이면 no-op)
   useEffect(() => {
@@ -125,7 +134,7 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
   }, [open]);
 
   function toggle() {
-    setSelectedIndex(0);
+    setSelectedIndex(initialIndex); // 첫 활성 행부터(비활성 스킵) — 포커스는 열림 effect가 담당
     setOpen((o) => !o);
   }
 
@@ -135,16 +144,27 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
     setOpen(false);
   }
 
-  function onMenuKeyDown(e: React.KeyboardEvent) {
+  // 화살표 이동은 비활성 행 스킵(0465 후속) — 선택 하이라이트(bg-surface2)가 비활성 행에
+  // 얹히면 "비활성=콘텐츠 강등 / 선택=배경 채움" 상태 축이 무너진다. 전부 비활성이면 제자리
+  function step(from: number, dir: 1 | -1) {
     const count = flatItems.length;
+    let n = from;
+    for (let k = 0; k < count; k++) {
+      n = (n + dir + count) % count;
+      if (!flatItems[n].disabled) return n;
+    }
+    return from;
+  }
+
+  function onMenuKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      const n = (selectedIndex + 1) % count;
+      const n = step(selectedIndex, 1);
       setSelectedIndex(n);
       itemRefs.current[n]?.focus();
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      const n = (selectedIndex - 1 + count) % count;
+      const n = step(selectedIndex, -1);
       setSelectedIndex(n);
       itemRefs.current[n]?.focus();
     } else if (e.key === 'Escape') {
@@ -233,17 +253,21 @@ export function BubbleMore({ editor, active, onLink, onOpenChange }: BubbleMoreP
                         aria-disabled={item.disabled || undefined}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => runItem(item)}
-                        onMouseEnter={() => setSelectedIndex(i)}
+                        // 비활성 행은 선택 대상 제외(0465 후속) — iOS는 탭이 mouseenter를 발화하고
+                        // mouseleave가 없어, 비활성 행 탭(실행 안 됨·메뉴 유지) 시 하이라이트가
+                        // 잔존하던 "안 풀리는 hover"의 원인. 활성 행은 탭 즉시 닫혀 무증상
+                        onMouseEnter={() => { if (!item.disabled) setSelectedIndex(i); }}
                         // hover 클래스 없음 — onMouseEnter가 selectedIndex를 옮겨 hover=선택=surface2 단일 상태 언어(SlashMenu 규칙)
                         className={`flex w-full items-center gap-2.5 rounded-lg px-[9px] py-2 text-left transition-colors ${
-                          i === selectedIndex ? 'bg-surface2' : ''
+                          i === selectedIndex && !item.disabled ? 'bg-surface2' : ''
                         } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border-[0.5px] border-border bg-surface2 text-muted">
                           <item.icon size={16} />
                         </span>
                         <span className="flex flex-col">
-                          <span className="text-[13px] font-medium text-fg">{item.label}</span>
+                          {/* 비활성 라벨은 muted 강등(0465 후속) — opacity 단독은 실기기 식별 불가 */}
+                          <span className={`text-[13px] font-medium ${item.disabled ? 'text-muted' : 'text-fg'}`}>{item.label}</span>
                           <span className="mt-px text-xs text-muted">{item.description}</span>
                         </span>
                       </button>

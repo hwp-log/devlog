@@ -191,9 +191,15 @@ export function ToolbarMore({ editor, active, onLink, className = '', onOpenChan
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => runItem(item)}
                   onMouseEnter={() => setActiveIndex(i)}
+                  // disabled 분기 우선(0465 후속) — muted 색 강등 + 감쇠, hover 배경 반응 제거
+                  // (비활성은 무반응이 표준). opacity 단독은 실기기 식별 불가라 색 병행
                   className={`flex items-center gap-2 min-h-[44px] rounded px-2 text-left text-sm font-medium transition-colors ${
-                    item.isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
-                  } ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    item.disabled
+                      ? 'text-muted opacity-40 cursor-not-allowed'
+                      : item.isActive
+                        ? 'bg-surface2 text-fg'
+                        : 'text-fg2 hover:bg-popover'
+                  }`}
                 >
                   <item.icon size={16} className="shrink-0" />
                   {item.label}

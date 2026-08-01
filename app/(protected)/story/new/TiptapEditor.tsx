@@ -38,7 +38,9 @@ function ToolbarButton({
   isActive?: boolean;
   // 0464-d: 적용 불가 시 비활성(워드·한글 방식 — 눌러도 무반응보다 처음부터 회색이 납득).
   // native disabled라 mousedown 자체가 안 와서 아래 핸들러 가드 불요. 어휘는 기존
-  // disabled:opacity-40 disabled:cursor-not-allowed(Pagination 선례) 재사용
+  // disabled:opacity-40 disabled:cursor-not-allowed(Pagination 선례) 재사용.
+  // 0465 후속: opacity 단독은 이미 회색(fg2)인 아이콘의 다크 배경 대비 차가 작아 실기기
+  // 식별 불가 — disabled:text-muted 색 강등 병행(비활성 = 콘텐츠 강등 축, 배경 채움은 선택/hover 축)
   disabled?: boolean;
   label?: string; // 아이콘만 있는 버튼용 — aria-label·title(툴팁) 겸용
   // 0461 반응형 표시·순서(order-N) 패스스루. 숨김은 반드시 max-sm:hidden —
@@ -57,7 +59,7 @@ function ToolbarButton({
       title={label}
       disabled={disabled}
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+      className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:text-muted disabled:cursor-not-allowed ${
         isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
       } ${className}`}
     >
