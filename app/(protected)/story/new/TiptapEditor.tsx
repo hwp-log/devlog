@@ -170,6 +170,11 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   // 버블이 내려가 언마운트돼도 false가 보장됨(invisible 잔류 없음).
   function handleBubbleMoreOpenChange(open: boolean) {
     setBubbleListOpen(open);
+    // blur(0464-c) — iOS 자체 선택 메뉴(오려두기·복사하기)가 겹치는 문제의 1단계 억제.
+    // PM 상태 선택(state.selection)은 DOM 포커스와 무관해 유지되고, 항목 실행은 전부
+    // chain().focus() 경로라 refocus 시 선택 복원 후 적용. 버블은 안 내려감 —
+    // 플러그인 blurHandler가 ⋯ mousedown의 preventHide를 소비해 hide를 건너뛴다.
+    if (open) editor?.commands.blur();
     handleMoreOpenChange(open); // 슬래시 억제 배선(0463)은 그대로 승계
   }
 
@@ -337,9 +342,12 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         shouldShow={({ editor: e, state }) =>
           !state.selection.empty && !e.isActive('image') // 빈 선택·이미지 노드 선택 시 숨김
         }
-        // invisible(0464-b) — 목록 열림 중 버블 숨김. visibility라 레이아웃·트리거 rect 보존
+        // invisible!(0464-c) — 목록 열림 중 버블 숨김. !important 필수: BubbleMenuView가
+        // show()·updatePosition()마다 같은 엘리먼트에 inline style visibility:visible을 재설정해
+        // 무접미 invisible은 항상 짐(0464-b가 무효였던 원인). visibility라 레이아웃·트리거 rect 보존
         // (목록 앵커 무이동), 자식인 목록 팝오버는 자체 visibility:visible로 역전해 살아남는다
-        className={`flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg ${bubbleListOpen ? 'invisible' : ''}`}
+        // (!important는 같은 엘리먼트 캐스케이드에만 작용, 상속엔 전파 안 됨)
+        className={`flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg ${bubbleListOpen ? 'invisible!' : ''}`}
       >
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={active?.bold} label="굵게">
           B
