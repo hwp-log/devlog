@@ -288,7 +288,10 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
               </div>
             </>
           ) : (
-            <label className="flex items-center justify-center h-48 border-b border-border cursor-pointer text-sm text-muted hover:bg-surface2">
+            <label
+              // hover popover(0460) — 카드면이 surface2라 hover:bg-surface2는 Δ0(무반응)
+              className="flex items-center justify-center h-48 border-b border-border cursor-pointer text-sm text-muted hover:bg-popover"
+            >
               사진 추가
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoSelect} />
             </label>
@@ -327,7 +330,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <div className="flex items-start gap-2">
             <h3 className="flex-1 text-lg font-semibold text-fg">{spot.name}</h3>
             {!spot.photoUrl && (
-              <button type="button" aria-label="닫기" onClick={handleClose} className="w-6 h-6 rounded-full bg-surface2 hover:bg-popover flex items-center justify-center flex-shrink-0">
+              <button type="button" aria-label="닫기" onClick={handleClose} className="w-6 h-6 rounded-full bg-surface2 border border-border hover:bg-popover flex items-center justify-center flex-shrink-0">
                 <X size={12} />
               </button>
             )}
@@ -499,7 +502,8 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <button
             type="button"
             onClick={cancelEdit}
-            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 hover:bg-popover transition-colors disabled:opacity-50"
+            // border(0460) — 수정 버튼과 같은 처방(surface2 면 동색 칩)
+            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 border border-border hover:bg-popover transition-colors disabled:opacity-50"
           >
             취소
           </button>
@@ -515,7 +519,9 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
           <button
             type="button"
             onClick={enterEdit}
-            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 hover:bg-popover transition-colors"
+            // border(0460) — surface2 카드면에서 동색 칩(1.00:1)이라 테두리가 정지 구분 담당
+            // (읽기 SpotList 행 선례). 삭제(border-red-200)와 대칭.
+            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 border border-border hover:bg-popover transition-colors"
           >
             수정
           </button>

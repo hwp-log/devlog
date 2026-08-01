@@ -1024,7 +1024,7 @@ export default function SpotMap({
               <button
                 type="button"
                 onClick={() => chooseNearby(c)}
-                className="w-full text-left rounded-lg border border-border hover:bg-surface2 px-3 py-2 transition-colors"
+                className="w-full text-left rounded-lg border border-border hover:bg-popover px-3 py-2 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 text-sm font-medium text-fg truncate">{c.name}</span>
@@ -1033,7 +1033,7 @@ export default function SpotMap({
                 {c.movies.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {c.movies.map((m) => (
-                      <span key={m} className="rounded-full bg-surface2 text-fg2 text-xs px-2 py-0.5">{m}</span>
+                      <span key={m} className="rounded-full bg-surface2 border border-border text-fg2 text-xs px-2 py-0.5">{m}</span>
                     ))}
                   </div>
                 )}
@@ -1251,7 +1251,7 @@ export default function SpotMap({
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
-                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 border border-border hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
                   >
                     <ArrowLeft size={14} />
                     뒤로
@@ -1266,7 +1266,7 @@ export default function SpotMap({
                   <button
                     type="button"
                     onClick={() => { setMode('menu'); setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle'); }}
-                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 border border-border hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
                   >
                     <ArrowLeft size={14} />
                     뒤로
@@ -1288,7 +1288,7 @@ export default function SpotMap({
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
-                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-fg2 bg-surface2 border border-border hover:bg-popover px-3 py-1.5 rounded-lg w-fit transition-colors"
                   >
                     <ArrowLeft size={14} />
                     뒤로
@@ -1301,7 +1301,8 @@ export default function SpotMap({
                     <button
                       type="button"
                       onClick={() => { setSearchKeyword(''); setSearchResults([]); setSearchStatus('idle'); setMode('search'); }}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border text-left w-full hover:bg-surface2 transition-colors"
+                      // hover popover(0460) — 카드면 surface2에서 hover:bg-surface2는 Δ0(무반응). 메뉴 행 3개 공통
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border text-left w-full hover:bg-popover transition-colors"
                     >
                       <Search size={20} className="text-muted shrink-0" />
                       <div>
@@ -1312,7 +1313,7 @@ export default function SpotMap({
                     <button
                       type="button"
                       onClick={() => setMode('pinning')}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border text-left w-full hover:bg-surface2 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border text-left w-full hover:bg-popover transition-colors"
                     >
                       <MapPin size={20} className="text-muted shrink-0" />
                       <div>
@@ -1328,7 +1329,7 @@ export default function SpotMap({
                       onClick={() => setMode('list')}
                       disabled={localSpots.length < 1}
                       className={`flex items-center gap-3 p-3 rounded-lg border text-left w-full transition-colors ${localSpots.length >= 1
-                        ? 'border-border hover:bg-surface2'
+                        ? 'border-border hover:bg-popover'
                         : 'border-border opacity-40 cursor-not-allowed bg-surface2'
                         }`}
                     >
