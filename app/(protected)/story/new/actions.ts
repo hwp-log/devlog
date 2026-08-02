@@ -37,7 +37,7 @@ export async function createStoryAction(prevState: ActionState, formData: FormDa
   if (content.length > MAX_CONTENT_LEN) return { error: `본문은 ${MAX_CONTENT_LEN}자 이하로 입력해주세요` };
   if (tagNames.length > MAX_TAGS) return { error: `태그는 ${MAX_TAGS}개까지 입력할 수 있습니다` };
   if (tagNames.some((t) => t.length > MAX_TAG_LEN)) return { error: `태그는 ${MAX_TAG_LEN}자 이하로 입력해주세요` };
-  if (spotsData.length > MAX_SPOTS) return { error: `스팟은 ${MAX_SPOTS}개까지 추가할 수 있습니다` };
+  if (spotsData.length > MAX_SPOTS) return { error: `장소는 ${MAX_SPOTS}개까지 추가할 수 있습니다` };
   if (spotsData.some((s) => s.name.length > MAX_SPOT_NAME_LEN)) return { error: `장소명은 ${MAX_SPOT_NAME_LEN}자 이하로 입력해주세요` };
 
   if (planId) {

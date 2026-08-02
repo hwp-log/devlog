@@ -50,7 +50,7 @@ export function PlanCard({
   const meta = [
     regionLabel,
     dayCount ? `${dayCount}일` : null,
-    `스팟 ${spotCount}곳`,
+    `장소 ${spotCount}곳`,
   ].filter(Boolean).join(' · ');
 
   // "총" = 총액 신호. 인원과 나란히 둘 때 1인당으로 오해되지 않도록("N인 기준"은 여행상품 1인당 관행이라 회피).

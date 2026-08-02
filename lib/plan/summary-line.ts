@@ -19,7 +19,7 @@ export function buildPlanSummaryLine(input: {
     input.startDate && input.endDate
       ? `${Math.max(1, Math.ceil((input.endDate.getTime() - input.startDate.getTime()) / 86_400_000) + 1)}일`
       : null,
-    input.spotCount > 0 ? `스팟 ${input.spotCount}곳` : null,
+    input.spotCount > 0 ? `장소 ${input.spotCount}곳` : null,
     `${input.headcount}인`,
     input.showCost && input.band
       ? `총 약 ${Math.round((input.band.lower + input.band.upper) / 2 / 10_000).toLocaleString()}만원`

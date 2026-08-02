@@ -1115,7 +1115,7 @@ export default function SpotMap({
               className="absolute top-3 right-3 z-10 flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:py-1.5 px-3 rounded-full border border-border bg-card/95 shadow-md text-xs font-medium text-fg2 hover:bg-popover hover:text-fg transition-colors"
             >
               <Maximize2 size={13} />
-              리뷰장소 전체보기
+              방문장소 전체보기
             </button>
           )}
           {/* 테마 전환 페이드 오버레이(0370 — SpotFinder 0296 이식, :1137 클래스 동일).
@@ -1336,7 +1336,7 @@ export default function SpotMap({
                       <List size={20} className="text-muted shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-fg">장소 보기</p>
-                        <p className="text-xs text-muted">리뷰장소 한눈에 확인</p>
+                        <p className="text-xs text-muted">방문장소 한눈에 확인</p>
                       </div>
                     </button>
                   </div>

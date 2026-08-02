@@ -137,13 +137,13 @@ describe('지도 초기 뷰 규칙(0367)', () => {
 describe('사용자 조작 전환(0369) — morph', () => {
   it('리뷰장소 전체보기 오버레이: 스팟 0개면 미렌더', () => {
     mountWithSpots([]);
-    expect(screen.queryByRole('button', { name: '리뷰장소 전체보기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '방문장소 전체보기' })).not.toBeInTheDocument();
   });
 
   it('오버레이 클릭: morph로 전체 뷰(부드러운 전환) — 0ms 경로와 분리', () => {
     mountWithSpots([서울, 제주]);
     viewLog.setCenter.length = 0; viewLog.setZoom.length = 0; // 초기 핏 기록 제거
-    fireEvent.click(screen.getByRole('button', { name: '리뷰장소 전체보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '방문장소 전체보기' }));
     expect(viewLog.morph).toHaveLength(1);
     expect(viewLog.morph[0].zoom).toBeLessThan(16);
     expect(viewLog.setZoom).toEqual([]); // smooth 경로는 setZoom 미사용
