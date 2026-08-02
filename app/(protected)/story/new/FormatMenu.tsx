@@ -5,6 +5,7 @@ import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/d
 import { LayoutTemplate, TriangleAlert } from 'lucide-react';
 import { STORY_FORMS, resolveFormatInsertion } from '@/lib/story/template';
 import { docHasUserContent } from '@/lib/story/empty-sections-doc';
+import { BTN_SECONDARY, BTN_SECONDARY_DANGER } from '@/lib/button-styles';
 
 // 툴바 우측 끝 "서식" 버튼 + 팝오버. 양식 5종 중 하나를 고르면 본문이 그 양식으로 바뀐다.
 // 0359: 교체는 항상 전체 교체 — 업계 표준(Confluence·Google Docs: 템플릿은 생성 시점 적용,
@@ -115,11 +116,10 @@ export function FormatMenuContent({
       {pendingForm ? (
         (() => {
           // 버튼 한 벌 — 두 레이아웃이 같은 요소·핸들러를 공유.
-          // 라벨·스타일(0478): 예/아니오는 파괴적 확인에서 기피 대상(라벨-동작 짝짓기의
-          // 멈칫이 실수로) — 동작 라벨 + SpotPopup 수정·삭제 버튼 어휘 재사용(새 색 금지).
-          // 순서도 SpotPopup 대칭(중립 좌·파괴 우). 원본과의 차이는 min-h-[44px]뿐
-          // (SpotPopup py-1.5 ≈36px → §5 터치 타겟 44px 강화). 파괴 쪽은 빨간 테두리 +
-          // 경고 아이콘 + 대상 라벨("양식 바꾸기") — 색만으로 의미 전달 금지(§9)
+          // 라벨(0476): 예/아니오는 파괴적 확인에서 기피 대상(라벨-동작 짝짓기의 멈칫이
+          // 실수로) — 동작 라벨 채택. 스타일(0477): 격자 표준 상수로 이관 — 세컨더리·일반
+          // (그대로 두기) / 세컨더리·파괴(양식 바꾸기, danger 토큰 + 경고 아이콘 + 대상
+          // 라벨 — 색만으로 의미 전달 금지 §9). 순서는 SpotPopup 대칭(중립 좌·파괴 우)
           const buttons = (
             <>
               <button
@@ -127,7 +127,7 @@ export function FormatMenuContent({
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={backToList}
-                className="flex-1 min-h-[44px] rounded-lg text-sm bg-surface2 text-fg2 border border-border hover:bg-popover transition-colors"
+                className={`${BTN_SECONDARY} flex-1`}
               >
                 그대로 두기
               </button>
@@ -135,7 +135,7 @@ export function FormatMenuContent({
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => applyForm(pendingForm)}
-                className="flex-1 min-h-[44px] rounded-lg text-sm text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+                className={`${BTN_SECONDARY_DANGER} flex-1`}
               >
                 <TriangleAlert size={12} /> 양식 바꾸기
               </button>

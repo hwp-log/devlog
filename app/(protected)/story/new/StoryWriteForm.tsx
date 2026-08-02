@@ -6,6 +6,7 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { ChevronDown } from 'lucide-react';
 import type { Spot } from '@prisma/client';
 import type { LocalSpot } from '@/lib/types';
+import { BTN_PRIMARY, BTN_TEXT } from '@/lib/button-styles';
 
 // 편집 로드: story_spots 기준(재사용 스팟 포함). spot=공유 Spot, per-visit(review/photo/rating/order)=story_spot.
 type LoadedStorySpot = {
@@ -238,7 +239,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  className="text-muted hover:text-fg2 transition-colors leading-none"
+                  className={`${BTN_TEXT} leading-none`}
                 >
                   ×
                 </button>
@@ -254,11 +255,13 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
       {state && 'error' in state && (
         <p role="alert" className="text-sm text-red-600 mb-3">{state.error}</p>
       )}
+      {/* BTN_PRIMARY(0477) — 구 rounded-full·semibold 필 형태에서 격자 표준(rounded-lg·medium)으로.
+          같은 필을 복제한 상세 "다른 이야기 보기"(0377)는 등급 재판단 예정이라 이번 범위 밖 */}
       <button
         type="submit"
         form="story-write-form"
         disabled={isPending}
-        className="w-full bg-primary text-white rounded-full py-[13px] text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        className={`${BTN_PRIMARY} w-full`}
       >
         {initialData
           ? (isPending ? '수정 중...' : '수정')

@@ -161,6 +161,15 @@
   --color-border: var(--border);
   /* 구분선 전용(0345) — border보다 진한 청회색. 짧은 선분에만 사용, 면 채움 금지 */
   --color-divider: var(--divider);
+  /* 파괴 축(0477) — 버튼 격자 위험 열 전용 세트(text-danger / border-danger-border /
+     hover:bg-danger-surface). 값 정본은 lib/theme.ts, 라이트/다크 스왑은 CSS 변수 담당 */
+  --color-danger: var(--danger);
+  --color-danger-border: var(--danger-border);
+  --color-danger-surface: var(--danger-surface);
+  /* 파괴 채움(0478) — 흰 글씨 전제 배경(bg-danger-fill / hover:bg-danger-fill-hover).
+     텍스트용 danger와 분리 — 겸용 시 흰 글씨 대비가 무너진다(값 근거는 theme.ts) */
+  --color-danger-fill: var(--danger-fill);
+  --color-danger-fill-hover: var(--danger-fill-hover);
   --color-work-dokkaebi: var(--work-dokkaebi);
   --color-work-pachinko: var(--work-pachinko);
   --color-work-poksak: var(--work-poksak);

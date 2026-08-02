@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Star, Trash2, X } from 'lucide-react';
+import { BTN_ICON, BTN_PRIMARY, BTN_PRIMARY_DANGER, BTN_SECONDARY, BTN_TEXT } from '@/lib/button-styles';
 import type { LocalSpot } from '@/lib/types';
 import { searchMoviesAction, submitMovie } from '@/app/movies/actions';
 import type { MovieSuggestion } from '@/lib/movie/queries';
@@ -329,9 +330,11 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
         ) : (
           <div className="flex items-start gap-2">
             <h3 className="flex-1 text-lg font-semibold text-fg">{spot.name}</h3>
+            {/* BTN_ICON(0477) — 표면 위 원형 × 1벌 통일(구 w-6·X12 → w-7·X16). 사진 위 닫기는
+                미디어 오버레이 예외라 별도 유지 */}
             {!spot.photoUrl && (
-              <button type="button" aria-label="닫기" onClick={handleClose} className="w-6 h-6 rounded-full bg-surface2 border border-border hover:bg-popover flex items-center justify-center flex-shrink-0">
-                <X size={12} />
+              <button type="button" aria-label="닫기" onClick={handleClose} className={`${BTN_ICON} flex-shrink-0`}>
+                <X size={16} />
               </button>
             )}
           </div>
@@ -439,7 +442,7 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
               ) : movieId ? (
                 <div className="flex items-center gap-2 border border-border rounded px-2 py-1 text-sm">
                   <span className="flex-1 truncate">{movieTitle}</span>
-                  <button type="button" onClick={clearMovie} className="text-muted hover:text-fg2">
+                  <button type="button" onClick={clearMovie} className={BTN_TEXT}>
                     <X size={14} />
                   </button>
                 </div>
@@ -491,19 +494,21 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 저장/취소 (편집 모드) */}
       {isEditing && (
         <div className="px-4 pb-4 flex gap-2">
+          {/* 0477 격자 표준 이관 — py-1.5(32px)→min-h 44px(§5). 데스크톱 사이드 카드는
+              max-h 500px 안 overflow-y-auto라 클립 없음(스크롤 거리만 +12px) */}
           <button
             type="button"
             onClick={handleSubmit(onValid)}
             disabled={!nameValue.trim()}
-            className="flex-1 py-1.5 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${BTN_PRIMARY} flex-1`}
           >
             저장
           </button>
           <button
             type="button"
             onClick={cancelEdit}
-            // border(0460) — 수정 버튼과 같은 처방(surface2 면 동색 칩)
-            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 border border-border hover:bg-popover transition-colors disabled:opacity-50"
+            // border 유지(0460→0477 A안) — surface2 면 동색 칩은 테두리가 정지 구분 담당
+            className={`${BTN_SECONDARY} flex-1`}
           >
             취소
           </button>
@@ -516,19 +521,20 @@ export function SpotPopup({ spot, onDelete, onClose, readOnly = false, onUpdate,
       {/* 보기 상태 하단: 수정·삭제 */}
       {!readOnly && !isEditing && (
         <div className="px-4 pb-4 flex gap-2">
+          {/* 0478 승격 — 보기 상태는 옆에 기준 강조가 없어 세컨더리 둘이 다 약해 보임(실화면).
+              수정=프라이머리·일반, 삭제=프라이머리·파괴(빨간 채움+흰 글씨, 아이콘+라벨 병행).
+              편집 상태 저장·취소와 서식 확인은 현행 등급 유지(사용자 확정) */}
           <button
             type="button"
             onClick={enterEdit}
-            // border(0460) — surface2 카드면에서 동색 칩(1.00:1)이라 테두리가 정지 구분 담당
-            // (읽기 SpotList 행 선례). 삭제(border-red-200)와 대칭.
-            className="flex-1 py-1.5 rounded-lg text-sm bg-surface2 text-fg2 border border-border hover:bg-popover transition-colors"
+            className={`${BTN_PRIMARY} flex-1`}
           >
             수정
           </button>
           <button
             type="button"
             onClick={onDelete}
-            className="flex-1 py-1.5 rounded-lg text-sm text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+            className={`${BTN_PRIMARY_DANGER} flex-1`}
           >
             <Trash2 size={12} /> 삭제
           </button>
