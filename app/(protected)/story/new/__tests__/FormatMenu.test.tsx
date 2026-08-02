@@ -73,7 +73,7 @@ describe('FormatMenu — 확인 분기', () => {
     expect(screen.queryByText(/Ctrl\+Z/)).not.toBeInTheDocument(); // 되돌리기 약속 없음(모바일 거짓)
     expect(editor.getHTML()).toBe(before); // 확인 전 본문 불변
     // 파괴적 확인의 기본 포커스는 안전한 쪽(취소)
-    await waitFor(() => expect(screen.getByRole('button', { name: '취소' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: '그대로 두기' })).toHaveFocus());
     editor.destroy();
   });
 
@@ -83,7 +83,7 @@ describe('FormatMenu — 확인 분기', () => {
     render(<FormatMenu editor={editor} />);
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: /에세이형/ }));
-    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    fireEvent.click(screen.getByRole('button', { name: '그대로 두기' }));
 
     expect(screen.getByRole('menu')).toBeInTheDocument(); // 목록 복귀(팝오버 유지)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -109,7 +109,7 @@ describe('FormatMenu — 확인 분기', () => {
     render(<FormatMenu editor={editor} />);
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: /에세이형/ }));
-    fireEvent.click(screen.getByRole('button', { name: '바꾸기' }));
+    fireEvent.click(screen.getByRole('button', { name: '양식 바꾸기' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByRole('menu')).not.toBeInTheDocument(); // 팝오버 닫힘
@@ -126,7 +126,7 @@ describe('FormatMenu — 확인 분기', () => {
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: /자유형/ }));
     expect(screen.getByText('자유형으로 바꿀까요?')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '바꾸기' }));
+    fireEvent.click(screen.getByRole('button', { name: '양식 바꾸기' }));
     expect(editor.getHTML()).toBe('<p></p>'); // 완전히 빈 본문
     editor.destroy();
   });

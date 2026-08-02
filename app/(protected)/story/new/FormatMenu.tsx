@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/core';
 import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom';
-import { LayoutTemplate } from 'lucide-react';
+import { LayoutTemplate, TriangleAlert } from 'lucide-react';
 import { STORY_FORMS, resolveFormatInsertion } from '@/lib/story/template';
 import { docHasUserContent } from '@/lib/story/empty-sections-doc';
 
@@ -24,6 +24,7 @@ export function FormatMenuContent({
   onDone,
   onEscape,
   autoFocus = true,
+  compactConfirm = false,
 }: {
   editor: Editor;
   onDone: () => void; // 양식 적용 완료 — 호스트 팝오버 전체 닫기
@@ -31,6 +32,11 @@ export function FormatMenuContent({
   // 0468: 툴바 스왑 format 뷰는 false — 마운트 포커스가 에디터를 blur시켜 iOS 선택 표시를
   // 거두는 것을 방지(0467 원칙). 데스크톱 팝오버(아래 FormatMenu)는 기본 true로 키보드 진입 유지
   autoFocus?: boolean;
+  // 0477→0478: 확인 화면 compact 변형 — 툴바 스왑(70px 스크롤 영역)용. 질문 1행 + 동작
+  // 라벨 버튼 2행, 제목·캡션 생략(70px 예산 — 산식은 아래 compact 렌더 주석).
+  // 0476의 헤더 포털은 "답이 질문보다 위" 문맥 역전으로 폐기 — 레이아웃 분기로 대체.
+  // 기본 false(데스크톱 팝오버) = 스택 레이아웃·캡션 유지 — 무변이 코드 경로로 보장
+  compactConfirm?: boolean;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   // 확인 화면 상태 — null이면 목록, 양식이 담기면 그 양식으로의 교체 확인 화면
@@ -107,33 +113,57 @@ export function FormatMenuContent({
       onKeyDown={onMenuKeyDown}
     >
       {pendingForm ? (
-        <div className="px-2 pt-1.5 pb-1">
-          <p className="text-xs font-medium text-muted">양식 바꾸기</p>
-          <p className="mt-1.5 text-sm font-medium text-fg break-keep">
-            {pendingForm.name}으로 바꿀까요?
-          </p>
-          <p className="mt-1 text-xs text-muted break-keep">지금 쓴 내용은 사라져요.</p>
-          {/* 확인이 유일한 방어선(모바일 Ctrl+Z 부재) — 터치 타겟 44px·간격 8px(§5) */}
-          <div className="mt-3 flex gap-2">
-            <button
-              ref={cancelRef}
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={backToList}
-              className="flex-1 min-h-[44px] rounded px-2 text-sm font-medium text-fg2 hover:bg-popover transition-colors"
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyForm(pendingForm)}
-              className="flex-1 min-h-[44px] rounded px-2 text-sm font-medium bg-surface2 text-fg hover:bg-popover transition-colors"
-            >
-              바꾸기
-            </button>
-          </div>
-        </div>
+        (() => {
+          // 버튼 한 벌 — 두 레이아웃이 같은 요소·핸들러를 공유.
+          // 라벨·스타일(0478): 예/아니오는 파괴적 확인에서 기피 대상(라벨-동작 짝짓기의
+          // 멈칫이 실수로) — 동작 라벨 + SpotPopup 수정·삭제 버튼 어휘 재사용(새 색 금지).
+          // 순서도 SpotPopup 대칭(중립 좌·파괴 우). 원본과의 차이는 min-h-[44px]뿐
+          // (SpotPopup py-1.5 ≈36px → §5 터치 타겟 44px 강화). 파괴 쪽은 빨간 테두리 +
+          // 경고 아이콘 + 대상 라벨("양식 바꾸기") — 색만으로 의미 전달 금지(§9)
+          const buttons = (
+            <>
+              <button
+                ref={cancelRef}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={backToList}
+                className="flex-1 min-h-[44px] rounded-lg text-sm bg-surface2 text-fg2 border border-border hover:bg-popover transition-colors"
+              >
+                그대로 두기
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => applyForm(pendingForm)}
+                className="flex-1 min-h-[44px] rounded-lg text-sm text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+              >
+                <TriangleAlert size={12} /> 양식 바꾸기
+              </button>
+            </>
+          );
+          return compactConfirm ? (
+            // compact(0478, 툴바 70px 영역): 질문 1행 + 버튼 2행 = pt2+20+mt4+44 = 70px 정확.
+            // 캡션 생략(사용자 확정) — 360px 가용 폭 ≈278px에서 질문+캡션(최단 ≈285px)은
+            // 반드시 접혀 84px>70px가 되므로. 파괴성 신호는 버튼으로 이관(위 주석).
+            // 질문 단독 최장 ≈194px — 한 줄 보장
+            <div className="px-2 pt-0.5">
+              <p className="text-sm font-medium text-fg break-keep">
+                {pendingForm.name}으로 바꿀까요?
+              </p>
+              <div className="mt-1 flex gap-2">{buttons}</div>
+            </div>
+          ) : (
+            // 기본(데스크톱 팝오버): 스택 레이아웃·캡션 유지(폭 여유) — 버튼 한 벌만 교체(0478)
+            <div className="px-2 pt-1.5 pb-1">
+              <p className="text-xs font-medium text-muted">양식 바꾸기</p>
+              <p className="mt-1.5 text-sm font-medium text-fg break-keep">
+                {pendingForm.name}으로 바꿀까요?
+              </p>
+              <p className="mt-1 text-xs text-muted break-keep">지금 쓴 내용은 사라져요.</p>
+              <div className="mt-3 flex gap-2">{buttons}</div>
+            </div>
+          );
+        })()
       ) : (
         STORY_FORMS.map((form, i) => (
           <button

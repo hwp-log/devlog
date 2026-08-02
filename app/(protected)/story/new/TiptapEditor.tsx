@@ -261,15 +261,15 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           </div>
           <div aria-hidden className="border-b border-border" />
           {/* 스크롤 70px — ToolList --tool-max 모바일 70px과 동기(arbitrary 리터럴만 JIT 스캔
-              §5 — 상수 추출 불가라 주석으로 짝). 양식 5종(≈245px)·확인 화면(≈128px) 모두
-              이 안에서 스크롤 — 컨테이너 131 불변이 핵심, 파괴적 확인 버튼이 접힘 아래인 것은
-              스크롤=의도적 행위라 오터치 방어와 같은 결(서식은 글 시작 1회성 저빈도, 0471) */}
+              §5 — 상수 추출 불가라 주석으로 짝). 양식 5종(≈245px)은 이 안에서 스크롤.
+              확인 화면은 compactConfirm(질문 1행+버튼 2행 = 70px 정확, 0478)으로 스크롤 불요 */}
           <div className="h-[70px] overflow-y-auto overscroll-none">
             <FormatMenuContent
               editor={editor}
               autoFocus={false}
               onDone={() => setToolsView(null)}
               onEscape={() => setToolsView('list')}
+              compactConfirm
             />
           </div>
         </div>
