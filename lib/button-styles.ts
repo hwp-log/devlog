@@ -31,13 +31,15 @@ export const BTN_PRIMARY_DANGER =
 export const BTN_SECONDARY_DANGER =
   'min-h-[44px] rounded-lg px-4 text-sm font-medium text-danger border border-danger-border hover:bg-danger-surface transition-colors flex items-center justify-center gap-1';
 
-// 고스트 아이콘 버튼(0481 최종 — 고스트→테두리원형→채움→테두리정사각→글리프만으로 수렴):
-// 개방 캔버스(0371)의 읽기 표면엔 상자가 없어 테두리·채움 상자가 전부 이질적이었다.
-// 정지 = 색 글리프만, hover = popover 면(44px, 히트와 일치 — 의사요소 확장은 hover 면과
-// 히트가 어긋나는 결함으로 폐기, 패딩 방식 채택). 색은 사이트 로컬(연필 text-primary /
-// 휴지통 text-danger). ToolList ✕ 관용구의 색 분리형 — hover 면 곡률은 격자 rounded-lg
-export const BTN_ICON_GHOST =
-  'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg hover:bg-popover transition-colors';
+// 칩 아이콘 버튼(0481 최종 — 고스트→테두리원형→채움→테두리정사각→글리프→surface2 칩으로
+// 수렴): 개방 캔버스(0371)에서 글리프만은 콜아웃·카드(surface2 면)와 재질 불일치 —
+// 콜아웃과 같은 면(globals.css 콜아웃 background: var(--surface2), 0455)에 올린다. 테두리
+// 없음. 시각 36px + before -inset-1 히트 44px(§5, 의사요소 클릭은 버튼 귀속), 인접 gap-3
+// (히트 간 4px — 비가역 삭제 보호). hover = popover 면 + 글리프 명도/색 병행(면 반응
+// 단독은 1.04~1.05:1로 불가시 — 0477 실측). 글리프 색은 사이트 로컬(무채 fg2 기본,
+// 파괴만 hover:text-danger — 위험 신호는 의도 접근 시점에)
+export const BTN_ICON_CHIP =
+  'relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface2 hover:bg-popover transition-colors before:absolute before:-inset-1 before:content-[""]';
 
 // 표면 위 원형 × — 시각 28px(w-7)는 §5 44px 미달의 기존 위반 승계, 히트 확장은 별도 사이클
 export const BTN_ICON =

@@ -11,7 +11,7 @@ import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { buildPlanSummaryLine } from '@/lib/plan/summary-line';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 import { SquarePen } from 'lucide-react';
-import { BTN_ICON_GHOST } from '@/lib/button-styles';
+import { BTN_ICON_CHIP } from '@/lib/button-styles';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -132,15 +132,16 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
             </div>
             {isOwner && (
-              // 관리 아이콘(0481 최종) — 색 글리프만: 상세는 개방 캔버스(0371)라 본문 어디에도
-              // 상자가 없어 테두리·채움 상자가 이질적이었다(채움·테두리안 차례로 기각).
-              // 글리프 18px = 상자 제거로 준 시각 무게 보상. 히트 44px = hover 면과 일치.
-              // gap-3(12px)로 비가역 삭제와 히트 분리 유지
+              // 관리 아이콘(0481 최종) — surface2 칩 위 무채 글리프: 맨 글리프는 콜아웃·
+              // 카드(회색 면)와 재질이 어긋나 콜아웃과 같은 면에 올림. 정지 무채(저빈도
+              // 관리가 주의를 끌지 않게), 위험 신호는 삭제의 hover:text-danger로만
+              // (의도 접근 시점, DeleteButton). 글리프 18px·히트 44px(before 확장)·
+              // gap-3(히트 간 4px — 비가역 삭제 보호) 유지
               <div className="flex items-center gap-3 shrink-0">
                 <Link
                   href={`/story/${story.id}/edit`}
                   aria-label="수정"
-                  className={`${BTN_ICON_GHOST} text-primary`}
+                  className={`${BTN_ICON_CHIP} text-fg2 hover:text-fg`}
                 >
                   <SquarePen size={18} />
                 </Link>
