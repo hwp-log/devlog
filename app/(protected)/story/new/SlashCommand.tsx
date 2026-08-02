@@ -112,7 +112,13 @@ export function createSlashCommand(onImagePick: () => void) {
                     // 고정 상한(모바일 70/데스크톱 156)은 ToolList --tool-max 소관이라 여기선
                     // 화면 하단·탭바 회피(0398) 하한 120px 방어만 유지.
                     apply({ availableHeight }) {
-                      el.style.setProperty('--tool-avail', `${Math.max(120, availableHeight)}px`);
+                      // 열릴 때 1회만 고정(0473) — 매 프레임 갱신은 스크롤 중 높이 연속 변동
+                      // (데스크톱 하단 120~156px)의 원인. 열린 뒤의 하단 침범은 "캐럿 따라
+                      // 화면 밖 허용" 사양(위 reposition 주석)과 동일 결. 요소는 열림마다
+                      // 새로 생성(destroy)되므로 재오픈 시 재계산된다
+                      if (!el.style.getPropertyValue('--tool-avail')) {
+                        el.style.setProperty('--tool-avail', `${Math.max(120, availableHeight)}px`);
+                      }
                     },
                   }),
                 ],

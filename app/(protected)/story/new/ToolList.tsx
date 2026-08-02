@@ -132,7 +132,9 @@ export function buildToolItems(
 }
 
 // 플로팅 소비자(선택 목록·슬래시) 공용 셸 — 구 SlashMenu 셸과 동일 어휘.
-// 툴바 스왑은 셸 없이 전폭 in-flow라 미사용
+// 툴바 스왑은 셸 없이 전폭 in-flow라 미사용.
+// 반드시 포지셔닝 요소의 "안쪽 래퍼"에 줄 것(0473) — tiptap BubbleMenu가 매 갱신마다
+// 포지셔닝 요소 인라인 width:max-content를 덮어써, 요소에 직접 주면 w-[250px]가 무효가 된다
 export const TOOL_SHELL =
   'w-[250px] rounded-[12px] border border-border bg-card shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)]';
 

@@ -90,6 +90,12 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   // 오버레이 동시 표시"가 자리 스왑 전환으로 소멸(스왑은 오버레이가 아닌 툴바 상태).
   const [toolsView, setToolsView] = useState<null | 'list' | 'format'>(null);
   const toolbarRef = useRef<HTMLDivElement>(null); // 서식 진입 시 화면 밖이면 스크롤 유도(0468)
+  // 0474: 선택 버블 "실행 후 닫힘" 억제 좌표 — 항목 실행 직후의 선택 범위를 기억해두고,
+  // 선택이 그대로인 동안 shouldShow가 false를 주게 한다. hide 메타만으로는 부족한 이유:
+  // 실행 트랜잭션(docChanged)이 건 250ms 디바운스 타이머를 확장 hide()가 지우지 않아
+  // (extension-bubble-menu dist:113-124·350-361) 타이머 발화 시 show()로 목록이 되살아난다.
+  // 선택이 바뀌면(재선택 드래그의 중간 상태 포함) 비교가 어긋나 자동 해제 — 별도 이벤트 불요
+  const suppressSelRef = useRef<{ from: number; to: number } | null>(null);
 
   // extensions 렌더 간 고정 — useEditor.compareOptions가 배열 항목 동일성(!==)으로 비교하는데
   // configure()·createSlashCommand() 재호출 산물은 매번 새 객체라 항상 불일치 판정 →
@@ -413,16 +419,37 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         editor={editor}
         pluginKey="selection-tools"
         options={{ offset: 8, placement: 'top' }}
-        shouldShow={({ editor: e, state }) =>
-          !state.selection.empty && !e.isActive('image') // 빈 선택·이미지 노드 선택 시 숨김
-        }
-        className={TOOL_SHELL}
+        shouldShow={({ editor: e, state }) => {
+          // 실행 후 닫힘 억제(0474) — 실행 직후와 같은 선택이면 숨김 유지(위 suppressSelRef 주석).
+          // 선택이 달라지는 순간 해제(재선택 시 mousedown이 커서 상태를 거쳐 반드시 어긋남)
+          const sup = suppressSelRef.current;
+          if (sup && state.selection.from === sup.from && state.selection.to === sup.to) return false;
+          suppressSelRef.current = null;
+          return !state.selection.empty && !e.isActive('image'); // 빈 선택·이미지 노드 선택 시 숨김
+        }}
       >
-        <ToolList
-          items={selectionItems}
-          command={(item) => item.run(editor)}
-          onClose={() => editor.view.dispatch(editor.state.tr.setMeta('selection-tools', 'hide'))}
-        />
+        {/* 셸은 안쪽 래퍼(0473) — tiptap이 updatePosition마다 포지셔닝 요소의 인라인
+            width:max-content를 기록해 요소에 직접 준 w-[250px] 클래스가 무효였다(폭·x 흔들림
+            원인). 한 겹 안이면 인라인 경쟁 없이 바깥 max-content = 안쪽 250px로 상수화.
+            슬래시(SlashHost)와 같은 "포지셔닝 요소 안 TOOL_SHELL" 구조 */}
+        <div className={TOOL_SHELL}>
+          <ToolList
+            items={selectionItems}
+            // 실행 후 일괄 닫힘(0474, A안) — 블록 변환이 선택 rect를 옮겨 목록이 따라 움직이는
+            // 문제를 "이동을 보여주지 않음"으로 해소. 항목별 선별 닫기는 예측 가능성 저하로 기각
+            // (사용자 확정). 툴바 ⋯ 스왑(실행 후 버튼 뷰 복귀)·슬래시(범위 삭제로 Suggestion
+            // 종료)와 실행 후 행동 통일. 좌표 기억은 run 이후(실행이 위치를 바꿀 수 있음)
+            command={(item) => {
+              item.run(editor);
+              suppressSelRef.current = {
+                from: editor.state.selection.from,
+                to: editor.state.selection.to,
+              };
+              editor.view.dispatch(editor.state.tr.setMeta('selection-tools', 'hide'));
+            }}
+            onClose={() => editor.view.dispatch(editor.state.tr.setMeta('selection-tools', 'hide'))}
+          />
+        </div>
       </BubbleMenu>
       {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
           구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)
