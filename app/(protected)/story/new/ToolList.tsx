@@ -206,7 +206,9 @@ export const ToolList = forwardRef<ToolListHandle, ToolListProps>(function ToolL
   return (
     // 높이 규격(사용자 확정): 스크롤 영역 모바일 70px(1행+다음 행 걸침 = 스크롤 어포던스),
     // 데스크톱 156px(3행). --tool-avail은 슬래시 size()가 주입하는 화면 가용 높이(탭바 회피
-    // 0398 승계) — min()으로 둘 중 작은 쪽. 다른 진입점은 미주입 → 폴백 9999로 고정 상한만
+    // 0398 승계) — min()으로 둘 중 작은 쪽. 다른 진입점은 미주입 → 폴백 9999.
+    // 0472: max-height→height 고정 — 슬래시 필터로 항목이 줄어도 박스가 안 흔들린다
+    // (남는 공간은 공백). ⋯ 스왑은 항상 15항목이 70px를 초과해 계산 결과 동일(131px 무변)
     <div className="[--tool-max:70px] sm:[--tool-max:156px]">
       {/* 헤더 — 좌 스크롤 안내 문구, 우 ✕(모바일 44px 터치 타겟 §5). h-11=44px가 모바일
           툴바 스왑 131px(패딩16+헤더44+구분선1+스크롤70)의 구성 요소 — 한쪽만 바꾸면 어긋남 */}
@@ -227,7 +229,7 @@ export const ToolList = forwardRef<ToolListHandle, ToolListProps>(function ToolL
         role="menu"
         aria-label="도구 목록"
         className="overflow-y-auto overscroll-none px-1.5 py-1.5"
-        style={{ maxHeight: 'min(var(--tool-max), var(--tool-avail, 9999px))' }}
+        style={{ height: 'min(var(--tool-max), var(--tool-avail, 9999px))' }}
       >
         {items.length === 0 ? (
           <div className="px-[9px] py-2 text-sm text-muted">결과 없음</div>
