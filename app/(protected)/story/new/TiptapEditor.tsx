@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -10,15 +10,14 @@ import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 import {
   Image as ImageIcon, Link as LinkIcon, List, Quote,
   Lightbulb, MessageCircleQuestion, TriangleAlert,
-  Strikethrough, Code, AArrowDown,
+  Strikethrough, Code, AArrowDown, Ellipsis, ArrowLeft,
 } from 'lucide-react';
 import { uploadStoryImage } from '@/lib/supabase/storage';
 import { Callout } from './Callout';
 import { SizeMark } from './SizeMark';
 import { createSlashCommand } from './SlashCommand';
-import { FormatMenu } from './FormatMenu';
-import { ToolbarMore } from './ToolbarMore';
-import { BubbleMore } from './BubbleMore';
+import { FormatMenu, FormatMenuContent } from './FormatMenu';
+import { ToolList, buildToolItems, computeCanMap, promptLink, TOOL_SHELL } from './ToolList';
 
 interface TiptapEditorProps {
   content: string;
@@ -31,6 +30,7 @@ function ToolbarButton({
   isActive,
   disabled,
   label,
+  mobileLabel,
   className = '',
   children,
 }: {
@@ -43,6 +43,9 @@ function ToolbarButton({
   // 식별 불가 — disabled:text-muted 색 강등 병행(비활성 = 콘텐츠 강등 축, 배경 채움은 선택/hover 축)
   disabled?: boolean;
   label?: string; // 아이콘만 있는 버튼용 — aria-label·title(툴팁) 겸용
+  // 0468: 모바일 라벨 버튼 — 지정 시 sm 미만에서 아이콘 아래 라벨 + flex-1 폭 분배 + 64px
+  // (0461의 44px·4px 간격 타협 완화, 기능 식별성). 라벨 12px = §5 하한 준수. sm 이상 무변
+  mobileLabel?: string;
   // 0461 반응형 표시·순서(order-N) 패스스루. 숨김은 반드시 max-sm:hidden —
   // 베이스에 inline-flex(display 유틸)가 있어 무접두 hidden은 v4 출력 순서(알파벳: h<i)상
   // 동특이도로 덮여 무효(0462 실측). 미디어 스코프 규칙은 베이스 뒤라 순서 무관하게 이김.
@@ -51,7 +54,6 @@ function ToolbarButton({
 }) {
   return (
     // min 44px는 모바일 터치 타겟(§5), sm 이상은 기존 28px(포인터 환경 — 데스크톱 현행 유지 확정).
-    // 버블 메뉴도 이 컴포넌트 공유라 모바일 버블 버튼이 함께 44px — 의도된 §5 파급(0461 plan).
     // inline-flex 센터링: min-height에서 내용 수직 중앙을 브라우저 기본에 안 맡김(양 모드 동일 28px 계산 유지)
     <button
       type="button"
@@ -61,9 +63,10 @@ function ToolbarButton({
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:text-muted disabled:cursor-not-allowed ${
         isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
-      } ${className}`}
+      } ${mobileLabel ? 'max-sm:flex-col max-sm:flex-1 max-sm:h-16 max-sm:gap-1' : ''} ${className}`}
     >
       {children}
+      {mobileLabel && <span className="sm:hidden text-xs leading-none font-normal">{mobileLabel}</span>}
     </button>
   );
 }
@@ -79,17 +82,17 @@ function ToolbarDivider() {
 
 export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // 0463: 더보기 패널·슬래시 메뉴 동시 표시 방지 배선 — 지연 참조 ref 2개.
-  // 읽기·쓰기 전부 이벤트 핸들러·플러그인 콜백 시점(렌더 중 접근 없음). useMemo 고정 객체
-  // 대안은 react-hooks/immutability(훅 산출물 변경 금지)에 걸려 기각 — 가변 비렌더 상태는 ref가 정위치.
-  const moreOpenRef = useRef(false); // 더보기 패널(툴바·버블 어느 쪽이든) 열림 여부
-  const slashCloseRef = useRef<(() => void) | null>(null); // 열린 슬래시 메뉴의 destroy 핸들
+  // 0468: 툴바 자리 스왑 뷰 — null=버튼 행, 'list'=공용 목록, 'format'=양식 선택.
+  // 0463의 슬래시 억제 배선(moreOpenRef·slashCloseRef)은 제거 — 전제였던 "더보기 팝오버와
+  // 오버레이 동시 표시"가 자리 스왑 전환으로 소멸(스왑은 오버레이가 아닌 툴바 상태).
+  const [toolsView, setToolsView] = useState<null | 'list' | 'format'>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null); // 서식 진입 시 화면 밖이면 스크롤 유도(0468)
 
   // extensions 렌더 간 고정 — useEditor.compareOptions가 배열 항목 동일성(!==)으로 비교하는데
   // configure()·createSlashCommand() 재호출 산물은 매번 새 객체라 항상 불일치 판정 →
   // 매 렌더 setOptions()·view.updateState() 전체 재갱신이 일어나던 근본 원인.
-  // 의존성 []인 근거: 외부 참조(슬래시 이미지 콜백·moreOpenRef·slashCloseRef)가 전부
-  // 호출 시점에 .current를 읽는 지연 참조라(ref 객체는 렌더 간 안정) 1회 생성 클로저가 영구 유효.
+  // 의존성 []인 근거: 외부 참조(슬래시 이미지 콜백·openFormat)가 호출 시점에
+  // .current·안정 setter만 읽는 지연 참조라 1회 생성 클로저가 영구 유효.
   const extensions = useMemo(
     () => [
       StarterKit.configure({ link: false }),
@@ -103,7 +106,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
       // (위 "의존성 []인 근거" 참조). 이 disable로 기존 톨러레이트하던 이미지 콜백 오탐 1건도
       // 함께 침묵됨 — 이 줄에 실제 렌더 중 ref 접근을 추가하면 가려지므로 주의.
       // eslint-disable-next-line react-hooks/refs
-      createSlashCommand(() => fileInputRef.current?.click(), () => moreOpenRef.current, slashCloseRef),
+      createSlashCommand(() => fileInputRef.current?.click(), openFormat),
       GlobalDragHandle, // 기본 옵션(dragHandleWidth 20) — 아래 sm:pl-[38px]와 파생 관계
     ],
     [],
@@ -141,56 +144,30 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
             code: e.isActive('code'),
             size: e.isActive('size'),
             link: e.isActive('link'),
-            // can 맵(0464-d) — "현재 선택에 적용 불가"의 단일 소스. tiptap canSetMark가
-            // mark excludes를 반영(코드 마크가 전체 배제 "_")해 실질 발동은 선택 전체가
-            // 인라인 코드일 때. 범위 선택은 적용 가능 노드가 하나라도 있으면 true(부분 겹침 활성).
-            // 블록 4종·콜아웃은 스키마 제약(콜아웃 content: paragraph+, 중첩 금지) 반영.
-            canBold: e.can().toggleBold(),
-            canItalic: e.can().toggleItalic(),
-            canStrike: e.can().toggleStrike(),
-            canCode: e.can().toggleCode(),
-            // 작게×제목은 PM 무차단인 우리 문제(13px 고정이 제목 크기를 이김) — 여기서 금지 확정.
-            // globals.css의 제목 안 [data-size] 가드와 짝(기존 저장 글 표시 정상화는 CSS 몫)
-            canSize: e.can().toggleSmall() && !e.isActive('heading'),
-            canLink: e.can().setMark('link'), // setLink는 href 검증이 겹쳐 setMark로 canSetMark만 판단
-            canHeading2: e.can().toggleHeading({ level: 2 }),
-            canHeading3: e.can().toggleHeading({ level: 3 }),
-            canBulletList: e.can().toggleBulletList(),
-            canBlockquote: e.can().toggleBlockquote(),
-            canCallout: e.can().insertCallout('tip'), // 콜아웃 안 재삽입 금지(Callout.ts 명시 false) — kind 무관
+            // can 맵(0464-d→0468 단일 소스화) — 판정식은 ToolList.computeCanMap 한 곳.
+            // 여기 spread는 값이 바뀔 때 deepEqual 리렌더를 트리거하는 역할(툴바 버튼 disabled +
+            // 목록 항목 회색이 같은 값으로 갱신). tiptap canSetMark가 mark excludes를 반영
+            // (코드 마크 전체 배제 "_")해 실질 발동은 선택 전체가 인라인 코드일 때, 블록·콜아웃은
+            // 스키마 제약(콜아웃 content: paragraph+, 중첩 금지) 반영.
+            ...computeCanMap(e),
           }
         : null,
   });
 
   if (!editor) return null;
 
-  function handleLink() {
-    if (!editor) return;
-    const url = window.prompt('URL을 입력하세요:');
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().unsetLink().run();
-      return;
-    }
-    editor.chain().focus().setLink({ href: url }).run();
+  // 서식 진입(0468) — 목록·슬래시 공용. 툴바 자리 format 뷰로 스왑하고, 실행 지점(슬래시·
+  // 선택 목록)이 문서 중간이라 툴바가 화면 밖이면 "아무 일도 안 일어난 것처럼" 보이는 문제를
+  // scrollIntoView로 완화(사용자 지정 검수 항목). rAF = 뷰 렌더 반영 후 스크롤.
+  function openFormat() {
+    setToolsView('format');
+    requestAnimationFrame(() => toolbarRef.current?.scrollIntoView({ block: 'nearest' }));
   }
 
   function handleImageUpload() {
     fileInputRef.current?.click();
   }
 
-  // 0463: 패널 열림 통지 — 열리는 순간 열려 있던 슬래시 메뉴를 닫고(destroy, ESC와 동일 경로),
-  // 열림 동안 moreOpenRef가 슬래시 allow를 억제한다. 툴바 ToolbarMore·버블 BubbleMore 공용.
-  function handleMoreOpenChange(open: boolean) {
-    moreOpenRef.current = open;
-    if (open) slashCloseRef.current?.();
-  }
-
-  // 0464-b: 버블 목록 열림 중 버블 숨김 — 버블 인스턴스 전용(툴바 패널은 버블과 별개 오버레이라
-  // 기존 handleMoreOpenChange 그대로). 숨김은 visibility(레이아웃 보존)로 — ⋯ 트리거·목록이
-  // 버블의 자식이라 shouldShow·언마운트로 숨기면 목록까지 사라지고, rect가 유지돼야
-  // floating-ui 앵커가 흔들리지 않는다. BubbleMore의 통지가 클린업 경유라 선택 붕괴로
-  // 버블이 내려가 언마운트돼도 false가 보장됨(invisible 잔류 없음).
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !editor) return;
@@ -205,6 +182,13 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
     e.target.value = '';
   }
 
+  // 공용 목록 항목(0468) — 선택 목록(BubbleMenu)·툴바 스왑 공용. 리렌더 트리거는
+  // useEditorState can 맵(active), 판정식은 computeCanMap 단일 소스라 항목 disabled가 같은 값.
+  // react-hooks/refs 오탐: 두 핸들러는 렌더 중 호출되지 않고 항목 클릭 시점에만 실행돼
+  // ref를 읽는다(위 extensions 이미지 콜백 오탐과 동일 유형 — 지연 참조).
+  // eslint-disable-next-line react-hooks/refs
+  const toolItems = active ? buildToolItems(active, { onImagePick: handleImageUpload, onFormat: openFormat }) : [];
+
   return (
     // 테두리 복원(0364, 현우 결정) — 툴바+본문을 한 상자로. 본문 영역의 끝이 모호하던 문제를
     // 상자로 닫고, 본문 시작선이 제목·태그와 어긋나는 것(pl만큼)은 수용. 배경은 여전히 페이지
@@ -218,18 +202,62 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         className="hidden"
         onChange={handleFileChange}
       />
-      {/* 데스크톱(sm+) 3그룹: 블록 서식 │ 인라인 서식 │ 삽입 — 현행 유지(0461 확정). 본문 H1 버튼
-          없음 — 페이지 제목 input이 최상위(0332 h1=h2 병합). H2·H3·B·I는 텍스트(서식 버튼 관례).
-          모바일(sm 미만, 0461 점진 공개): H2·B·I·목록·이미지 + 더보기 한 줄 — 슬래시로 대체
-          가능한 블록은 접고, 진입점이 툴바·버블뿐인 마크(B·I)를 남김(사용자 확정). DOM 순서는
-          데스크톱 그룹 기준이라 모바일 순서는 order-1~6으로 부여(sm:order-none 복원).
-          접힘 9종 + 서식은 ToolbarMore 팝오버로 — H3·취소선·코드는 그 패널이 유일 진입점 */}
-      <div className="border-b border-border p-2 flex gap-1 flex-wrap">
+      {/* 툴바(0468 자리 스왑) — 모바일 높이 131px 고정(사용자 설계): ⋯ 목록 스왑과 높이가
+          같아 교체 시 본문 밀림 0. 구성 131 = p-2(16) + ToolList(헤더44+구분선1+스크롤70) —
+          ToolList 헤더 주석과 짝(한쪽만 바꾸면 어긋남). format 뷰만 내용상 131을 넘을 수 있어
+          고정 해제(양식 5종+확인, 전체 교체 흐름 한정). 데스크톱(sm+)은 현행 자동 높이 유지 */}
+      <div
+        ref={toolbarRef}
+        className={`border-b border-border ${toolsView === 'format' ? '' : 'max-sm:h-[131px]'}`}
+      >
+      {toolsView === 'list' ? (
+        // ⋯ 스왑 뷰 — 팝오버가 아니라 툴바 내용 교체(0468, 오버레이 아님), ✕로 버튼 뷰 복귀.
+        // 항목 실행 후에도 버튼 뷰 복귀(구 ToolbarMore 실행 후 닫힘 승계)
+        <div className="p-2">
+          <ToolList
+            items={toolItems}
+            command={(item) => {
+              item.run(editor);
+              setToolsView(null);
+            }}
+            onClose={() => setToolsView(null)}
+          />
+        </div>
+      ) : toolsView === 'format' ? (
+        // 서식 뷰 — 같은 자리 내용 전환(0359 패턴 승계). autoFocus false: 에디터 포커스·iOS
+        // 선택 표시 보존(0467 원칙 — 서식은 선택과 무관하지만 취소 복귀 대비 일관 유지)
+        <div className="p-2">
+          {/* 모바일엔 ESC가 없어 터치용 뒤로 행 필수(구 ToolbarMore 서식 뷰 승계) */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setToolsView('list')}
+            className="flex w-full items-center gap-1.5 min-h-[44px] rounded px-2 text-sm text-fg2 hover:bg-popover transition-colors"
+          >
+            <ArrowLeft size={14} />
+            뒤로
+          </button>
+          <FormatMenuContent
+            editor={editor}
+            autoFocus={false}
+            onDone={() => setToolsView(null)}
+            onEscape={() => setToolsView('list')}
+          />
+        </div>
+      ) : (
+      /* 버튼 뷰 — 데스크톱(sm+) 3그룹: 블록 서식 │ 인라인 서식 │ 삽입(현행 유지, 0461 확정).
+          본문 H1 버튼 없음 — 페이지 제목 input이 최상위(0332 h1=h2 병합).
+          모바일(sm 미만, 0468): H2·B·I·목록·사진·더보기 6버튼을 flex-1 폭 분배 + 64px 라벨
+          버튼(아이콘 아래 라벨 — 0461 44px 타협 완화·기능 식별성)으로 131px 안 수직 중앙.
+          DOM 순서는 데스크톱 그룹 기준이라 모바일 순서는 order-1~6(sm:order-none 복원).
+          접힘 항목·서식은 ⋯ 스왑 목록이 유일 진입점(H3·취소선·코드 등) */
+      <div className="p-2 flex gap-1 flex-wrap max-sm:h-full max-sm:flex-nowrap max-sm:items-center">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={active?.heading2}
           disabled={active?.canHeading2 === false}
           label="제목"
+          mobileLabel="제목"
           className="order-1 sm:order-none"
         >
           H2
@@ -261,6 +289,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           isActive={active?.bulletList}
           disabled={active?.canBulletList === false}
           label="목록"
+          mobileLabel="목록"
           className="order-4 sm:order-none"
         >
           <List size={16} />
@@ -308,6 +337,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           isActive={active?.bold}
           disabled={active?.canBold === false}
           label="굵게"
+          mobileLabel="굵게"
           className="order-2 sm:order-none"
         >
           B
@@ -317,6 +347,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           isActive={active?.italic}
           disabled={active?.canItalic === false}
           label="기울임"
+          mobileLabel="기울임"
           className="order-3 sm:order-none"
         >
           I
@@ -341,7 +372,7 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           <Code size={16} />
         </ToolbarButton>
         <ToolbarButton
-          onClick={handleLink}
+          onClick={() => promptLink(editor)}
           isActive={active?.link}
           disabled={active?.canLink === false}
           label="링크"
@@ -350,59 +381,39 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           <LinkIcon size={16} />
         </ToolbarButton>
         <ToolbarDivider />
-        <ToolbarButton onClick={handleImageUpload} label="이미지" className="order-5 sm:order-none">
+        <ToolbarButton onClick={handleImageUpload} label="이미지" mobileLabel="사진" className="order-5 sm:order-none">
           <ImageIcon size={16} />
         </ToolbarButton>
         {/* 3b: 서식 팝오버 — ml-auto로 우측 끝 분리(삽입 성격이 달라 다른 그룹과 구분).
-            모바일은 더보기 안 FormatMenuContent가 대체(0461)라 데스크톱 전용 */}
+            모바일 진입점은 ⋯ 목록의 서식 항목(0468)이라 데스크톱 전용 */}
         <FormatMenu editor={editor} />
-        {/* 더보기(0461) — 모바일 전용. ml-auto 없음(0463): flex-wrap에서 auto 마진이 더보기를
-            다음 줄로 밀던 원인 — 좌측 연속 배치로 6개 한 줄(284px ≤ 360px 가용 294) */}
-        <ToolbarMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleMoreOpenChange} className="order-6 sm:hidden" />
+        {/* 더보기(0468) — 모바일 전용, 팝오버(구 ToolbarMore) 대신 툴바 자리 스왑 트리거 */}
+        <ToolbarButton onClick={() => setToolsView('list')} label="더보기" mobileLabel="더보기" className="order-6 sm:hidden">
+          <Ellipsis size={16} />
+        </ToolbarButton>
       </div>
-      {/* 버블 메뉴 — 선택 서식(B/I/H2/작게/링크). 껍데기와 같은 어휘(bg-card·border-border·라운드)+그림자.
-          이미지는 선택 서식이 아니라 제외. 상단 툴바와 하이브리드(둘 다 유지). */}
+      )}
+      </div>
+      {/* 선택 목록(0468) — 텍스트를 선택하면 ⋯를 거치지 않고 공용 목록이 바로 뜬다(구 버블
+          마크 버튼 바 제거). 툴바를 쓰러 위로 스크롤하면 화면이 흔들려 집중이 끊기는 것이
+          선택 자리에서 바로 띄우는 이유(사용자 확정). BubbleMenu 컴포넌트는 유지 — 선택
+          감지(shouldShow)·선택 rect 포지셔닝·선택 해제 시 닫힘·mousedown preventHide를 이미
+          해결한 층이라 컨테이너로 재사용, 내용만 목록으로 교체. auto-focus 전무라 에디터
+          포커스·iOS 선택 표시 보존(0467). ✕는 hide 메타 — 다음 선택 변경 시 재표시(사양) */}
       <BubbleMenu
         editor={editor}
+        pluginKey="selection-tools"
         options={{ offset: 8, placement: 'top' }}
         shouldShow={({ editor: e, state }) =>
           !state.selection.empty && !e.isActive('image') // 빈 선택·이미지 노드 선택 시 숨김
         }
-        // 목록 열림 중에도 버블 유지(0466 후속) — 0464-b~c의 invisible/!important 숨김은 철회.
-        // 목록이 선택 rect 기준 top-end(BubbleMore)라 버블 구간을 수직으로 완전히 덮어(z-50이 위)
-        // 오버레이가 기하로 단일화되고, 선택 유지(에디터 포커스 보존)가 우선이라 숨김 처리 불요
-        className="flex gap-1 rounded-[10px] border-[0.5px] border-border bg-card p-1 shadow-lg"
+        className={TOOL_SHELL}
       >
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} disabled={active?.canBold === false} isActive={active?.bold} label="굵게">
-          B
-        </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} disabled={active?.canItalic === false} isActive={active?.italic} label="기울임">
-          I
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={active?.heading2}
-          label="제목"
-          disabled={active?.canHeading2 === false}
-        >
-          H2
-        </ToolbarButton>
-        {/* 작게 — 선택 후 즉시 거는 성격이라 버블이 주 진입점(툴바와 동일 아이콘·라벨) */}
-        <ToolbarButton onClick={() => editor.chain().focus().toggleSmall().run()} disabled={active?.canSize === false} isActive={active?.size} label="작게">
-          <AArrowDown size={16} />
-        </ToolbarButton>
-        <ToolbarButton onClick={handleLink} disabled={active?.canLink === false} isActive={active?.link} label="링크">
-          <LinkIcon size={16} />
-        </ToolbarButton>
-        {/* 더보기(0463·0464) — 모바일에서 버블이 실질 주 경로인데 접힌 항목 진입로가 없던 것을
-            해소. 데스크톱 버블에도 표시: 툴바가 문서 상단 in-flow(비고정)라 긴 글 중간에선
-            데스크톱도 같은 스크롤 이탈 문제 — 두 환경 버블 구성 한 벌 유지. H2가 버블에 남는
-            이유도 동일 전제(노션은 키보드 위 상시 툴바, 우리는 상단 비고정 — 사용자 확정).
-            내용은 툴바 그리드가 아닌 버블 전용 선택 도구 목록(BubbleMore, 0464) — 버블은
-            "이미 있는 글의 변환" 자리라 마크 4종+블록 변환 4종만.
-            구분선은 인라인 div — ToolbarDivider는 max-sm:hidden이라 모바일 표시가 필요한 버블엔 부적합 */}
-        <div aria-hidden className="w-0.5 self-stretch bg-divider" />
-        <BubbleMore editor={editor} active={active} onLink={handleLink} onOpenChange={handleMoreOpenChange} />
+        <ToolList
+          items={toolItems}
+          command={(item) => item.run(editor)}
+          onClose={() => editor.view.dispatch(editor.state.tr.setMeta('selection-tools', 'hide'))}
+        />
       </BubbleMenu>
       {/* 핸들 gutter 복원(0364) — 드래그 핸들은 텍스트 왼쪽 밖 [node.left-20, node.left] 20px
           구간에 뜨므로(패키지: style.left = rect.left - dragHandleWidth, 폭은 .drag-handle 20px 동기)

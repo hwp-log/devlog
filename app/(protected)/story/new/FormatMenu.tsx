@@ -23,10 +23,14 @@ export function FormatMenuContent({
   editor,
   onDone,
   onEscape,
+  autoFocus = true,
 }: {
   editor: Editor;
   onDone: () => void; // 양식 적용 완료 — 호스트 팝오버 전체 닫기
   onEscape?: () => void; // 목록 모드 ESC — 호스트가 닫기(또는 이전 뷰 복귀)·포커스 복귀 담당
+  // 0468: 툴바 스왑 format 뷰는 false — 마운트 포커스가 에디터를 blur시켜 iOS 선택 표시를
+  // 거두는 것을 방지(0467 원칙). 데스크톱 팝오버(아래 FormatMenu)는 기본 true로 키보드 진입 유지
+  autoFocus?: boolean;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   // 확인 화면 상태 — null이면 목록, 양식이 담기면 그 양식으로의 교체 확인 화면
@@ -34,10 +38,10 @@ export function FormatMenuContent({
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // 마운트 = 호스트 열림 시점 — 첫 항목으로 포커스(키보드 진입)
+  // 마운트 = 호스트 열림 시점 — 첫 항목으로 포커스(키보드 진입, autoFocus 시에만)
   useEffect(() => {
-    itemRefs.current[0]?.focus();
-  }, []);
+    if (autoFocus) itemRefs.current[0]?.focus();
+  }, [autoFocus]);
 
   // 확인 화면 진입 시 포커스는 "취소" — 파괴적 확인은 안전한 쪽이 기본(Enter 습관 클릭 방지).
   useEffect(() => {
