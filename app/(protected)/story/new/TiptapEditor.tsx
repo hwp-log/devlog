@@ -43,8 +43,8 @@ function ToolbarButton({
   // 식별 불가 — disabled:text-muted 색 강등 병행(비활성 = 콘텐츠 강등 축, 배경 채움은 선택/hover 축)
   disabled?: boolean;
   label?: string; // 아이콘만 있는 버튼용 — aria-label·title(툴팁) 겸용
-  // 0468: 모바일 라벨 버튼 — 지정 시 sm 미만에서 아이콘 아래 라벨 + flex-1 폭 분배 + 64px
-  // (0461의 44px·4px 간격 타협 완화, 기능 식별성). 라벨 12px = §5 하한 준수. sm 이상 무변
+  // 0468→0470: 모바일 라벨 버튼 — 지정 시 sm 미만에서 아이콘 아래 라벨(세로 배치).
+  // 폭·높이는 2×3 그리드 셀 stretch가 결정(0470). 라벨 12px = §5 하한 준수. sm 이상 무변
   mobileLabel?: string;
   // 0461 반응형 표시·순서(order-N) 패스스루. 숨김은 반드시 max-sm:hidden —
   // 베이스에 inline-flex(display 유틸)가 있어 무접두 hidden은 v4 출력 순서(알파벳: h<i)상
@@ -63,13 +63,12 @@ function ToolbarButton({
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:text-muted disabled:cursor-not-allowed ${
         isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
-      // max-sm:px-0(0469): flex-1 폭이 360px에서 53.6px인데 px-2를 빼면 콘텐츠 37.6px —
-      // 한글 3자 라벨(기울임·더보기 ≈36~38px)과 경계선상이라 두 줄로 접혀 h-16을 넘었다.
-      // 미디어 스코프라 베이스 px-2를 순서 무관하게 이김(상단 v4 순서 주석과 같은 규칙)
-      } ${mobileLabel ? 'max-sm:flex-col max-sm:flex-1 max-sm:h-16 max-sm:gap-1 max-sm:px-0' : ''} ${className}`}
+      // 폭·높이 유틸 없음(0470) — 2×3 그리드 셀이 결정(폭 ≈101px+·높이 55px, 컨테이너 주석
+      // 참조). 0469의 max-sm:px-0(flex-1 53.6px 경계선 대응)은 셀 폭이 넉넉해져 px-2 복귀
+      } ${mobileLabel ? 'max-sm:flex-col max-sm:gap-1' : ''} ${className}`}
     >
       {children}
-      {/* whitespace-nowrap — 서브픽셀 폭 변동에도 줄바꿈 봉인(px-0으로 폭은 이미 충분) */}
+      {/* whitespace-nowrap — 줄바꿈 봉인 안전망(사용자 지정 유지). 그리드 셀 폭 ≈101px+라 실발동 없음 */}
       {mobileLabel && <span className="sm:hidden whitespace-nowrap text-xs leading-none font-normal">{mobileLabel}</span>}
     </button>
   );
@@ -241,11 +240,14 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
       ) : (
       /* 버튼 뷰 — 데스크톱(sm+) 3그룹: 블록 서식 │ 인라인 서식 │ 삽입(현행 유지, 0461 확정).
           본문 H1 버튼 없음 — 페이지 제목 input이 최상위(0332 h1=h2 병합).
-          모바일(sm 미만, 0468): H2·B·I·목록·사진·더보기 6버튼을 flex-1 폭 분배 + 64px 라벨
-          버튼(아이콘 아래 라벨 — 0461 44px 타협 완화·기능 식별성)으로 131px 안 수직 중앙.
-          DOM 순서는 데스크톱 그룹 기준이라 모바일 순서는 order-1~6(sm:order-none 복원).
-          접힘 항목·서식은 ⋯ 스왑 목록이 유일 진입점(H3·취소선·코드 등) */
-      <div className="p-2 flex gap-1 flex-wrap max-sm:h-full max-sm:flex-nowrap max-sm:items-center">
+          모바일(sm 미만, 0470): 2×3 그리드 — 1행 제목·굵게·기울임 / 2행 목록·사진·더보기.
+          0469 한 줄 flex-1(53.6px)에서 "더보기" 라벨이 nowrap으로 우측 삐져나오고 131px
+          하단이 비던 두 문제를 함께 해소(셀 폭 ≈101px+, 두 행이 h-full 등분).
+          grid-rows-2 필수 — 암시적 행은 auto 높이라 h-full을 안 나눔. items-center 금지 —
+          align-items는 grid에도 적용돼 stretch(셀 채움 = 터치 면적)를 깬다.
+          그리드 자동 배치가 order-1~6을 반영하므로 DOM 순서(데스크톱 그룹 기준)는 그대로,
+          max-sm:hidden 항목·구분선은 셀 미점유. 접힘 항목·서식은 ⋯ 스왑 목록이 유일 진입점 */
+      <div className="p-2 flex gap-1 flex-wrap max-sm:grid max-sm:h-full max-sm:grid-cols-3 max-sm:grid-rows-2">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={active?.heading2}
