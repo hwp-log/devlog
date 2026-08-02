@@ -10,6 +10,8 @@ import SpotMap from '@/components/SpotMapWrapper';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { buildPlanSummaryLine } from '@/lib/plan/summary-line';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
+import { SquarePen } from 'lucide-react';
+import { BTN_ICON_GHOST } from '@/lib/button-styles';
 
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -109,35 +111,42 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               (미연결 글 57% 실측 — 빈 상태가 기본이 되는 데이터는 눈썹 자리에 부적합).
               눈썹↔제목 간격 = 편집 화면 눈썹↔타이틀과 같은 6px 어휘(mt-[6px]) */}
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">STORY</p>
-          <div className="flex items-start justify-between gap-4 mt-[6px] mb-6">
+          {/* 제목 행 = 제목 단독(0481) — 관리 액션은 메타 행 우측으로 이동(읽기 화면에서
+              관리를 낮은 어휘로, 0452 결). 구 텍스트 링크화(0372)는 아이콘 테두리 어휘로 대체 */}
+          <div className="mt-[6px] mb-6">
             {/* text-fg(0375) — #1A1A1A 하드코딩이 다크에서 제목만 안 뒤집히던 원인(사용자 실측) */}
             <h1 className="text-3xl font-bold text-fg leading-tight">{story.title}</h1>
-            {isOwner && (
-              // 텍스트 링크화(0372, 시안 실측) — 수정 primary(시안 accent=#4c9aff ≈ primary 매핑,
-              // 프로젝트 accent는 별점 전용이라 오용 금지) / 삭제 muted. pt-[6px] = 제목과 flex-start 정렬 보정
-              <div className="flex items-center gap-[14px] shrink-0 pt-[6px]">
-                <Link
-                  href={`/story/${story.id}/edit`}
-                  className="text-[13px] font-medium text-primary hover:underline transition-colors"
-                >
-                  수정
-                </Link>
-                <DeleteButton storyId={story.id} />
-              </div>
-            )}
           </div>
           {/* 메타(0375 확정): 아바타 → 이름(fg2 — 날짜보다 한 단 진하게, 주체 강조) → 세로
               파이프(문자 아닌 1px 선, h-[11px], border 토큰) → 날짜. 요소 간 10px, 아바타↔이름은
               그룹 내 8px 유지. 날짜 모노 제거 — 0372의 Geist Mono는 한글 날짜 맥락에서 자간이
               벌어져 되돌림(트리맵 %·좋아요 숫자 등 숫자 지표의 모노는 유지).
               pb-[16px]+border-b = 헤더(제목·메타)와 본문 분리선 */}
-          <div className="mt-[14px] flex items-center gap-[10px] text-[13px] font-medium text-muted pb-[16px] border-b border-border mb-6">
-            <span className="flex items-center gap-2 text-fg2">
-              <AuthorAvatar size="sm" nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
-              {story.user.nickname}
-            </span>
-            <span aria-hidden className="w-px h-[11px] bg-border" />
-            <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
+          <div className="mt-[14px] flex items-center justify-between gap-4 pb-[16px] border-b border-border mb-6">
+            <div className="flex items-center gap-[10px] text-[13px] font-medium text-muted">
+              <span className="flex items-center gap-2 text-fg2">
+                <AuthorAvatar size="sm" nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
+                {story.user.nickname}
+              </span>
+              <span aria-hidden className="w-px h-[11px] bg-border" />
+              <span>{story.createdAt.toLocaleDateString('ko-KR')}</span>
+            </div>
+            {isOwner && (
+              // 관리 아이콘(0481 최종) — 색 글리프만: 상세는 개방 캔버스(0371)라 본문 어디에도
+              // 상자가 없어 테두리·채움 상자가 이질적이었다(채움·테두리안 차례로 기각).
+              // 글리프 18px = 상자 제거로 준 시각 무게 보상. 히트 44px = hover 면과 일치.
+              // gap-3(12px)로 비가역 삭제와 히트 분리 유지
+              <div className="flex items-center gap-3 shrink-0">
+                <Link
+                  href={`/story/${story.id}/edit`}
+                  aria-label="수정"
+                  className={`${BTN_ICON_GHOST} text-primary`}
+                >
+                  <SquarePen size={18} />
+                </Link>
+                <DeleteButton storyId={story.id} />
+              </div>
+            )}
           </div>
           <div
             className="tiptap-content text-base leading-relaxed mb-6"

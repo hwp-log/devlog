@@ -1,5 +1,7 @@
 'use client';
 import { useTransition } from 'react';
+import { Trash2 } from 'lucide-react';
+import { BTN_ICON_GHOST } from '@/lib/button-styles';
 import { deleteStoryAction } from './actions';
 
 export function DeleteButton({ storyId }: { storyId: string }) {
@@ -14,11 +16,12 @@ export function DeleteButton({ storyId }: { storyId: string }) {
     <button
       onClick={handleClick}
       disabled={isPending}
-      // 텍스트 링크화(0372) — 평상시 muted, hover는 fg2: danger 계열 토큰 부재(heartActive는
-      // 하트 전용 주석이라 오용 금지, 새 토큰 추가 금지)로 위험 색 신호는 별도 판단 대기
-      className="text-[13px] font-medium text-muted hover:text-fg2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      aria-label="삭제"
+      // 글리프 아이콘(0481 최종) — 개방 캔버스(0371) 정합으로 상자 제거, danger 색 글리프만.
+      // 구 텍스트 링크(0372, 당시 danger 토큰 부재로 muted)의 색 문제는 0477 토큰으로 해소
+      className={`${BTN_ICON_GHOST} text-danger disabled:opacity-50 disabled:cursor-not-allowed`}
     >
-      {isPending ? '삭제 중...' : '삭제'}
+      <Trash2 size={18} />
     </button>
   );
 }
