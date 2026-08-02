@@ -10,7 +10,7 @@ import GlobalDragHandle from 'tiptap-extension-global-drag-handle';
 import {
   Image as ImageIcon, Link as LinkIcon, List, Quote,
   Lightbulb, MessageCircleQuestion, TriangleAlert,
-  Strikethrough, Code, AArrowDown, Ellipsis, ArrowLeft, LayoutTemplate,
+  Strikethrough, Code, AArrowDown, Ellipsis, ArrowLeft, LayoutTemplate, X,
 } from 'lucide-react';
 import { uploadStoryImage } from '@/lib/supabase/storage';
 import { Callout } from './Callout';
@@ -205,13 +205,14 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
         className="hidden"
         onChange={handleFileChange}
       />
-      {/* 툴바(0468 자리 스왑) — 모바일 높이 131px 고정(사용자 설계): ⋯ 목록 스왑과 높이가
-          같아 교체 시 본문 밀림 0. 구성 131 = p-2(16) + ToolList(헤더44+구분선1+스크롤70) —
-          ToolList 헤더 주석과 짝(한쪽만 바꾸면 어긋남). format 뷰만 내용상 131을 넘을 수 있어
-          고정 해제(양식 5종+확인, 전체 교체 흐름 한정). 데스크톱(sm+)은 현행 자동 높이 유지 */}
+      {/* 툴바(0468 자리 스왑) — 모바일 높이 131px 고정(사용자 설계): 뷰 교체 시 본문 밀림 0.
+          구성 131 = p-2(16) + 헤더44 + 구분선1 + 스크롤70 — ToolList 헤더 주석과 짝(한쪽만
+          바꾸면 어긋남). format 뷰 예외는 0475에서 제거 — 세 뷰(버튼·목록·서식) 모두 같은
+          산식으로 고정, 서식 내용(양식 5종·확인)은 스크롤 영역이 수용. 데스크톱(sm+)은
+          자동 높이 유지(format 뷰는 모바일 전용 진입이라 무영향) */}
       <div
         ref={toolbarRef}
-        className={`border-b border-border ${toolsView === 'format' ? '' : 'max-sm:h-[131px]'}`}
+        className="border-b border-border max-sm:h-[131px]"
       >
       {toolsView === 'list' ? (
         // ⋯ 스왑 뷰 — 팝오버가 아니라 툴바 내용 교체(0468, 오버레이 아님), ✕로 버튼 뷰 복귀.
@@ -230,25 +231,47 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
           />
         </div>
       ) : toolsView === 'format' ? (
-        // 서식 뷰 — 같은 자리 내용 전환(0359 패턴 승계). autoFocus false: 에디터 포커스·iOS
-        // 선택 표시 보존(0467 원칙 — 서식은 선택과 무관하지만 취소 복귀 대비 일관 유지)
+        // 서식 뷰(0475 131px 편입) — 목록 뷰와 같은 "헤더44+구분선1+스크롤70" 골격.
+        // autoFocus false: 에디터 포커스·iOS 선택 표시 보존(0467 원칙).
+        // FormatMenuContent는 데스크톱 팝오버와 공용이라 무변 — 스크롤 수용은 바깥 래퍼가
+        // 담당(0473 안쪽 래퍼와 같은 결: 공용 컴포넌트 대신 소비자 층에서 감싼다)
         <div className="p-2">
-          {/* 모바일엔 ESC가 없어 터치용 뒤로 행 필수(구 ToolbarMore 서식 뷰 승계) */}
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setToolsView('list')}
-            className="flex w-full items-center gap-1.5 min-h-[44px] rounded px-2 text-sm text-fg2 hover:bg-popover transition-colors"
-          >
-            <ArrowLeft size={14} />
-            뒤로
-          </button>
-          <FormatMenuContent
-            editor={editor}
-            autoFocus={false}
-            onDone={() => setToolsView(null)}
-            onEscape={() => setToolsView('list')}
-          />
+          {/* 헤더 h-11=44px — ToolList 헤더·위 131 구성 주석과 짝(한쪽만 바꾸면 어긋남).
+              모바일 전용 뷰라 sm:h-9 분기 불요. 좌 뒤로(목록 복귀, 모바일엔 ESC가 없어 터치
+              수단 필수 — 구 ToolbarMore 승계) / 우 ✕(버튼 뷰 복귀, ToolList 닫기 관용구) */}
+          <div className="flex h-11 items-center justify-between">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setToolsView('list')}
+              className="inline-flex items-center gap-1.5 min-h-[44px] min-w-[44px] rounded px-2 text-sm text-fg2 hover:bg-popover transition-colors"
+            >
+              <ArrowLeft size={14} />
+              뒤로
+            </button>
+            <button
+              type="button"
+              aria-label="닫기"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setToolsView(null)}
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded text-fg2 hover:bg-popover transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div aria-hidden className="border-b border-border" />
+          {/* 스크롤 70px — ToolList --tool-max 모바일 70px과 동기(arbitrary 리터럴만 JIT 스캔
+              §5 — 상수 추출 불가라 주석으로 짝). 양식 5종(≈245px)·확인 화면(≈128px) 모두
+              이 안에서 스크롤 — 컨테이너 131 불변이 핵심, 파괴적 확인 버튼이 접힘 아래인 것은
+              스크롤=의도적 행위라 오터치 방어와 같은 결(서식은 글 시작 1회성 저빈도, 0471) */}
+          <div className="h-[70px] overflow-y-auto overscroll-none">
+            <FormatMenuContent
+              editor={editor}
+              autoFocus={false}
+              onDone={() => setToolsView(null)}
+              onEscape={() => setToolsView('list')}
+            />
+          </div>
         </div>
       ) : (
       /* 버튼 뷰 — 데스크톱(sm+) 3그룹: 블록 서식 │ 인라인 서식 │ 삽입(현행 유지, 0461 확정).
