@@ -32,7 +32,9 @@ const SlashHost = forwardRef<ToolListHandle, SlashHostProps>(function SlashHost(
   );
 });
 
-export function createSlashCommand(onImagePick: () => void, onFormat: () => void) {
+// onFormat 배선 없음(0471) — 서식은 글 시작 1회성이라 슬래시 맥락에서 제외.
+// buildToolItems가 onFormat 미제공 시 항목 자체를 안 만든다(ToolList 주석 참조)
+export function createSlashCommand(onImagePick: () => void) {
   return Extension.create({
     name: 'slashCommand',
     addProseMirrorPlugins() {
@@ -51,13 +53,13 @@ export function createSlashCommand(onImagePick: () => void, onFormat: () => void
             }
             return true;
           },
-          // 공용 항목 15종을 호출 시점 실시간 can·active로 빌드 — selector 리렌더가 없는
+          // 공용 항목을 호출 시점 실시간 can·active로 빌드 — selector 리렌더가 없는
           // 컨텍스트라 두 맵을 직접 평가(단일 소스는 ToolList.computeCanMap·computeActiveMap 한 곳).
-          // active는 캐럿 위치의 마크·블록 상태 → 체크마크(0469)가 세 진입점에서 같은 기준
+          // active는 캐럿 위치의 마크·블록 상태 → 체크마크(0469)가 진입점 간 같은 기준
           items: ({ query, editor }) => {
             const all = buildToolItems(
               { ...computeCanMap(editor), ...computeActiveMap(editor) },
-              { onImagePick, onFormat },
+              { onImagePick },
             );
             const q = query.toLowerCase();
             return all.filter(

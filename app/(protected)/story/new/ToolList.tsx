@@ -100,11 +100,15 @@ function actionRun(action: (editor: Editor) => void) {
   };
 }
 
-// 항목 15종 — 순서는 자주 쓰는 순(사용자 지정): 첫 줄(모바일 1행 노출)에 굵게·기울임·제목이 오게.
+// 항목 15종(서식은 onFormat 제공 시에만 — 아래 주석) — 순서는 자주 쓰는 순(사용자 지정):
+// 첫 줄(모바일 1행 노출)에 굵게·기울임·제목이 오게.
 // 라벨·설명·아이콘은 기존 툴바·슬래시 어휘 재사용, keywords는 마크 6종에 신규 부여
+// onFormat 선택적(0471) — 서식은 글 시작 1회성이라 선택·슬래시 맥락에서 제외.
+// "항상 포함 후 호출처가 필터" 대신 핸들러를 제공한 호출처(툴바 ⋯ 스왑뿐)에만 항목이
+// 생기게 해, 핸들러 없는 항목이 목록에 뜨는 부정합을 타입 차원에서 봉쇄
 export function buildToolItems(
   state: CanMap & ActiveMap,
-  { onImagePick, onFormat }: { onImagePick: () => void; onFormat: () => void },
+  { onImagePick, onFormat }: { onImagePick: () => void; onFormat?: () => void },
 ): ToolItem[] {
   return [
     { key: 'bold', label: '굵게', description: '진하게 강조', icon: Bold, keywords: ['굵게', 'bold'], disabled: !state.canBold, active: state.bold, run: chainRun((c) => c.toggleBold()) },
@@ -121,7 +125,9 @@ export function buildToolItems(
     { key: 'calloutFaq', label: 'FAQ 콜아웃', description: '질문·답변 상자', icon: MessageCircleQuestion, keywords: ['faq', '질문', '문답', 'callout', '콜아웃'], disabled: !state.canCallout, active: state.calloutFaq, run: chainRun((c) => c.insertCallout('faq')) },
     { key: 'calloutWarn', label: '주의 콜아웃', description: '주의사항 강조 상자', icon: TriangleAlert, keywords: ['주의', 'warn', 'warning', 'caution', 'callout', '콜아웃'], disabled: !state.canCallout, active: state.calloutWarn, run: chainRun((c) => c.insertCallout('warn')) },
     { key: 'image', label: '이미지', description: '사진 업로드', icon: ImageIcon, keywords: ['이미지', 'image', '사진', 'photo'], disabled: false, run: actionRun(() => onImagePick()) },
-    { key: 'format', label: '서식', description: '본문 양식 바꾸기', icon: LayoutTemplate, keywords: ['서식', '양식', 'template', 'format'], disabled: false, run: actionRun(() => onFormat()) },
+    ...(onFormat
+      ? [{ key: 'format', label: '서식', description: '본문 양식 바꾸기', icon: LayoutTemplate, keywords: ['서식', '양식', 'template', 'format'], disabled: false, run: actionRun(() => onFormat()) } satisfies ToolItem]
+      : []),
   ];
 }
 
