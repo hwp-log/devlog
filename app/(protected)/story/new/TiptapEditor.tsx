@@ -17,7 +17,7 @@ import { Callout } from './Callout';
 import { SizeMark } from './SizeMark';
 import { createSlashCommand } from './SlashCommand';
 import { FormatMenu, FormatMenuContent } from './FormatMenu';
-import { ToolList, buildToolItems, computeCanMap, promptLink, TOOL_SHELL } from './ToolList';
+import { ToolList, buildToolItems, computeActiveMap, computeCanMap, promptLink, TOOL_SHELL } from './ToolList';
 
 interface TiptapEditorProps {
   content: string;
@@ -63,10 +63,14 @@ function ToolbarButton({
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       className={`inline-flex items-center justify-center px-2 py-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:text-muted disabled:cursor-not-allowed ${
         isActive ? 'bg-surface2 text-fg' : 'text-fg2 hover:bg-popover'
-      } ${mobileLabel ? 'max-sm:flex-col max-sm:flex-1 max-sm:h-16 max-sm:gap-1' : ''} ${className}`}
+      // max-sm:px-0(0469): flex-1 폭이 360px에서 53.6px인데 px-2를 빼면 콘텐츠 37.6px —
+      // 한글 3자 라벨(기울임·더보기 ≈36~38px)과 경계선상이라 두 줄로 접혀 h-16을 넘었다.
+      // 미디어 스코프라 베이스 px-2를 순서 무관하게 이김(상단 v4 순서 주석과 같은 규칙)
+      } ${mobileLabel ? 'max-sm:flex-col max-sm:flex-1 max-sm:h-16 max-sm:gap-1 max-sm:px-0' : ''} ${className}`}
     >
       {children}
-      {mobileLabel && <span className="sm:hidden text-xs leading-none font-normal">{mobileLabel}</span>}
+      {/* whitespace-nowrap — 서브픽셀 폭 변동에도 줄바꿈 봉인(px-0으로 폭은 이미 충분) */}
+      {mobileLabel && <span className="sm:hidden whitespace-nowrap text-xs leading-none font-normal">{mobileLabel}</span>}
     </button>
   );
 }
@@ -131,19 +135,9 @@ export function TiptapEditor({ content, onChange, userId }: TiptapEditorProps) {
     selector: ({ editor: e }) =>
       e
         ? {
-            bold: e.isActive('bold'),
-            italic: e.isActive('italic'),
-            heading2: e.isActive('heading', { level: 2 }),
-            heading3: e.isActive('heading', { level: 3 }),
-            bulletList: e.isActive('bulletList'),
-            blockquote: e.isActive('blockquote'),
-            calloutTip: e.isActive('callout', { kind: 'tip' }),
-            calloutFaq: e.isActive('callout', { kind: 'faq' }),
-            calloutWarn: e.isActive('callout', { kind: 'warn' }),
-            strike: e.isActive('strike'),
-            code: e.isActive('code'),
-            size: e.isActive('size'),
-            link: e.isActive('link'),
+            // isActive 맵(0469 단일 소스화) — 판정식은 ToolList.computeActiveMap 한 곳.
+            // 툴바 버튼 isActive와 목록 행 체크마크가 같은 값으로 갱신된다
+            ...computeActiveMap(e),
             // can 맵(0464-d→0468 단일 소스화) — 판정식은 ToolList.computeCanMap 한 곳.
             // 여기 spread는 값이 바뀔 때 deepEqual 리렌더를 트리거하는 역할(툴바 버튼 disabled +
             // 목록 항목 회색이 같은 값으로 갱신). tiptap canSetMark가 mark excludes를 반영

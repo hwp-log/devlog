@@ -5,7 +5,7 @@ import { ReactRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionProps } from '@tiptap/suggestion';
 import { computePosition, autoUpdate, offset, shift, size } from '@floating-ui/dom';
 import {
-  ToolList, TOOL_SHELL, buildToolItems, computeCanMap,
+  ToolList, TOOL_SHELL, buildToolItems, computeActiveMap, computeCanMap,
   type ToolItem, type ToolListHandle,
 } from './ToolList';
 
@@ -51,10 +51,14 @@ export function createSlashCommand(onImagePick: () => void, onFormat: () => void
             }
             return true;
           },
-          // 공용 항목 15종을 호출 시점 실시간 can으로 빌드 — selector 리렌더가 없는 컨텍스트라
-          // computeCanMap을 직접 평가(단일 소스는 ToolList.computeCanMap 한 곳)
+          // 공용 항목 15종을 호출 시점 실시간 can·active로 빌드 — selector 리렌더가 없는
+          // 컨텍스트라 두 맵을 직접 평가(단일 소스는 ToolList.computeCanMap·computeActiveMap 한 곳).
+          // active는 캐럿 위치의 마크·블록 상태 → 체크마크(0469)가 세 진입점에서 같은 기준
           items: ({ query, editor }) => {
-            const all = buildToolItems(computeCanMap(editor), { onImagePick, onFormat });
+            const all = buildToolItems(
+              { ...computeCanMap(editor), ...computeActiveMap(editor) },
+              { onImagePick, onFormat },
+            );
             const q = query.toLowerCase();
             return all.filter(
               (item) =>
