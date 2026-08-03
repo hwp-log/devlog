@@ -14,7 +14,9 @@ export function PlanSkeletonGrid({ count }: { count: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="skeleton-shimmer h-[240px] sm:h-[280px] rounded-[14px] border border-border"
+          // border 없음(0483) — 실제 PlanCard(무테두리, 표면 전체 커버)와 일치. 테두리를 두면
+          // 로딩→콘텐츠 전환 시 테두리가 사라져 어긋나 보임. 치수·radius는 PlanCard와 동기 유지
+          className="skeleton-shimmer h-[240px] sm:h-[280px] rounded-[14px]"
         />
       ))}
     </div>
