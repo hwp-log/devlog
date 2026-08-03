@@ -11,7 +11,9 @@ export type PublicCostSummary = {
     category: CostCategory | 'FLIGHT';
     label: string;
     ratio: number;
+    amount: number; // 0492: 금액 공개 — 항목별 실금액(내림차순 정렬 유지)
   }>;
+  total: number; // 0492: 금액 공개 — 계획 총액(항공 포함)
   band: { lower: number; upper: number } | null;
   currency: 'KRW' | 'USD' | 'JPY';
 };
@@ -42,7 +44,7 @@ export function summarizePlanCost(
   const band = computeBand(total, currency);
 
   if (total === 0) {
-    return { ratios: [], band, currency };
+    return { ratios: [], total, band, currency };
   }
 
   const items = [
@@ -71,8 +73,13 @@ export function summarizePlanCost(
   }
 
   const ratios = items
-    .map((item, i) => ({ category: item.category, label: item.label, ratio: floored[i] }))
+    .map((item, i) => ({
+      category: item.category,
+      label: item.label,
+      ratio: floored[i],
+      amount: item.amount,
+    }))
     .sort((a, b) => b.ratio - a.ratio);
 
-  return { ratios, band, currency };
+  return { ratios, total, band, currency };
 }

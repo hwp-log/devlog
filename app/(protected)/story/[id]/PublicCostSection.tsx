@@ -1,73 +1,55 @@
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
+import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 
 interface Props {
   summary: PublicCostSummary;
+  headcount: number;
 }
 
 // rank(비중 내림차순 index) → 색 클래스. 완전 리터럴만 JIT 스캔되므로 조합 금지 — 배열로 고정.
-// rank6+(최대 6항목: 항공+카테고리 5종)는 Math.min으로 rank5 쌍 재사용(0343 확정 — 순환은 범례 점↔최대 타일 혼동).
-const RANK_TILE = [
-  'bg-chart1-bg text-chart1-fg',
-  'bg-chart2-bg text-chart2-fg',
-  'bg-chart3-bg text-chart3-fg',
-  'bg-chart4-bg text-chart4-fg',
-  'bg-chart5-bg text-chart5-fg',
-];
-const RANK_DOT = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg', 'bg-chart5-bg'];
-
-// 이름 표시 임계 비중(%) — 미만 타일은 %만 가운데, 이름은 아래 범례로 (시안 실측 12%)
-const NAME_MIN_RATIO = 12;
+// rank6+(최대 6항목: 항공+카테고리 5종)는 Math.min으로 rank5 재사용(0343 확정).
+const RANK_BAR = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg', 'bg-chart5-bg'];
 
 /**
- * 예산 트리맵(0343) — 비중(%)만 표시, 총액·금액 없음(공개 정책).
- * ratios는 summarizePlanCost가 내림차순 정렬 보장 — index가 곧 rank(색 결정).
- * 타일 폭 = flexGrow(비중), flexBasis 0이 비례 폭의 전제.
- * 카드 껍데기 없음 — 카드는 조작 가능 영역 표시이고 트리맵은 보기 전용이라 여백으로 구분
- * (0341 글쓰기 예산 껍데기 제거와 같은 규칙). 바깥 여백은 소비처 소관.
- * 소비처: plan-finder/[id]뿐 — story/[id]는 0452(요약 한 줄 대체)·story/new는 0459(상세 정합)에서 폐기.
+ * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
+ * (0343 트리맵·"공개 정책(금액 없음)"은 폐기 — 상세는 실금액을 "약 N만원"으로 노출.)
+ * ratios는 summarizePlanCost가 비중 내림차순 정렬 보장 — index가 곧 rank(색 결정).
+ * 금액은 계획 총액 기준(1인당 환산 없음 — 항목의 1인당/전체 구분이 없어 나누면 틀린 값, 0492 확정).
+ * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
  */
-export function PublicCostSection({ summary }: Props) {
-  const { ratios } = summary;
+export function PublicCostSection({ summary, headcount }: Props) {
+  const { ratios, total, currency } = summary;
   if (ratios.length === 0) return null;
-
-  const legendItems = ratios
-    .map((item, rank) => ({ ...item, rank }))
-    .filter((item) => item.ratio < NAME_MIN_RATIO);
 
   return (
     <div>
-      <div className="flex gap-[4px] h-[118px]">
-        {ratios.map((item, rank) => {
-          const showName = item.ratio >= NAME_MIN_RATIO;
-          return (
-            <div
-              key={item.category}
-              style={{ flexGrow: item.ratio, flexBasis: 0 }}
-              className={`min-w-0 overflow-hidden rounded-[7px] px-[10px] py-[9px] flex flex-col ${
-                showName ? 'justify-between' : 'justify-center items-center'
-              } ${RANK_TILE[Math.min(rank, 4)]}`}
-            >
-              {showName && (
-                <span className="text-[12.5px] font-medium whitespace-nowrap">{item.label}</span>
-              )}
-              <span className="text-[12.5px] font-semibold font-mono">{item.ratio}%</span>
-            </div>
-          );
-        })}
+      <div className="flex items-baseline gap-2">
+        <span className="text-xl font-bold text-fg">총 {formatApproxCost(total, currency)}</span>
+        <span className="text-sm text-muted">· {headcount}인</span>
       </div>
-      {legendItems.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-          {legendItems.map((item) => (
-            <span key={item.category} className="flex items-center gap-1.5 text-[12px] text-fg2">
-              <span
-                aria-hidden
-                className={`w-2 h-2 rounded-full shrink-0 ${RANK_DOT[Math.min(item.rank, 4)]}`}
-              />
-              {item.label} {item.ratio}%
-            </span>
-          ))}
-        </div>
-      )}
+
+      <div className="mt-3 flex h-2 rounded-full overflow-hidden bg-surface2">
+        {ratios.map((item, rank) => (
+          <div
+            key={item.category}
+            style={{ flexGrow: item.ratio, flexBasis: 0 }}
+            className={RANK_BAR[Math.min(rank, 4)]}
+          />
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-col gap-1.5">
+        {ratios.map((item, rank) => (
+          <div key={item.category} className="flex items-center gap-2 text-[13px]">
+            <span
+              aria-hidden
+              className={`w-2 h-2 rounded-full shrink-0 ${RANK_BAR[Math.min(rank, 4)]}`}
+            />
+            <span className="text-fg2">{item.label}</span>
+            <span className="ml-auto font-medium text-fg">{formatApproxCost(item.amount, currency)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

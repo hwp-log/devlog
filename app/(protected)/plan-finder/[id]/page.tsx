@@ -29,6 +29,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       createdAt: true,
       startDate: true,
       endDate: true,
+      coverUrl: true,
+      headcount: true,
       spots: {
         select: { id: true, day: true, name: true, order: true },
         orderBy: { order: 'asc' },
@@ -61,17 +63,18 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   // summarizePlanCost — server-only, 결과만 클라로 전송
   const summary = summarizePlanCost(plan.costs, plan.flight, currency);
 
-  // 카테고리만 전달 (amount 제거)
+  // 0492: 금액 공개 — 항목 금액 포함(트리맵→실금액 표기로 전환)
   const costCategories = plan.costs.map((c) => ({
     planSpotId: c.planSpotId,
     category: c.category,
+    amount: c.amount,
   }));
 
-  // 항공편: duration 계산 후 시간·날짜·금액 제거
+  // 항공편: duration 계산 후 시간·날짜 제거(금액은 공개 — 왕복 총액은 상세 섹션 제목이 표기)
   const publicFlight: FlightLegData | null = plan.flight
     ? {
         tripType: plan.flight.tripType as 'ONE_WAY' | 'ROUND_TRIP',
-        totalAmount: 0,
+        totalAmount: plan.flight.totalAmount,
         out: {
           origin: plan.flight.outOrigin,
           destination: plan.flight.outDestination,
@@ -117,6 +120,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       description={plan.description}
       region={plan.region}
       movie={plan.movie}
+      coverUrl={plan.coverUrl}
+      headcount={plan.headcount}
       createdAtLabel={createdAtLabel}
       dayCount={dayCount}
       spots={plan.spots}

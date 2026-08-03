@@ -1,5 +1,6 @@
 import { CATEGORY_COLOR, formatAmount, type CostCategory } from '../_lib/cost';
 import { CATEGORY_ICON } from './CostSection';
+import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 
 type SpotInfo = { id: string; day: number; name: string; order?: number };
 type CostInfo = { planSpotId: string | null; category: string; amount: number };
@@ -36,9 +37,18 @@ interface Props {
   items: TimelineItem[];
   currency: 'KRW' | 'USD' | 'JPY';
   showAmount?: boolean;
+  // 0492: 공개 상세 변형 — 기본값은 소유자 뷰(우측 인라인·정확금액) 그대로라 무영향.
+  amountPlacement?: 'inline' | 'bottom';
+  amountFormat?: 'exact' | 'approx';
 }
 
-export function PlanTimeline({ items, currency, showAmount = true }: Props) {
+export function PlanTimeline({
+  items,
+  currency,
+  showAmount = true,
+  amountPlacement = 'inline',
+  amountFormat = 'exact',
+}: Props) {
   return (
     <div className="glass-outer p-5 mb-4">
       {items.length === 0 ? (
@@ -49,6 +59,14 @@ export function PlanTimeline({ items, currency, showAmount = true }: Props) {
             const isFirst = i === 0;
             const isLast = i === items.length - 1;
             const markerBg = 'bg-blue-500';
+            // 미입력(연결 비용 없음)은 금액 줄 자체를 렌더하지 않는다. 실제 0원만 "무료"(양쪽 화면 공통 규칙).
+            const showAmountLine = showAmount && cost != null;
+            const amountText =
+              cost && cost.amount > 0
+                ? amountFormat === 'approx'
+                  ? formatApproxCost(cost.amount, currency)
+                  : formatAmount(cost.amount, currency)
+                : '무료';
             return (
               <div key={spot.id} className="flex gap-3">
                 <div className="flex flex-col items-center w-[18px] shrink-0">
@@ -68,13 +86,12 @@ export function PlanTimeline({ items, currency, showAmount = true }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{spot.name}</p>
+                      {showAmountLine && amountPlacement === 'bottom' && (
+                        <p className="mt-0.5 text-[12px] font-semibold text-[#4A4A4A]">{amountText}</p>
+                      )}
                     </div>
-                    {showAmount && (
-                      <p className="text-[12px] font-semibold text-[#4A4A4A] shrink-0">
-                        {cost && cost.amount > 0
-                          ? formatAmount(cost.amount, currency)
-                          : '무료'}
-                      </p>
+                    {showAmountLine && amountPlacement === 'inline' && (
+                      <p className="text-[12px] font-semibold text-[#4A4A4A] shrink-0">{amountText}</p>
                     )}
                   </div>
                 </div>
