@@ -101,7 +101,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
   return (
     // 폭 단일 소스(0373 — 0321 일원화 방식): 860 = 글쓰기·수정과 동일 리터럴(0322 확정).
     // 옛 max-w-7xl 래퍼는 ProtectedMain(max-w-7xl px-6)과 중복이라 제거, max-w-4xl(896)은 860으로 정합.
-    <div className="max-w-[860px] mx-auto">
+    <div className="max-w-[var(--story-content-w)] mx-auto">
       {/* 본문 카드 제거(0371 — READ 블록 1단계): 읽기 표면은 페이지 배경 위 개방 캔버스(0319의
           상세판), 카드는 조작 표면(지도·목록)에만. 글쓰기 화면과 동일 문법.
           하드코딩 색 백로그는 0375(h1 text-fg)·0377(목록 링크 → primary 버튼)로 전부 해소 — 이 페이지 잔재 0 */}

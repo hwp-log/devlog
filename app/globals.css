@@ -310,6 +310,9 @@ body {
   --sf-col-left-w: 320px;
   --sf-col-right-w: 350px;
   --sf-detail-hero-h: 210px;
+  /* 0490: 스토리 본문 폭 — 상세·글쓰기·수정이 공유하던 860 리터럴의 정본(드리프트 방지). 이번엔
+     상세(story/[id]) + 진입 로딩(story/[id]/loading)만 참조로 전환, 글쓰기·수정 채택은 별건. */
+  --story-content-w: 860px;
 }
 
 /* 0275: 셔머 스켈레톤 표면 — 바탕 popover 위를 밝은 surface2 띠가 1.4s로 훑음.
