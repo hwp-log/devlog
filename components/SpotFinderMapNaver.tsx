@@ -270,7 +270,7 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
   const hasPhoto = !!spot.thumbnailUrl;
   return (
     <>
-      <div className="relative h-[210px] flex-shrink-0">
+      <div className="relative h-[var(--sf-detail-hero-h)] flex-shrink-0">
         {spot.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={spot.thumbnailUrl} alt={spot.name} className="w-full h-full object-cover" />
@@ -320,12 +320,13 @@ function SpotDetailContent({ spot, onClose }: { spot: SpotFinderSpot; onClose: (
         </button>
       </div>
 
-      {/* 0260: 상세 본문 = 유일한 스크롤러. 높이는 명시 calc(부모 100% − 히어로 210, 위 h-[210px]와 짝) —
+      {/* 0260: 상세 본문 = 유일한 스크롤러. 높이는 명시 calc(부모 100% − 히어로 높이 var(--sf-detail-hero-h),
+          위 히어로와 짝 — 0488 정본은 globals.css) —
           flex grow 배제(0253 원칙: iOS/iPad Safari 중첩 flex grow 미계산 재발 방지).
           기존 이중 스크롤러(모달 루트 overflow + 스크롤할 게 없는 body overflow)에선 실기기 iOS에서
           body에서 시작한 터치가 바깥 스크롤러로 체이닝되지 않아 스크롤 불가(0260 버그).
           모바일 pb 88+env: 탭바 pill이 모달 위에 그려짐(변환 조상 스태킹 — 기존 사항) → 스크롤 끝 출처가 pill 위로 오게 보정. 데탑은 lg:pb-4 원복. */}
-      <div className="h-[calc(100%-210px)] overflow-y-auto p-4 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-4 flex flex-col gap-4">
+      <div className="h-[calc(100%-var(--sf-detail-hero-h))] overflow-y-auto p-4 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-4 flex flex-col gap-4">
         <div>
           <p className="text-xs font-medium text-muted mb-1">촬영지 리뷰</p>
           {spot.review ? (
@@ -1025,7 +1026,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
     <div ref={mapWrapperRef} className="relative w-full h-full flex">
       {/* 좌측 칼럼 — 모바일: 지도 위 플로팅(absolute) / md: 320px 정적 열 (같은 DOM, 클래스 전환).
           열 구분선 0.12 = 시안 --t15 실측값 — 시안 t13(0.08)과 동일값이었으나 체감 보강으로 상위 단계 채택 (구분선 한정, border 토큰 무변) */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 lg:static lg:top-auto lg:left-auto lg:right-auto lg:z-auto lg:w-[320px] lg:shrink-0 lg:h-full lg:bg-bg lg:border-r lg:border-border dark:lg:border-[rgba(255,255,255,0.12)] lg:p-3">
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 lg:static lg:top-auto lg:left-auto lg:right-auto lg:z-auto lg:w-[var(--sf-col-left-w)] lg:shrink-0 lg:h-full lg:bg-bg lg:border-r lg:border-border dark:lg:border-[rgba(255,255,255,0.12)] lg:p-3">
         {/* 데탑 전용 헤더 — 시안 실측 18/20/10, 칼럼 md:p-3(12)+gap-2(8) 보정. 눈썹은 하한 준수 12px(시안 11px) */}
         <div className="hidden lg:block pt-1.5 px-2 pb-0.5">
           <p className="text-xs font-normal tracking-widest text-primary">SpotFinder</p>
@@ -1140,7 +1141,7 @@ export default function SpotFinderMapNaver({ spots }: Props) {
       </div>
 
       {/* 데탑 우측 고정 패널 (A005 §8 미결1 잠정 채택 — 시안 실측 350px, bg 층) */}
-      <aside className="hidden lg:flex w-[350px] shrink-0 flex-col bg-bg">
+      <aside className="hidden lg:flex w-[var(--sf-col-right-w)] shrink-0 flex-col bg-bg">
         {selectedSpot ? (
           <SpotDetailContent spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
         ) : (

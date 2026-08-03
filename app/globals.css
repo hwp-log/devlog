@@ -304,6 +304,12 @@ body {
    값 유도(하한 359 = 고정부 254 + 목록 하한 105)는 SpotFinderMapNaver SHEET_MAX_H 주석 참조. */
 :root {
   --sf-sheet-half-h: max(58svh, calc(359px + env(safe-area-inset-bottom)));
+  /* 0488: SpotFinder 3열 공유 치수 — 실제(SpotFinderMapNaver)·로딩 스켈레톤(SpotFinderLoadingSkeleton)이
+     [var(--…)]로 참조. 리터럴을 두 파일에 복제하면 한쪽만 고칠 때 스켈레톤↔실제 드리프트(0487·0488 동형).
+     좌·우 열 폭과 상세 히어로 높이의 정본. */
+  --sf-col-left-w: 320px;
+  --sf-col-right-w: 350px;
+  --sf-detail-hero-h: 210px;
 }
 
 /* 0275: 셔머 스켈레톤 표면 — 바탕 popover 위를 밝은 surface2 띠가 1.4s로 훑음.
