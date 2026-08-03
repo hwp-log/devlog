@@ -84,8 +84,8 @@ export function TagSearchBar({
         onCompositionEnd={handleCompositionEnd}
         placeholder={tags.length > 0 ? '' : '제목, 지역명을 입력하세요'}
         aria-label="제목, 지역명 또는 인기 태그로 검색"
-        className="w-full md:w-70 pl-9 pr-9 py-2 text-base md:text-sm text-fg rounded-full bg-surface2 border-0 dark:border dark:border-border
-                   focus:outline-none focus:border-primary hover:border-muted
+        className="w-full md:w-70 pl-9 pr-9 py-2 text-base md:text-sm text-fg rounded-full bg-surface2 border border-transparent dark:border-border
+                   focus:outline-none dark:focus:border-primary dark:hover:border-muted
                    focus:shadow-[0_0_0_3px_rgba(77,158,255,0.18)] dark:focus:shadow-[0_0_0_3px_rgba(77,158,255,0.15)]
                    transition-[box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]
                    placeholder:text-muted"
