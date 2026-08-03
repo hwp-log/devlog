@@ -28,8 +28,10 @@ export function AppHeader({ isLoggedIn, email, avatarUrl, nickname, isAdmin, wid
           <NavLinks />
           {/* col-start-3 명시 — 모바일에서 NavLinks(display:none) 소멸 시 중앙 열로 자동 배치되는 것 방지 */}
           <div className="col-start-3 justify-self-end flex items-center gap-3">
-            {/* 0293: 테마 트랙 스위치 — Write 왼쪽(업계 표준 헤더 위치). 게스트도 유효 */}
-            <ThemeToggle />
+            {/* 테마 스위치(0293→0482) — 게스트 전용 헤더 잔류. 로그인 시엔 프로필 드롭다운
+                설정 구역으로 이전(멘토 피드백: 설정류는 프로필/테마 레이어로). 게스트는
+                드롭다운이 없고 2단 토글이라 OS 추종도 없어, 헤더에서 빼면 라이트에 갇힘 */}
+            {!isLoggedIn && <ThemeToggle />}
             {/* Write는 로그인 시에만 — /story/new가 proxy로 비로그인 시 /login 리다이렉트라 게스트 노출 시 "동작 안 하는 버튼" */}
             {isLoggedIn && (
               <Link
