@@ -297,6 +297,15 @@ body {
   }
 }
 
+/* 0487: SpotFinder 모바일 하단 시트 half 높이 — 단일 소스(CSS 변수). 실제 시트(SpotFinderMapNaver
+   SHEET_MAX_H.half)와 로딩 스켈레톤(SpotFinderLoadingSkeleton)이 [var(--sf-sheet-half-h)]로 공유 —
+   리터럴을 두 파일에 복제하면 한쪽만 고칠 때 교체 순간 시트가 튐(0487 회귀 방지). svh·env 런타임
+   함수라 JS 상수(JIT가 보간 arbitrary 미스캔)·Tailwind theme으로는 못 담아 CSS 변수가 정답.
+   값 유도(하한 359 = 고정부 254 + 목록 하한 105)는 SpotFinderMapNaver SHEET_MAX_H 주석 참조. */
+:root {
+  --sf-sheet-half-h: max(58svh, calc(359px + env(safe-area-inset-bottom)));
+}
+
 /* 0275: 셔머 스켈레톤 표면 — 바탕 popover 위를 밝은 surface2 띠가 1.4s로 훑음.
    색은 theme.ts 토큰 var(--popover)/var(--surface2) 경유(다크 스코프 자동, 리터럴 금지). */
 @utility skeleton-shimmer {

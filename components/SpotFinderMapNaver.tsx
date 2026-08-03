@@ -177,7 +177,8 @@ const SHEET_MAX_H = {
   // 0254→0257: half 하한 359 = 고정부 254 + 목록 하한 105 — 실기기 Safari는 svh가 주소창·툴바만큼 축소돼
   // 58svh만으론 목록 확보가 안 됨. 하한은 아래 SHEET_LIST_MAX_H의 105와 짝(pair) — 한쪽만 바꾸면 클립 잘림.
   // (이력: 0254 190/462 과점 → 0255 143/415 → 0256 고정부 압축 143/397 → 0257 걸침 어포던스 105/359)
-  half: 'max-h-[max(58svh,calc(359px+env(safe-area-inset-bottom)))]',
+  // 0487: 값 정본 = globals.css --sf-sheet-half-h (로딩 스켈레톤 시트와 공유 — 리터럴 이중화가 튐 회귀 유발).
+  half: 'max-h-[var(--sf-sheet-half-h)]',
 } as const;
 // 0252: 목록 ul 명시 max-h — iOS Safari가 중첩 flex(클립 래퍼) 안에서 grow를 계산하지 않아
 // ul이 한 줄(48px)로 붕괴(실기기 Web Inspector 실측) → flex 사이징 배제, 높이 = min(콘텐츠, calc).

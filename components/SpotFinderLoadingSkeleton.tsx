@@ -45,13 +45,17 @@ export default function SpotFinderLoadingSkeleton() {
         </div>
       </aside>
 
-      {/* 모바일 하단 시트 골격 (데탑 숨김) — 실제 시트와 동일 바닥밀착·라운드 */}
-      <div className="lg:hidden absolute inset-x-0 bottom-0 flex flex-col rounded-t-[22px] border border-border bg-card/90 pt-3 px-4 pb-[calc(72px+env(safe-area-inset-bottom))]">
+      {/* 0487: 모바일 하단 시트 골격 — 실제 시트(SpotFinderMapNaver:1159 half)와 높이·pt·그림자를 정합해
+          스켈레톤→실제 교체 시 시트 튐 제거. 높이 = 실제 half과 같은 상수 var(--sf-sheet-half-h)(globals.css
+          단일 소스, 명시 height라 행 수 무관). pt-1·backdrop-blur-sm·shadow-2xl도 실제와 동기(교체 순간
+          그림자 pop 방지). 행은 고정 높이를 채우는 시각용 — overflow-hidden으로 클립(실제 목록이 half로
+          클램프되는 것과 동형). */}
+      <div className="lg:hidden absolute inset-x-0 bottom-0 flex flex-col h-[var(--sf-sheet-half-h)] overflow-hidden rounded-t-[22px] border border-border bg-card/90 backdrop-blur-sm shadow-2xl pt-1 px-4 pb-[calc(72px+env(safe-area-inset-bottom))]">
         <div className="self-center h-1 w-10 rounded-full skeleton-shimmer" />
         <div className="mt-3 h-5 w-[60%] rounded skeleton-shimmer" />
         <div className="mt-2 h-11 w-full rounded-xl skeleton-shimmer" />
         <div className="mt-2 flex flex-col gap-[7px]">
-          {Array.from({ length: 3 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <RowSkeleton key={i} />
           ))}
         </div>
