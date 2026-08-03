@@ -9,8 +9,10 @@ const BASE_NAV = [
   { href: '/plan-finder', label: 'PlanFinder' },
 ];
 
-// HeaderGate가 /spot-finder에서 wrapper 구조를 토글해 헤더 서브트리(NavLinks 포함)가 remount됨.
-// 갓 마운트된 점은 이전 transform이 없어 slide 불가 → 위치를 모듈 레벨에 보존해 새 인스턴스가 이전 위치에서 미끄러지게.
+// 0485: 구 HeaderGate wrapper 토글이 이 서브트리를 remount시켰으나, 헤더 숨김이 CSS 스코프(ThemeScope
+// data-hide-header)로 이관되며 헤더는 상시 마운트 = remount 없음. lastCenter(모듈 보존)는 그 remount 시
+// 새 인스턴스가 이전 위치에서 미끄러지게 하던 장치라, 현재는 최초 마운트에서만 읽혀 사실상 미사용(무해).
+// 활성 점 애니메이션 로직 자체는 불변 — 잔존 로직의 별도 정리는 후속 과제.
 let lastCenter: number | null = null;
 
 export function NavLinks() {

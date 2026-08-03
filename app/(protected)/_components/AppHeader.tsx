@@ -3,7 +3,6 @@ import { Logo } from './Logo';
 import { NavLinks } from './NavLinks';
 import { ThemeToggle } from './ThemeToggle';
 import { UserDropdown } from './UserDropdown';
-import { HeaderGate } from './HeaderGate';
 
 interface AppHeaderProps {
   isLoggedIn: boolean;
@@ -17,10 +16,11 @@ interface AppHeaderProps {
 
 export function AppHeader({ isLoggedIn, email, avatarUrl, nickname, isAdmin, widthClassName }: AppHeaderProps) {
   return (
-    <HeaderGate>
-      {/* z-50 = 전역 크롬 최상위 단계(globals.css 상단 z 계층표 참조). 페이지 콘텐츠·인페이지 팝오버(≤50) 위,
-          풀스크린 지도 테이크오버(SpotMap z-55 / SpotFinderMap z-60) 아래 — 스토리 지도 풀스크린은 헤더를 덮어야 하므로 55 미만 유지. */}
-      <header className="sticky top-0 z-50 glass-header">
+    // 0485: 헤더는 항상 마운트. 모바일 풀블리드(/spot-finder) 숨김은 구 HeaderGate 조건부 렌더 대신
+    // ThemeScope 루트의 data-hide-header 마커 + globals.css 순수 CSS로 처리(remount·main 57px 바운스 제거).
+    // z-50 = 전역 크롬 최상위 단계(globals.css 상단 z 계층표 참조). 페이지 콘텐츠·인페이지 팝오버(≤50) 위,
+    // 풀스크린 지도 테이크오버(SpotMap z-55 / SpotFinderMap z-60) 아래 — 스토리 지도 풀스크린은 헤더를 덮어야 하므로 55 미만 유지.
+    <header className="sticky top-0 z-50 glass-header">
         <div className={`${widthClassName ?? ''} px-6 h-14 grid grid-cols-[1fr_auto_1fr] items-center`}>
           <div className="justify-self-start">
             <Logo />
@@ -51,6 +51,5 @@ export function AppHeader({ isLoggedIn, email, avatarUrl, nickname, isAdmin, wid
           </div>
         </div>
       </header>
-    </HeaderGate>
   );
 }
