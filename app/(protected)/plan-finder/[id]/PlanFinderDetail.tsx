@@ -25,7 +25,7 @@ interface Props {
   headcount: number;
   createdAtLabel: string;
   dayCount: number;
-  spots: { id: string; day: number; name: string; order?: number }[];
+  spots: { id: string; day: number; name: string; order?: number; coverUrl?: string | null; address?: string | null; movie?: string | null }[];
   costCategories: { planSpotId: string | null; category: string; amount: number }[];
   publicFlight: FlightLegData | null;
   summary: PublicCostSummary;
@@ -62,6 +62,11 @@ export function PlanFinderDetail({
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
   const timeline = buildTimeline(spots, costCategories, selectedDay);
+
+  // 0494: 그날 촬영지 사진 그리드 — 커버 있는 항목만, order순, 히어로 커버와 디둡(같은 사진 중복 방지).
+  const dayPhotos = spots
+    .filter((s) => s.day === selectedDay && s.coverUrl && s.coverUrl !== coverUrl)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const durationLabel = dayCount > 1 ? `${dayCount - 1}박 ${dayCount}일` : '당일';
   const anchor = [
@@ -145,23 +150,28 @@ export function PlanFinderDetail({
         ))}
       </div>
 
-      <PlanTimeline
-        items={timeline}
-        currency={currency}
-        showAmount
-        amountPlacement="bottom"
-        amountFormat="approx"
-      />
+      {/* 0494: 그날 촬영지 사진 그리드 — 일정 목록 위, 가로 나열. 한 장도 없으면 생략. */}
+      {dayPhotos.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
+          {dayPhotos.map((s) => (
+            <div key={s.id} className="relative w-[132px] h-[92px] shrink-0 rounded-[10px] overflow-hidden">
+              <Image src={s.coverUrl!} alt="" fill sizes="132px" className="object-cover" />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pt-4 pb-1.5">
+                <p className="text-[11px] font-semibold text-white truncate">{s.name}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <PlanTimeline items={timeline} currency={currency} showAmount={false} />
 
       {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값) */}
       {publicFlight && (
         <div className="mb-6">
           <div className="flex items-baseline gap-2 mb-3 flex-wrap">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide">왕복 항공편</p>
-            <p className="text-[11px] text-muted">
-              조회 시점 기준
-              {publicFlight.totalAmount > 0 && ` · 왕복 ${formatApproxCost(publicFlight.totalAmount, currency)}`}
-            </p>
+            <p className="text-[11px] text-muted">조회 시점 기준</p>
           </div>
           <PublicFlightTable data={publicFlight} />
         </div>

@@ -2,7 +2,8 @@ import { CATEGORY_COLOR, formatAmount, type CostCategory } from '../_lib/cost';
 import { CATEGORY_ICON } from './CostSection';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 
-type SpotInfo = { id: string; day: number; name: string; order?: number };
+// 0494: address·movie는 파인더 상세 전용(Spot 조인값). 소유자 뷰는 미전달 → undefined → 렌더 안 함.
+type SpotInfo = { id: string; day: number; name: string; order?: number; address?: string | null; movie?: string | null };
 type CostInfo = { planSpotId: string | null; category: string; amount: number };
 
 export type TimelineItem = {
@@ -85,7 +86,19 @@ export function PlanTimeline({
                       {cost ? CATEGORY_ICON[cost.category as CostCategory] : PIN_ICON}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{spot.name}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{spot.name}</p>
+                        {/* 0494: 대표 작품 칩(파인더 상세, spotMovies[0]) */}
+                        {spot.movie && (
+                          <span className="shrink-0 text-[10px] leading-none px-1.5 py-[3px] rounded-full bg-[#F0F0F0] text-[#666]">
+                            {spot.movie}
+                          </span>
+                        )}
+                      </div>
+                      {/* 0494: 주소 한 줄(파인더 상세, Spot.address) */}
+                      {spot.address && (
+                        <p className="mt-0.5 text-[12px] text-[#8A8A8A] truncate">{spot.address}</p>
+                      )}
                       {showAmountLine && amountPlacement === 'bottom' && (
                         <p className="mt-0.5 text-[12px] font-semibold text-[#4A4A4A]">{amountText}</p>
                       )}

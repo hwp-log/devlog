@@ -32,8 +32,22 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       coverUrl: true,
       headcount: true,
       spots: {
-        select: { id: true, day: true, name: true, order: true },
         orderBy: { order: 'asc' },
+        // 0494: spotId 연결 시 Spot 정보 조인(사진·주소·작품). null이면 spot: null (있는 것만).
+        select: {
+          id: true, day: true, name: true, order: true, spotId: true,
+          spot: {
+            select: {
+              coverUrl: true,
+              address: true,
+              // 작품 전부 fetch, createdAt desc — 대표 = [0] (0185 최신 연결 대표 관용구)
+              spotMovies: {
+                orderBy: { createdAt: 'desc' },
+                select: { movie: { select: { id: true, title: true } } },
+              },
+            },
+          },
+        },
       },
       costs: {
         select: { planSpotId: true, category: true, amount: true },
@@ -124,7 +138,16 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       headcount={plan.headcount}
       createdAtLabel={createdAtLabel}
       dayCount={dayCount}
-      spots={plan.spots}
+      spots={plan.spots.map((s) => ({
+        id: s.id,
+        day: s.day,
+        name: s.name,
+        order: s.order,
+        // 0494: 연결 Spot 조인값 평탄화(미연결이면 null). 대표 작품 = spotMovies[0].
+        coverUrl: s.spot?.coverUrl ?? null,
+        address: s.spot?.address ?? null,
+        movie: s.spot?.spotMovies?.[0]?.movie.title ?? null,
+      }))}
       costCategories={costCategories}
       publicFlight={publicFlight}
       summary={summary}
