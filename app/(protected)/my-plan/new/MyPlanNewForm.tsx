@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { createPlanWithItemsAction, updatePlanWithItemsAction } from './actions';
 import { FlightSearchSection } from './FlightSearchSection';
+import { PlaceSearchInput } from './PlaceSearchInput';
 import type { FlightOffer } from '@/lib/flights';
 import {
   CATEGORIES,
@@ -38,6 +39,8 @@ export type PlanItem = {
   name: string;
   category: CostCategory | '';
   amount: number;
+  // 검색-선택한 장소 메타 — 화면 상태에만 보관(저장 payload 미포함, 다음 단계).
+  place?: { id: string; lat: number; lng: number; address: string };
 };
 
 export type DayPlan = {
@@ -144,11 +147,15 @@ function SortablePlanItem({
       >
         {item.category ? CATEGORY_ICON[item.category as CostCategory] : null}
       </div>
-      <input
-        type="text"
+      <PlaceSearchInput
         value={item.name}
-        onChange={(e) => onUpdate(item.id, { name: e.target.value })}
-        placeholder="장소 이름"
+        onType={(name) => onUpdate(item.id, { name, place: undefined })}
+        onPick={(p) =>
+          onUpdate(item.id, {
+            name: p.name,
+            place: { id: p.id, lat: p.lat, lng: p.lng, address: p.address },
+          })
+        }
         className={ITEM_INPUT_CLASS}
       />
       <select
