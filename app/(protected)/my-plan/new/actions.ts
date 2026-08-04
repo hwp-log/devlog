@@ -5,7 +5,9 @@ import { prisma } from '@/lib/prisma';
 import type { Currency, CostCategory, TripType, Prisma } from '@prisma/client';
 import { searchFlights } from '@/lib/flights';
 import type { FlightOffer } from '@/lib/flights';
-import { pickPlanCover } from '@/lib/plan/pick-cover';
+import { pickPlanCover, firstOwnSpotCover } from '@/lib/plan/pick-cover';
+import { normalizeRegionKey } from '@/lib/plan/region-cover';
+import { inferRegionKey, inferMovieTitle } from '@/lib/plan/infer-plan-meta';
 import { clampHeadcount } from '@/lib/plan/validate-input';
 import { findNearbySpots } from '@/lib/spot/nearby';
 
@@ -33,6 +35,35 @@ async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
     const near = await findNearbySpots(it.lat, it.lng, AUTO_REUSE_RADIUS_M);
     return { ...it, reusedSpotId: near[0]?.spotId ?? null, hasCoords: true };
   }));
+}
+
+// 0495: 재사용 Spot의 커버·작품을 한 번에 조회 → 자기 커버(우선순위 1)·작품 추론에 사용.
+//   신규 생성 Spot은 아직 커버·작품이 없어 자연 제외.
+async function resolveCover(payload: SavePayload, items: ResolvedItem[]): Promise<string | null> {
+  const reusedIds = [...new Set(items.map((i) => i.reusedSpotId).filter((x): x is string => !!x))];
+  const reusedSpots = reusedIds.length
+    ? await prisma.spot.findMany({
+        where: { id: { in: reusedIds } },
+        select: { id: true, coverUrl: true, spotMovies: { select: { movie: { select: { title: true } } } } },
+      })
+    : [];
+  const coverById = new Map(reusedSpots.map((s) => [s.id, s.coverUrl]));
+
+  // 우선순위 1: 담은 Spot의 커버(재사용 Spot 한정 — 신규는 커버 없음).
+  const ownSpots = items
+    .filter((i) => i.reusedSpotId)
+    .map((i) => ({ order: i.order, coverUrl: coverById.get(i.reusedSpotId!) ?? null }));
+  const own = firstOwnSpotCover(ownSpots);
+  if (own) return own;
+
+  // 폴백: region/movie 비었거나 해석 실패면 담은 Spot에서 추론(사용자 입력 우선, 저장 필드는 미변경).
+  const region = normalizeRegionKey(payload.region)
+    ? payload.region
+    : inferRegionKey(items.map((i) => i.address));
+  const movie = payload.movie?.trim()
+    ? payload.movie
+    : inferMovieTitle(reusedSpots.flatMap((s) => s.spotMovies.map((m) => m.movie.title)));
+  return pickPlanCover(movie, region);
 }
 
 type SavePayload = {
@@ -107,12 +138,11 @@ export async function createPlanWithItemsAction(
   const title = payload.title.trim();
   if (!title) return { error: '제목을 입력해주세요' };
 
-  // 커버는 생성 시 1회만 부여(수정 시 재부여 안 함). 최소 사용 후보 선택(작품+지역).
-  // 트랜잭션 전 계산(읽기 전용 스냅샷). 생성이라 excludePlanId 미지정(아직 행 없음).
-  const coverUrl = await pickPlanCover(payload.movie, payload.region);
-
-  // 재사용 판정은 tx 밖에서 선행(findNearbySpots auth+read). 실패는 개별 항목 hasCoords로만 영향.
+  // 재사용 판정을 먼저(주소·재사용 spotId 확보 → 커버 선택에 사용). tx 밖 read.
   const resolvedItems = await resolveReuse(payload.items);
+
+  // 커버는 생성 시 1회만 부여. 우선순위: 담은 Spot 커버 → 작품 → 지역 → null (resolveCover).
+  const coverUrl = await resolveCover(payload, resolvedItems);
 
   let planId: string;
   try {

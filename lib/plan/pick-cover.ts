@@ -57,6 +57,13 @@ export async function collectCandidates(
   return { movieCovers, regionCovers, all };
 }
 
+// 0495 후속: 커버 우선순위 1 — 이 플랜이 담은 Spot의 커버(있는 것 중 order 최소).
+//   첫 장소에 커버가 없어도 다음 커버 스팟으로 넘어가 히어로를 포기하지 않는다.
+//   폴백(작품→지역)은 pickPlanCover가 담당(priority 2·3·4).
+export function firstOwnSpotCover(spots: { order: number; coverUrl: string | null }[]): string | null {
+  return [...spots].filter((s) => s.coverUrl).sort((a, b) => a.order - b.order)[0]?.coverUrl ?? null;
+}
+
 // 후보 중 전체 플랜 사용 횟수가 최소인 것을 선택.
 // excludePlanId: 사용 횟수 집계에서 제외할 플랜(자기 자신 재부여 시). 생성 시엔 미지정(아직 행 없음).
 export async function pickPlanCover(
