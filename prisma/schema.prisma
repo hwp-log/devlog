@@ -104,6 +104,7 @@ model Spot {
 
   storySpots  StorySpot[] // 스토리↔장소 (per-visit). S2 읽기 전환 대상
   spotMovies  SpotMovie[] // 장소↔작품 다대다. "이 장소의 작품 N편"
+  planSpots   PlanSpot[]  // 0493: 플랜 항목↔스팟 역참조. Prisma 양방향 규칙상 필수, 가상 필드(DB 컬럼 없음)
 
   @@map("spots")
   @@index([storyId])
@@ -208,16 +209,19 @@ model PlanSpot {
   day       Int
   order     Int
   name      String
-  lat       Float
-  lng       Float
+  lat       Float?   // 0493 3단계: nullable화 — place 없는 항목(이동 기록 등)은 좌표 부재(NULL)
+  lng       Float?
+  spotId    String?  @map("spot_id") // 0493: 검색-선택한 Spot FK. nullable(미등록 장소·이동 기록 허용)
   createdAt DateTime @default(now()) @map("created_at")
 
   plan  MyPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  spot  Spot?      @relation(fields: [spotId], references: [id], onDelete: SetNull) // 스팟 청소 시 항목은 name으로 잔존
   costs PlanCost[]
 
   @@map("plan_spots")
   @@index([planId])
   @@index([planId, day, order])
+  @@index([spotId])
 }
 
 model PlanCost {

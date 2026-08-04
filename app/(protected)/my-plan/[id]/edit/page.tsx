@@ -7,7 +7,9 @@ import type { EditorState, DayPlan, PlanItem } from '../../new/MyPlanNewForm';
 import type { FlightOffer } from '@/lib/flights';
 
 type Props = { params: Promise<{ id: string }> };
-type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
+// 0493 4단계: spots에 연결 Spot의 address 조인(place 메타 복원용).
+type FullPlanSpot = PlanSpot & { spot: { address: string | null } | null };
+type FullPlan = MyPlan & { spots: FullPlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
 
 function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
   const costBySpotId = new Map(
@@ -16,7 +18,7 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
       .map((c) => [c.planSpotId!, c]),
   );
 
-  const spotsByDay = new Map<number, PlanSpot[]>();
+  const spotsByDay = new Map<number, FullPlanSpot[]>();
   for (const spot of plan.spots) {
     const arr = spotsByDay.get(spot.day) ?? [];
     arr.push(spot);
@@ -26,13 +28,17 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
   const days: DayPlan[] = Array.from({ length: dayCount }, (_, i) => {
     const day = i + 1;
     const daySpots = spotsByDay.get(day) ?? [];
-    const items: PlanItem[] = daySpots.map((spot) => {
-      const cost = costBySpotId.get(spot.id);
+    const items: PlanItem[] = daySpots.map((ps) => {
+      const cost = costBySpotId.get(ps.id);
       return {
-        id: spot.id,
-        name: spot.name,
+        id: ps.id,
+        name: ps.name,
         category: (cost?.category ?? '') as PlanItem['category'],
         amount: cost?.amount ?? 0,
+        // 0493 4단계: 좌표 있으면 1단계 place 메타 형태로 복원(주소는 연결 Spot에서 조인). 없으면 undefined.
+        place: (ps.lat != null && ps.lng != null)
+          ? { id: ps.spotId ?? '', lat: ps.lat, lng: ps.lng, address: ps.spot?.address ?? '' }
+          : undefined,
       };
     });
     return { day, items };
@@ -83,7 +89,7 @@ export default async function MyPlanEditPage({ params }: Props) {
   const plan = await prisma.myPlan.findFirst({
     where: { id, ownerId: user.id },
     include: {
-      spots: { orderBy: { order: 'asc' } },
+      spots: { orderBy: { order: 'asc' }, include: { spot: { select: { address: true } } } },
       costs: { orderBy: { createdAt: 'asc' } },
       flight: true,
     },

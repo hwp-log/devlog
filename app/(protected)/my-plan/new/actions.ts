@@ -7,6 +7,11 @@ import { searchFlights } from '@/lib/flights';
 import type { FlightOffer } from '@/lib/flights';
 import { pickPlanCover } from '@/lib/plan/pick-cover';
 import { clampHeadcount } from '@/lib/plan/validate-input';
+import { findNearbySpots } from '@/lib/spot/nearby';
+
+// 자동 재사용 반경 — nearby.ts DEFAULT 100m는 사람 판단용(넓게 포섭). 플랜 폼엔 chooser가 없어
+// 자동 채택이므로 오병합("롯데월드몰"≠"롯데월드타워") 방지 위해 보수화: 실중복 14m + 지터 여유.
+const AUTO_REUSE_RADIUS_M = 30;
 
 type SaveItem = {
   day: number;
@@ -14,7 +19,21 @@ type SaveItem = {
   name: string;
   category: CostCategory | '';
   amount: number;
+  // 0493 3단계: 검색-선택 좌표·주소. place 없는 항목(타이핑한 이동 기록 등)은 undefined.
+  lat?: number;
+  lng?: number;
+  address?: string | null;
 };
+
+// 재사용 판정을 tx 밖에서 선행(findNearbySpots는 자체 auth+글로벌 prisma read라 tx 홀딩 회피 — story의 pre-tx 전처리와 동형).
+type ResolvedItem = SaveItem & { reusedSpotId: string | null; hasCoords: boolean };
+async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
+  return Promise.all(items.map(async (it) => {
+    if (it.lat == null || it.lng == null) return { ...it, reusedSpotId: null, hasCoords: false };
+    const near = await findNearbySpots(it.lat, it.lng, AUTO_REUSE_RADIUS_M);
+    return { ...it, reusedSpotId: near[0]?.spotId ?? null, hasCoords: true };
+  }));
+}
 
 type SavePayload = {
   title: string;
@@ -48,10 +67,26 @@ function flightFields(offer: FlightOffer) {
   };
 }
 
-async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items: SaveItem[]): Promise<void> {
+async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items: ResolvedItem[]): Promise<void> {
   for (const item of items) {
+    // 0493 3단계: 좌표 있으면 create-or-reuse로 실 Spot 연결, 없으면 좌표·spotId NULL(0,0 폐기).
+    let spotId: string | null = null;
+    let lat: number | null = null;
+    let lng: number | null = null;
+    if (item.hasCoords) {
+      lat = item.lat!;
+      lng = item.lng!;
+      if (item.reusedSpotId) {
+        spotId = item.reusedSpotId; // 30m 내 기존 Spot 재사용(증식 방지)
+      } else {
+        const created = await tx.spot.create({
+          data: { storyId: null, name: item.name, lat, lng, address: item.address ?? null, order: item.order, source: 'user' },
+        });
+        spotId = created.id;
+      }
+    }
     const spot = await tx.planSpot.create({
-      data: { planId, day: item.day, order: item.order, name: item.name, lat: 0, lng: 0 },
+      data: { planId, day: item.day, order: item.order, name: item.name, lat, lng, spotId },
     });
     if (item.amount > 0) {
       const category: CostCategory = item.category === '' ? 'ETC' : item.category;
@@ -76,6 +111,9 @@ export async function createPlanWithItemsAction(
   // 트랜잭션 전 계산(읽기 전용 스냅샷). 생성이라 excludePlanId 미지정(아직 행 없음).
   const coverUrl = await pickPlanCover(payload.movie, payload.region);
 
+  // 재사용 판정은 tx 밖에서 선행(findNearbySpots auth+read). 실패는 개별 항목 hasCoords로만 영향.
+  const resolvedItems = await resolveReuse(payload.items);
+
   let planId: string;
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -93,7 +131,7 @@ export async function createPlanWithItemsAction(
           coverUrl,
         },
       });
-      await buildPlanRows(tx, plan.id, payload.items);
+      await buildPlanRows(tx, plan.id, resolvedItems);
       if (payload.flight) {
         await tx.planFlight.create({ data: { planId: plan.id, ...flightFields(payload.flight) } });
       }
@@ -121,6 +159,10 @@ export async function updatePlanWithItemsAction(
   const existing = await prisma.myPlan.findFirst({ where: { id: planId, ownerId: user.id } });
   if (!existing) return { error: '수정 권한이 없습니다' };
 
+  // 재사용 판정은 tx 밖에서 선행(create와 동형). 수정 폼은 4단계 전까지 place 미탑재라
+  // 재검색하지 않은 항목은 hasCoords=false → 좌표·spotId NULL(기존과 동일).
+  const resolvedItems = await resolveReuse(payload.items);
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.myPlan.update({
@@ -139,7 +181,7 @@ export async function updatePlanWithItemsAction(
       });
       await tx.planCost.deleteMany({ where: { planId } });
       await tx.planSpot.deleteMany({ where: { planId } });
-      await buildPlanRows(tx, planId, payload.items);
+      await buildPlanRows(tx, planId, resolvedItems);
       if (payload.flight) {
         await tx.planFlight.upsert({
           where:  { planId },

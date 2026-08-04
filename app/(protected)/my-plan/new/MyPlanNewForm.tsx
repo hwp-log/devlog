@@ -295,6 +295,10 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
             name: item.name.trim(),
             category: item.category,
             amount: item.amount,
+            // 0493 3단계: 검색-선택한 좌표·주소를 저장 경로로. place 없으면 undefined(→서버에서 좌표·spotId NULL).
+            lat: item.place?.lat,
+            lng: item.place?.lng,
+            address: item.place?.address,
           })),
       ),
       flight: editor.flight,
