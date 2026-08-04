@@ -22,6 +22,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { createPlanWithItemsAction, updatePlanWithItemsAction } from './actions';
 import { FlightSearchSection } from './FlightSearchSection';
 import { PlaceSearchInput } from './PlaceSearchInput';
+import { CoverPicker } from './CoverPicker';
 import type { FlightOffer } from '@/lib/flights';
 import {
   CATEGORIES,
@@ -59,6 +60,7 @@ export type EditorState = {
   headcount: number;
   days: DayPlan[];
   flight: FlightOffer | null;
+  coverUrl: string | null; // 0497: 작성자가 고른 대표 이미지(null=자동)
 };
 
 interface Props {
@@ -108,6 +110,7 @@ const DEFAULT_STATE: EditorState = {
   headcount: 1,
   days: [],
   flight: null,
+  coverUrl: null,
 };
 
 function SortablePlanItem({
@@ -302,6 +305,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           })),
       ),
       flight: editor.flight,
+      coverUrl: editor.coverUrl, // 0497: 고른 대표 이미지(null=자동)
     };
     startTransition(async () => {
       if (mode === 'edit' && planId) {
@@ -413,6 +417,17 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
             className={INPUT_CLASS + ' resize-none'}
           />
         </div>
+
+        {/* 0497: 대표 이미지 선택 — 담은 촬영지 커버 후보가 2개 이상일 때만 표시(컴포넌트 내부 게이트) */}
+        <CoverPicker
+          items={editor.days.flatMap((d) =>
+            d.items
+              .filter((it) => it.place && it.name.trim() !== '')
+              .map((it) => ({ name: it.name.trim(), lat: it.place!.lat, lng: it.place!.lng })),
+          )}
+          value={editor.coverUrl}
+          onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
+        />
       </div>
 
       <FlightSearchSection

@@ -76,6 +76,7 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
     headcount: plan.headcount,
     days,
     flight: flightSlot,
+    coverUrl: plan.coverUrl, // 0497: 기존 대표 이미지 복원(picker 후보면 선택 상태로 표시)
   };
 }
 

@@ -40,6 +40,30 @@ async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
   }));
 }
 
+// 0497: 대표 이미지 후보 조회 — 담은 좌표 항목을 200m+이름으로 Spot 해소, 커버 있는 재사용 Spot의
+//   {coverUrl,name}을 order순 수집(coverUrl 중복 제거). 작성 화면 CoverPicker가 항목 변경 시 호출.
+//   findNearbySpots가 자체 인증 가드 → 미인증이면 throw(UNAUTHENTICATED). 클라는 실패를 빈 후보로 흡수.
+export async function getPlanCoverCandidates(
+  items: { name: string; lat: number; lng: number }[],
+): Promise<{ coverUrl: string; name: string }[]> {
+  const resolved = await resolveReuse(
+    items.map((it, i) => ({ day: 1, order: i, name: it.name, category: '' as const, amount: 0, lat: it.lat, lng: it.lng })),
+  );
+  const ids = [...new Set(resolved.map((r) => r.reusedSpotId).filter((x): x is string => !!x))];
+  if (ids.length === 0) return [];
+  const spots = await prisma.spot.findMany({ where: { id: { in: ids }, coverUrl: { not: null } }, select: { id: true, name: true, coverUrl: true } });
+  const coverById = new Map(spots.map((s) => [s.id, s]));
+  const seen = new Set<string>();
+  const out: { coverUrl: string; name: string }[] = [];
+  for (const r of resolved) {
+    const s = r.reusedSpotId ? coverById.get(r.reusedSpotId) : undefined;
+    if (!s?.coverUrl || seen.has(s.coverUrl)) continue;
+    seen.add(s.coverUrl);
+    out.push({ coverUrl: s.coverUrl, name: s.name });
+  }
+  return out;
+}
+
 // 0495: 재사용 Spot의 커버·작품을 한 번에 조회 → 자기 커버(우선순위 1)·작품 추론에 사용.
 //   신규 생성 Spot은 아직 커버·작품이 없어 자연 제외.
 async function resolveCover(payload: SavePayload, items: ResolvedItem[]): Promise<string | null> {
@@ -80,6 +104,8 @@ type SavePayload = {
   headcount: number;
   items: SaveItem[];
   flight: FlightOffer | null;
+  // 0497: 작성자가 고른 대표 이미지. null이면 자동(resolveCover). 후보에서만 오지만 클라값이라 MVP는 신뢰.
+  coverUrl: string | null;
 };
 
 function flightFields(offer: FlightOffer) {
@@ -144,8 +170,8 @@ export async function createPlanWithItemsAction(
   // 재사용 판정을 먼저(주소·재사용 spotId 확보 → 커버 선택에 사용). tx 밖 read.
   const resolvedItems = await resolveReuse(payload.items);
 
-  // 커버는 생성 시 1회만 부여. 우선순위: 담은 Spot 커버 → 작품 → 지역 → null (resolveCover).
-  const coverUrl = await resolveCover(payload, resolvedItems);
+  // 0497: 작성자가 고른 값 우선, 없으면 자동(담은 Spot 커버 → 작품 → 지역 → null).
+  const coverUrl = payload.coverUrl ?? (await resolveCover(payload, resolvedItems));
 
   let planId: string;
   try {
@@ -209,7 +235,8 @@ export async function updatePlanWithItemsAction(
           movie: payload.movie || null,
           description: payload.description || null,
           headcount: clampHeadcount(payload.headcount),
-          // coverUrl 미접촉: 생성 시 1회 부여 원칙(수정 시 재부여 안 함).
+          // 0497: 기본은 coverUrl 미접촉(생성 1회 원칙). 단 작성자가 고른 값이 오면 그때만 갱신(예외).
+          ...(payload.coverUrl ? { coverUrl: payload.coverUrl } : {}),
         },
       });
       await tx.planCost.deleteMany({ where: { planId } });
