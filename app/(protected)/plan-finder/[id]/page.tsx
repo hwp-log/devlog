@@ -50,7 +50,7 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         },
       },
       costs: {
-        select: { planSpotId: true, category: true, amount: true },
+        select: { planSpotId: true, category: true, amount: true, label: true },
       },
       flight: {
         select: {
