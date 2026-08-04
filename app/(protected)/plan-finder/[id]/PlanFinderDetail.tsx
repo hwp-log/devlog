@@ -63,9 +63,11 @@ export function PlanFinderDetail({
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
   const timeline = buildTimeline(spots, costCategories, selectedDay);
 
-  // 0494: 그날 촬영지 사진 그리드 — 커버 있는 항목만, order순, 히어로 커버와 디둡(같은 사진 중복 방지).
+  // 0494/0496: 그날 촬영지 사진 그리드 — 커버 있는 항목 전부, order순.
+  //   0496: 히어로 디둡 제거 — 히어로=코스 인상 / 그리드=그날 동선 목록이라 역할이 달라 겹쳐도 중복 아님.
+  //   (첫 장소가 히어로와 같아도 빼면 "그날 안 가나?" 오해가 더 커 디둡보다 손해.)
   const dayPhotos = spots
-    .filter((s) => s.day === selectedDay && s.coverUrl && s.coverUrl !== coverUrl)
+    .filter((s) => s.day === selectedDay && s.coverUrl)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const durationLabel = dayCount > 1 ? `${dayCount - 1}박 ${dayCount}일` : '당일';

@@ -10,10 +10,11 @@ import { normalizeRegionKey } from '@/lib/plan/region-cover';
 import { inferRegionKey, inferMovieTitle } from '@/lib/plan/infer-plan-meta';
 import { clampHeadcount } from '@/lib/plan/validate-input';
 import { findNearbySpots } from '@/lib/spot/nearby';
+import { normalizeSpotName } from '@/lib/spot/normalize-name';
 
-// 자동 재사용 반경 — nearby.ts DEFAULT 100m는 사람 판단용(넓게 포섭). 플랜 폼엔 chooser가 없어
-// 자동 채택이므로 오병합("롯데월드몰"≠"롯데월드타워") 방지 위해 보수화: 실중복 14m + 지터 여유.
-const AUTO_REUSE_RADIUS_M = 30;
+// 0496: 자동 재사용 반경. 거리만으론 양방향 오류(세빛섬 62m 놓침 / 롯데월드몰↔타워 14m 오병합)라
+//   거리를 200m로 넓히되 이름 정규화 일치를 AND 게이트로 세운다(오병합 차단). 스토리(nearby.ts)는 무변경.
+const AUTO_REUSE_RADIUS_M = 200;
 
 type SaveItem = {
   day: number;
@@ -33,7 +34,9 @@ async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
   return Promise.all(items.map(async (it) => {
     if (it.lat == null || it.lng == null) return { ...it, reusedSpotId: null, hasCoords: false };
     const near = await findNearbySpots(it.lat, it.lng, AUTO_REUSE_RADIUS_M);
-    return { ...it, reusedSpotId: near[0]?.spotId ?? null, hasCoords: true };
+    // 0496: near는 거리순 — 정규화 이름 일치하는 최근접만 재사용. 이름 다르면 신규 생성(오병합 차단).
+    const hit = it.name ? near.find((c) => normalizeSpotName(c.name) === normalizeSpotName(it.name)) : undefined;
+    return { ...it, reusedSpotId: hit?.spotId ?? null, hasCoords: true };
   }));
 }
 
