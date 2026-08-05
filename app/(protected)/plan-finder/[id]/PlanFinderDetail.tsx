@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PlanTimeline, buildTimeline } from '@/app/(protected)/my-plan/_components/PlanTimeline';
 import { PublicCostSection } from '@/app/(protected)/story/[id]/PublicCostSection';
+import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { PublicFlightTable } from './PublicFlightTable';
 import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
@@ -29,7 +29,6 @@ interface Props {
   startDate: Date | null;
   endDate: Date | null;
   spots: { id: string; day: number; name: string; order?: number; lat?: number | null; lng?: number | null; coverUrl?: string | null; address?: string | null; movie?: string | null }[];
-  costCategories: { planSpotId: string | null; category: string; amount: number }[];
   publicFlight: FlightLegData | null;
   summary: PublicCostSummary;
   currency: 'KRW' | 'USD' | 'JPY';
@@ -55,7 +54,6 @@ export function PlanFinderDetail({
   startDate,
   endDate,
   spots,
-  costCategories,
   publicFlight,
   summary,
   currency,
@@ -66,7 +64,11 @@ export function PlanFinderDetail({
   const [selectedDay, setSelectedDay] = useState(1);
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
-  const timeline = buildTimeline(spots, costCategories, selectedDay);
+
+  // 0513: 그날 항목 — order순 한 줄 행 목록(번호는 그날 안에서 연속).
+  const dayItems = spots
+    .filter((s) => s.day === selectedDay)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   // 0494/0496: 그날 촬영지 사진 그리드 — 커버 있는 항목 전부, order순.
   //   0496: 히어로 디둡 제거 — 히어로=코스 인상 / 그리드=그날 동선 목록이라 역할이 달라 겹쳐도 중복 아님.
@@ -180,27 +182,84 @@ export function PlanFinderDetail({
         ))}
       </div>
 
-      {/* 0494: 그날 촬영지 사진 그리드 — 일정 목록 위, 가로 나열. 한 장도 없으면 생략. */}
+      {/* 0513: 그날 촬영지 사진 줄 — 항목 목록과 분리, 150px 고정 폭 가로 스크롤(시안 4a).
+          0장이면 줄 생략(0494 유지). */}
       {dayPhotos.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
-          {dayPhotos.map((s) => (
-            <div key={s.id} className="relative w-[132px] h-[92px] shrink-0 rounded-[10px] overflow-hidden">
-              <Image src={s.coverUrl!} alt="" fill sizes="132px" className="object-cover" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pt-4 pb-1.5">
-                <p className="text-[11px] font-semibold text-white truncate">{s.name}</p>
+        <div className="mb-[22px]">
+          <div className="flex gap-2.5 overflow-x-auto pb-[2px]">
+            {dayPhotos.map((s) => (
+              <div key={s.id} className="relative w-[150px] h-[104px] shrink-0 rounded-[6px] overflow-hidden">
+                <Image src={s.coverUrl!} alt="" fill sizes="150px" className="object-cover" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(10,12,13,0.72)] to-transparent px-[9px] pt-[18px] pb-2">
+                  <p className="text-xs font-semibold text-white truncate">{s.name}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-[#a2a8ac]">이 날 촬영지 중 사진이 있는 {dayPhotos.length}곳</p>
         </div>
       )}
 
-      {/* 0508: 주소 슬롯은 플랜 전체 기준 — Day 탭을 넘겨도 카드 높이가 변하지 않게. */}
-      <PlanTimeline
-        items={timeline}
-        currency={currency}
-        showAmount={false}
-        reserveAddressSlot={spots.some((s) => !!s.address)}
-      />
+      {/* 0513: 일정 항목 — 회색 패널·흰 카드 제거, 한 줄 행 + hairline 구분(시안 4a).
+          아이콘은 주소 유무로만 갈림(주소 있음 ◉ / 주소 없는 이동 기록 →).
+          PlanTimeline은 소유자 뷰 전용으로 무접촉. */}
+      <div className="mb-6 flex flex-col">
+        {dayItems.length === 0 ? (
+          <p className="text-muted text-sm text-center py-6">항목이 없습니다.</p>
+        ) : (
+          dayItems.map((s, i) => {
+            // 0502: 출발지 = 그날 order상 직전 항목(좌표 있을 때만) — 길찾기 링크에 승계.
+            const prev = i > 0 ? dayItems[i - 1] : null;
+            const origin =
+              prev && prev.lat != null && prev.lng != null
+                ? { name: prev.name, lat: prev.lat, lng: prev.lng }
+                : undefined;
+            return (
+              <div
+                key={s.id}
+                className="grid grid-cols-[26px_18px_1fr] gap-3 items-baseline py-[14px] border-b border-[#f1f2f3]"
+              >
+                <span className="text-[13px] font-bold text-[#b3b9bd]">{i + 1}</span>
+                <span className={`text-center text-[#b3b9bd] ${s.address ? 'text-xs' : 'text-[13px]'}`}>
+                  {s.address ? '◉' : '→'}
+                </span>
+                <span className="flex flex-col gap-1 min-w-0">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`text-base break-keep ${
+                        s.address ? 'font-semibold text-fg' : 'font-medium text-fg2'
+                      }`}
+                    >
+                      {s.name}
+                    </span>
+                    {s.movie && (
+                      <span className="shrink-0 px-2 py-[3px] rounded-[3px] bg-[#eaf3ff] text-[#2f7fe0] text-[11px] font-semibold">
+                        {s.movie}
+                      </span>
+                    )}
+                  </span>
+                  {s.address &&
+                    (s.lat != null && s.lng != null ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openNaverDirections({ name: s.name, lat: s.lat!, lng: s.lng! }, origin)
+                        }
+                        aria-label={`${s.name} 네이버 지도 길찾기`}
+                        className="inline-flex max-w-full items-center gap-[5px] text-left text-[13px] text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0"
+                      >
+                        <span className="truncate">{s.address}</span>
+                        <span className="text-[11px] shrink-0">↗</span>
+                      </button>
+                    ) : (
+                      <p className="text-[13px] text-muted truncate">{s.address}</p>
+                    ))}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값) */}
       {publicFlight && (

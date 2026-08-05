@@ -87,13 +87,6 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   // summarizePlanCost — server-only, 결과만 클라로 전송
   const summary = summarizePlanCost(plan.costs, plan.flight, currency);
 
-  // 0492: 금액 공개 — 항목 금액 포함(트리맵→실금액 표기로 전환)
-  const costCategories = plan.costs.map((c) => ({
-    planSpotId: c.planSpotId,
-    category: c.category,
-    amount: c.amount,
-  }));
-
   // 항공편: duration 계산 후 시간·날짜 제거(금액은 공개 — 왕복 총액은 상세 섹션 제목이 표기)
   const publicFlight: FlightLegData | null = plan.flight
     ? {
@@ -164,7 +157,6 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         address: s.spot?.address ?? null,
         movie: s.spot?.spotMovies?.[0]?.movie.title ?? null,
       }))}
-      costCategories={costCategories}
       publicFlight={publicFlight}
       summary={summary}
       currency={currency}
