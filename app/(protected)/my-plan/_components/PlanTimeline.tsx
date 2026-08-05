@@ -64,6 +64,13 @@ export function PlanTimeline({
           {items.map(({ spot, cost }, i) => {
             const isFirst = i === 0;
             const isLast = i === items.length - 1;
+            // 0502: 출발지 = 같은 날 order상 직전 항목(items는 order asc). 그날 첫 항목이거나
+            //       직전 항목에 좌표가 없으면 undefined → 현행처럼 목적지만.
+            const prev = i > 0 ? items[i - 1].spot : null;
+            const origin =
+              prev && prev.lat != null && prev.lng != null
+                ? { name: prev.name, lat: prev.lat, lng: prev.lng }
+                : undefined;
             const markerBg = 'bg-blue-500';
             // 미입력(연결 비용 없음)은 금액 줄 자체를 렌더하지 않는다. 실제 0원만 "무료"(양쪽 화면 공통 규칙).
             const showAmountLine = showAmount && cost != null;
@@ -108,7 +115,10 @@ export function PlanTimeline({
                           <button
                             type="button"
                             onClick={() =>
-                              openNaverDirections({ name: spot.name, lat: spot.lat!, lng: spot.lng! })
+                              openNaverDirections(
+                                { name: spot.name, lat: spot.lat!, lng: spot.lng! },
+                                origin,
+                              )
                             }
                             aria-label={`${spot.name} 네이버 지도 길찾기`}
                             className="mt-0.5 flex max-w-full items-center gap-1 min-h-[44px] sm:min-h-0 text-left text-[12px] text-[#8A8A8A] hover:text-[#4A4A4A] transition-colors"
