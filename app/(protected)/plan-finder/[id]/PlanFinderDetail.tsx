@@ -12,7 +12,6 @@ import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
-import { CARD_PILL_CLASS } from '@/lib/card-tokens';
 
 interface Props {
   planId: string;
@@ -77,49 +76,51 @@ export function PlanFinderDetail({
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const durationLabel = dayCount > 1 ? `${dayCount - 1}박 ${dayCount}일` : '당일';
-  const anchor = [
-    durationLabel,
-    `장소 ${spots.length}곳`,
-    `${headcount}인`,
-    summary.total > 0 ? `총 ${formatApproxCost(summary.total, currency)}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+
+  const actionButtons = (
+    <div className="flex items-center gap-2 shrink-0">
+      {!isOwner && <CopyPlanFinderButton planId={planId} />}
+      <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
+    </div>
+  );
 
   return (
     <div>
-      {/* 히어로 — 커버 위에 지역 칩(목록 카드와 같은 좌상단 자리). 제목·요약은 아래로. */}
+      {/* 0512: 히어로에 제목(좌하단)·지역 칩(좌상단) — 시안 4a/4d. 좌우 인셋은 시안 40px가
+          전체 페이지 패딩 기준이라 컬럼 폭인 우리 히어로엔 기존 16px 유지. */}
       {coverUrl && (
-        <div className="relative w-full h-[170px] rounded-[14px] overflow-hidden mb-4">
+        <div className="relative w-full h-[200px] md:h-[300px] rounded-[14px] overflow-hidden mb-4">
           <Image src={coverUrl} alt="" fill sizes={HERO_SIZES} className="object-cover" />
+          <div className="absolute inset-x-0 bottom-0 h-[130px] md:h-[160px] bg-gradient-to-t from-[rgba(10,12,13,0.74)] md:from-[rgba(10,12,13,0.72)] to-transparent" />
           {region && (
-            <span
-              className={`absolute left-4 top-[13px] inline-flex items-center text-[11px] leading-none px-[9px] py-[3px] rounded-full ${CARD_PILL_CLASS}`}
-            >
+            <span className="absolute left-4 top-[14px] md:top-6 inline-flex items-center text-[11px] md:text-xs leading-none font-semibold text-white bg-[rgba(15,17,18,0.62)] rounded px-[9px] py-1 md:px-[11px] md:py-[5px]">
               {region}
             </span>
           )}
+          <h1 className="absolute left-4 right-4 bottom-4 md:bottom-[26px] text-[22px] leading-[1.3] md:text-[30px] font-bold tracking-[-0.02em] text-white break-keep">
+            {title}
+          </h1>
         </div>
       )}
 
       <div className="mb-6">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-2xl font-bold text-fg break-keep">{title}</h1>
-          <div className="flex items-center gap-2 shrink-0">
-            {!isOwner && <CopyPlanFinderButton planId={planId} />}
-            <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
+        {/* 커버 없는 플랜은 기존대로 히어로 생략 — 제목·버튼 인라인 유지 */}
+        {!coverUrl && (
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-2xl font-bold text-fg break-keep">{title}</h1>
+            {actionButtons}
           </div>
-        </div>
+        )}
 
-        {/* 요약 앵커 — 목록 카드(0441)와 같은 기준·표현 */}
-        <p className="text-[13px] text-muted mt-1">{anchor}</p>
-
-        {/* 메타 — 작성자·날짜 */}
-        <div className="flex items-center gap-2 text-sm text-muted mt-2">
-          <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
-          <span>{authorNickname}</span>
-          <span>·</span>
-          <span>{createdAtLabel}</span>
+        {/* 메타 — 작성자·날짜, 커버 있으면 버튼을 우측에(시안 4a의 ♥ 자리) */}
+        <div className={`flex items-center justify-between gap-5 ${coverUrl ? '' : 'mt-2'}`}>
+          <div className="flex items-center gap-2 text-[13px] md:text-sm text-muted">
+            <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
+            <span className="text-fg font-semibold">{authorNickname}</span>
+            <span className="opacity-40">·</span>
+            <span>{createdAtLabel}</span>
+          </div>
+          {coverUrl && actionButtons}
         </div>
 
         {/* 커버 없을 때 지역 칩은 인라인으로 유지(작품 칩은 별도 트랙이라 제외) */}
@@ -131,11 +132,31 @@ export function PlanFinderDetail({
           </div>
         )}
 
-        {description && (
-          <div className="mt-3 bg-card border border-border rounded-[14px] p-4">
-            <p className="text-xs font-semibold text-muted mb-1">여행계획 간단소개</p>
-            <p className="text-sm text-fg whitespace-pre-wrap">{description}</p>
+        {/* 0512: 지표 밴드 3열(기간·장소·총 비용) — 요약 앵커 한 줄 대체, 위아래 구분선 */}
+        <div className="mt-[14px] md:mt-[22px] grid grid-cols-3 md:grid-cols-[repeat(3,max-content)] gap-x-2 md:gap-x-14 py-[14px] md:py-5 border-t border-b border-border">
+          <div className="flex flex-col gap-[3px] md:gap-1">
+            <span className="text-[11px] md:text-xs md:font-medium text-muted">기간</span>
+            <span className="text-base md:text-xl font-bold text-fg">{durationLabel}</span>
           </div>
+          <div className="flex flex-col gap-[3px] md:gap-1">
+            <span className="text-[11px] md:text-xs md:font-medium text-muted">장소</span>
+            <span className="text-base md:text-xl font-bold text-fg">{spots.length}곳</span>
+          </div>
+          {summary.total > 0 && (
+            <div className="flex flex-col gap-[3px] md:gap-1">
+              <span className="text-[11px] md:text-xs md:font-medium text-muted">총 비용</span>
+              <span className="text-base md:text-xl font-bold text-fg">
+                {formatApproxCost(summary.total, currency)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로 */}
+        {description && (
+          <p className="mt-[14px] md:mt-[22px] max-w-[720px] text-[15px] leading-[1.7] md:text-base md:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
+            {description}
+          </p>
         )}
       </div>
 
