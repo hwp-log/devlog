@@ -28,6 +28,13 @@ type SaveItem = {
   address?: string | null;
 };
 
+// 0504: 하루에 안 묶이는 비용(렌터카·항공권·보험 등). day·planSpotId 없이 저장(둘 다 NULL).
+type DaylessCost = {
+  label: string;
+  category: CostCategory;
+  amount: number;
+};
+
 // 재사용 판정을 tx 밖에서 선행(findNearbySpots는 자체 auth+글로벌 prisma read라 tx 홀딩 회피 — story의 pre-tx 전처리와 동형).
 type ResolvedItem = SaveItem & { reusedSpotId: string | null; hasCoords: boolean };
 async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
@@ -103,6 +110,8 @@ type SavePayload = {
   description: string;
   headcount: number;
   items: SaveItem[];
+  // 0504: 무장소 비용(렌터카·항공권·보험 등). 항목 루프 밖에서 day·planSpotId NULL로 저장.
+  daylessCosts: DaylessCost[];
   flight: FlightOffer | null;
   // 0497: 작성자가 고른 대표 이미지. null이면 자동(resolveCover). 후보에서만 오지만 클라값이라 MVP는 신뢰.
   coverUrl: string | null;
@@ -127,7 +136,7 @@ function flightFields(offer: FlightOffer) {
   };
 }
 
-async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items: ResolvedItem[]): Promise<void> {
+async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items: ResolvedItem[], dayless: DaylessCost[]): Promise<void> {
   for (const item of items) {
     // 0493 3단계: 좌표 있으면 create-or-reuse로 실 Spot 연결, 없으면 좌표·spotId NULL(0,0 폐기).
     let spotId: string | null = null;
@@ -152,6 +161,14 @@ async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items
       const category: CostCategory = item.category === '' ? 'ETC' : item.category;
       await tx.planCost.create({
         data: { planId, planSpotId: spot.id, day: item.day, category, label: item.name, amount: item.amount },
+      });
+    }
+  }
+  // 0504: 무장소 비용 — 항목 루프 밖. planSpotId·day 모두 NULL로 저장(create/update 공통 경로).
+  for (const cost of dayless) {
+    if (cost.amount > 0) {
+      await tx.planCost.create({
+        data: { planId, planSpotId: null, day: null, category: cost.category, label: cost.label, amount: cost.amount },
       });
     }
   }
@@ -190,7 +207,7 @@ export async function createPlanWithItemsAction(
           coverUrl,
         },
       });
-      await buildPlanRows(tx, plan.id, resolvedItems);
+      await buildPlanRows(tx, plan.id, resolvedItems, payload.daylessCosts);
       if (payload.flight) {
         await tx.planFlight.create({ data: { planId: plan.id, ...flightFields(payload.flight) } });
       }
@@ -241,7 +258,7 @@ export async function updatePlanWithItemsAction(
       });
       await tx.planCost.deleteMany({ where: { planId } });
       await tx.planSpot.deleteMany({ where: { planId } });
-      await buildPlanRows(tx, planId, resolvedItems);
+      await buildPlanRows(tx, planId, resolvedItems, payload.daylessCosts);
       if (payload.flight) {
         await tx.planFlight.upsert({
           where:  { planId },

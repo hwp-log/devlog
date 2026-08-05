@@ -7,6 +7,7 @@ import { CostSection } from '../_components/CostSection';
 import { PlanTimeline, buildTimeline, type TimelineItem } from '../_components/PlanTimeline';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
+import { CATEGORY_LABEL, formatAmount, type CostCategory } from '../_lib/cost';
 import { togglePlanPublicAction } from './actions';
 
 function planFlightToLegData(f: PlanFlight): FlightLegData {
@@ -67,6 +68,9 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
   const costSummary = calcCostSummary(plan.costs);
   const flightAmount = plan.flight?.totalAmount ?? 0;
   const total = calcPlanTotal(plan.costs, plan.flight);
+  // 0504 2단계: 무장소 비용(day·planSpotId 둘 다 NULL) — 타임라인엔 안 떠서 소유자에게 별도 표시.
+  //   총액·카테고리 바엔 이미 합산됨(표시만 추가, 재합산 아님).
+  const daylessCosts = plan.costs.filter((c) => c.day == null && c.planSpotId == null);
 
   return (
     <div>
@@ -150,6 +154,27 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
             항공편 (예상)
           </p>
           <FlightLeg data={planFlightToLegData(plan.flight)} />
+        </div>
+      )}
+
+      {/* 0504 2단계: 여행 전체 비용 — 항공편 아래·여행 일정 위(항공→여행 전체→Day 순서 일치).
+          항목 있을 때만 렌더(읽기 전용). 행은 PublicCostSection itemGroups와 동형(label·카테고리·금액). */}
+      {daylessCosts.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+            여행 전체 비용
+          </p>
+          <div className="glass-outer p-5 flex flex-col gap-2">
+            {daylessCosts.map((c) => (
+              <div key={c.id} className="flex items-baseline gap-2 text-sm">
+                <span className="text-[#1A1A1A] break-keep">{c.label}</span>
+                <span className="text-xs text-slate-400 shrink-0">{CATEGORY_LABEL[c.category as CostCategory]}</span>
+                <span className="ml-auto shrink-0 font-medium text-[#1A1A1A]">
+                  {formatAmount(c.amount, plan.currency as 'KRW' | 'USD' | 'JPY')}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

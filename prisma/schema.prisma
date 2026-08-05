@@ -228,7 +228,7 @@ model PlanCost {
   id         String       @id @default(cuid())
   planId     String       @map("plan_id")
   planSpotId String?      @map("plan_spot_id")
-  day        Int
+  day        Int?         // 0504: nullable화 — 하루에 안 묶이는 비용(렌터카·항공권·보험 등)은 day 부재(NULL)
   category   CostCategory
   label      String
   amount     Int

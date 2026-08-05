@@ -49,6 +49,13 @@ export type DayPlan = {
   items: PlanItem[];
 };
 
+// 0504: 하루에 안 묶이는 비용(렌터카·항공권·보험 등). 편집 중 카테고리는 미선택('') 허용 — 저장 시 ETC로 강제(Day 항목과 동형).
+export type DaylessCost = {
+  label: string;
+  category: CostCategory | '';
+  amount: number;
+};
+
 export type EditorState = {
   title: string;
   currency: 'KRW' | 'USD' | 'JPY';
@@ -59,6 +66,7 @@ export type EditorState = {
   description: string;
   headcount: number;
   days: DayPlan[];
+  daylessCosts: DaylessCost[]; // 0504: 무장소 비용 — UI 없이 복원값을 보관해 재저장 시 소실 방지
   flight: FlightOffer | null;
   coverUrl: string | null; // 0497: 작성자가 고른 대표 이미지(null=자동)
 };
@@ -99,6 +107,10 @@ const INPUT_CLASS =
 const ITEM_INPUT_CLASS =
   'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
 
+// 0504: 여행 전체 비용 입력 — text-base(16px)로 iOS 자동확대 방지(CLAUDE.md §5). Day 행(14px)은 기존 위반이라 미답습.
+const DAYLESS_INPUT_CLASS =
+  'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2.5 text-base text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
+
 const DEFAULT_STATE: EditorState = {
   title: '',
   currency: 'KRW',
@@ -109,6 +121,7 @@ const DEFAULT_STATE: EditorState = {
   description: '',
   headcount: 1,
   days: [],
+  daylessCosts: [], // 0504: 신규 플랜은 무장소 비용 없음(입력 UI 다음 단계)
   flight: null,
   coverUrl: null,
 };
@@ -278,6 +291,28 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
     );
   }
 
+  // 0504: 여행 전체 비용(무장소) — Day와 별개 컬렉션. 순서 무관이라 index로 갱신·삭제.
+  function addDaylessCost() {
+    setEditor((prev) => ({
+      ...prev,
+      daylessCosts: [...prev.daylessCosts, { label: '', category: '', amount: 0 }],
+    }));
+  }
+
+  function updateDaylessCost(index: number, patch: Partial<DaylessCost>) {
+    setEditor((prev) => ({
+      ...prev,
+      daylessCosts: prev.daylessCosts.map((c, i) => (i === index ? { ...c, ...patch } : c)),
+    }));
+  }
+
+  function removeDaylessCost(index: number) {
+    setEditor((prev) => ({
+      ...prev,
+      daylessCosts: prev.daylessCosts.filter((_, i) => i !== index),
+    }));
+  }
+
   function handleSave() {
     setSaveError(null);
     const payload = {
@@ -304,6 +339,14 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
             address: item.place?.address,
           })),
       ),
+      // 0504: 무장소 비용 — 이름 빈 항목 제외, 미선택 카테고리는 ETC로 강제(Day 항목과 동형).
+      daylessCosts: editor.daylessCosts
+        .filter((c) => c.label.trim() !== '')
+        .map((c) => ({
+          label: c.label.trim(),
+          category: (c.category === '' ? 'ETC' : c.category) as CostCategory,
+          amount: c.amount,
+        })),
       flight: editor.flight,
       coverUrl: editor.coverUrl, // 0497: 고른 대표 이미지(null=자동)
     };
@@ -437,6 +480,67 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
         onDateMissingChange={setDateMissing}
       />
+
+      {/* 0504 2단계: 여행 전체 비용 — 일정에 안 묶인 비용(렌터카·보험 등). 항공(위)의 형제, Day 앞.
+          행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+          여행 전체 비용
+        </p>
+        <div className="glass-outer p-5 flex flex-col gap-3">
+          {editor.daylessCosts.map((cost, index) => (
+            <div key={index} className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={cost.label}
+                onChange={(e) => updateDaylessCost(index, { label: e.target.value })}
+                placeholder="이름 (예: 렌터카)"
+                className={DAYLESS_INPUT_CLASS + ' w-full'}
+              />
+              <div className="flex gap-2">
+                <select
+                  value={cost.category}
+                  onChange={(e) => updateDaylessCost(index, { category: e.target.value as CostCategory | '' })}
+                  className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
+                >
+                  <option value="">카테고리</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {CATEGORY_LABEL[cat]}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  value={cost.amount === 0 ? '' : cost.amount}
+                  onChange={(e) => {
+                    const raw = Number(e.target.value);
+                    updateDaylessCost(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
+                  }}
+                  placeholder="금액"
+                  className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeDaylessCost(index)}
+                  aria-label="항목 삭제"
+                  className="w-11 h-11 shrink-0 flex items-center justify-center rounded-[10px] border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors text-base"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addDaylessCost}
+            className="w-full py-2.5 border border-dashed border-slate-300 rounded-[10px] text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            + 항목 추가
+          </button>
+        </div>
+      </div>
 
       {/* Day 탭 */}
       {hasDays ? (

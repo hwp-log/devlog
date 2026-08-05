@@ -18,6 +18,12 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
       .map((c) => [c.planSpotId!, c]),
   );
 
+  // 0504: 무장소 비용(day·planSpotId 둘 다 NULL)을 별도 컬렉션으로 복원 —
+  //   장소 매칭에서 드롭돼 다음 저장 때 영구 소실되던 경로 차단(라운드트립 보존).
+  const daylessCosts = plan.costs
+    .filter((c) => c.day == null && c.planSpotId == null)
+    .map((c) => ({ label: c.label, category: c.category, amount: c.amount }));
+
   const spotsByDay = new Map<number, FullPlanSpot[]>();
   for (const spot of plan.spots) {
     const arr = spotsByDay.get(spot.day) ?? [];
@@ -75,6 +81,7 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
     description: plan.description ?? '',
     headcount: plan.headcount,
     days,
+    daylessCosts, // 0504: 무장소 비용 복원(현재 UI 없음 — 라운드트립 보존용)
     flight: flightSlot,
     coverUrl: plan.coverUrl, // 0497: 기존 대표 이미지 복원(picker 후보면 선택 상태로 표시)
   };
