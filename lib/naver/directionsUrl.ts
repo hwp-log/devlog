@@ -16,11 +16,14 @@ export function buildNaverDirectionsUrls(t: DirectionsTarget, origin?: Direction
     ? `slat=${origin.lat}&slng=${origin.lng}&sname=${encodeURIComponent(origin.name)}&`
     : '';
   const query = `${startQuery}dlat=${t.lat}&dlng=${t.lng}&dname=${dname}&appname=${appname}`;
+  // 0503: 웹 URL 출발지 슬롯. 실브라우저로 {lng},{lat},{name} 형식 동작 확인 → origin 있으면 채우고
+  //       없으면 현행대로 '-'(빈 슬롯 = 출발지 미지정). 좌표계 WGS84 그대로.
+  const webStart = origin ? `${origin.lng},${origin.lat},${encodeURIComponent(origin.name)}` : '-';
   return {
     scheme: `nmap://route/public?${query}`,
     // Android: intent 래핑 — 미설치 시 인텐트 시스템이 마켓 폴백 (문서 명시 형식 그대로)
     androidIntent: `intent://route/public?${query}#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end`,
-    web: `https://map.naver.com/p/directions/-/${t.lng},${t.lat},${dname}/-/transit`,
+    web: `https://map.naver.com/p/directions/${webStart}/${t.lng},${t.lat},${dname}/-/transit`,
     iosStore: 'http://itunes.apple.com/app/id311867728?mt=8', // 문서 예시값 (네이버 지도 App Store)
   };
 }
