@@ -556,13 +556,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
                   : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Day {day}
-              {editor.startDate && (
-                <span className="ml-1 text-xs opacity-60">
-                  {/* 0505: 비용 목록 일자 라벨과 동일 포맷 함수(M.D (요일)) */}
-                  {formatDayLabel(addDays(new Date(editor.startDate), day - 1))}
-                </span>
-              )}
+              {/* 0511: Day N 병기 제거 — 날짜만(0505 비용 라벨과 동일 포맷, 세 화면 통일).
+                  탭은 hasDays(기간 설정) 조건에서만 렌더라 폴백은 방어용 */}
+              {editor.startDate
+                ? formatDayLabel(addDays(new Date(editor.startDate), day - 1))
+                : `Day ${day}`}
             </button>
           ))}
         </div>

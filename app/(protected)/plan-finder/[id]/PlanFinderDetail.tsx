@@ -10,6 +10,7 @@ import { CopyPlanFinderButton } from './CopyPlanFinderButton';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
+import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 import { CARD_PILL_CLASS } from '@/lib/card-tokens';
 
@@ -152,7 +153,8 @@ export function PlanFinderDetail({
                 : 'bg-card border border-border text-fg2 hover:bg-surface2'
             }`}
           >
-            Day {d}
+            {/* 0511: 비용 섹션(0505)과 동일 포맷 — Day N 병기 없이 날짜만(세 화면 통일). startDate 없으면 방어 폴백 */}
+            {startDate ? formatDayLabel(addDays(startDate, d - 1)) : `Day ${d}`}
           </button>
         ))}
       </div>

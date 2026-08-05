@@ -197,13 +197,8 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            Day {d}
-            {plan.startDate && (
-              <span className="ml-1 text-xs opacity-60">
-                {/* 0505: 비용 목록 일자 라벨과 동일 포맷 함수(M.D (요일)) */}
-                {formatDayLabel(addDays(plan.startDate, d - 1))}
-              </span>
-            )}
+            {/* 0511: Day N 병기 제거 — 날짜만(0505 비용 라벨과 동일 포맷, 세 화면 통일). startDate 없으면 방어 폴백 */}
+            {plan.startDate ? formatDayLabel(addDays(plan.startDate, d - 1)) : `Day ${d}`}
           </button>
         ))}
       </div>
