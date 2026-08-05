@@ -50,7 +50,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         },
       },
       costs: {
-        select: { planSpotId: true, category: true, amount: true, label: true },
+        // 0499: day 추가 — 항목별 상세를 일자별로 묶기 위함
+        select: { planSpotId: true, category: true, amount: true, label: true, day: true },
       },
       flight: {
         select: {

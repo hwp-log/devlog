@@ -13,11 +13,16 @@ export type PublicCostSummary = {
     ratio: number;
     amount: number; // 0492: 금액 공개 — 항목별 실금액(내림차순 정렬 유지)
   }>;
-  // 0498: 항목 단위 상세 — PlanCost 행 그대로(카테고리 롤업 X). 항공은 합성 항목.
-  items: Array<{
-    label: string;
-    category: CostCategory | 'FLIGHT';
-    amount: number;
+  // 0499: 항목 단위 상세를 일자별 그룹으로 묶음. 항공(dayless)은 day=null 그룹으로 맨 위.
+  // 비용 있는 날만 오름차순, 날짜 안은 금액 내림차순(0498 정렬 유지). PlanCost 행 그대로(롤업 X).
+  itemGroups: Array<{
+    day: number | null; // null = 항공(합성, day 없음) → 목록 맨 위
+    label: string; // '항공' | `Day ${day}`
+    items: Array<{
+      label: string;
+      category: CostCategory | 'FLIGHT';
+      amount: number;
+    }>;
   }>;
   total: number; // 0492: 금액 공개 — 계획 총액(항공 포함)
   band: { lower: number; upper: number } | null;
@@ -42,30 +47,50 @@ function computeBand(
 }
 
 export function summarizePlanCost(
-  // 0498: label은 항목 리스트용(옵셔널) — band만 쓰는 소비처(story 3곳)는 select 안 해도 됨.
-  costs: { category: string; amount: number; label?: string }[],
+  // 0498: label·day는 항목 리스트용(옵셔널) — band만 쓰는 소비처(story 3곳)는 select 안 해도 됨.
+  costs: { category: string; amount: number; label?: string; day?: number }[],
   flight: { totalAmount: number } | null | undefined,
   currency: 'KRW' | 'USD' | 'JPY',
 ): PublicCostSummary {
   const total = calcPlanTotal(costs, flight);
   const band = computeBand(total, currency);
 
-  // 0498: 항목 단위 — 항공(합성) + PlanCost 행 그대로. 금액 내림차순.
-  const lineItems = [
+  // 0499: 일자별 그룹핑. 존재하는 PlanCost 행에서만 파생 → 비용 없는 날은 그룹 자체가 안 생김(머리글 생략).
+  const dayBuckets = new Map<number, PublicCostSummary['itemGroups'][number]['items']>();
+  for (const c of costs) {
+    if (c.amount <= 0) continue;
+    const day = c.day ?? 0; // 방어: day 미select 소비처(band 전용)는 0 버킷 — itemGroups 미렌더라 무해
+    if (!dayBuckets.has(day)) dayBuckets.set(day, []);
+    dayBuckets.get(day)!.push({
+      label: c.label ?? '',
+      category: c.category as CostCategory,
+      amount: c.amount,
+    });
+  }
+
+  const itemGroups: PublicCostSummary['itemGroups'] = [
+    // 항공(dayless) 머리글 그룹을 맨 위에 — Day 머리글과 평행 구조(0499 Q1)
     ...(flight && flight.totalAmount > 0
-      ? [{ label: '항공', category: 'FLIGHT' as const, amount: flight.totalAmount }]
+      ? [
+          {
+            day: null,
+            label: '항공',
+            items: [{ label: '항공', category: 'FLIGHT' as const, amount: flight.totalAmount }],
+          },
+        ]
       : []),
-    ...costs
-      .filter((c) => c.amount > 0)
-      .map((c) => ({
-        label: c.label ?? '',
-        category: c.category as CostCategory,
-        amount: c.amount,
+    // 비용 있는 날만 오름차순, 날짜 안은 금액 내림차순(0498 정렬 유지 = within-day A안)
+    ...[...dayBuckets.keys()]
+      .sort((a, b) => a - b)
+      .map((day) => ({
+        day,
+        label: `Day ${day}`,
+        items: dayBuckets.get(day)!.sort((a, b) => b.amount - a.amount),
       })),
-  ].sort((a, b) => b.amount - a.amount);
+  ];
 
   if (total === 0) {
-    return { ratios: [], items: [], total, band, currency };
+    return { ratios: [], itemGroups: [], total, band, currency };
   }
 
   const items = [
@@ -102,5 +127,5 @@ export function summarizePlanCost(
     }))
     .sort((a, b) => b.ratio - a.ratio);
 
-  return { ratios, items: lineItems, total, band, currency };
+  return { ratios, itemGroups, total, band, currency };
 }

@@ -3,7 +3,8 @@ import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { CATEGORY_LABEL } from '@/app/(protected)/my-plan/_lib/cost';
 
 // 0498: 항목 카테고리 라벨 — 항공은 합성 카테고리라 별도 매핑.
-function categoryLabel(category: PublicCostSummary['items'][number]['category']): string {
+type ItemCategory = PublicCostSummary['itemGroups'][number]['items'][number]['category'];
+function categoryLabel(category: ItemCategory): string {
   return category === 'FLIGHT' ? '항공' : CATEGORY_LABEL[category];
 }
 
@@ -24,7 +25,7 @@ const RANK_BAR = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg'
  * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
  */
 export function PublicCostSection({ summary, headcount }: Props) {
-  const { ratios, items, total, currency } = summary;
+  const { ratios, itemGroups, total, currency } = summary;
   if (ratios.length === 0) return null;
 
   return (
@@ -57,15 +58,19 @@ export function PublicCostSection({ summary, headcount }: Props) {
         ))}
       </div>
 
-      {/* 0498: 항목별 상세 — 카테고리 요약 아래 구분선으로 분리. 접기 없이 전부(플랜당 최대 6). */}
-      {items.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
-          <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">항목별</p>
-          {items.map((item, i) => (
-            <div key={`${item.label}-${i}`} className="flex items-baseline gap-2 text-[13px]">
-              <span className="text-fg2">{item.label}</span>
-              <span className="text-[11px] text-muted">{categoryLabel(item.category)}</span>
-              <span className="ml-auto font-medium text-fg">{formatApproxCost(item.amount, currency)}</span>
+      {/* 0499: 항목별 상세를 일자별로 묶음. 항공 그룹 맨 위 → 비용 있는 날만 오름차순. */}
+      {itemGroups.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-border flex flex-col gap-3">
+          {itemGroups.map((group) => (
+            <div key={group.label} className="flex flex-col gap-2">
+              <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">{group.label}</p>
+              {group.items.map((item, i) => (
+                <div key={`${item.label}-${i}`} className="flex items-baseline gap-2 text-[13px]">
+                  <span className="text-fg2">{item.label}</span>
+                  <span className="text-[11px] text-muted">{categoryLabel(item.category)}</span>
+                  <span className="ml-auto font-medium text-fg">{formatApproxCost(item.amount, currency)}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
