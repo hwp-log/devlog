@@ -4,15 +4,9 @@ import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
-import { CATEGORY_LABEL } from '@/app/(protected)/my-plan/_lib/cost';
 
-// 0498: 항목 카테고리 라벨 — 항공은 합성 카테고리라 별도 매핑.
 type ItemGroup = PublicCostSummary['itemGroups'][number];
 type Item = ItemGroup['items'][number];
-type ItemCategory = Item['category'];
-function categoryLabel(category: ItemCategory): string {
-  return category === 'FLIGHT' ? '항공' : CATEGORY_LABEL[category];
-}
 
 // 0505: 3열 항목 행 — [항목명 flex truncate] [카테고리 11px] [금액 우측]. 마지막 행만 아래 선 없음.
 // 0506: last는 일자 묶음이 아니라 그룹(고정/일자별) 전체 기준 —
@@ -22,20 +16,22 @@ function ItemRow({
   item,
   currency,
   last,
+  barClass,
 }: {
   item: Item;
   currency: PublicCostSummary['currency'];
   last: boolean;
+  // 0514: 카테고리 텍스트 라벨 대신 이름 왼쪽 3px 색 막대(시안 4a) — 색은 요약 rank와 동일 매핑.
+  barClass: string;
 }) {
   // 항공 합성 항목은 '항공권'으로 표기(0505 목표3).
   const name = item.category === 'FLIGHT' ? '항공권' : item.label;
   return (
     <div
-      className={`flex items-baseline gap-2 py-1.5 text-[13px]${last ? '' : ' border-b border-border/60'}`}
+      className={`grid grid-cols-[1fr_max-content] gap-5 items-center py-[11px] pl-2 border-l-[3px] ${barClass} text-sm${last ? '' : ' border-b border-[#f4f5f6]'}`}
     >
       <span className="text-fg2 truncate min-w-0">{name}</span>
-      <span className="text-[11px] text-muted shrink-0">{categoryLabel(item.category)}</span>
-      <span className="ml-auto shrink-0 font-medium text-fg">{formatApproxCost(item.amount, currency)}</span>
+      <span className="shrink-0 font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
     </div>
   );
 }
@@ -63,7 +59,8 @@ function GroupHeader({
       className="group -mx-2 block w-[calc(100%+16px)] pt-2.5 text-left"
     >
       <span aria-hidden className="mx-2 block border-t border-fg/15" />
-      <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 text-sm font-bold text-fg group-hover:bg-surface2">
+      {/* 0514: 제목 16px(시안 4a) — 간격 체계(0505·0507)는 유지 */}
+      <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 text-base font-bold text-fg group-hover:bg-surface2">
         {title}
         <ChevronDown
           size={16}
@@ -86,6 +83,14 @@ interface Props {
 // rank(비중 내림차순 index) → 색 클래스. 완전 리터럴만 JIT 스캔되므로 조합 금지 — 배열로 고정.
 // rank6+(최대 6항목: 항공+카테고리 5종)는 Math.min으로 rank5 재사용(0343 확정).
 const RANK_BAR = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg', 'bg-chart5-bg'];
+// 0514: 이름 왼쪽 3px 막대용 — RANK_BAR와 같은 rank 매핑(완전 리터럴, JIT 스캔).
+const RANK_BAR_LEFT = [
+  'border-l-chart1-bg',
+  'border-l-chart2-bg',
+  'border-l-chart3-bg',
+  'border-l-chart4-bg',
+  'border-l-chart5-bg',
+];
 
 /**
  * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
@@ -105,6 +110,12 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
   //   summarize의 itemGroups 순서(항공 → 여행 전체 → Day)를 그대로 이어받아 항공권이 고정 맨 위.
   const fixedItems = itemGroups.filter((g) => g.day === null).flatMap((g) => g.items);
   const dayGroups = itemGroups.filter((g): g is ItemGroup & { day: number } => g.day !== null);
+  // 0514: 항목 행 막대 색 — 요약 rank와 동일 매핑(카테고리 → rank 색). ratios 밖 카테고리는 무색.
+  const barByCategory = new Map(
+    ratios.map((r, rank) => [r.category, RANK_BAR_LEFT[Math.min(rank, 4)]]),
+  );
+  const barFor = (category: Item['category']) =>
+    barByCategory.get(category) ?? 'border-l-transparent';
   const periodLabel =
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
   const dayDateLabel = (day: number) =>
@@ -127,15 +138,15 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         ))}
       </div>
 
-      <div className="mt-3 flex flex-col gap-1.5">
+      {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거), 2열 배치 — 좁아지면 1열(시안 4a·4e) */}
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
         {ratios.map((item, rank) => (
-          <div key={item.category} className="flex items-center gap-2 text-[13px]">
-            <span
-              aria-hidden
-              className={`w-2 h-2 rounded-full shrink-0 ${RANK_BAR[Math.min(rank, 4)]}`}
-            />
-            <span className="text-fg2">{item.label}</span>
-            <span className="ml-auto font-medium text-fg">{formatApproxCost(item.amount, currency)}</span>
+          <div
+            key={item.category}
+            className={`grid grid-cols-[1fr_max-content] items-center py-2 pl-2 border-l-[3px] ${RANK_BAR_LEFT[Math.min(rank, 4)]}`}
+          >
+            <span className="text-sm font-semibold text-fg2">{item.label}</span>
+            <span className="text-sm font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
           </div>
         ))}
       </div>
@@ -144,8 +155,9 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
           한쪽이 비면 그 제목도 생략(목표6). 계층은 색·선이 아니라 위치(날짜 라벨만 왼쪽 머리)로 가른다.
           0507 후속: 접힘(기본) 상태는 두 그룹 모두 제목 줄만 — 기간 라벨도 접힘 대상(접힘 높이 동일).
           제목 아래 6px은 헤더 필의 pb-1.5가 담당 → 펼침 첫 요소는 mt 없이 시작. */}
+      {/* 0514: 카테고리 목록→첫 그룹 26px(시안 4a) = mt-4(16) + 헤더 pt-2.5(10) */}
       {fixedItems.length > 0 && (
-        <div className="mt-1.5">
+        <div className="mt-4">
           <GroupHeader
             title="여행 고정 비용"
             open={fixedOpen}
@@ -156,7 +168,13 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
               {periodLabel && <p className="text-xs text-muted">{periodLabel}</p>}
               <div className={periodLabel ? 'mt-1.5' : ''}>
                 {fixedItems.map((item, i) => (
-                  <ItemRow key={`fixed-${i}`} item={item} currency={currency} last={i === fixedItems.length - 1} />
+                  <ItemRow
+                    key={`fixed-${i}`}
+                    item={item}
+                    currency={currency}
+                    last={i === fixedItems.length - 1}
+                    barClass={barFor(item.category)}
+                  />
                 ))}
               </div>
             </>
@@ -184,6 +202,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
                         item={item}
                         currency={currency}
                         last={gi === dayGroups.length - 1 && i === group.items.length - 1}
+                        barClass={barFor(item.category)}
                       />
                     ))}
                   </div>
