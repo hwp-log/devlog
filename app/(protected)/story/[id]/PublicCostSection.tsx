@@ -1,3 +1,6 @@
+'use client';
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
@@ -37,6 +40,41 @@ function ItemRow({
   );
 }
 
+// 0507: 접기 헤더 — 제목 줄 전체가 토글 버튼. 꺾쇠는 우측 끝, 접힘=아래·펼침=위(표준 아코디언).
+// 0507 후속: 발견성 — 제목 줄에 무채 surface2 호버 필(데스크톱, v4 hover:는 hover 지원 기기만).
+//   버튼을 좌우 8px 넓혀(-mx-2 + calc) 여백까지 히트. 구분선(mx-2)·제목(필 px-2)의 시각
+//   x위치는 그대로 상쇄되고, 꺾쇠도 필 content 우측 끝 = 기존 위치.
+//   터치 타겟: pt-2.5(10) + 선~필(mt-2.5=10) + 필(py-1.5+텍스트=32) = 52px(≥44, CLAUDE.md §5).
+//   선 위치는 0505와 동일: 이전 내용 16px 아래(컨테이너 mt-1.5 + 버튼 pt-2.5).
+function GroupHeader({
+  title,
+  open,
+  onToggle,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="group -mx-2 block w-[calc(100%+16px)] pt-2.5 text-left"
+    >
+      <span aria-hidden className="mx-2 block border-t border-fg/15" />
+      <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 text-sm font-bold text-fg group-hover:bg-surface2">
+        {title}
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={`ml-auto shrink-0 text-muted transition-transform${open ? ' rotate-180' : ''}`}
+        />
+      </span>
+    </button>
+  );
+}
+
 interface Props {
   summary: PublicCostSummary;
   headcount: number;
@@ -58,6 +96,9 @@ const RANK_BAR = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg'
  */
 export function PublicCostSection({ summary, headcount, startDate, endDate }: Props) {
   const { ratios, itemGroups, total, currency } = summary;
+  // 0507: 두 층 각각 접기 — 기본 접힘. 카테고리 요약(막대·색 라벨)은 접기 대상 아님.
+  const [fixedOpen, setFixedOpen] = useState(false);
+  const [dayOpen, setDayOpen] = useState(false);
   if (ratios.length === 0) return null;
 
   // 0505: 두 층으로 분리 — 고정 비용(day=null: 항공권 + 무장소) / 일자별 비용(day 있는 그룹).
@@ -100,40 +141,56 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
       </div>
 
       {/* 0505: 두 층(고정 / 일자별). 각 층 = 큰 제목(진한 구분선+14px 굵게) → 날짜 라벨(12px 회색) → 3열 항목.
-          한쪽이 비면 그 제목도 생략(목표6). 계층은 색·선이 아니라 위치(날짜 라벨만 왼쪽 머리)로 가른다. */}
+          한쪽이 비면 그 제목도 생략(목표6). 계층은 색·선이 아니라 위치(날짜 라벨만 왼쪽 머리)로 가른다.
+          0507 후속: 접힘(기본) 상태는 두 그룹 모두 제목 줄만 — 기간 라벨도 접힘 대상(접힘 높이 동일).
+          제목 아래 6px은 헤더 필의 pb-1.5가 담당 → 펼침 첫 요소는 mt 없이 시작. */}
       {fixedItems.length > 0 && (
-        <div className="mt-4">
-          <p className="pt-4 border-t border-fg/15 text-sm font-bold text-fg">여행 고정 비용</p>
-          {periodLabel && <p className="mt-1.5 text-xs text-muted">{periodLabel}</p>}
-          <div className="mt-1.5">
-            {fixedItems.map((item, i) => (
-              <ItemRow key={`fixed-${i}`} item={item} currency={currency} last={i === fixedItems.length - 1} />
-            ))}
-          </div>
+        <div className="mt-1.5">
+          <GroupHeader
+            title="여행 고정 비용"
+            open={fixedOpen}
+            onToggle={() => setFixedOpen((v) => !v)}
+          />
+          {fixedOpen && (
+            <>
+              {periodLabel && <p className="text-xs text-muted">{periodLabel}</p>}
+              <div className={periodLabel ? 'mt-1.5' : ''}>
+                {fixedItems.map((item, i) => (
+                  <ItemRow key={`fixed-${i}`} item={item} currency={currency} last={i === fixedItems.length - 1} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {dayGroups.length > 0 && (
-        <div className="mt-4">
-          <p className="pt-4 border-t border-fg/15 text-sm font-bold text-fg">여행 일자별 비용</p>
-          {/* 0505 후속: 제목→첫 일자를 고정 비용과 동일하게(mt-1.5=6px, 붙이지 않고 띄움). gap-3은 일자 그룹 사이(8.5→8.6)만 담당 */}
-          <div className="mt-1.5 flex flex-col gap-3">
-            {dayGroups.map((group, gi) => (
-              <div key={group.day}>
-                <p className="text-xs text-muted">{dayDateLabel(group.day)}</p>
-                <div className="mt-1">
-                  {group.items.map((item, i) => (
-                    <ItemRow
-                      key={`day-${group.day}-${i}`}
-                      item={item}
-                      currency={currency}
-                      last={gi === dayGroups.length - 1 && i === group.items.length - 1}
-                    />
-                  ))}
+        <div className="mt-1.5">
+          <GroupHeader
+            title="여행 일자별 비용"
+            open={dayOpen}
+            onToggle={() => setDayOpen((v) => !v)}
+          />
+          {/* 0505 후속: 제목→첫 일자 6px은 고정 비용과 동일(헤더 필 pb-1.5 담당). gap-3은 일자 그룹 사이(8.5→8.6)만 담당 */}
+          {dayOpen && (
+            <div className="flex flex-col gap-3">
+              {dayGroups.map((group, gi) => (
+                <div key={group.day}>
+                  <p className="text-xs text-muted">{dayDateLabel(group.day)}</p>
+                  <div className="mt-1">
+                    {group.items.map((item, i) => (
+                      <ItemRow
+                        key={`day-${group.day}-${i}`}
+                        item={item}
+                        currency={currency}
+                        last={gi === dayGroups.length - 1 && i === group.items.length - 1}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
