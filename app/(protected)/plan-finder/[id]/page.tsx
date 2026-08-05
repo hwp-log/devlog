@@ -46,6 +46,14 @@ export default async function PlanFinderDetailPage({ params }: Props) {
                 orderBy: { createdAt: 'desc' },
                 select: { movie: { select: { id: true, title: true } } },
               },
+              // 0509: 커버 폴백용 — 사진 있는 최신 스토리 1건.
+              //   최신=대표(0185, lib/spot/queries.ts 썸네일 선례와 동일 규칙·동일 정렬축).
+              storySpots: {
+                where: { photoUrl: { not: null } },
+                orderBy: { story: { createdAt: 'desc' } },
+                take: 1,
+                select: { photoUrl: true },
+              },
             },
           },
         },
@@ -151,7 +159,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         lat: s.lat,
         lng: s.lng,
         // 0494: 연결 Spot 조인값 평탄화(미연결이면 null). 대표 작품 = spotMovies[0].
-        coverUrl: s.spot?.coverUrl ?? null,
+        // 0509: coverUrl 우선, 없으면 사진 있는 최신 스토리 사진(조회 폴백 — 저장 무변경).
+        coverUrl: s.spot?.coverUrl ?? s.spot?.storySpots[0]?.photoUrl ?? null,
         address: s.spot?.address ?? null,
         movie: s.spot?.spotMovies?.[0]?.movie.title ?? null,
       }))}
