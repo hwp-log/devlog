@@ -50,6 +50,8 @@ async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
 // 0497: 대표 이미지 후보 조회 — 담은 좌표 항목을 200m+이름으로 Spot 해소, 커버 있는 재사용 Spot의
 //   {coverUrl,name}을 order순 수집(coverUrl 중복 제거). 작성 화면 CoverPicker가 항목 변경 시 호출.
 //   findNearbySpots가 자체 인증 가드 → 미인증이면 throw(UNAUTHENTICATED). 클라는 실패를 빈 후보로 흡수.
+// 0510: 후보에 스토리 폴백 — Spot당 coverUrl ?? 사진 있는 최신 스토리 사진(0509와 동일 규칙·정렬축).
+//   후보로만 올린다 — 자동 채택(resolveCover)은 스토리를 안 봄("폴백은 자동이 아니라 질문으로").
 export async function getPlanCoverCandidates(
   items: { name: string; lat: number; lng: number }[],
 ): Promise<{ coverUrl: string; name: string }[]> {
@@ -58,15 +60,32 @@ export async function getPlanCoverCandidates(
   );
   const ids = [...new Set(resolved.map((r) => r.reusedSpotId).filter((x): x is string => !!x))];
   if (ids.length === 0) return [];
-  const spots = await prisma.spot.findMany({ where: { id: { in: ids }, coverUrl: { not: null } }, select: { id: true, name: true, coverUrl: true } });
+  const spots = await prisma.spot.findMany({
+    where: {
+      id: { in: ids },
+      OR: [{ coverUrl: { not: null } }, { storySpots: { some: { photoUrl: { not: null } } } }],
+    },
+    select: {
+      id: true,
+      name: true,
+      coverUrl: true,
+      storySpots: {
+        where: { photoUrl: { not: null } },
+        orderBy: { story: { createdAt: 'desc' } },
+        take: 1,
+        select: { photoUrl: true },
+      },
+    },
+  });
   const coverById = new Map(spots.map((s) => [s.id, s]));
   const seen = new Set<string>();
   const out: { coverUrl: string; name: string }[] = [];
   for (const r of resolved) {
     const s = r.reusedSpotId ? coverById.get(r.reusedSpotId) : undefined;
-    if (!s?.coverUrl || seen.has(s.coverUrl)) continue;
-    seen.add(s.coverUrl);
-    out.push({ coverUrl: s.coverUrl, name: s.name });
+    const url = s?.coverUrl ?? s?.storySpots[0]?.photoUrl;
+    if (!s || !url || seen.has(url)) continue;
+    seen.add(url);
+    out.push({ coverUrl: url, name: s.name });
   }
   return out;
 }

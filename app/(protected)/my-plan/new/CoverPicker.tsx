@@ -4,7 +4,9 @@ import Image from 'next/image';
 import { getPlanCoverCandidates } from './actions';
 
 // 0497: 대표 이미지 선택. 담은 좌표 항목의 재사용 Spot 커버를 후보로 조회(디바운스, 항목 변경 시).
-//   후보 2개 이상일 때만 블록 렌더(1개는 자동 결과와 같아 실효 없음). 고르면 커버 저장, 다시 누르면 해제(null).
+//   고르면 커버 저장, 다시 누르면 해제(null).
+// 0510: 후보 1개부터 렌더 — 1개여도 "이 사진 / 자동(지역 폴백) / 해제"의 선택이 실재.
+//   특히 스토리 폴백 후보(coverUrl 없는 Spot)는 자동 결과와 달라 "1개=자동과 동일" 전제(0497)가 깨짐.
 const DEBOUNCE_MS = 400;
 
 type Candidate = { coverUrl: string; name: string };
@@ -48,8 +50,8 @@ export function CoverPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  // 목표: 후보 2개 이상일 때만 블록 표시.
-  if (candidates.length < 2) return null;
+  // 0510: 후보 1개부터 표시(0장만 미표시 — 지역 폴백 흐름 무변경).
+  if (candidates.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-1.5">
