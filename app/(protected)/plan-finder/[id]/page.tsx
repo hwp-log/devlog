@@ -140,6 +140,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       headcount={plan.headcount}
       createdAtLabel={createdAtLabel}
       dayCount={dayCount}
+      startDate={plan.startDate}
+      endDate={plan.endDate}
       spots={plan.spots.map((s) => ({
         id: s.id,
         day: s.day,

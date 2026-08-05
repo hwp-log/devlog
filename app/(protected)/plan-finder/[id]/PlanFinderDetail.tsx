@@ -25,6 +25,9 @@ interface Props {
   headcount: number;
   createdAtLabel: string;
   dayCount: number;
+  // 0505: 비용 목록 일자 라벨용(PublicCostSection로 전달).
+  startDate: Date | null;
+  endDate: Date | null;
   spots: { id: string; day: number; name: string; order?: number; lat?: number | null; lng?: number | null; coverUrl?: string | null; address?: string | null; movie?: string | null }[];
   costCategories: { planSpotId: string | null; category: string; amount: number }[];
   publicFlight: FlightLegData | null;
@@ -49,6 +52,8 @@ export function PlanFinderDetail({
   headcount,
   createdAtLabel,
   dayCount,
+  startDate,
+  endDate,
   spots,
   costCategories,
   publicFlight,
@@ -183,7 +188,7 @@ export function PlanFinderDetail({
       {summary.ratios.length > 0 && (
         <div className="mb-4">
           <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">예상 비용</p>
-          <PublicCostSection summary={summary} headcount={headcount} />
+          <PublicCostSection summary={summary} headcount={headcount} startDate={startDate} endDate={endDate} />
         </div>
       )}
 

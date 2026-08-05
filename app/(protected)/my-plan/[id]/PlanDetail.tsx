@@ -8,6 +8,7 @@ import { PlanTimeline, buildTimeline, type TimelineItem } from '../_components/P
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
 import { CATEGORY_LABEL, formatAmount, type CostCategory } from '../_lib/cost';
+import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { togglePlanPublicAction } from './actions';
 
 function planFlightToLegData(f: PlanFlight): FlightLegData {
@@ -157,18 +158,21 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
         </div>
       )}
 
-      {/* 0504 2단계: 여행 전체 비용 — 항공편 아래·여행 일정 위(항공→여행 전체→Day 순서 일치).
-          항목 있을 때만 렌더(읽기 전용). 행은 PublicCostSection itemGroups와 동형(label·카테고리·금액). */}
+      {/* 0504 2단계 / 0505: 여행 고정 비용 — 항공편 아래·여행 일정 위. 항목 있을 때만 렌더(읽기 전용).
+          라벨은 작성·플랜파인더와 통일("여행 고정 비용"). 행은 3열([항목명 truncate][카테고리 11px][금액]) + 0.5px 구분선. */}
       {daylessCosts.length > 0 && (
         <div className="mb-4">
           <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-            여행 전체 비용
+            여행 고정 비용
           </p>
-          <div className="glass-outer p-5 flex flex-col gap-2">
-            {daylessCosts.map((c) => (
-              <div key={c.id} className="flex items-baseline gap-2 text-sm">
-                <span className="text-[#1A1A1A] break-keep">{c.label}</span>
-                <span className="text-xs text-slate-400 shrink-0">{CATEGORY_LABEL[c.category as CostCategory]}</span>
+          <div className="glass-outer px-5 py-2">
+            {daylessCosts.map((c, i) => (
+              <div
+                key={c.id}
+                className={`flex items-baseline gap-2 py-1.5 text-sm${i === daylessCosts.length - 1 ? '' : ' border-b border-black/[0.06]'}`}
+              >
+                <span className="text-[#1A1A1A] truncate min-w-0">{c.label}</span>
+                <span className="text-[11px] text-slate-400 shrink-0">{CATEGORY_LABEL[c.category as CostCategory]}</span>
                 <span className="ml-auto shrink-0 font-medium text-[#1A1A1A]">
                   {formatAmount(c.amount, plan.currency as 'KRW' | 'USD' | 'JPY')}
                 </span>
@@ -196,9 +200,8 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
             Day {d}
             {plan.startDate && (
               <span className="ml-1 text-xs opacity-60">
-                {new Date(
-                  plan.startDate.getTime() + (d - 1) * 86400000
-                ).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                {/* 0505: 비용 목록 일자 라벨과 동일 포맷 함수(M.D (요일)) */}
+                {formatDayLabel(addDays(plan.startDate, d - 1))}
               </span>
             )}
           </button>

@@ -33,6 +33,7 @@ import {
 import { CATEGORY_ICON } from '../_components/CostSection';
 import { CostSection } from '../_components/CostSection';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
+import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { clampHeadcount, HEADCOUNT_MIN, HEADCOUNT_MAX } from '@/lib/plan/validate-input';
 
 export type PlanItem = {
@@ -107,7 +108,7 @@ const INPUT_CLASS =
 const ITEM_INPUT_CLASS =
   'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
 
-// 0504: 여행 전체 비용 입력 — text-base(16px)로 iOS 자동확대 방지(CLAUDE.md §5). Day 행(14px)은 기존 위반이라 미답습.
+// 0504: 여행 고정 비용 입력 — text-base(16px)로 iOS 자동확대 방지(CLAUDE.md §5). Day 행(14px)은 기존 위반이라 미답습.
 const DAYLESS_INPUT_CLASS =
   'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2.5 text-base text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
 
@@ -291,7 +292,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
     );
   }
 
-  // 0504: 여행 전체 비용(무장소) — Day와 별개 컬렉션. 순서 무관이라 index로 갱신·삭제.
+  // 0504: 여행 고정 비용(무장소) — Day와 별개 컬렉션. 순서 무관이라 index로 갱신·삭제.
   function addDaylessCost() {
     setEditor((prev) => ({
       ...prev,
@@ -481,11 +482,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         onDateMissingChange={setDateMissing}
       />
 
-      {/* 0504 2단계: 여행 전체 비용 — 일정에 안 묶인 비용(렌터카·보험 등). 항공(위)의 형제, Day 앞.
+      {/* 0504 2단계: 여행 고정 비용 — 일정에 안 묶인 비용(렌터카·보험 등). 항공(위)의 형제, Day 앞.
           행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
       <div className="mb-4">
         <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-          여행 전체 비용
+          여행 고정 비용
         </p>
         <div className="glass-outer p-5 flex flex-col gap-3">
           {editor.daylessCosts.map((cost, index) => (
@@ -558,9 +559,8 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
               Day {day}
               {editor.startDate && (
                 <span className="ml-1 text-xs opacity-60">
-                  {new Date(
-                    new Date(editor.startDate).getTime() + (day - 1) * 86400000,
-                  ).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                  {/* 0505: 비용 목록 일자 라벨과 동일 포맷 함수(M.D (요일)) */}
+                  {formatDayLabel(addDays(new Date(editor.startDate), day - 1))}
                 </span>
               )}
             </button>
