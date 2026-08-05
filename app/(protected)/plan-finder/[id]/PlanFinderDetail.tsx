@@ -81,13 +81,19 @@ export function PlanFinderDetail({
 
   const actionButtons = (
     <div className="flex items-center gap-2 shrink-0">
-      {!isOwner && <CopyPlanFinderButton planId={planId} />}
+      {/* 0515: 모바일은 하단 고정 바가 담기를 담당(시안 4d) — 인라인 버튼은 sm+ 전용 */}
+      {!isOwner && (
+        <span className="max-sm:hidden">
+          <CopyPlanFinderButton planId={planId} />
+        </span>
+      )}
       <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
     </div>
   );
 
   return (
-    <div>
+    // 0515: 담기 고정 바(모바일)가 마지막 내용을 가리지 않게 하단 여백 88px(시안 4d).
+    <div className={isOwner ? undefined : 'max-sm:pb-[88px]'}>
       {/* 0512: 히어로에 제목(좌하단)·지역 칩(좌상단) — 시안 4a/4d. 좌우 인셋은 시안 40px가
           전체 페이지 패딩 기준이라 컬럼 폭인 우리 히어로엔 기존 16px 유지. */}
       {coverUrl && (
@@ -165,21 +171,28 @@ export function PlanFinderDetail({
       {/* 여행 일정 */}
       <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">여행 일정</p>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {days.map((d) => (
-          <button
-            key={d}
-            onClick={() => setSelectedDay(d)}
-            className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-              selectedDay === d
-                ? 'bg-fg text-bg'
-                : 'bg-card border border-border text-fg2 hover:bg-surface2'
-            }`}
-          >
-            {/* 0511: 비용 섹션(0505)과 동일 포맷 — Day N 병기 없이 날짜만(세 화면 통일). startDate 없으면 방어 폴백 */}
-            {startDate ? formatDayLabel(addDays(startDate, d - 1)) : `Day ${d}`}
-          </button>
-        ))}
+      {/* 0515: 모바일 날짜 탭 — 전폭 한 줄 가로 스크롤 + 오른쪽 페이드(시안 4d). 데스크톱은 기존 그대로. */}
+      <div className="relative mb-6">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 max-sm:pr-6">
+          {days.map((d) => (
+            <button
+              key={d}
+              onClick={() => setSelectedDay(d)}
+              className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors shrink-0 ${
+                selectedDay === d
+                  ? 'bg-fg text-bg'
+                  : 'bg-card border border-border text-fg2 hover:bg-surface2'
+              }`}
+            >
+              {/* 0511: 비용 섹션(0505)과 동일 포맷 — Day N 병기 없이 날짜만(세 화면 통일). startDate 없으면 방어 폴백 */}
+              {startDate ? formatDayLabel(addDays(startDate, d - 1)) : `Day ${d}`}
+            </button>
+          ))}
+        </div>
+        <div
+          aria-hidden
+          className="sm:hidden absolute right-0 top-0 bottom-1 w-[34px] bg-gradient-to-r from-transparent to-bg pointer-events-none"
+        />
       </div>
 
       {/* 0513: 그날 촬영지 사진 줄 — 항목 목록과 분리, 150px 고정 폭 가로 스크롤(시안 4a).
@@ -217,23 +230,27 @@ export function PlanFinderDetail({
             return (
               <div
                 key={s.id}
-                className="grid grid-cols-[26px_18px_1fr] gap-3 items-baseline py-[14px] border-b border-[#f1f2f3]"
+                className="grid grid-cols-[22px_16px_1fr] sm:grid-cols-[26px_18px_1fr] gap-2.5 sm:gap-3 items-baseline py-[13px] sm:py-[14px] border-b border-[#f1f2f3]"
               >
-                <span className="text-[13px] font-bold text-[#b3b9bd]">{i + 1}</span>
-                <span className={`text-center text-[#b3b9bd] ${s.address ? 'text-xs' : 'text-[13px]'}`}>
+                <span className="text-xs sm:text-[13px] font-bold text-[#b3b9bd]">{i + 1}</span>
+                <span
+                  className={`text-center text-[#b3b9bd] ${
+                    s.address ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-[13px]'
+                  }`}
+                >
                   {s.address ? '◉' : '→'}
                 </span>
-                <span className="flex flex-col gap-1 min-w-0">
-                  <span className="flex items-center gap-2 min-w-0">
+                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0">
+                  <span className="flex items-center gap-[7px] sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap">
                     <span
-                      className={`text-base break-keep ${
+                      className={`text-[15px] sm:text-base break-keep ${
                         s.address ? 'font-semibold text-fg' : 'font-medium text-fg2'
                       }`}
                     >
                       {s.name}
                     </span>
                     {s.movie && (
-                      <span className="shrink-0 px-2 py-[3px] rounded-[3px] bg-[#eaf3ff] text-[#2f7fe0] text-[11px] font-semibold">
+                      <span className="shrink-0 px-[7px] py-[2px] sm:px-2 sm:py-[3px] rounded-[3px] bg-[#eaf3ff] text-[#2f7fe0] text-[11px] font-semibold">
                         {s.movie}
                       </span>
                     )}
@@ -246,13 +263,13 @@ export function PlanFinderDetail({
                           openNaverDirections({ name: s.name, lat: s.lat!, lng: s.lng! }, origin)
                         }
                         aria-label={`${s.name} 네이버 지도 길찾기`}
-                        className="inline-flex max-w-full items-center gap-[5px] text-left text-[13px] text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0"
+                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-[13px] text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0"
                       >
                         <span className="truncate">{s.address}</span>
-                        <span className="text-[11px] shrink-0">↗</span>
+                        <span className="text-[10px] sm:text-[11px] shrink-0">↗</span>
                       </button>
                     ) : (
-                      <p className="text-[13px] text-muted truncate">{s.address}</p>
+                      <p className="text-xs sm:text-[13px] text-muted truncate">{s.address}</p>
                     ))}
                 </span>
               </div>
@@ -285,6 +302,14 @@ export function PlanFinderDetail({
           ← 목록으로
         </Link>
       </div>
+
+      {/* 0515: 모바일 담기 하단 고정 바(시안 4d) — 본인 플랜은 바 자체가 없음(시안 4f).
+          iOS 홈바 대응: pb에 safe-area 합산(CLAUDE.md §5). z-50 — 탭바(z-40) 위. */}
+      {!isOwner && (
+        <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg/[.94] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+          <CopyPlanFinderButton planId={planId} variant="bar" />
+        </div>
+      )}
     </div>
   );
 }
