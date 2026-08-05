@@ -12,6 +12,9 @@ function categoryLabel(category: ItemCategory): string {
 }
 
 // 0505: 3열 항목 행 — [항목명 flex truncate] [카테고리 11px] [금액 우측]. 마지막 행만 아래 선 없음.
+// 0506: last는 일자 묶음이 아니라 그룹(고정/일자별) 전체 기준 —
+//   일자당 항목이 1개인 경우가 많아 묶음 기준이면 선이 거의 안 보임.
+// 0506: 선 두께는 1px — 0.5px은 비레티나에서 0으로 반올림될 수 있음(globals.css 0345 실측 결정).
 function ItemRow({
   item,
   currency,
@@ -115,7 +118,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
           <p className="pt-4 border-t border-fg/15 text-sm font-bold text-fg">여행 일자별 비용</p>
           {/* 0505 후속: 제목→첫 일자를 고정 비용과 동일하게(mt-1.5=6px, 붙이지 않고 띄움). gap-3은 일자 그룹 사이(8.5→8.6)만 담당 */}
           <div className="mt-1.5 flex flex-col gap-3">
-            {dayGroups.map((group) => (
+            {dayGroups.map((group, gi) => (
               <div key={group.day}>
                 <p className="text-xs text-muted">{dayDateLabel(group.day)}</p>
                 <div className="mt-1">
@@ -124,7 +127,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
                       key={`day-${group.day}-${i}`}
                       item={item}
                       currency={currency}
-                      last={i === group.items.length - 1}
+                      last={gi === dayGroups.length - 1 && i === group.items.length - 1}
                     />
                   ))}
                 </div>
