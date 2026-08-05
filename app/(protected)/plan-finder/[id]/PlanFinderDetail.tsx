@@ -171,7 +171,13 @@ export function PlanFinderDetail({
         </div>
       )}
 
-      <PlanTimeline items={timeline} currency={currency} showAmount={false} />
+      {/* 0508: 주소 슬롯은 플랜 전체 기준 — Day 탭을 넘겨도 카드 높이가 변하지 않게. */}
+      <PlanTimeline
+        items={timeline}
+        currency={currency}
+        showAmount={false}
+        reserveAddressSlot={spots.some((s) => !!s.address)}
+      />
 
       {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값) */}
       {publicFlight && (
