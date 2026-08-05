@@ -35,7 +35,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         orderBy: { order: 'asc' },
         // 0494: spotId 연결 시 Spot 정보 조인(사진·주소·작품). null이면 spot: null (있는 것만).
         select: {
-          id: true, day: true, name: true, order: true, spotId: true,
+          // 0501: lat/lng 추가 — 장소 카드 주소를 길찾기 링크로(좌표 있는 항목만). nullable(0493).
+          id: true, day: true, name: true, order: true, spotId: true, lat: true, lng: true,
           spot: {
             select: {
               coverUrl: true,
@@ -144,6 +145,9 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         day: s.day,
         name: s.name,
         order: s.order,
+        // 0501: 좌표 있는 항목만 길찾기 링크(없으면 평범한 텍스트). PlanSpot.lat/lng는 nullable.
+        lat: s.lat,
+        lng: s.lng,
         // 0494: 연결 Spot 조인값 평탄화(미연결이면 null). 대표 작품 = spotMovies[0].
         coverUrl: s.spot?.coverUrl ?? null,
         address: s.spot?.address ?? null,

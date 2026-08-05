@@ -1,9 +1,14 @@
+'use client';
+
+import { ExternalLink } from 'lucide-react';
 import { CATEGORY_COLOR, formatAmount, type CostCategory } from '../_lib/cost';
 import { CATEGORY_ICON } from './CostSection';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
+import { openNaverDirections } from '@/lib/naver/directionsUrl';
 
 // 0494: address·movie는 파인더 상세 전용(Spot 조인값). 소유자 뷰는 미전달 → undefined → 렌더 안 함.
-type SpotInfo = { id: string; day: number; name: string; order?: number; address?: string | null; movie?: string | null };
+// 0501: lat/lng도 파인더 상세 전용 — 있으면 주소를 길찾기 링크로. 소유자 뷰·미연결 항목은 undefined/null.
+type SpotInfo = { id: string; day: number; name: string; order?: number; lat?: number | null; lng?: number | null; address?: string | null; movie?: string | null };
 type CostInfo = { planSpotId: string | null; category: string; amount: number };
 
 export type TimelineItem = {
@@ -95,10 +100,25 @@ export function PlanTimeline({
                           </span>
                         )}
                       </div>
-                      {/* 0494: 주소 한 줄(파인더 상세, Spot.address) */}
-                      {spot.address && (
-                        <p className="mt-0.5 text-[12px] text-[#8A8A8A] truncate">{spot.address}</p>
-                      )}
+                      {/* 0494: 주소 한 줄(파인더 상세, Spot.address).
+                          0501: 좌표 있으면 길찾기 링크(openNaverDirections, 목적지만) + 외부링크 아이콘.
+                          없으면 평범한 텍스트. 모바일 터치 영역 min-h-[44px](CLAUDE.md §5), 데스크톱은 compact. */}
+                      {spot.address &&
+                        (spot.lat != null && spot.lng != null ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openNaverDirections({ name: spot.name, lat: spot.lat!, lng: spot.lng! })
+                            }
+                            aria-label={`${spot.name} 네이버 지도 길찾기`}
+                            className="mt-0.5 flex max-w-full items-center gap-1 min-h-[44px] sm:min-h-0 text-left text-[12px] text-[#8A8A8A] hover:text-[#4A4A4A] transition-colors"
+                          >
+                            <span className="truncate">{spot.address}</span>
+                            <ExternalLink size={12} aria-hidden className="shrink-0" />
+                          </button>
+                        ) : (
+                          <p className="mt-0.5 text-[12px] text-[#8A8A8A] truncate">{spot.address}</p>
+                        ))}
                       {showAmountLine && amountPlacement === 'bottom' && (
                         <p className="mt-0.5 text-[12px] font-semibold text-[#4A4A4A]">{amountText}</p>
                       )}

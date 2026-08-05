@@ -25,7 +25,7 @@ interface Props {
   headcount: number;
   createdAtLabel: string;
   dayCount: number;
-  spots: { id: string; day: number; name: string; order?: number; coverUrl?: string | null; address?: string | null; movie?: string | null }[];
+  spots: { id: string; day: number; name: string; order?: number; lat?: number | null; lng?: number | null; coverUrl?: string | null; address?: string | null; movie?: string | null }[];
   costCategories: { planSpotId: string | null; category: string; amount: number }[];
   publicFlight: FlightLegData | null;
   summary: PublicCostSummary;
