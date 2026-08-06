@@ -20,7 +20,9 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
       disabled={isPending}
       className={
         variant === 'bar'
-          ? 'w-full py-[14px] rounded-lg bg-primary text-white text-[15px] font-bold disabled:opacity-50'
+          // 0524: 흰 글자는 primary(#4d9eff) 면에서 대비 2.74:1로 WCAG AA(4.5) 미달.
+          // primary-fg(#0b1a2b) = 6.39:1. primary가 모드 공용 토큰이라 결함도 모드 무관 → 양쪽 적용.
+          ? 'w-full py-[14px] rounded-lg bg-primary text-primary-fg text-[15px] font-bold disabled:opacity-50'
           : 'px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50'
       }
     >
