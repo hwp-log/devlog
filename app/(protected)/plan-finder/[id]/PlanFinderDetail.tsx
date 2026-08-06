@@ -83,13 +83,6 @@ export function PlanFinderDetail({
     .filter((s) => s.day === selectedDay)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  // 0494/0496: 그날 촬영지 사진 그리드 — 커버 있는 항목 전부, order순.
-  //   0496: 히어로 디둡 제거 — 히어로=코스 인상 / 그리드=그날 동선 목록이라 역할이 달라 겹쳐도 중복 아님.
-  //   (첫 장소가 히어로와 같아도 빼면 "그날 안 가나?" 오해가 더 커 디둡보다 손해.)
-  const dayPhotos = spots
-    .filter((s) => s.day === selectedDay && s.coverUrl)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
   const durationLabel = dayCount > 1 ? `${dayCount - 1}박 ${dayCount}일` : '당일';
 
   const actionButtons = (
@@ -211,27 +204,11 @@ export function PlanFinderDetail({
         />
       </div>
 
-      {/* 0513: 그날 촬영지 사진 줄 — 항목 목록과 분리, 150px 고정 폭 가로 스크롤(시안 4a).
-          0장이면 줄 생략(0494 유지). */}
-      {dayPhotos.length > 0 && (
-        <div className="mb-[22px]">
-          <div className="flex gap-2.5 overflow-x-auto pb-[2px]">
-            {dayPhotos.map((s) => (
-              <div key={s.id} className="relative w-[150px] h-[104px] shrink-0 rounded-[6px] overflow-hidden">
-                <Image src={s.coverUrl!} alt="" fill sizes="150px" className="object-cover" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(10,12,13,0.72)] to-transparent px-[9px] pt-[18px] pb-2">
-                  <p className="text-xs font-semibold text-white truncate">{s.name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-[#a2a8ac]">이 날 촬영지 중 사진이 있는 {dayPhotos.length}곳</p>
-        </div>
-      )}
-
-      {/* 0513: 일정 항목 — 회색 패널·흰 카드 제거, 한 줄 행 + hairline 구분(시안 4a).
-          아이콘은 주소 유무로만 갈림(주소 있음 ◉ / 주소 없는 이동 기록 →).
-          PlanTimeline은 소유자 뷰 전용으로 무접촉. */}
+      {/* 0513: 일정 항목 — 회색 패널·흰 카드 제거, 한 줄 행 + hairline 구분.
+          0517: 별도 사진 줄(150px, 0513) 폐기 — 사진 1장일 때 우측이 통째로 비는 문제.
+          커버 있는 항목만 행 왼쪽 60px 썸네일, 없으면 열 자체 생략(플레이스홀더 금지).
+          아이콘 열(◉/→)도 제거 — 구조는 번호(22px)+[썸네일]+이름·주소.
+          번호는 사진 유무 무관 그날 순번 연속. PlanTimeline은 소유자 뷰 전용으로 무접촉. */}
       <div className="flex flex-col">
         {dayItems.length === 0 ? (
           <p className="text-muted text-sm text-center py-6">항목이 없습니다.</p>
@@ -246,17 +223,17 @@ export function PlanFinderDetail({
             return (
               <div
                 key={s.id}
-                className="grid grid-cols-[22px_16px_1fr] sm:grid-cols-[26px_18px_1fr] gap-2.5 sm:gap-3 items-baseline py-[13px] sm:py-[14px] border-b border-[#f1f2f3]"
+                className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-[#f1f2f3]"
               >
-                <span className="text-xs sm:text-[13px] font-bold text-[#b3b9bd]">{i + 1}</span>
-                <span
-                  className={`text-center text-[#b3b9bd] ${
-                    s.address ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-[13px]'
-                  }`}
-                >
-                  {s.address ? '◉' : '→'}
+                <span className="w-[22px] shrink-0 text-xs sm:text-[13px] font-bold text-[#b3b9bd]">
+                  {i + 1}
                 </span>
-                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0">
+                {s.coverUrl && (
+                  <div className="relative w-[60px] h-[60px] shrink-0 rounded-[10px] overflow-hidden">
+                    <Image src={s.coverUrl} alt="" fill sizes="60px" className="object-cover" />
+                  </div>
+                )}
+                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0 flex-1">
                   <span className="flex items-center gap-[7px] sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap">
                     <span
                       className={`text-[15px] sm:text-base break-keep ${
