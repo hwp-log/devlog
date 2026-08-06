@@ -60,17 +60,19 @@ export default async function MyPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <p className="text-xs font-semibold text-sky-500 mb-1">MyPage</p>
-        <h1 className="text-2xl md:text-3xl font-bold text-[#1A1A1A]">
+      <div className="mb-6 sm:mb-9">
+        <p className="text-xs font-semibold tracking-[0.12em] uppercase text-primary mb-1.5 sm:mb-2">
+          MyPage
+        </p>
+        <h1 className="text-[26px] sm:text-[28px] font-bold tracking-[-0.02em] text-fg break-keep">
           {profile.nickname ? `안녕하세요, ${profile.nickname}님` : '안녕하세요'}
         </h1>
       </div>
 
       <AvatarPreviewProvider>
         <div className="space-y-[34px] md:space-y-0 md:grid md:grid-cols-[1fr_400px] md:gap-12 md:items-start">
-          {/* 왼쪽: 개방 캔버스 — 프로필·내 활동·최근 활동 */}
-          <div className="flex flex-col gap-6">
+          {/* 왼쪽: 개방 캔버스 — 프로필·내 활동·최근 활동 (섹션 간격은 각 섹션 제목의 mt로) */}
+          <div className="flex flex-col">
             <AvatarDisplay
               nickname={profile.nickname}
               email={profile.email}
