@@ -22,7 +22,8 @@ export default async function MyPlanPage() {
     include: {
       costs: true,
       flight: true,
-      _count: { select: { spots: true } },
+      // 0530: 카드가 커버·좋아요 수를 쓰므로 planLikes 집계 추가.
+      _count: { select: { spots: true, planLikes: true } },
     },
   });
 
@@ -39,14 +40,19 @@ export default async function MyPlanPage() {
       id: plan.id,
       title: plan.title,
       region: plan.region,
+      movie: plan.movie,
+      coverUrl: plan.coverUrl,
       currency,
       startDate: plan.startDate,
       endDate: plan.endDate,
       createdAt: plan.createdAt,
       spotCount: plan._count.spots,
+      headcount: plan.headcount,
       total: calcPlanTotal(plan.costs, plan.flight),
       band: summary.band,
-      ratios: summary.ratios,
+      isPublic: plan.isPublic,
+      isDraft: plan.isDraft,
+      likeCount: plan._count.planLikes,
     };
   });
 

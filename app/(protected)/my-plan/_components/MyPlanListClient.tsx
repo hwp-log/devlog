@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { FilterDropdown } from '@/app/(protected)/plan-finder/_components/FilterDropdown';
 import { CardReveal } from '@/app/(protected)/story/_components/CardReveal';
-import { MyPlanCard, type Ratio } from './MyPlanCard';
+import { MyPlanCard } from './MyPlanCard';
 
 type Currency = 'KRW' | 'USD' | 'JPY';
 
@@ -10,14 +12,19 @@ export type MyPlanListItem = {
   id: string;
   title: string;
   region: string | null;
+  movie: string | null;
+  coverUrl: string | null;
   currency: Currency;
   startDate: Date | null;
   endDate: Date | null;
   createdAt: Date;
   spotCount: number;
+  headcount: number;
   total: number;
   band: { lower: number; upper: number } | null;
-  ratios: Ratio[];
+  isPublic: boolean;
+  isDraft: boolean;
+  likeCount: number;
 };
 
 type SortKey = 'newest' | 'startDate' | 'price_asc' | 'price_desc';
@@ -75,25 +82,33 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
   });
 
   const withTotal = sorted.filter((p) => p.total > 0);
+  // 금액은 "약 N만원" 반올림(기준). 통화 혼재 계획은 지금도 그대로 합산된다 — 별건으로 남김.
   const avgWon = withTotal.length > 0
-    ? Math.floor(
+    ? Math.round(
         withTotal.reduce((s, p) => s + p.total, 0) / withTotal.length / 10_000,
       )
     : null;
+  const regionCount = new Set(
+    sorted.map((p) => p.region).filter((r): r is string => Boolean(r)),
+  ).size;
 
   return (
-    <div className="bg-slate-100 rounded-xl p-5">
-      {avgWon !== null && (
-        <p
-          className="text-sm text-slate-500 mb-3 ml-0.5 appear-up"
-          style={{ animationDelay: '0.24s' }}
-        >
-          <span className="text-[#0369A1] font-semibold">{sorted.length}개</span> 계획 · 평균{' '}
-          <span className="text-[#0369A1] font-semibold">약 {avgWon.toLocaleString()}만원</span>
-        </p>
-      )}
+    <div>
+      {/* 지표 — 굵기 대신 색 밝기로 위계(숫자만 fg, 라벨·구분자는 muted). 굵기는 전부 500. */}
+      <p
+        className="text-sm font-medium text-muted pb-3.5 border-b border-hairline appear-up"
+        style={{ animationDelay: '0.24s' }}
+      >
+        계획 <span className="text-fg">{sorted.length}개</span>
+        {avgWon !== null && (
+          <> · 평균 <span className="text-fg">약 {avgWon.toLocaleString()}만원</span></>
+        )}
+        {regionCount > 0 && (
+          <> · 지역 <span className="text-fg">{regionCount}곳</span></>
+        )}
+      </p>
 
-      <div className="flex flex-wrap gap-2 mb-4 relative z-10">
+      <div className="flex flex-wrap gap-2 my-4 relative z-10">
         <FilterDropdown<FilterKey>
           label="가격대"
           options={FILTER_LABELS}
@@ -109,16 +124,31 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="glass-outer p-12 text-center text-slate-500">
+        <div className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] flex items-center justify-center text-center h-[240px] sm:h-[280px] text-sm text-muted">
           이 가격대 계획이 없어요
         </div>
       ) : (
-        <div key={`${sort}-${filter}`} className="flex flex-col gap-[10px]">
+        // 열 브레이크포인트는 플랜파인더 그리드와 동일(0425) — 두 목록이 같은 폭에서 같은 열 수로 꺾인다.
+        <div
+          key={`${sort}-${filter}`}
+          className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]"
+        >
           {sorted.map((plan, i) => (
             <CardReveal key={plan.id} index={i} initialPhaseRef={initialPhaseRef} staggerOnRemount>
               <MyPlanCard {...plan} />
             </CardReveal>
           ))}
+          {/* 계획이 1~2개면 3열 그리드 오른쪽이 비어 화면이 미완성으로 읽힌다. 카드를 늘려 채우지 않고
+              (그러면 카드마다 폭이 달라진다) 빈 칸을 다음 행동으로 쓴다. 3개부터는 사라짐. */}
+          {items.length < 3 && (
+            <Link
+              href="/my-plan/new"
+              className="flex flex-col items-center justify-center gap-2 h-[240px] sm:h-[280px] rounded-[14px] border-[1.5px] border-dashed border-border text-sm font-medium text-muted hover:bg-surface2 hover:text-fg2 transition-colors"
+            >
+              <Plus size={22} />
+              새 계획
+            </Link>
+          )}
         </div>
       )}
     </div>
