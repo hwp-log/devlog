@@ -85,11 +85,20 @@ export function PlanFinderDetail({
 
   const durationLabel = dayCount > 1 ? `${dayCount - 1}박 ${dayCount}일` : '당일';
 
+  // 0516: 왕복 총액은 제목 옆 한 번(0492 원칙). 0518: 인라인 섹션 헤더와 우측 카드가 공유.
+  const flightSub = publicFlight
+    ? `조회 시점 기준${
+        publicFlight.totalAmount > 0
+          ? ` · ${publicFlight.tripType === 'ROUND_TRIP' ? '왕복 ' : ''}${formatApproxCost(publicFlight.totalAmount, currency)}`
+          : ''
+      }`
+    : null;
+
   const actionButtons = (
     <div className="flex items-center gap-2 shrink-0">
-      {/* 0515: 모바일은 하단 고정 바가 담기를 담당(시안 4d) — 인라인 버튼은 sm+ 전용 */}
+      {/* 0515: 모바일은 하단 고정 바가 담기 담당. 0518: lg+는 우측 카드 버튼이 담당 — 인라인은 640~1023px만 */}
       {!isOwner && (
-        <span className="max-sm:hidden">
+        <span className="max-sm:hidden lg:hidden">
           <CopyPlanFinderButton planId={planId} />
         </span>
       )}
@@ -116,6 +125,13 @@ export function PlanFinderDetail({
           </h1>
         </div>
       )}
+
+      {/* 0518: 데스크톱 2열 — 좌 콘텐츠 1.55fr / 우 sticky 카드 1fr, gap 36px, 위 정렬
+          (stretch 금지 — sticky와 양립 불가). lg 미만은 grid 미적용 = 기존 1열 흐름 그대로.
+          브레이크포인트 lg: 카드 최소 280px이 md(768)에선 268px로 미달, lg(1024)에서 368px 확보. */}
+      <div className="lg:grid lg:grid-cols-[1.55fr_1fr] lg:gap-9 lg:items-start">
+      {/* 좌열 — 메타 → 소개문 → 일정 → (lg 미만 한정: 비용·항공) → 목록으로 */}
+      <div>
 
       <div className="mb-6">
         {/* 커버 없는 플랜은 기존대로 히어로 생략 — 제목·버튼 인라인 유지 */}
@@ -147,8 +163,9 @@ export function PlanFinderDetail({
         )}
 
         {/* 0512: 지표 밴드 3열(기간·장소·총 비용) — 요약 앵커 한 줄 대체, 위아래 구분선.
-            0516: 세 칸이 본문 폭 균등 분배(각 칸 1fr) — 시안 4a는 max-content 뭉침형이나 지시 우선. */}
-        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-3 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+            0516: 세 칸이 본문 폭 균등 분배(각 칸 1fr) — 시안 4a는 max-content 뭉침형이나 지시 우선.
+            0518: lg+는 폐기 — 기간·장소는 우측 카드 맨 위로, 총 비용은 카드 총액과 중복이라 삭제. */}
+        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-3 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border lg:hidden">
           <div className="flex flex-col gap-[3px] sm:gap-1">
             <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>
             <span className="text-base sm:text-xl font-bold text-fg">{durationLabel}</span>
@@ -167,9 +184,10 @@ export function PlanFinderDetail({
           )}
         </div>
 
-        {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로 */}
+        {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로.
+            0518: max-w-[720px] 제거 — 2열에선 좌열 폭이 제한 역할 */}
         {description && (
-          <p className="mt-[14px] sm:mt-[22px] max-w-[720px] text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
+          <p className="mt-[14px] sm:mt-[22px] text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
             {description}
           </p>
         )}
@@ -271,9 +289,9 @@ export function PlanFinderDetail({
         )}
       </div>
 
-      {/* 예상 비용 — 0516: 시안 4a 순서(일정→비용→항공). 총액이 지표 밴드에 나오므로 비용이 이어받음 */}
+      {/* 예상 비용 — 0516: 시안 4a 순서(일정→비용→항공). 0518: lg+는 우측 카드가 담당 — 인라인은 <lg 전용 */}
       {summary.ratios.length > 0 && (
-        <div className="mt-7 sm:mt-11">
+        <div className="mt-7 sm:mt-11 lg:hidden">
           <SectionHeader title="예상 비용" sub="총액 기준 · 1인 환산 없음" />
           <div className="mt-[18px]">
             <PublicCostSection summary={summary} headcount={headcount} startDate={startDate} endDate={endDate} />
@@ -281,17 +299,11 @@ export function PlanFinderDetail({
         </div>
       )}
 
-      {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값, 0492 원칙 복원) */}
+      {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값, 0492 원칙 복원).
+          0518: lg+는 우측 카드가 담당 — 인라인은 <lg 전용 */}
       {publicFlight && (
-        <div className="mt-7 sm:mt-11">
-          <SectionHeader
-            title="왕복 항공편"
-            sub={`조회 시점 기준${
-              publicFlight.totalAmount > 0
-                ? ` · ${publicFlight.tripType === 'ROUND_TRIP' ? '왕복 ' : ''}${formatApproxCost(publicFlight.totalAmount, currency)}`
-                : ''
-            }`}
-          />
+        <div className="mt-7 sm:mt-11 lg:hidden">
+          <SectionHeader title="왕복 항공편" sub={flightSub ?? undefined} />
           <PublicFlightTable data={publicFlight} />
         </div>
       )}
@@ -301,6 +313,62 @@ export function PlanFinderDetail({
           ← 목록으로
         </Link>
       </div>
+
+      </div>{/* 좌열 끝 */}
+
+      {/* 0518: 우측 sticky 카드 — 담기(flex-none, 항상 보임) + 회색 카드(넘칠 때만 내부 스크롤).
+          top 73px = 헤더 57px(h-14+0.5px border, 0485 계측) + 16px. transition·애니메이션 금지.
+          일정 목록은 내부 스크롤 없음 — 페이지 스크롤 유지. */}
+      <aside className="hidden lg:flex lg:flex-col lg:gap-3 lg:sticky lg:top-[73px] lg:max-h-[calc(100vh-89px)]">
+        {!isOwner && (
+          <div className="flex-none">
+            <CopyPlanFinderButton planId={planId} variant="bar" />
+          </div>
+        )}
+        <div className="min-h-0 overflow-y-auto bg-[#f7f8f9] rounded-[14px] px-5 py-[18px]">
+          {/* 기간/장소 — 전폭 지표 밴드 대체. 총 비용은 아래 총액과 중복이라 제외(단일 표기) */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-muted">기간</span>
+              <span className="text-[17px] font-bold text-fg">{durationLabel}</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-muted">장소</span>
+              <span className="text-[17px] font-bold text-fg">{spots.length}곳</span>
+            </div>
+          </div>
+
+          {summary.ratios.length > 0 && (
+            <>
+              <div aria-hidden className="my-4 border-t border-border" />
+              {/* 카드 안 위계 — 22px 제목·2px 밑줄 금지(카드가 두 덩이로 쪼개져 보임) */}
+              <p className="text-[15px] font-bold text-fg">예상 비용</p>
+              <div className="mt-2">
+                <PublicCostSection
+                  variant="card"
+                  summary={summary}
+                  headcount={headcount}
+                  startDate={startDate}
+                  endDate={endDate}
+                />
+              </div>
+            </>
+          )}
+
+          {publicFlight && (
+            <>
+              <div aria-hidden className="my-4 border-t border-border" />
+              <p className="text-[15px] font-bold text-fg">왕복 항공편</p>
+              {flightSub && <p className="mt-0.5 text-xs text-muted">{flightSub}</p>}
+              <div className="mt-3">
+                <PublicFlightTable data={publicFlight} variant="stacked" />
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+
+      </div>{/* 2열 grid 끝 */}
 
       {/* 0515: 모바일 담기 하단 고정 바(시안 4d) — 본인 플랜은 바 자체가 없음(시안 4f).
           iOS 홈바 대응: pb에 safe-area 합산(CLAUDE.md §5). z-50 — 탭바(z-40) 위. */}
