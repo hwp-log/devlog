@@ -22,15 +22,17 @@ function ItemRow({
   currency: PublicCostSummary['currency'];
   last: boolean;
   // 0514: 카테고리 텍스트 라벨 대신 이름 왼쪽 3px 색 막대(시안 4a) — 색은 요약 rank와 동일 매핑.
+  // 0516: border-left 방식이 실화면에서 무채로 떠 누적 막대와 동일한 bg 클래스 span으로 교체.
   barClass: string;
 }) {
   // 항공 합성 항목은 '항공권'으로 표기(0505 목표3).
   const name = item.category === 'FLIGHT' ? '항공권' : item.label;
   return (
     <div
-      className={`grid grid-cols-[1fr_max-content] gap-5 items-center py-[11px] pl-2 border-l-[3px] ${barClass} text-sm${last ? '' : ' border-b border-[#f4f5f6]'}`}
+      className={`flex items-center py-[11px] text-sm${last ? '' : ' border-b border-[#f4f5f6]'}`}
     >
-      <span className="text-fg2 truncate min-w-0">{name}</span>
+      <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${barClass}`} />
+      <span className="pl-2 pr-5 flex-1 min-w-0 text-fg2 truncate">{name}</span>
       <span className="shrink-0 font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
     </div>
   );
@@ -83,14 +85,6 @@ interface Props {
 // rank(비중 내림차순 index) → 색 클래스. 완전 리터럴만 JIT 스캔되므로 조합 금지 — 배열로 고정.
 // rank6+(최대 6항목: 항공+카테고리 5종)는 Math.min으로 rank5 재사용(0343 확정).
 const RANK_BAR = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg', 'bg-chart5-bg'];
-// 0514: 이름 왼쪽 3px 막대용 — RANK_BAR와 같은 rank 매핑(완전 리터럴, JIT 스캔).
-const RANK_BAR_LEFT = [
-  'border-l-chart1-bg',
-  'border-l-chart2-bg',
-  'border-l-chart3-bg',
-  'border-l-chart4-bg',
-  'border-l-chart5-bg',
-];
 
 /**
  * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
@@ -111,11 +105,12 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
   const fixedItems = itemGroups.filter((g) => g.day === null).flatMap((g) => g.items);
   const dayGroups = itemGroups.filter((g): g is ItemGroup & { day: number } => g.day !== null);
   // 0514: 항목 행 막대 색 — 요약 rank와 동일 매핑(카테고리 → rank 색). ratios 밖 카테고리는 무색.
+  // 0516: 누적 막대와 완전히 동일한 RANK_BAR(bg) 클래스 재사용 — 색 값 왕복 제거의 정본 일치.
   const barByCategory = new Map(
-    ratios.map((r, rank) => [r.category, RANK_BAR_LEFT[Math.min(rank, 4)]]),
+    ratios.map((r, rank) => [r.category, RANK_BAR[Math.min(rank, 4)]]),
   );
   const barFor = (category: Item['category']) =>
-    barByCategory.get(category) ?? 'border-l-transparent';
+    barByCategory.get(category) ?? 'bg-transparent';
   const periodLabel =
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
   const dayDateLabel = (day: number) =>
@@ -124,7 +119,10 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
   return (
     <div>
       <div className="flex items-baseline gap-2">
-        <span className="text-xl font-bold text-fg">총 {formatApproxCost(total, currency)}</span>
+        {/* 0516: 총액 26px(시안 4a 실측) — 20px는 한 단 작게 들어간 오차 */}
+        <span className="text-[26px] tracking-[-0.02em] font-bold text-fg">
+          총 {formatApproxCost(total, currency)}
+        </span>
         <span className="text-sm text-muted">· {headcount}인</span>
       </div>
 
@@ -138,14 +136,13 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         ))}
       </div>
 
-      {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거), 2열 배치 — 좁아지면 1열(시안 4a·4e) */}
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
+      {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거) — 누적 막대 색과 이름의 한자리 대응.
+          0516: 1열 복원(2열 도입 금지 지시·시안 4a도 1열) + 막대를 RANK_BAR bg span으로 교체. */}
+      <div className="mt-3 flex flex-col">
         {ratios.map((item, rank) => (
-          <div
-            key={item.category}
-            className={`grid grid-cols-[1fr_max-content] items-center py-2 pl-2 border-l-[3px] ${RANK_BAR_LEFT[Math.min(rank, 4)]}`}
-          >
-            <span className="text-sm font-semibold text-fg2">{item.label}</span>
+          <div key={item.category} className="flex items-center py-2">
+            <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${RANK_BAR[Math.min(rank, 4)]}`} />
+            <span className="pl-2 flex-1 text-sm font-semibold text-fg2">{item.label}</span>
             <span className="text-sm font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
           </div>
         ))}
