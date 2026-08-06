@@ -137,8 +137,8 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
       </div>
 
       {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거) — 누적 막대 색과 이름의 한자리 대응.
-          0516: 1열 복원(2열 도입 금지 지시·시안 4a도 1열) + 막대를 RANK_BAR bg span으로 교체. */}
-      <div className="mt-3 flex flex-col">
+          0517: 실화면 판정으로 2열 확정(sm:grid-cols-2 재복원, 좁아지면 1열). max-width 미적용. */}
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
         {ratios.map((item, rank) => (
           <div key={item.category} className="flex items-center py-2">
             <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${RANK_BAR[Math.min(rank, 4)]}`} />
