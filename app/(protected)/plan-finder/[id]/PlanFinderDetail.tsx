@@ -235,8 +235,11 @@ export function PlanFinderDetail({
                     <Image src={s.coverUrl} alt="" fill sizes="60px" className="object-cover" />
                   </div>
                 )}
-                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0 flex-1">
-                  <span className="flex items-center gap-[7px] sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap">
+                {/* 0520: md+는 [이름 ─ 주소(우측)] 한 줄 — 실데이터 최악 조합(이름 11자+주소
+                    27자 ≈ 652px)이 md 콘텐츠 폭 720px에 들어감(sm 592px는 미달이라 2줄 유지).
+                    이름은 온전(shrink-0), 주소가 남는 폭을 쓰고 넘치면 말줄임(표시만 — 링크는 전체). */}
+                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0 flex-1 md:flex-row md:items-center md:gap-5">
+                  <span className="flex items-center gap-[7px] sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap md:shrink-0">
                     <span
                       className={`text-[15px] sm:text-base break-keep ${
                         s.address ? 'font-semibold text-fg' : 'font-medium text-fg2'
@@ -258,13 +261,13 @@ export function PlanFinderDetail({
                           openNaverDirections({ name: s.name, lat: s.lat!, lng: s.lng! }, origin)
                         }
                         aria-label={`${s.name} 네이버 지도 길찾기`}
-                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-[13px] text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0"
+                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-[13px] text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0 md:flex-1 md:min-w-0 md:justify-end"
                       >
                         <span className="truncate">{s.address}</span>
                         <span className="text-[10px] sm:text-[11px] shrink-0">↗</span>
                       </button>
                     ) : (
-                      <p className="text-xs sm:text-[13px] text-muted truncate">{s.address}</p>
+                      <p className="text-xs sm:text-[13px] text-muted truncate md:flex-1 md:min-w-0 md:text-right">{s.address}</p>
                     ))}
                 </span>
               </div>
