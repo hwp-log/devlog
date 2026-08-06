@@ -114,8 +114,10 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           {/* 제목 행 = 제목 단독(0481) — 관리 액션은 메타 행 우측으로 이동(읽기 화면에서
               관리를 낮은 어휘로, 0452 결). 구 텍스트 링크화(0372)는 아이콘 테두리 어휘로 대체 */}
           <div className="mt-[6px] mb-6">
-            {/* text-fg(0375) — #1A1A1A 하드코딩이 다크에서 제목만 안 뒤집히던 원인(사용자 실측) */}
-            <h1 className="text-3xl font-bold text-fg leading-tight">{story.title}</h1>
+            {/* text-fg(0375) — #1A1A1A 하드코딩이 다크에서 제목만 안 뒤집히던 원인(사용자 실측).
+                0523: 공통 척도 페이지 제목 28px/700 -0.02em(구 30px). 단일 값이라 모바일도
+                30→28px 축소 — sm:로 쪼개면 모바일이 데스크톱보다 큰 역전이 생겨 전 구간 적용 */}
+            <h1 className="text-[28px] font-bold tracking-[-0.02em] text-fg leading-tight">{story.title}</h1>
           </div>
           {/* 메타(0375 확정): 아바타 → 이름(fg2 — 날짜보다 한 단 진하게, 주체 강조) → 세로
               파이프(문자 아닌 1px 선, h-[11px], border 토큰) → 날짜. 요소 간 10px, 아바타↔이름은
@@ -123,7 +125,8 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
               벌어져 되돌림(트리맵 %·좋아요 숫자 등 숫자 지표의 모노는 유지).
               pb-[16px]+border-b = 헤더(제목·메타)와 본문 분리선 */}
           <div className="mt-[14px] flex items-center justify-between gap-4 pb-[16px] border-b border-border mb-6">
-            <div className="flex items-center gap-[10px] text-[13px] font-medium text-muted">
+            {/* 0523: 공통 척도 보조 등급 14px(sm+). 모바일 13px은 유지 */}
+            <div className="flex items-center gap-[10px] text-[13px] sm:text-sm font-medium text-muted">
               <span className="flex items-center gap-2 text-fg2">
                 <AuthorAvatar size="sm" nickname={story.user.nickname} avatarUrl={story.user.avatarUrl} />
                 {story.user.nickname}
@@ -162,8 +165,8 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
           없어 미제공). 트리맵은 요약 한 줄로 대체(0452). */}
       {story.plan && publicSummary && (
         <div className="mt-[46px]">
-          {/* h2 클래스 = 방문장소 h2와 동일 문자열(섹션 제목 한 벌) */}
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문계획</h2>
+          {/* h2 클래스 = 방문장소 h2와 동일 문자열(섹션 제목 한 벌). 0523: 공통 척도 22px */}
+          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문계획</h2>
           <div className="rounded-[var(--radius-base)] bg-surface2 p-4">
             {/* 커버 미디어 오브젝트(0451) — 넓으면 좌 커버 140×105 + 우 텍스트, min-[480px] 미만은 세로 스택.
                 coverUrl null 0건(실측)이나 방어로 있을 때만 렌더. */}
@@ -192,11 +195,11 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
                 </h3>
                 {/* 소개 — 비공개 플랜 미표시(링크 미제공과 같은 isPublic 조건). 상한 없는 필드라 2줄 클램프 */}
                 {story.plan.isPublic && story.plan.description && (
-                  <p className="text-[13px] leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
+                  <p className="text-[13px] sm:text-sm leading-[1.6] text-fg2 line-clamp-2">{story.plan.description}</p>
                 )}
                 {/* 요약 한 줄(트리맵 대체) — 소스·게이트 규칙은 planSummaryLine 파생부 주석 참조 */}
                 {planSummaryLine && (
-                  <p className="mt-[8px] text-[13px] text-muted">{planSummaryLine}</p>
+                  <p className="mt-[8px] text-[13px] sm:text-sm text-muted">{planSummaryLine}</p>
                 )}
               </div>
             </div>
@@ -208,7 +211,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         // 카드 하단 패딩 32px 소실분 승계(기존 32+24 → 46)
         <div className="mt-[46px]">
           {/* 눈썹 라벨 제거(글 톤 정리) — h2만 유지. mt-[6px]는 눈썹→h2 간격이었어서 함께 제거 */}
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문장소</h2>
+          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문장소</h2>
           {/* fixedSideWidth(0376) — 0373 폭 정합(상세도 860)으로 "상세=비율" 분기의 전제가 소멸,
               글수정과 동일 크기(카드 426/지도 422)로 통일 */}
           <SpotMap spots={localSpots} readOnly fixedSideWidth />
