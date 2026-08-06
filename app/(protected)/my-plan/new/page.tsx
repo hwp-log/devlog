@@ -2,8 +2,8 @@ import { MyPlanNewForm } from './MyPlanNewForm';
 
 export default function MyPlanNewPage() {
   return (
+    // 0527: 페이지 제목은 MyPlanNewForm이 담당(수정 화면과 공용 — 그쪽엔 제목이 없던 비대칭 해소)
     <div>
-      <h1 className="text-2xl font-bold text-[#1A1A1A] mb-6">새 계획</h1>
       <MyPlanNewForm />
     </div>
   );

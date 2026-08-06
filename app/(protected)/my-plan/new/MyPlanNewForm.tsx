@@ -102,15 +102,49 @@ function updateDayItems(
   };
 }
 
+// 0527: 입력 — 시안 6a 실측(padding 13/14, border 1px, radius 8, 16px). 16px은 iOS 포커스
+// 자동확대 하한(CLAUDE.md §5). 면은 배경 그대로 두고 테두리만 경계를 만든다(겹은 한 겹).
 const INPUT_CLASS =
-  'border-[0.5px] border-black/15 rounded-[10px] px-[14px] py-3 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)] transition-all';
+  'w-full border border-field-border rounded-lg px-[14px] py-[13px] text-base text-fg bg-transparent placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
 
+// 0527: 필드 라벨 12px/600(시안 6a)
+const LABEL_CLASS = 'text-xs font-semibold text-fg2';
+const FIELD_CLASS = 'flex flex-col gap-[5px]';
+
+// 0527: 섹션 제목 — 22px(모바일 20) + 2px 실선 + 우측 보조 14px(모바일 12).
+//   읽기 화면(PlanFinderDetail SectionHeader)과 같은 어휘. badge는 제목 안 보조어("예상").
+function SectionHeader({
+  title,
+  badge,
+  sub,
+  first,
+}: {
+  title: string;
+  badge?: string;
+  sub?: string;
+  first?: boolean;
+}) {
+  return (
+    <div
+      className={`${first ? 'mt-[26px] sm:mt-[38px]' : 'mt-[26px] sm:mt-11'} flex items-baseline justify-between gap-3 border-b-2 border-section-rule pb-2 sm:pb-2.5`}
+    >
+      <h2 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-fg break-keep">
+        {title}
+        {badge && <span className="ml-1.5 text-xs sm:text-sm font-medium text-muted">{badge}</span>}
+      </h2>
+      {sub && <span className="text-xs sm:text-sm text-muted shrink-0 text-right">{sub}</span>}
+    </div>
+  );
+}
+
+// 0527: Day 항목 입력 — 구 14px은 iOS 포커스 자동확대를 부르는 §5 위반이었다(0504 주석의
+//   "기존 위반이라 미답습"을 여기서 해소). 16px 하한으로 통일.
 const ITEM_INPUT_CLASS =
-  'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2 text-sm text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
+  'border border-field-border rounded-lg px-[10px] py-2 text-base text-fg bg-transparent placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
 
-// 0504: 여행 고정 비용 입력 — text-base(16px)로 iOS 자동확대 방지(CLAUDE.md §5). Day 행(14px)은 기존 위반이라 미답습.
+// 0504: 여행 고정 비용 입력 — 16px으로 iOS 자동확대 방지(CLAUDE.md §5).
 const DAYLESS_INPUT_CLASS =
-  'border-[0.5px] border-black/15 rounded-[10px] px-[10px] py-2.5 text-base text-[#1A1A1A] bg-white focus:outline-none focus:border-black/40 transition-all';
+  'border border-field-border rounded-lg px-[10px] py-2.5 text-base text-fg bg-transparent placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
 
 const DEFAULT_STATE: EditorState = {
   title: '',
@@ -151,7 +185,7 @@ function SortablePlanItem({
         aria-label="순서 변경"
         {...attributes}
         {...listeners}
-        className="text-slate-300 cursor-grab active:cursor-grabbing hover:text-slate-500 transition-colors"
+        className="text-hint cursor-grab active:cursor-grabbing hover:text-fg2 transition-colors"
       >
         <GripVertical size={14} />
       </button>
@@ -201,7 +235,7 @@ function SortablePlanItem({
       <button
         type="button"
         onClick={() => onRemove(item.id)}
-        className="w-7 h-7 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors text-base"
+        className="w-7 h-7 flex items-center justify-center rounded-full border border-field-border text-hint hover:text-danger hover:border-danger-border transition-colors text-base"
       >
         ×
       </button>
@@ -253,6 +287,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
     editor.flight,
   );
 
+  // 0527: 저장 게이트는 기존 조건 그대로(제목만) — 조판 작업이라 기능 무변.
+  //   시안 안내문은 "제목·출발일·도착일"이지만 실제 게이트와 어긋나면 거짓 안내라 문구를 실제에 맞춘다.
+  const saveDisabled = !editor.title.trim() || isPending;
   const hasDays = editor.days.length > 0;
   const clampedDay = hasDays ? Math.min(selectedDay, editor.days.length) : 1;
   const currentItems = editor.days.find((d) => d.day === clampedDay)?.items ?? [];
@@ -363,80 +400,79 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   }
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!editor.title.trim() || isPending}
-          className="px-4 py-1.5 rounded-full text-sm font-semibold bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {isPending ? '저장 중...' : '저장'}
-        </button>
-      </div>
+    // 0527: 모바일 저장 고정 바가 마지막 내용을 가리지 않게 하단 여백(시안 6c pb 88px)
+    <div className="max-sm:pb-[88px]">
+      {/* 0527: 페이지 제목 — 폼이 새 계획·수정 공용이라 여기서 함께 담당(구 new/page.tsx h1 이관).
+          수정 화면엔 제목이 아예 없던 비대칭도 해소. */}
+      <h1 className="text-[26px] sm:text-[28px] font-bold tracking-[-0.02em] text-fg break-keep">
+        {mode === 'edit' ? '계획 수정' : '새 계획'}
+      </h1>
+      <p className="mt-1.5 sm:mt-2 text-sm text-muted">저장하면 PlanFinder 목록에 공개됩니다</p>
+
       {saveError && (
-        <p role="alert" className="text-sm text-red-600 text-right mb-4">{saveError}</p>
+        <p role="alert" className="mt-4 text-sm text-danger">{saveError}</p>
       )}
 
-      {/* 헤더 */}
-      <div className="glass-outer p-6 mb-4 flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#1A1A1A]">제목</label>
+      <SectionHeader first title="기본 정보" sub="제목과 날짜는 필수" />
+
+      {/* 0527: glass-outer 카드 제거 — 개방 캔버스. 입력 테두리는 터치 경계라 유지 */}
+      <div className={`mt-[18px] sm:mt-[22px] ${FIELD_CLASS}`}>
+        <label className={LABEL_CLASS}>제목</label>
+        <input
+          type="text"
+          value={editor.title}
+          onChange={(e) => setEditor((p) => ({ ...p, title: e.target.value }))}
+          placeholder="계획 제목을 입력하세요"
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      {/* 0527: 360px에서는 2·3열 필드 전부 1열로 */}
+      <div className="mt-[18px] grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
+        <div className={FIELD_CLASS}>
+          <label className={LABEL_CLASS}>출발일</label>
+          <input
+            type="date"
+            value={editor.startDate}
+            onChange={(e) => handleDateChange('startDate', e.target.value)}
+            className={`${INPUT_CLASS}${dateMissing.start ? ' !border-danger focus:!border-danger' : ''}`}
+          />
+        </div>
+        <div className={FIELD_CLASS}>
+          <label className={LABEL_CLASS}>도착일</label>
+          <input
+            type="date"
+            value={editor.endDate}
+            onChange={(e) => handleDateChange('endDate', e.target.value)}
+            className={`${INPUT_CLASS}${dateMissing.end ? ' !border-danger focus:!border-danger' : ''}`}
+          />
+        </div>
+      </div>
+
+      <div className="mt-[18px] grid grid-cols-1 sm:grid-cols-[1fr_1fr_140px] gap-[18px]">
+        <div className={FIELD_CLASS}>
+          <label className={LABEL_CLASS}>지역</label>
           <input
             type="text"
-            value={editor.title}
-            onChange={(e) => setEditor((p) => ({ ...p, title: e.target.value }))}
-            placeholder="계획 제목을 입력하세요"
+            value={editor.region}
+            onChange={(e) => setEditor((p) => ({ ...p, region: e.target.value }))}
+            placeholder="예: 서울 용산구 이태원"
+            className={INPUT_CLASS}
+          />
+        </div>
+        <div className={FIELD_CLASS}>
+          <label className={LABEL_CLASS}>영화</label>
+          <input
+            type="text"
+            value={editor.movie}
+            onChange={(e) => setEditor((p) => ({ ...p, movie: e.target.value }))}
+            placeholder="예: 이태원 클라쓰"
             className={INPUT_CLASS}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">출발일</label>
-            <input
-              type="date"
-              value={editor.startDate}
-              onChange={(e) => handleDateChange('startDate', e.target.value)}
-              className={`${INPUT_CLASS}${dateMissing.start ? ' !border-red-400 focus:!border-red-400' : ''}`}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">도착일</label>
-            <input
-              type="date"
-              value={editor.endDate}
-              onChange={(e) => handleDateChange('endDate', e.target.value)}
-              className={`${INPUT_CLASS}${dateMissing.end ? ' !border-red-400 focus:!border-red-400' : ''}`}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">지역</label>
-            <input
-              type="text"
-              value={editor.region}
-              onChange={(e) => setEditor((p) => ({ ...p, region: e.target.value }))}
-              placeholder="예: 서울 용산구 이태원"
-              className={INPUT_CLASS}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[#1A1A1A]">영화</label>
-            <input
-              type="text"
-              value={editor.movie}
-              onChange={(e) => setEditor((p) => ({ ...p, movie: e.target.value }))}
-              placeholder="예: 이태원 클라쓰"
-              className={INPUT_CLASS}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#1A1A1A]">인원수</label>
+        <div className={FIELD_CLASS}>
+          <label className={LABEL_CLASS}>인원수</label>
           <input
             type="number"
             min={HEADCOUNT_MIN}
@@ -446,23 +482,24 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
               const raw = Number(e.target.value);
               setEditor((p) => ({ ...p, headcount: isNaN(raw) ? HEADCOUNT_MIN : clampHeadcount(raw) }));
             }}
-            className={`${INPUT_CLASS} w-28`}
+            className={INPUT_CLASS}
           />
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-[#1A1A1A]">여행계획 간단소개</label>
-          <textarea
-            value={editor.description}
-            onChange={(e) => setEditor((p) => ({ ...p, description: e.target.value }))}
-            placeholder={`조광진 웹툰 원작 「이태원 클라쓰」(2020) — 박서준·김다미 주연, 넷플릭스를 타고 일본까지 한류 열풍을 이끈 JTBC 화제작의 촬영지 4곳을 따라가는 코스.
-녹사평 육교 → 단밤 포차 자리(GS25 이태원힐점 옆) → 경리단길 어반클리프(이사한 단밤) → 남산공원 백범광장. 서울 공식 관광 추천 코스 기반 / 드라마 속 동선 그대로.`}
-            rows={3}
-            className={INPUT_CLASS + ' resize-none'}
-          />
-        </div>
-
       </div>
+
+      <div className={`mt-[18px] ${FIELD_CLASS}`}>
+        <label className={LABEL_CLASS}>여행계획 간단소개</label>
+        <textarea
+          value={editor.description}
+          onChange={(e) => setEditor((p) => ({ ...p, description: e.target.value }))}
+          placeholder={`조광진 웹툰 원작 「이태원 클라쓰」(2020) — 박서준·김다미 주연, 넷플릭스를 타고 일본까지 한류 열풍을 이끈 JTBC 화제작의 촬영지 4곳을 따라가는 코스.
+녹사평 육교 → 단밤 포차 자리(GS25 이태원힐점 옆) → 경리단길 어반클리프(이사한 단밤) → 남산공원 백범광장. 서울 공식 관광 추천 코스 기반 / 드라마 속 동선 그대로.`}
+          rows={3}
+          className={`${INPUT_CLASS} resize-none leading-[1.7] min-h-[96px]`}
+        />
+      </div>
+
+      <SectionHeader title="항공편" badge="예상" sub="검색 시점의 최저가가 채워집니다" />
 
       <FlightSearchSection
         startDate={editor.startDate}
@@ -474,76 +511,79 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
 
       {/* 0504 2단계: 여행 고정 비용 — 일정에 안 묶인 비용(렌터카·보험 등). 항공(위)의 형제, Day 앞.
           행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
-      <div className="mb-4">
-        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-          여행 고정 비용
-        </p>
-        <div className="glass-outer p-5 flex flex-col gap-3">
-          {editor.daylessCosts.map((cost, index) => (
-            <div key={index} className="flex flex-col gap-2">
-              <input
-                type="text"
-                value={cost.label}
-                onChange={(e) => updateDaylessCost(index, { label: e.target.value })}
-                placeholder="이름 (예: 렌터카)"
-                className={DAYLESS_INPUT_CLASS + ' w-full'}
-              />
-              <div className="flex gap-2">
-                <select
-                  value={cost.category}
-                  onChange={(e) => updateDaylessCost(index, { category: e.target.value as CostCategory | '' })}
-                  className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
-                >
-                  <option value="">카테고리</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {CATEGORY_LABEL[cat]}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={0}
-                  value={cost.amount === 0 ? '' : cost.amount}
-                  onChange={(e) => {
-                    const raw = Number(e.target.value);
-                    updateDaylessCost(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
-                  }}
-                  placeholder="금액"
-                  className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeDaylessCost(index)}
-                  aria-label="항목 삭제"
-                  className="w-11 h-11 shrink-0 flex items-center justify-center rounded-[10px] border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors text-base"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addDaylessCost}
-            className="w-full py-2.5 border border-dashed border-slate-300 rounded-[10px] text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+      <SectionHeader title="여행 고정 비용" sub="렌터카·숙소처럼 날짜에 안 묶이는 지출" />
+
+      {/* 0527: 카드 제거 — 행은 시안 6a의 4열(이름·카테고리·금액·삭제), 360px에선 2줄 스택 유지 */}
+      <div className="mt-[18px] flex flex-col">
+        {editor.daylessCosts.map((cost, index) => (
+          <div
+            key={index}
+            className="flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0"
           >
-            + 항목 추가
-          </button>
-        </div>
+            <input
+              type="text"
+              value={cost.label}
+              onChange={(e) => updateDaylessCost(index, { label: e.target.value })}
+              placeholder="이름 (예: 렌터카)"
+              className={DAYLESS_INPUT_CLASS}
+            />
+            <div className="flex gap-2 sm:contents">
+              <select
+                value={cost.category}
+                onChange={(e) => updateDaylessCost(index, { category: e.target.value as CostCategory | '' })}
+                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
+              >
+                <option value="">카테고리</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_LABEL[cat]}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={0}
+                value={cost.amount === 0 ? '' : cost.amount}
+                onChange={(e) => {
+                  const raw = Number(e.target.value);
+                  updateDaylessCost(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
+                }}
+                placeholder="금액"
+                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0 sm:text-right'}
+              />
+              <button
+                type="button"
+                onClick={() => removeDaylessCost(index)}
+                aria-label="항목 삭제"
+                className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-md text-hint hover:bg-surface2 hover:text-fg2 transition-colors text-base"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addDaylessCost}
+          className="mt-3 w-full py-[14px] border border-dashed border-field-border rounded-lg text-[15px] font-semibold text-fg2 hover:border-primary hover:text-primary transition-colors"
+        >
+          + 항목 추가
+        </button>
       </div>
+
+      <SectionHeader title="여행 일자별 비용" sub="식비·입장료처럼 그날 쓴 지출" />
 
       {/* Day 탭 */}
       {hasDays ? (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        <div className="flex gap-2 mt-[18px] mb-4 overflow-x-auto pb-1">
           {editor.days.map(({ day }) => (
             <button
               key={day}
               onClick={() => setSelectedDay(day)}
               className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
                 clampedDay === day
-                  ? 'bg-[#1A1A1A] text-white'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-fg text-bg'
+                  : 'border border-field-border text-fg2 hover:bg-surface2'
               }`}
             >
               {/* 0511: Day N 병기 제거 — 날짜만(0505 비용 라벨과 동일 포맷, 세 화면 통일).
@@ -554,14 +594,19 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
             </button>
           ))}
         </div>
-      ) : (
-        <p className="text-sm text-slate-400 mb-4">여행 기간을 설정하면, 날짜별 일정과 비용을 작성할 수 있어요.</p>
-      )}
+      ) : null}
 
-      {/* 타임라인 */}
-      <div className="glass-outer p-6 mb-4">
+      {/* 0527: 타임라인 카드 제거 — 개방 캔버스. 빈 상태는 지시(15px/600)와 내용(14px 힌트) 2단 */}
+      <div className="mb-4">
         {currentItems.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-6">항목 없음</p>
+          <div className="flex flex-col items-center gap-2.5 py-[34px] border-b border-hairline text-center">
+            <p className="text-[15px] font-semibold text-muted">아직 항목이 없습니다</p>
+            <p className="text-sm text-hint">
+              {hasDays
+                ? `아래 버튼으로 ${clampedDay}일차 항목을 추가할 수 있습니다`
+                : '여행 기간을 설정하면 날짜별 항목을 추가할 수 있습니다'}
+            </p>
+          </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={currentItems.map((it) => it.id)} strategy={verticalListSortingStrategy}>
@@ -583,12 +628,14 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           <button
             type="button"
             onClick={addItem}
-            className="mt-4 w-full py-2.5 border border-dashed border-slate-300 rounded-[10px] text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+            className="mt-3 w-full py-[14px] border border-dashed border-field-border rounded-lg text-[15px] font-semibold text-fg2 hover:border-primary hover:text-primary transition-colors"
           >
-            + Day {clampedDay} 항목 추가
+            + {clampedDay}일차 항목 추가
           </button>
         )}
       </div>
+
+      <SectionHeader title="카테고리별 비용" sub="위 항목에서 자동 합산" />
 
       <CostSection
         totals={categoryTotals}
@@ -611,10 +658,38 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
       />
 
-      <div className="mt-4">
-        <Link href="/my-plan" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+      {/* 0527 ⑤: 저장은 최종 행동이라 하단 전폭 파랑. 비활성도 회색이 아니라 파랑 40% —
+          "못 누른다"만 알리고 최종 행동이라는 인상은 유지. 데스크톱은 흐름 끝, 모바일은 고정 바. */}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saveDisabled}
+        className="max-sm:hidden mt-9 w-full py-4 rounded-lg bg-primary text-primary-fg text-base font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {isPending ? '저장 중...' : '저장'}
+      </button>
+      {saveDisabled && !isPending && (
+        <p className="max-sm:hidden mt-2.5 text-sm text-muted text-center">
+          제목을 입력하면 저장할 수 있습니다
+        </p>
+      )}
+
+      <div className="mt-7">
+        <Link href="/my-plan" className="text-sm font-semibold text-fg2 hover:text-fg transition-colors">
           ← 목록으로
         </Link>
+      </div>
+
+      {/* 0527: 모바일 저장 고정 바(시안 6c) — iOS 홈바 대응 safe-area 합산(CLAUDE.md §5) */}
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg/[.94] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saveDisabled}
+          className="w-full py-[15px] rounded-lg bg-primary text-primary-fg text-base font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isPending ? '저장 중...' : '저장'}
+        </button>
       </div>
     </div>
   );
