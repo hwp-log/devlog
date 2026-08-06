@@ -462,16 +462,6 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           />
         </div>
 
-        {/* 0497: 대표 이미지 선택 — 담은 촬영지 커버 후보가 2개 이상일 때만 표시(컴포넌트 내부 게이트) */}
-        <CoverPicker
-          items={editor.days.flatMap((d) =>
-            d.items
-              .filter((it) => it.place && it.name.trim() !== '')
-              .map((it) => ({ name: it.name.trim(), lat: it.place!.lat, lng: it.place!.lng })),
-          )}
-          value={editor.coverUrl}
-          onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
-        />
       </div>
 
       <FlightSearchSection
@@ -605,6 +595,20 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         flightAmount={flightAmount}
         total={total}
         currency="KRW"
+      />
+
+      {/* 0497: 대표 이미지 선택 — 후보 게이트는 컴포넌트 내부(0510: 후보 1개부터 렌더, 0장만 미표시).
+          0526: 헤더 카드 안(폼 최상단)에서 여기로 이동 — 후보는 전적으로 타임라인에서 지정한
+          장소에서 파생되므로 원인(장소 지정)이 먼저, 결과(대표 이미지)가 나중이어야 한다.
+          타임라인(항목) → CostSection(합계) 쌍은 깨지 않게 그 뒤에 둔다. */}
+      <CoverPicker
+        items={editor.days.flatMap((d) =>
+          d.items
+            .filter((it) => it.place && it.name.trim() !== '')
+            .map((it) => ({ name: it.name.trim(), lat: it.place!.lat, lng: it.place!.lng })),
+        )}
+        value={editor.coverUrl}
+        onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
       />
 
       <div className="mt-4">
