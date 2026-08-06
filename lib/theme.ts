@@ -7,6 +7,9 @@
 export const theme = {
   common: {
     primary: '#4d9eff', // 로고 점·눈썹 라벨·활성 칩/탭·채움 버튼·링크. 작품과 무관하게 고정
+    // 0524: primary 면 위 글자 — 흰 글자는 대비 2.74:1로 WCAG AA(4.5) 미달이었다.
+    // #0b1a2b = 6.39:1. primary가 common(모드 공용)이라 결함도 모드 무관 → 라이트·다크 한 값.
+    primaryFg: '#0b1a2b',
     accent: '#f0c040', // 별점 전용
     heartActive: '#e24b4a', // 하트 버튼 활성 채움 (A005 §3 ①)
     radius: '10px', // 카드·입력·버튼
@@ -69,6 +72,28 @@ export const theme = {
     markerHoverLo: '#e8e8ee',
     markerHoverBorder: 'transparent',
     markerHoverFg: '#55565c',
+    // ── 0524: 플랜파인더 상세 다크 정돈용. 라이트 값은 전부 기존 하드코딩 렌더값 그대로(무변).
+    // 비용 카테고리 고정색(0517) — 누적 막대와 이름 옆 3px 막대가 이 한 벌을 공유.
+    // 라이트 파스텔은 다크 배경(#151718)에서 대비 1.5~1.7:1로 묻혀 다크만 채도·명도를 올린다.
+    catTransport: '#a8c7f0',
+    catFlight: '#f2d9a0',
+    catFood: '#c9b8ea',
+    catAccommodation: '#f4b8bd',
+    catEntrance: '#bcd0da',
+    catEtc: '#a9dfc4',
+    // 행 구분선(1px) / 섹션 2px 밑줄 — 위계는 굵기가 아니라 밝기가 만든다.
+    hairline: '#f1f2f3',
+    sectionRule: '#191a1c',
+    // 작품 칩 — 다크는 옅은 파랑 면을 못 써 면·글자를 반전(대비 6.89:1).
+    chipMovieBg: '#eaf3ff',
+    chipMovieFg: '#2f7fe0',
+    // 금액 위계 3단(크기 차 26/14에 밝기 차를 더함): 총액 > 항목 금액 > 카테고리 이름.
+    costTotal: '#191a1c',
+    costAmount: '#191a1c',
+    costLabel: '#55565c',
+    // 히어로 커버 위 제목 가독 — 하단 그라디언트 + 사진 전체 베일(라이트는 베일 없음).
+    heroScrim: 'rgba(10,12,13,0.72)',
+    heroVeil: 'transparent',
   },
   dark: {
     bgDeep: '#0f1112',
@@ -120,6 +145,22 @@ export const theme = {
     markerHoverLo: '#33383d',
     markerHoverBorder: 'rgba(255,255,255,0.8)',
     markerHoverFg: '#e5e7eb',
+    // ── 0524: 라이트 짝과 같은 이름·다른 값. 대비는 배경 bg(#151718) 기준 실측.
+    catTransport: '#6ea8f0', // 7.30:1
+    catFlight: '#e3b45c', // 9.38:1
+    catFood: '#a98ae8', // 6.41:1
+    catAccommodation: '#ef8592', // 7.23:1
+    catEntrance: '#7fb0c4', // 7.63:1
+    catEtc: '#57c894', // 8.65:1
+    hairline: '#212426', // 배경 대비 명도 +4%(1.15:1) — 보이되 튀지 않는 선
+    sectionRule: '#e7eaec', // 2px 밑줄은 밝게 남겨 섹션 위계를 밝기로 표현
+    chipMovieBg: '#16324f',
+    chipMovieFg: '#8cc0fb', // 칩 면 대비 6.89:1
+    costTotal: '#f2f4f5', // 16.30:1
+    costAmount: '#b9bfc4', // 9.69:1
+    costLabel: '#8b9196', // 5.64:1
+    heroScrim: 'rgba(10,12,13,0.92)',
+    heroVeil: 'rgba(10,12,13,0.18)',
   },
 } as const;
 

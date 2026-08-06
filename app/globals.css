@@ -148,8 +148,26 @@
   /* Dotrip 디자인 토큰 — 값의 정본은 lib/theme.ts (layout.tsx가 CSS 변수 발행).
      여기는 이름 매핑만: bg-bg / bg-card / text-fg / border-border / rounded-card 등 유틸 생성 */
   --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
   --color-accent: var(--accent);
   --color-heart-active: var(--heart-active);
+
+  /* 0524: 플랜파인더 상세 다크 정돈 — 라이트/다크가 같은 이름, 값만 갈림(lib/theme.ts) */
+  --color-cat-transport: var(--cat-transport);
+  --color-cat-flight: var(--cat-flight);
+  --color-cat-food: var(--cat-food);
+  --color-cat-accommodation: var(--cat-accommodation);
+  --color-cat-entrance: var(--cat-entrance);
+  --color-cat-etc: var(--cat-etc);
+  --color-hairline: var(--hairline);
+  --color-section-rule: var(--section-rule);
+  --color-chip-movie-bg: var(--chip-movie-bg);
+  --color-chip-movie-fg: var(--chip-movie-fg);
+  --color-cost-total: var(--cost-total);
+  --color-cost-amount: var(--cost-amount);
+  --color-cost-label: var(--cost-label);
+  --color-hero-scrim: var(--hero-scrim);
+  --color-hero-veil: var(--hero-veil);
   --color-bg-deep: var(--bg-deep);
   --color-bg: var(--bg);
   --color-card: var(--card);
