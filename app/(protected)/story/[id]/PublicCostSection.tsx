@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
+import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 
 type ItemGroup = PublicCostSummary['itemGroups'][number];
 type Item = ItemGroup['items'][number];
@@ -46,10 +47,13 @@ function ItemRow({
 //   선 위치는 0505와 동일: 이전 내용 16px 아래(컨테이너 mt-1.5 + 버튼 pt-2.5).
 function GroupHeader({
   title,
+  summary,
   open,
   onToggle,
 }: {
   title: string;
+  // 0517: "N건 · N만원" 요약 — 호출부가 실제 데이터에서 계산해 전달. 없으면 생략.
+  summary?: string;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -61,9 +65,12 @@ function GroupHeader({
       className="group -mx-2 block w-[calc(100%+16px)] pt-2.5 text-left"
     >
       <span aria-hidden className="mx-2 block border-t border-fg/15" />
-      {/* 0514: 제목 16px(시안 4a) — 간격 체계(0505·0507)는 유지 */}
-      <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 text-base font-bold text-fg group-hover:bg-surface2">
-        {title}
+      {/* 0517: 섹션 제목(22px)과 급이 겹치지 않게 강등 — 15px/600 + 6px 회색 점 + 우측 요약.
+          접기 동작·hover 필·터치 타겟 구조(0507)는 유지, 표시만 변경. */}
+      <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 group-hover:bg-surface2">
+        <span aria-hidden className="w-1.5 h-1.5 rounded-[3px] bg-[#b3b9bd] shrink-0 mr-[9px]" />
+        <span className="text-[15px] font-semibold text-fg2">{title}</span>
+        {summary && <span className="ml-2 text-[13px] font-medium text-muted">{summary}</span>}
         <ChevronDown
           size={16}
           aria-hidden
@@ -82,9 +89,17 @@ interface Props {
   endDate: Date | null;
 }
 
-// rank(비중 내림차순 index) → 색 클래스. 완전 리터럴만 JIT 스캔되므로 조합 금지 — 배열로 고정.
-// rank6+(최대 6항목: 항공+카테고리 5종)는 Math.min으로 rank5 재사용(0343 확정).
-const RANK_BAR = ['bg-chart1-bg', 'bg-chart2-bg', 'bg-chart3-bg', 'bg-chart4-bg', 'bg-chart5-bg'];
+// 0517: 카테고리 고정색(시안 4a) — rank(비중 순위) 기반 chart 토큰에서 교체.
+//   누적 막대 구간·카테고리 줄·접기 항목 줄이 전부 이 맵 하나를 공유(색 왕복 제거의 정본).
+//   소유자 뷰 CATEGORY_COLOR(_lib/cost)와는 별개 팔레트. 완전 리터럴만 JIT 스캔 — 조합 금지.
+const CATEGORY_BAR: Record<Item['category'], string> = {
+  TRANSPORT: 'bg-[#a8c7f0]',
+  FLIGHT: 'bg-[#f2d9a0]',
+  FOOD: 'bg-[#c9b8ea]',
+  ACCOMMODATION: 'bg-[#f4b8bd]',
+  ENTRANCE: 'bg-[#bcd0da]',
+  ETC: 'bg-[#a9dfc4]',
+};
 
 /**
  * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
@@ -104,13 +119,18 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
   //   summarize의 itemGroups 순서(항공 → 여행 전체 → Day)를 그대로 이어받아 항공권이 고정 맨 위.
   const fixedItems = itemGroups.filter((g) => g.day === null).flatMap((g) => g.items);
   const dayGroups = itemGroups.filter((g): g is ItemGroup & { day: number } => g.day !== null);
-  // 0514: 항목 행 막대 색 — 요약 rank와 동일 매핑(카테고리 → rank 색). ratios 밖 카테고리는 무색.
-  // 0516: 누적 막대와 완전히 동일한 RANK_BAR(bg) 클래스 재사용 — 색 값 왕복 제거의 정본 일치.
-  const barByCategory = new Map(
-    ratios.map((r, rank) => [r.category, RANK_BAR[Math.min(rank, 4)]]),
-  );
-  const barFor = (category: Item['category']) =>
-    barByCategory.get(category) ?? 'bg-transparent';
+  // 0517: 접기 그룹 요약 "N건 · N만원" — 실제 데이터 합산. KRW는 0.1만원 단위(시안 37.7만원 검산),
+  //   비KRW는 시안에 형식이 없어 formatAmount. 합계 0이면 건수만(지어내지 않음).
+  const groupSummary = (items: Item[]): string | undefined => {
+    if (items.length === 0) return undefined;
+    const sum = items.reduce((acc, it) => acc + it.amount, 0);
+    if (sum <= 0) return `${items.length}건`;
+    const amountLabel =
+      currency === 'KRW'
+        ? `${(Math.round(sum / 1000) / 10).toLocaleString()}만원`
+        : formatAmount(sum, currency);
+    return `${items.length}건 · ${amountLabel}`;
+  };
   const periodLabel =
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
   const dayDateLabel = (day: number) =>
@@ -126,12 +146,13 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         <span className="text-sm text-muted">· {headcount}인</span>
       </div>
 
-      <div className="mt-3 flex h-2 rounded-full overflow-hidden bg-surface2">
-        {ratios.map((item, rank) => (
+      {/* 0517: 12px/r6(시안 4a) + 카테고리 고정색 — 구간 색과 아래 이름 옆 막대가 한자리 대응 */}
+      <div className="mt-3 flex h-3 rounded-md overflow-hidden bg-surface2">
+        {ratios.map((item) => (
           <div
             key={item.category}
             style={{ flexGrow: item.ratio, flexBasis: 0 }}
-            className={RANK_BAR[Math.min(rank, 4)]}
+            className={CATEGORY_BAR[item.category]}
           />
         ))}
       </div>
@@ -139,9 +160,9 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
       {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거) — 누적 막대 색과 이름의 한자리 대응.
           0517: 실화면 판정으로 2열 확정(sm:grid-cols-2 재복원, 좁아지면 1열). max-width 미적용. */}
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
-        {ratios.map((item, rank) => (
+        {ratios.map((item) => (
           <div key={item.category} className="flex items-center py-2">
-            <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${RANK_BAR[Math.min(rank, 4)]}`} />
+            <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${CATEGORY_BAR[item.category]}`} />
             <span className="pl-2 flex-1 text-sm font-semibold text-fg2">{item.label}</span>
             <span className="text-sm font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
           </div>
@@ -157,6 +178,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         <div className="mt-4">
           <GroupHeader
             title="여행 고정 비용"
+            summary={groupSummary(fixedItems)}
             open={fixedOpen}
             onToggle={() => setFixedOpen((v) => !v)}
           />
@@ -170,7 +192,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
                     item={item}
                     currency={currency}
                     last={i === fixedItems.length - 1}
-                    barClass={barFor(item.category)}
+                    barClass={CATEGORY_BAR[item.category]}
                   />
                 ))}
               </div>
@@ -183,6 +205,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         <div className="mt-1.5">
           <GroupHeader
             title="여행 일자별 비용"
+            summary={groupSummary(dayGroups.flatMap((g) => g.items))}
             open={dayOpen}
             onToggle={() => setDayOpen((v) => !v)}
           />
@@ -199,7 +222,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
                         item={item}
                         currency={currency}
                         last={gi === dayGroups.length - 1 && i === group.items.length - 1}
-                        barClass={barFor(item.category)}
+                        barClass={CATEGORY_BAR[item.category]}
                       />
                     ))}
                   </div>
