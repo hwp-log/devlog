@@ -54,9 +54,10 @@ const ROUTES: Record<string, string[]> = {
   OKA: ['ICN'],
 };
 
+// 0527: 입력 16px 하한(iOS 포커스 자동확대 방지, CLAUDE.md §5) + 토큰화
 const IATA_SELECT_CLASS =
-  'border border-slate-200 rounded-lg px-2 py-1.5 text-[13px] font-semibold ' +
-  'text-[#1A1A1A] bg-white focus:outline-none focus:border-blue-400 w-full';
+  'border border-field-border rounded-lg px-[14px] py-[13px] text-base ' +
+  'text-fg bg-transparent focus:outline-none focus:border-fg/40 transition-colors w-full';
 
 function SkeletonCard({
   label, origin, dest, dateStr, isReturn, isRoundTrip,
@@ -72,14 +73,15 @@ function SkeletonCard({
   onDestChange?: (v: string) => void;
 }) {
   return (
-    <div className={`glass-outer px-6 py-5 mb-[10px] ${isReturn ? 'opacity-60' : ''}`}>
-      <p className="text-[11px] text-[#888] mb-3">{label}{dateStr ? ` · ${fmtDateFromStr(dateStr)}` : ''}</p>
+    // 0527: 카드 제거 — 개방 캔버스. 360px에선 출발/도착이 세로로 쌓인다(flex-wrap).
+    <div className={`py-3.5 ${isReturn ? 'opacity-60' : ''}`}>
+      <p className="text-xs font-semibold text-fg2 mb-2">{label}{dateStr ? ` · ${fmtDateFromStr(dateStr)}` : ''}</p>
       <div className="flex items-center gap-5 flex-wrap">
 
         <div className="w-[180px] shrink-0">
           {isReturn ? (
             <div className="h-8 flex items-center justify-center">
-              <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{origin || '?'}</p>
+              <p className="text-[22px] font-bold text-hint tracking-[-0.5px] leading-none">{origin || '?'}</p>
             </div>
           ) : (
             <select value={origin} onChange={(e) => onOriginChange?.(e.target.value)} className={IATA_SELECT_CLASS}>
@@ -96,25 +98,25 @@ function SkeletonCard({
               </optgroup>
             </select>
           )}
-          <p className={`text-[11px] mt-0.5 ${isReturn ? 'text-[#888] text-center' : 'invisible'}`}>
+          <p className={`text-xs mt-0.5 ${isReturn ? "text-muted text-center" : "invisible"}`}>
             {isReturn ? (AIRPORT_NAME[origin] ?? '') : ' '}
           </p>
         </div>
 
         <div className="flex-1 flex flex-col items-center min-w-[80px]">
-          <p className="text-[11px] text-[#888] mb-1">직항</p>
-          <div className="w-full h-px bg-[#E0E0E0] relative">
-            <span className="absolute -right-1 top-1/2 -translate-y-1/2 bg-white px-1 text-[#5C7BC9]">
+          <p className="text-xs text-muted mb-1">직항</p>
+          <div className="w-full h-px bg-field-border relative">
+            <span className="absolute -right-1 top-1/2 -translate-y-1/2 bg-bg px-1 text-primary">
               {PLANE_ICON}
             </span>
           </div>
-          <p className="text-[11px] text-[#888] mt-1">—</p>
+          <p className="text-xs text-muted mt-1">—</p>
         </div>
 
         <div className="w-[180px] shrink-0">
           {isReturn ? (
             <div className="h-8 flex items-center justify-center">
-              <p className="text-[22px] font-bold text-slate-300 tracking-[-0.5px] leading-none">{dest || '?'}</p>
+              <p className="text-[22px] font-bold text-hint tracking-[-0.5px] leading-none">{dest || '?'}</p>
             </div>
           ) : (() => {
             const destOptions = ROUTES[origin] ?? [];
@@ -128,16 +130,16 @@ function SkeletonCard({
               </select>
             );
           })()}
-          <p className={`text-[11px] mt-0.5 ${isReturn ? 'text-[#888] text-center' : 'invisible'}`}>
+          <p className={`text-xs mt-0.5 ${isReturn ? "text-muted text-center" : "invisible"}`}>
             {isReturn ? (AIRPORT_NAME[dest] ?? '') : ' '}
           </p>
         </div>
 
         <div className="shrink-0 text-right min-w-[110px]">
           {!isReturn ? (
-            <p className="text-[11px] text-[#888]">{isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}</p>
+            <p className="text-xs text-muted">{isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}</p>
           ) : (
-            <p className="text-[11px] text-[#888]">상기 금액에 포함됨</p>
+            <p className="text-xs text-muted">상기 금액에 포함됨</p>
           )}
         </div>
       </div>
@@ -160,29 +162,29 @@ function OfferCard({
       onClick={onClick}
       className={`w-full text-left p-3 rounded-[10px] border transition-colors mb-2 ${
         isSelected
-          ? 'border-blue-400 bg-blue-50'
-          : 'border-slate-200 bg-white hover:bg-slate-50'
+          ? 'border-primary bg-surface2'
+          : 'border-field-border hover:bg-surface2'
       }`}
     >
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-sm font-medium text-[#1A1A1A]">
+          <p className="text-base font-medium text-fg">
             {offer.outbound.airline} · {offer.outbound.flightNo}
           </p>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-sm text-muted mt-0.5">
             {offer.outbound.origin} → {offer.outbound.destination}
             {' · '}{fmtTime(offer.outbound.departsAt)} ~ {fmtTime(offer.outbound.arrivesAt)}
             {' · '}{durationFromIso(offer.outbound.departsAt, offer.outbound.arrivesAt)}
           </p>
           {offer.return && (
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               오는편 {offer.return.airline} · {offer.return.flightNo}
               {' · '}{fmtTime(offer.return.departsAt)} ~ {fmtTime(offer.return.arrivesAt)}
               {' · '}{durationFromIso(offer.return.departsAt, offer.return.arrivesAt)}
             </p>
           )}
         </div>
-        <p className="text-sm font-semibold text-[#1A1A1A] shrink-0 ml-2">
+        <p className="text-base font-semibold text-fg shrink-0 ml-2">
           ₩{offer.totalAmount.toLocaleString()}
         </p>
       </div>
@@ -246,11 +248,8 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
   }
 
   return (
-    <div className="glass-outer p-5 mb-4">
-      <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-        항공편 (예상)
-      </p>
-
+    // 0527: 카드·중복 라벨 제거 — 섹션 제목은 호출부(MyPlanNewForm SectionHeader "항공편 예상")가 담당
+    <div className="mt-5 mb-4">
       {flight && !showForm && (
         <>
           <FlightLeg data={{ tripType: flight.tripType, totalAmount: flight.totalAmount, out: flight.outbound, ret: flight.return }} />
@@ -262,7 +261,7 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
               setStatus('idle');
               setOffers([]);
             }}
-            className="mt-1 mb-3 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+            className="mt-1 mb-3 px-4 py-2 rounded-2xl text-[13px] font-semibold border border-field-border text-fg2 hover:bg-surface2 transition-colors"
           >
             변경
           </button>
@@ -277,10 +276,10 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
                 key={t}
                 type="button"
                 onClick={() => { setTripType(t); setStatus('idle'); setOffers([]); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                className={`px-4 py-2 rounded-2xl text-[13px] font-semibold transition-colors ${
                   tripType === t
-                    ? 'bg-[#1A1A1A] text-white'
-                    : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-fg text-bg'
+                    : 'border border-field-border text-fg2 hover:bg-surface2'
                 }`}
               >
                 {t === 'ROUND_TRIP' ? '왕복' : '편도'}
@@ -312,18 +311,19 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
             />
           )}
 
-          {dateWarning && (
-            <p className="text-xs text-amber-600 mb-3">{dateWarning}</p>
-          )}
-
+          {/* 0527: 검색 버튼은 outline(최종 행동인 저장과 위계 구분) + 안내는 옆에 14px.
+              360px에선 세로 스택. */}
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5">
           <button
             type="button"
             onClick={handleSearch}
             disabled={!canSearch || status === 'searching'}
-            className="w-full py-2 rounded-full text-sm font-semibold bg-[#1A1A1A] text-white hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 px-7 py-[13px] rounded-lg border border-fg text-[15px] font-semibold text-fg hover:bg-surface2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {status === 'searching' ? '검색 중...' : '항공편 검색'}
           </button>
+            {dateWarning && <p className="text-sm text-danger">{dateWarning}</p>}
+          </div>
         </>
       )}
 
@@ -331,8 +331,9 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
         <div className="mt-4">
           {offers.length === 0 ? (
             <>
-              <p className="text-sm text-slate-400 text-center py-4">검색 결과가 없습니다.</p>
-              <p className="text-xs text-red-500 text-center">출발일을 1~2일 뒤로 변경하거나, 직항이 있는 노선인지 확인해보세요.</p>
+              {/* 0527 ⑦: 지시(15px/600)와 내용(14px 힌트) 2단 */}
+              <p className="text-[15px] font-semibold text-muted text-center pt-4">검색 결과가 없습니다</p>
+              <p className="mt-2.5 text-sm text-hint text-center">출발일을 1~2일 뒤로 변경하거나, 직항이 있는 노선인지 확인해보세요</p>
             </>
           ) : (
             <>
@@ -344,7 +345,7 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
                   onClick={() => { onChange(offer); setShowForm(false); }}
                 />
               ))}
-              <p className="text-xs text-red-500 mt-2 leading-relaxed">
+              <p className="text-sm text-muted mt-2 leading-relaxed">
                 💡 검색 시점 기준 참고 가격이며, 실제 요금·좌석은 변동될 수 있습니다.
                 예약은 항공사 또는 예약 서비스에 문의하시기 바랍니다.
               </p>
@@ -354,7 +355,7 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
       )}
 
       {showForm && status === 'error' && (
-        <p className="text-xs text-red-500 mt-3">{errorMsg}</p>
+        <p className="text-sm text-danger mt-3">{errorMsg}</p>
       )}
     </div>
   );
