@@ -45,7 +45,8 @@ const HERO_SIZES = '(max-width: 767px) 100vw, 640px';
 // 0522: 공통 척도 — 섹션 제목 22px/700 자간 -0.02em, 보조는 보조 등급 14px.
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b-2 border-fg pb-2 sm:pb-2.5">
+    // 0524: 2px 밑줄은 hairline보다 밝게(다크 #e7eaec) — 위계를 굵기가 아니라 밝기가 만든다
+    <div className="flex items-baseline justify-between gap-3 border-b-2 border-section-rule pb-2 sm:pb-2.5">
       <h2 className="text-[19px] sm:text-[22px] font-bold tracking-[-0.02em] text-fg break-keep">
         {title}
       </h2>
@@ -106,7 +107,10 @@ export function PlanFinderDetail({
       {coverUrl && (
         <div className="relative w-full h-[200px] sm:h-[300px] rounded-[14px] overflow-hidden mb-4">
           <Image src={coverUrl} alt="" fill sizes={HERO_SIZES} className="object-cover" />
-          <div className="absolute inset-x-0 bottom-0 h-[130px] sm:h-[160px] bg-gradient-to-t from-[rgba(10,12,13,0.74)] sm:from-[rgba(10,12,13,0.72)] to-transparent" />
+          {/* 0524: 다크에서 제목 가독 — 사진 전체 베일 한 겹(라이트는 transparent라 무영향) +
+              하단 스크림(다크 알파 0.92, 데스크톱 높이 160→220px) */}
+          <div className="absolute inset-0 bg-hero-veil" />
+          <div className="absolute inset-x-0 bottom-0 h-[130px] sm:h-[160px] sm:dark:h-[220px] bg-gradient-to-t from-hero-scrim to-transparent" />
           {region && (
             <span className="absolute left-4 top-[14px] sm:top-6 inline-flex items-center text-[11px] sm:text-xs leading-none font-semibold text-white bg-[rgba(15,17,18,0.62)] rounded px-[9px] py-1 sm:px-[11px] sm:py-[5px]">
               {region}
@@ -233,7 +237,7 @@ export function PlanFinderDetail({
             return (
               <div
                 key={s.id}
-                className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-[#f1f2f3]"
+                className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-hairline"
               >
                 {/* 0522: 공통 척도 보조 등급 14px */}
                 <span className="w-[22px] shrink-0 text-xs sm:text-sm font-bold text-[#b3b9bd]">
@@ -257,7 +261,9 @@ export function PlanFinderDetail({
                       {s.name}
                     </span>
                     {s.movie && (
-                      <span className="shrink-0 px-[7px] py-[2px] sm:px-2 sm:py-[3px] rounded-[3px] bg-[#eaf3ff] text-[#2f7fe0] text-[11px] font-semibold">
+                      // 0524: 다크는 옅은 파랑 면을 못 써 면·글자 반전(대비 6.89:1).
+                      // 11px → 12px은 CLAUDE.md §5 "12px 미만 금지" 시정이라 라이트도 함께 올림.
+                      <span className="shrink-0 px-[7px] py-[2px] sm:px-2 sm:py-[3px] rounded-[3px] bg-chip-movie-bg text-chip-movie-fg text-xs font-semibold">
                         {s.movie}
                       </span>
                     )}

@@ -9,7 +9,7 @@ import { AIRPORT_NAME, type FlightLegData, type FlightSegmentData } from '@/app/
 // 0522: 공통 척도 — 노선은 본문 16px, 나머지(라벨·공항명·소요·편명)는 보조 14px.
 function LegRow({ seg, label }: { seg: FlightSegmentData; label: string }) {
   return (
-    <div className="flex flex-col gap-[3px] sm:grid sm:grid-cols-[60px_1fr_max-content_max-content] sm:items-center sm:gap-5 sm:py-[15px] sm:border-b sm:border-[#f1f2f3]">
+    <div className="flex flex-col gap-[3px] sm:grid sm:grid-cols-[60px_1fr_max-content_max-content] sm:items-center sm:gap-5 sm:py-[15px] sm:border-b sm:border-hairline">
       <span className="text-[11px] sm:text-sm font-semibold text-muted shrink-0">{label}</span>
 
       <div className="flex items-center gap-2 flex-wrap min-w-0 text-base font-semibold text-fg">

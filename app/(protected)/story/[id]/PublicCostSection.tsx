@@ -30,11 +30,13 @@ function ItemRow({
   const name = item.category === 'FLIGHT' ? '항공권' : item.label;
   return (
     <div
-      className={`flex items-center py-[11px] text-sm${last ? '' : ' border-b border-[#f4f5f6]'}`}
+      className={`flex items-center py-[11px] text-sm${last ? '' : ' border-b border-hairline'}`}
     >
       <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${barClass}`} />
-      <span className="pl-2 pr-5 flex-1 min-w-0 text-fg2 truncate">{name}</span>
-      <span className="shrink-0 font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
+      {/* 0524: 금액 위계 토큰 — 요약(카테고리)과 같은 등급을 써야 다크에서 상세가 요약보다
+          밝아지는 역전이 안 생긴다 */}
+      <span className="pl-2 pr-5 flex-1 min-w-0 text-cost-label truncate">{name}</span>
+      <span className="shrink-0 font-semibold text-cost-amount">{formatApproxCost(item.amount, currency)}</span>
     </div>
   );
 }
@@ -93,13 +95,15 @@ interface Props {
 // 0517: 카테고리 고정색(시안 4a) — rank(비중 순위) 기반 chart 토큰에서 교체.
 //   누적 막대 구간·카테고리 줄·접기 항목 줄이 전부 이 맵 하나를 공유(색 왕복 제거의 정본).
 //   소유자 뷰 CATEGORY_COLOR(_lib/cost)와는 별개 팔레트. 완전 리터럴만 JIT 스캔 — 조합 금지.
+//   0524: 하드코딩 hex → 토큰(lib/theme.ts) — 라이트 파스텔이 다크 배경에서 묻혀(1.5~1.7:1)
+//   다크만 값이 갈린다. 클래스 이름은 한 벌이라 대응 규칙은 그대로.
 const CATEGORY_BAR: Record<Item['category'], string> = {
-  TRANSPORT: 'bg-[#a8c7f0]',
-  FLIGHT: 'bg-[#f2d9a0]',
-  FOOD: 'bg-[#c9b8ea]',
-  ACCOMMODATION: 'bg-[#f4b8bd]',
-  ENTRANCE: 'bg-[#bcd0da]',
-  ETC: 'bg-[#a9dfc4]',
+  TRANSPORT: 'bg-cat-transport',
+  FLIGHT: 'bg-cat-flight',
+  FOOD: 'bg-cat-food',
+  ACCOMMODATION: 'bg-cat-accommodation',
+  ENTRANCE: 'bg-cat-entrance',
+  ETC: 'bg-cat-etc',
 };
 
 /**
@@ -140,8 +144,9 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
   return (
     <div>
       <div className="flex items-baseline gap-2">
-        {/* 0516: 총액 26px(시안 4a 실측) — 20px는 한 단 작게 들어간 오차 */}
-        <span className="text-[26px] tracking-[-0.02em] font-bold text-fg">
+        {/* 0516: 총액 26px(시안 4a 실측) — 20px는 한 단 작게 들어간 오차.
+            0524: 금액 위계 3단의 최상단(다크 #f2f4f5) */}
+        <span className="text-[26px] tracking-[-0.02em] font-bold text-cost-total">
           총 {formatApproxCost(total, currency)}
         </span>
         <span className="text-sm text-muted">· {headcount}인</span>
@@ -164,8 +169,8 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         {ratios.map((item) => (
           <div key={item.category} className="flex items-center py-2">
             <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${CATEGORY_BAR[item.category]}`} />
-            <span className="pl-2 flex-1 text-sm font-semibold text-fg2">{item.label}</span>
-            <span className="text-sm font-semibold text-fg">{formatApproxCost(item.amount, currency)}</span>
+            <span className="pl-2 flex-1 text-sm font-semibold text-cost-label">{item.label}</span>
+            <span className="text-sm font-semibold text-cost-amount">{formatApproxCost(item.amount, currency)}</span>
           </div>
         ))}
       </div>
