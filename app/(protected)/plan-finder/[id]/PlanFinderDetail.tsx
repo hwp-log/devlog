@@ -169,9 +169,12 @@ export function PlanFinderDetail({
 
         {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로.
             0520: break-keep(어절 단위 줄바꿈) + 폭을 글자 수 기준 62ch(≈한글 34~35자/줄,
-            본문 권장 30~40자 대역)로 — 720px(45자/줄)는 권장 상한 초과였음. */}
+            본문 권장 30~40자 대역)로 — 720px(45자/줄)는 권장 상한 초과였음.
+            0521: md+는 70ch(≈39~40자)까지 확장 — 읽기 상한 40자 미만 유지가 구속 조건이라
+            72ch(40.3~41자)가 아닌 70ch. md는 70ch가 컨테이너에 온전히 들어가는 첫 지점
+            (sm 592px는 미달). 한글 자/줄 = ch수 × '0'폭(Pretendard ≈0.56~0.57em). */}
         {description && (
-          <p className="mt-[14px] sm:mt-[22px] max-w-[62ch] break-keep text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
+          <p className="mt-[14px] sm:mt-[22px] max-w-[62ch] md:max-w-[70ch] break-keep text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
             {description}
           </p>
         )}
