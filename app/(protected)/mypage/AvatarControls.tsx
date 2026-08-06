@@ -1,21 +1,22 @@
 'use client';
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { uploadAvatarImage } from '@/lib/supabase/storage';
-import { getAvatarInfo } from '@/lib/avatar/generate';
 import { updateAvatarAction, removeAvatarAction } from './actions';
+import { useAvatarPreview } from './AvatarContext';
 
 const MAX_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface Props {
   userId: string;
-  nickname: string;
   currentAvatarUrl: string | null;
 }
 
-export function AvatarForm({ userId, nickname, currentAvatarUrl }: Props) {
+// 0529: 프로필 사진 조작부 — 계정 설정 카드 안(닉네임과 저장 사이)에 놓인다.
+// 검증·업로드·저장 로직은 기존 AvatarForm 그대로, 미리보기 URL만 Context로 공유.
+export function AvatarControls({ userId, currentAvatarUrl }: Props) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { previewUrl, setPreviewUrl } = useAvatarPreview();
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,9 +26,6 @@ export function AvatarForm({ userId, nickname, currentAvatarUrl }: Props) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
-
-  const { initial, color } = getAvatarInfo(nickname);
-  const displayedUrl = previewUrl ?? currentAvatarUrl;
 
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessage(null);
@@ -81,58 +79,43 @@ export function AvatarForm({ userId, nickname, currentAvatarUrl }: Props) {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-sm font-semibold text-slate-700">프로필 사진</h2>
-      <div className="flex items-center gap-4">
-        {displayedUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={displayedUrl}
-            alt="프로필 사진"
-            className="w-24 h-24 rounded-full object-cover"
+    <div>
+      <label className="text-xs font-semibold text-slate-500 mb-1 block">프로필 사진</label>
+      <div className="flex flex-col gap-2">
+        <label className="btn-elevated px-3 py-1.5 text-xs text-slate-700 cursor-pointer text-center">
+          파일 선택
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleSelect}
+            className="hidden"
           />
-        ) : (
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold"
-            style={{ backgroundColor: color }}
-          >
-            {initial}
-          </div>
-        )}
-        <div className="flex flex-col gap-2">
-          <label className="btn-elevated px-3 py-1.5 text-xs text-slate-700 cursor-pointer text-center">
-            파일 선택
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleSelect}
-              className="hidden"
-            />
-          </label>
+        </label>
+        {selectedFile && (
           <button
             type="button"
             onClick={handleUpload}
-            disabled={!selectedFile || isPending}
+            disabled={isPending}
             className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
           >
-            저장
+            사진 저장
           </button>
-          {currentAvatarUrl && !selectedFile && (
-            <button
-              type="button"
-              onClick={handleRemove}
-              disabled={isPending}
-              className="px-3 py-1.5 text-xs text-rose-500 hover:underline disabled:opacity-50"
-            >
-              제거
-            </button>
-          )}
-        </div>
+        )}
+        {currentAvatarUrl && !selectedFile && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={isPending}
+            className="px-3 py-1.5 text-xs text-rose-500 hover:underline disabled:opacity-50"
+          >
+            제거
+          </button>
+        )}
       </div>
       {message && (
         <p
-          className={`text-xs ${
+          className={`mt-2 text-xs ${
             message.type === 'error' ? 'text-rose-500' : 'text-emerald-600'
           }`}
         >

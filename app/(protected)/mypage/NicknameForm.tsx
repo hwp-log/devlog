@@ -2,9 +2,14 @@
 import { useState, useTransition } from 'react';
 import { updateNicknameAction } from './actions';
 
-interface Props { email: string; nickname: string }
+interface Props {
+  email: string;
+  nickname: string;
+  /** 0529: 아바타 조작부(AvatarControls) — 시안 순서(이메일→닉네임→프로필 사진→저장)대로 닉네임과 저장 사이에 끼운다 */
+  children?: React.ReactNode;
+}
 
-export function NicknameForm({ email, nickname: initialNickname }: Props) {
+export function NicknameForm({ email, nickname: initialNickname, children }: Props) {
   const [value, setValue] = useState(initialNickname);
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -23,7 +28,8 @@ export function NicknameForm({ email, nickname: initialNickname }: Props) {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
+      <h2 className="text-sm font-semibold text-slate-700">계정 설정</h2>
       <div>
         <label className="text-xs font-semibold text-slate-500 mb-1 block">이메일</label>
         <p className="text-sm text-slate-700">{email}</p>
@@ -43,6 +49,7 @@ export function NicknameForm({ email, nickname: initialNickname }: Props) {
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
+        {children}
         {message && (
           <p className={`text-xs ${message.type === 'error' ? 'text-rose-500' : 'text-emerald-600'}`}>
             {message.text}

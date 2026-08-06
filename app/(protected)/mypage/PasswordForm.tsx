@@ -40,7 +40,7 @@ export function PasswordForm() {
   };
 
   return (
-    <div className="p-6 space-y-3">
+    <div className="space-y-3">
       <h2 className="text-sm font-semibold text-slate-700">비밀번호 변경</h2>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>

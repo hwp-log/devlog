@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
-import { AvatarForm } from './AvatarForm';
+import { AvatarPreviewProvider } from './AvatarContext';
+import { AvatarDisplay } from './AvatarDisplay';
+import { AvatarControls } from './AvatarControls';
 import { NicknameForm } from './NicknameForm';
 import { PasswordForm } from './PasswordForm';
 import { ActivityDashboardCard } from './ActivityDashboardCard';
@@ -51,41 +53,54 @@ export default async function MyPage() {
       ? Math.floor(withTotal.reduce((s, t) => s + t, 0) / withTotal.length / 10_000)
       : null;
 
+  // 0529: 좌우 성격을 카드 유무로 표시 — 왼쪽(보는 정보)은 개방 캔버스, 오른쪽(바꾸는 설정)만 카드.
+  // 카드 안에서는 2px 실선을 쓰지 않는다(400px 폭에서 카드가 조각나 보임) — 카드 분리 자체가 경계.
+  const card =
+    'bg-card rounded-card border border-border px-[18px] py-[22px] sm:px-6 sm:py-[26px]';
+
   return (
-    <div className="max-w-md mx-auto md:max-w-none">
+    <div>
       <div className="mb-6">
-        <p
-          className="text-xs font-semibold text-sky-500 mb-1 appear-up"
-          style={{ animationDelay: '0s' }}
-        >
-          MyPage
-        </p>
-        <h1
-          className="text-2xl md:text-3xl font-bold text-[#1A1A1A] appear-up"
-          style={{ animationDelay: '0.12s' }}
-        >
+        <p className="text-xs font-semibold text-sky-500 mb-1">MyPage</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-[#1A1A1A]">
           {profile.nickname ? `안녕하세요, ${profile.nickname}님` : '안녕하세요'}
         </h1>
       </div>
 
-      <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
-        <div className="glass-outer divide-y divide-black/5 appear-up" style={{ animationDelay: '0.24s' }}>
-          <AvatarForm userId={user.id} nickname={profile.nickname} currentAvatarUrl={profile.avatarUrl} />
-          <ActivityDashboardCard
-            storyCount={storyCount}
-            planCount={planCount}
-            likeCount={likeCount}
-            avgWon={avgWon}
-          />
-          <RecentActivityCard recentStories={recentStories} recentPlans={recentPlans} />
-        </div>
+      <AvatarPreviewProvider>
+        <div className="space-y-[34px] md:space-y-0 md:grid md:grid-cols-[1fr_400px] md:gap-12 md:items-start">
+          {/* 왼쪽: 개방 캔버스 — 프로필·내 활동·최근 활동 */}
+          <div className="flex flex-col gap-6">
+            <AvatarDisplay
+              nickname={profile.nickname}
+              email={profile.email}
+              currentAvatarUrl={profile.avatarUrl}
+            />
+            <ActivityDashboardCard
+              storyCount={storyCount}
+              planCount={planCount}
+              likeCount={likeCount}
+              avgWon={avgWon}
+            />
+            <RecentActivityCard recentStories={recentStories} recentPlans={recentPlans} />
+          </div>
 
-        <div className="glass-outer divide-y divide-black/5 appear-up" style={{ animationDelay: '0.24s' }}>
-          <NicknameForm email={profile.email} nickname={profile.nickname} />
-          <PasswordForm />
-          <DangerZoneCard />
+          {/* 오른쪽: 설정 카드 — 계정 설정·비밀번호 변경·계정 삭제 */}
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <div className={card}>
+              <NicknameForm email={profile.email} nickname={profile.nickname}>
+                <AvatarControls userId={user.id} currentAvatarUrl={profile.avatarUrl} />
+              </NicknameForm>
+            </div>
+            <div className={card}>
+              <PasswordForm />
+            </div>
+            <div className={card}>
+              <DangerZoneCard />
+            </div>
+          </div>
         </div>
-      </div>
+      </AvatarPreviewProvider>
     </div>
   );
 }

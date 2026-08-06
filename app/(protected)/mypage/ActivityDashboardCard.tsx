@@ -14,7 +14,7 @@ export function ActivityDashboardCard({ storyCount, planCount, likeCount, avgWon
   ];
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
       <h2 className="text-sm font-semibold text-slate-700">내 활동</h2>
       <div className="grid grid-cols-2 gap-4">
         {items.map((it) => (

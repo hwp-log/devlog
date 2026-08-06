@@ -26,7 +26,7 @@ function Row({ href, title, createdAt }: { href: string; title: string; createdA
 
 export function RecentActivityCard({ recentStories, recentPlans }: Props) {
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
       <h2 className="text-sm font-semibold text-slate-700">최근 활동</h2>
 
       <section className="space-y-1">

@@ -29,7 +29,7 @@ export function DangerZoneCard() {
 
   if (!expanded) {
     return (
-      <div className="p-6 space-y-3">
+      <div className="space-y-3">
         <h2 className="text-sm font-semibold text-rose-500">DangerZone</h2>
         <ol className="list-decimal list-inside space-y-2 text-xs text-slate-500">
           <li>이메일과 프로필 사진은 삭제됩니다.</li>
@@ -50,7 +50,7 @@ export function DangerZoneCard() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
       <h2 className="text-sm font-semibold text-rose-500">회원 탈퇴 확인</h2>
       <div className="space-y-2 text-xs text-slate-600">
         <p>이 작업은 되돌릴 수 없습니다.</p>
