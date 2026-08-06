@@ -80,9 +80,10 @@ export function AvatarControls({ userId, currentAvatarUrl }: Props) {
 
   return (
     <div>
-      <label className="text-xs font-semibold text-slate-500 mb-1 block">프로필 사진</label>
+      <label className="text-xs font-medium text-muted mb-1.5 block">프로필 사진</label>
       <div className="flex flex-col gap-2">
-        <label className="btn-elevated px-3 py-1.5 text-xs text-slate-700 cursor-pointer text-center">
+        {/* 보조 버튼 — 테두리 전폭, 호버는 무채 명도 반응 */}
+        <label className="w-full py-3 rounded-lg border border-field-border text-fg2 text-[15px] font-medium text-center cursor-pointer hover:bg-surface2 transition-colors">
           파일 선택
           <input
             ref={fileInputRef}
@@ -97,7 +98,7 @@ export function AvatarControls({ userId, currentAvatarUrl }: Props) {
             type="button"
             onClick={handleUpload}
             disabled={isPending}
-            className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
+            className="w-full py-3 rounded-lg border border-field-border text-fg2 text-[15px] font-medium hover:bg-surface2 transition-colors disabled:opacity-50"
           >
             사진 저장
           </button>
@@ -107,7 +108,7 @@ export function AvatarControls({ userId, currentAvatarUrl }: Props) {
             type="button"
             onClick={handleRemove}
             disabled={isPending}
-            className="px-3 py-1.5 text-xs text-rose-500 hover:underline disabled:opacity-50"
+            className="self-start py-3 text-sm text-danger hover:underline disabled:opacity-50"
           >
             제거
           </button>
@@ -116,7 +117,7 @@ export function AvatarControls({ userId, currentAvatarUrl }: Props) {
       {message && (
         <p
           className={`mt-2 text-xs ${
-            message.type === 'error' ? 'text-rose-500' : 'text-emerald-600'
+            message.type === 'error' ? 'text-danger' : 'text-emerald-600'
           }`}
         >
           {message.text}

@@ -2,6 +2,9 @@
 import { useState, useTransition } from 'react';
 import { updatePasswordAction } from './actions';
 
+const inputClass =
+  'w-full border border-field-border rounded-lg px-[14px] py-[13px] text-base text-fg2 bg-bg placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
+
 export function PasswordForm() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -40,56 +43,58 @@ export function PasswordForm() {
   };
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-slate-700">비밀번호 변경</h2>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="text-xs font-semibold text-slate-500 mb-1 block" htmlFor="currentPassword">
-            현재 비밀번호
-          </label>
-          <input
-            id="currentPassword"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-slate-300"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 mb-1 block" htmlFor="newPassword">
-            새 비밀번호
-          </label>
-          <input
-            id="newPassword"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-slate-300"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 mb-1 block" htmlFor="confirmPassword">
-            새 비밀번호 확인
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-slate-300"
-          />
+    <div>
+      <h2 className="text-lg font-bold tracking-[-0.01em] text-fg">비밀번호 변경</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="mt-[18px] sm:mt-5 flex flex-col gap-3.5">
+          <div>
+            <label className="text-xs font-medium text-muted mb-1.5 block" htmlFor="currentPassword">
+              현재 비밀번호
+            </label>
+            <input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted mb-1.5 block" htmlFor="newPassword">
+              새 비밀번호
+            </label>
+            <input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted mb-1.5 block" htmlFor="confirmPassword">
+              새 비밀번호 확인
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={inputClass}
+            />
+          </div>
         </div>
         {message && (
-          <p className={`text-xs ${message.type === 'error' ? 'text-rose-500' : 'text-emerald-600'}`}>
+          <p className={`mt-3 text-xs ${message.type === 'error' ? 'text-danger' : 'text-emerald-600'}`}>
             {message.text}
           </p>
         )}
         <button
           type="submit"
           disabled={isPending}
-          className="btn-elevated px-4 py-2 text-sm text-slate-700 disabled:opacity-50"
+          className="mt-5 sm:mt-[22px] w-full py-[14px] rounded-lg bg-primary text-white text-[15px] font-bold transition-opacity disabled:opacity-50"
         >
-          변경
+          비밀번호 변경
         </button>
       </form>
     </div>
