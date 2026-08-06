@@ -50,12 +50,15 @@ function GroupHeader({
   summary,
   open,
   onToggle,
+  small,
 }: {
   title: string;
   // 0517: "N건 · N만원" 요약 — 호출부가 실제 데이터에서 계산해 전달. 없으면 생략.
   summary?: string;
   open: boolean;
   onToggle: () => void;
+  // 0518: 카드 변형 — 카드 안 위계에 맞춰 제목 한 단 강등(15px→14px). 점·요약·동작은 동일.
+  small?: boolean;
 }) {
   return (
     <button
@@ -69,7 +72,7 @@ function GroupHeader({
           접기 동작·hover 필·터치 타겟 구조(0507)는 유지, 표시만 변경. */}
       <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 group-hover:bg-surface2">
         <span aria-hidden className="w-1.5 h-1.5 rounded-[3px] bg-[#b3b9bd] shrink-0 mr-[9px]" />
-        <span className="text-[15px] font-semibold text-fg2">{title}</span>
+        <span className={`${small ? 'text-sm' : 'text-[15px]'} font-semibold text-fg2`}>{title}</span>
         {summary && <span className="ml-2 text-[13px] font-medium text-muted">{summary}</span>}
         <ChevronDown
           size={16}
@@ -87,6 +90,9 @@ interface Props {
   // 0505: 일자 라벨용. null이면 일자 라벨을 "DAY N"으로 폴백.
   startDate: Date | null;
   endDate: Date | null;
+  // 0518: 우측 sticky 카드 변형 — 총액 24px·카테고리 1열(카드 폭)·캡션 내장·접기 제목 14px.
+  //   미지정 = 인라인(<lg) 기존 그대로.
+  variant?: 'card';
 }
 
 // 0517: 카테고리 고정색(시안 4a) — rank(비중 순위) 기반 chart 토큰에서 교체.
@@ -108,8 +114,9 @@ const CATEGORY_BAR: Record<Item['category'], string> = {
  * 금액은 계획 총액 기준(1인당 환산 없음 — 항목의 1인당/전체 구분이 없어 나누면 틀린 값, 0492 확정).
  * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
  */
-export function PublicCostSection({ summary, headcount, startDate, endDate }: Props) {
+export function PublicCostSection({ summary, headcount, startDate, endDate, variant }: Props) {
   const { ratios, itemGroups, total, currency } = summary;
+  const card = variant === 'card';
   // 0507: 두 층 각각 접기 — 기본 접힘. 카테고리 요약(막대·색 라벨)은 접기 대상 아님.
   const [fixedOpen, setFixedOpen] = useState(false);
   const [dayOpen, setDayOpen] = useState(false);
@@ -139,8 +146,8 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
   return (
     <div>
       <div className="flex items-baseline gap-2">
-        {/* 0516: 총액 26px(시안 4a 실측) — 20px는 한 단 작게 들어간 오차 */}
-        <span className="text-[26px] tracking-[-0.02em] font-bold text-fg">
+        {/* 0516: 총액 26px(시안 4a 실측). 0518: 카드 안은 24px(카드 위계) */}
+        <span className={`${card ? 'text-2xl' : 'text-[26px]'} tracking-[-0.02em] font-bold text-fg`}>
           총 {formatApproxCost(total, currency)}
         </span>
         <span className="text-sm text-muted">· {headcount}인</span>
@@ -158,8 +165,9 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
       </div>
 
       {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거) — 누적 막대 색과 이름의 한자리 대응.
-          0517: 실화면 판정으로 2열 확정(sm:grid-cols-2 재복원, 좁아지면 1열). max-width 미적용. */}
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
+          0517: 실화면 판정으로 2열 확정(sm:grid-cols-2 재복원, 좁아지면 1열). max-width 미적용.
+          0518: 카드 폭에선 2열이 성립하지 않아 카드 변형은 1열. */}
+      <div className={`mt-3 ${card ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2 gap-x-5'}`}>
         {ratios.map((item) => (
           <div key={item.category} className="flex items-center py-2">
             <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${CATEGORY_BAR[item.category]}`} />
@@ -168,6 +176,9 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
           </div>
         ))}
       </div>
+
+      {/* 0518: 카드 변형은 섹션 헤더(보조 문구)가 없어 캡션을 카테고리 아래 내장 */}
+      {card && <p className="mt-1 text-xs text-muted">총액 기준 · 1인 환산 없음</p>}
 
       {/* 0505: 두 층(고정 / 일자별). 각 층 = 큰 제목(진한 구분선+14px 굵게) → 날짜 라벨(12px 회색) → 3열 항목.
           한쪽이 비면 그 제목도 생략(목표6). 계층은 색·선이 아니라 위치(날짜 라벨만 왼쪽 머리)로 가른다.
@@ -181,6 +192,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
             summary={groupSummary(fixedItems)}
             open={fixedOpen}
             onToggle={() => setFixedOpen((v) => !v)}
+            small={card}
           />
           {fixedOpen && (
             <>
@@ -208,6 +220,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
             summary={groupSummary(dayGroups.flatMap((g) => g.items))}
             open={dayOpen}
             onToggle={() => setDayOpen((v) => !v)}
+            small={card}
           />
           {/* 0505 후속: 제목→첫 일자 6px은 고정 비용과 동일(헤더 필 pb-1.5 담당). gap-3은 일자 그룹 사이(8.5→8.6)만 담당 */}
           {dayOpen && (

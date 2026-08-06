@@ -32,8 +32,32 @@ function LegRow({ seg, label }: { seg: FlightSegmentData; label: string }) {
   );
 }
 
-export function PublicFlightTable({ data }: { data: FlightLegData }) {
+// 0518: 우측 sticky 카드 변형 — 폭이 좁아 4열 표 대신 세로 카드(라벨/노선/부가 12·15·12px).
+function StackedLeg({ seg, label }: { seg: FlightSegmentData; label: string }) {
+  return (
+    <div className="flex flex-col gap-[3px]">
+      <span className="text-xs font-semibold text-muted">{label}</span>
+      <span className="text-[15px] font-semibold text-fg">
+        {seg.origin} {AIRPORT_NAME[seg.origin] ?? ''} → {seg.destination}{' '}
+        {AIRPORT_NAME[seg.destination] ?? ''}
+      </span>
+      <span className="text-xs text-muted">
+        {seg.durationLabel ?? ''} · 직항 · {seg.airline} {seg.flightNo}
+      </span>
+    </div>
+  );
+}
+
+export function PublicFlightTable({ data, variant }: { data: FlightLegData; variant?: 'stacked' }) {
   const isRoundTrip = data.tripType === 'ROUND_TRIP';
+  if (variant === 'stacked') {
+    return (
+      <div className="flex flex-col gap-3.5">
+        <StackedLeg seg={data.out} label="가는편" />
+        {isRoundTrip && data.ret && <StackedLeg seg={data.ret} label="오는편" />}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3.5 sm:block">
       <LegRow seg={data.out} label="가는편" />
