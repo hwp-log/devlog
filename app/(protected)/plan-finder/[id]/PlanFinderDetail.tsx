@@ -278,6 +278,14 @@ export function PlanFinderDetail({
         )}
       </div>
 
+      {/* 예상 비용 — 0516: 시안 4a 순서(일정→비용→항공). 총액이 지표 밴드에 나오므로 비용이 이어받음 */}
+      {summary.ratios.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">예상 비용</p>
+          <PublicCostSection summary={summary} headcount={headcount} startDate={startDate} endDate={endDate} />
+        </div>
+      )}
+
       {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값) */}
       {publicFlight && (
         <div className="mb-6">
@@ -286,14 +294,6 @@ export function PlanFinderDetail({
             <p className="text-[11px] text-muted">조회 시점 기준</p>
           </div>
           <PublicFlightTable data={publicFlight} />
-        </div>
-      )}
-
-      {/* 예상 비용 */}
-      {summary.ratios.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">예상 비용</p>
-          <PublicCostSection summary={summary} headcount={headcount} startDate={startDate} endDate={endDate} />
         </div>
       )}
 
