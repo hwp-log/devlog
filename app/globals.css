@@ -411,11 +411,14 @@ body {
   }
 
   /* 본문 제목은 시각 1종 — h1은 h2에 병합(페이지 제목 input이 최상위, DB h1 0건이라 기존 글 무영향).
-     leading-relaxed(1.625) 상속이 제목엔 과해 1.4 명시 */
+     leading-relaxed(1.625) 상속이 제목엔 과해 1.4 명시.
+     0523: 공통 척도 섹션 제목 22px/700 -0.02em(구 20px). 이 규칙은 읽기(story/[id])와
+     편집(TiptapEditor) 한 벌 공유라 작성 화면 제목도 함께 커진다 — WYSIWYG 유지가 목적. */
   .tiptap-content h1,
   .tiptap-content h2 {
-    font-size: 1.25rem;
+    font-size: 22px;
     font-weight: 700;
+    letter-spacing: -0.02em;
     line-height: 1.4;
     margin: 2rem 0 0.5rem;
   }
