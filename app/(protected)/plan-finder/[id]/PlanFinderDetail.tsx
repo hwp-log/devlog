@@ -167,9 +167,11 @@ export function PlanFinderDetail({
           )}
         </div>
 
-        {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로 */}
+        {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로.
+            0520: break-keep(어절 단위 줄바꿈) + 폭을 글자 수 기준 62ch(≈한글 34~35자/줄,
+            본문 권장 30~40자 대역)로 — 720px(45자/줄)는 권장 상한 초과였음. */}
         {description && (
-          <p className="mt-[14px] sm:mt-[22px] max-w-[720px] text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
+          <p className="mt-[14px] sm:mt-[22px] max-w-[62ch] break-keep text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
             {description}
           </p>
         )}
