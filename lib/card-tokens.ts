@@ -1,3 +1,6 @@
+// 사진 카드 공용 스타일 — PlanCard(플랜파인더)·StoryCard(스토리)·MyPlanCard(MyPlan)가 공유.
+// 세 카드가 같은 판형("사진 위 흰 글씨")이라 값이 갈라지면 화면마다 다른 언어가 된다.
+//
 // 카드 pill 공용 스타일 — PlanCard·StoryCard가 공유(스타일의 단일 소스).
 // 두 카드가 이 클래스를 import해 chip·좋아요에 동일 적용한다(한쪽만 바뀌는 어긋남 방지).
 //
@@ -15,3 +18,30 @@ export const CARD_PILL_CLASS =
   'shadow-[0_1px_3px_rgba(0,0,0,0.12),inset_0_0_0_0.5px_rgba(0,0,0,0.08)] ' +
   'dark:bg-[rgba(13,13,20,0.72)] dark:text-white ' +
   'dark:shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_0_0_0.5px_rgba(255,255,255,0.14)]';
+
+// 커버 이미지 sizes — 플랜파인더 인접 페이지 프리로더(PlanListClient)가 같은 srcSet을 얻으려면
+// getImageProps에 이 값을 그대로 넣어야 한다. 단일 소스: PlanCard·MyPlanCard의 <Image>와 프리로더가 공유
+// (한쪽만 바꾸면 캐시 어긋남). MyPlan 그리드는 플랜파인더와 같은 열 브레이크포인트라 같은 값을 쓴다.
+export const PLAN_CARD_SIZES = '(max-width: 767px) 100vw, 400px';
+
+// 커버 위 스크림 — 하단 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
+// 반투명 검정은 theme 토큰 예외 허용(0406).
+// 0435: 그라디언트가 텍스트 블록 안에서 옅어져 밝은 사진에서 4.5:1을 못 만들던 문제 해결.
+// 하단 텍스트 블록(측정 ≈89px = 240px 카드의 37% / 280px의 32%)을 alpha 0.65 스크림으로 덮는다.
+// 어둠 총높이를 좁혀 사진을 더 보이게: 0%~32% 균일 → 44%에서 0(전환 12%≈30px).
+// 균일 0.65 → 순백 배경에서도 흰 글씨 ≈7:1, 반투명 메타(75%) ≈4.8:1 (WCAG 4.5:1 충족).
+// 주의: 균일 끝(32%)이 블록 상단(≈37%)보다 살짝 아래라 제목 상단 획은 전환 구간에 걸쳐
+// 순백 배경 최악점에서 fill 대비 ≈3.3:1까지 내려감 — CARD_TEXT_SHADOW(보조)로 국소 대비 보강.
+// 전환 경계가 선처럼 보이면 44% → 48%로 넓힐 것.
+export const CARD_COVER_OVERLAY =
+  'linear-gradient(to top, rgba(10,10,16,0.65) 0%, rgba(10,10,16,0.65) 32%, rgba(10,10,16,0) 44%)';
+
+// 0435: 하단 텍스트 그늘 — 밝은 커버에서도 흰/파랑 글씨 가독. 컨테이너에 한 번(상속으로 하위 요소 공유).
+// 오프셋 1px·번짐 3px로 작게 — 과하면 글씨가 뭉갬. 반투명 검정 예외 허용(0406).
+export const CARD_TEXT_SHADOW = '0 1px 3px rgba(0,0,0,0.7)';
+
+// 커버 없음 폴백 — 테마 무관 고정 다크(0441). 카드 내부는 "사진 위"를 전제(스크림·흰 글씨·다크 칩)라
+// bg-fill2 토큰을 쓰면 라이트에서 밝은 회색이 돼 흰 글씨 카드와 충돌한다 → 다크에서 잘 보이던 값으로 통일.
+// CARD_COVER_OVERLAY와 같은 카드 내부 리터럴 예외(0406).
+export const CARD_FALLBACK_BG = '#343943';
+export const CARD_FALLBACK_FG = '#7a7870';

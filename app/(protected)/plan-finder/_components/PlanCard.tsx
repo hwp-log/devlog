@@ -2,35 +2,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
-import { CARD_PILL_CLASS } from '@/lib/card-tokens';
+import {
+  CARD_PILL_CLASS,
+  CARD_COVER_OVERLAY,
+  CARD_TEXT_SHADOW,
+  CARD_FALLBACK_BG,
+  CARD_FALLBACK_FG,
+  PLAN_CARD_SIZES,
+} from '@/lib/card-tokens';
 
 type Props = PublicPlanListItem;
 
-// 커버 이미지 sizes — 인접 페이지 프리로더(PlanListClient)가 같은 srcSet을 얻으려면
-// getImageProps에 이 값을 그대로 넣어야 한다. 단일 소스: 아래 <Image>와 프리로더가 공유(한쪽만 바꾸면 캐시 어긋남).
-export const PLAN_CARD_SIZES = '(max-width: 767px) 100vw, 400px';
-
-// 커버 위 스크림 — 하단 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
-// 반투명 검정은 theme 토큰 예외 허용(0406).
-// 0435: 그라디언트가 텍스트 블록 안에서 옅어져 밝은 사진에서 4.5:1을 못 만들던 문제 해결.
-// 하단 텍스트 블록(측정 ≈89px = 240px 카드의 37% / 280px의 32%)을 alpha 0.65 스크림으로 덮는다.
-// 어둠 총높이를 좁혀 사진을 더 보이게: 0%~32% 균일 → 44%에서 0(전환 12%≈30px).
-// 균일 0.65 → 순백 배경에서도 흰 글씨 ≈7:1, 반투명 메타(75%) ≈4.8:1 (WCAG 4.5:1 충족).
-// 주의: 균일 끝(32%)이 블록 상단(≈37%)보다 살짝 아래라 제목 상단 획은 전환 구간에 걸쳐
-// 순백 배경 최악점에서 fill 대비 ≈3.3:1까지 내려감 — TEXT_SHADOW(보조)로 국소 대비 보강.
-// 전환 경계가 선처럼 보이면 44% → 48%로 넓힐 것.
-const OVERLAY =
-  'linear-gradient(to top, rgba(10,10,16,0.65) 0%, rgba(10,10,16,0.65) 32%, rgba(10,10,16,0) 44%)';
-
-// 0435: 하단 텍스트 그늘 — 밝은 커버에서도 흰/파랑 글씨 가독. 컨테이너에 한 번(상속으로 4요소 공유).
-// 오프셋 1px·번짐 3px로 작게 — 과하면 글씨가 뭉갬. 반투명 검정 예외 허용(0406).
-const TEXT_SHADOW = '0 1px 3px rgba(0,0,0,0.7)';
-
-// 커버 없음 폴백 — 테마 무관 고정 다크(0441). 카드 내부는 "사진 위"를 전제(스크림·흰 글씨·다크 칩)라
-// bg-fill2 토큰을 쓰면 라이트에서 밝은 회색이 돼 흰 글씨 카드와 충돌한다 → 다크에서 잘 보이던 값으로 통일.
-// OVERLAY와 같은 카드 내부 리터럴 예외(0406). (칩 스타일은 0449에서 card-tokens.ts CARD_PILL_CLASS로 이관)
-const FALLBACK_BG = '#343943';
-const FALLBACK_FG = '#7a7870';
+// 0530: sizes·스크림·폴백·그늘 상수는 card-tokens.ts로 이관(MyPlanCard와 공유).
+// 프리로더(PlanListClient)도 card-tokens에서 직접 import한다.
 
 export function PlanCard({
   id,
@@ -77,14 +61,14 @@ export function PlanCard({
         // 라이트/다크 모두 다크 카드로 통일(흰 글씨·스크림 카드와 정합). 텍스트는 오버레이 알파 0 구간이라 간섭 없음.
         <div
           className="absolute inset-0 flex items-center justify-center text-xs"
-          style={{ backgroundColor: FALLBACK_BG, color: FALLBACK_FG }}
+          style={{ backgroundColor: CARD_FALLBACK_BG, color: CARD_FALLBACK_FG }}
         >
           이미지 없음
         </div>
       )}
 
       {/* 오버레이 */}
-      <div className="absolute inset-0" style={{ background: OVERLAY }} aria-hidden />
+      <div className="absolute inset-0" style={{ background: CARD_COVER_OVERLAY }} aria-hidden />
 
       {/* 콘텐츠 — 상단 바 */}
       <div className="relative flex items-start justify-between px-4 pt-[13px] sm:pt-[14px]">
@@ -105,7 +89,7 @@ export function PlanCard({
       </div>
 
       {/* 콘텐츠 — 하단 */}
-      <div className="relative mt-auto px-4 pb-4" style={{ textShadow: TEXT_SHADOW }}>
+      <div className="relative mt-auto px-4 pb-4" style={{ textShadow: CARD_TEXT_SHADOW }}>
         <p className="text-[14px] font-semibold text-white truncate">{title}</p>
         <p className="mt-1 text-[12.5px] text-white/75 truncate">{meta}</p>
         <div className="mt-2 flex items-center justify-between gap-2">
