@@ -70,7 +70,8 @@ function GroupHeader({
       <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 group-hover:bg-surface2">
         <span aria-hidden className="w-1.5 h-1.5 rounded-[3px] bg-[#b3b9bd] shrink-0 mr-[9px]" />
         <span className="text-[15px] font-semibold text-fg2">{title}</span>
-        {summary && <span className="ml-2 text-[13px] font-medium text-muted">{summary}</span>}
+        {/* 0522: 공통 척도 보조 등급 14px */}
+        {summary && <span className="ml-2 text-sm font-medium text-muted">{summary}</span>}
         <ChevronDown
           size={16}
           aria-hidden

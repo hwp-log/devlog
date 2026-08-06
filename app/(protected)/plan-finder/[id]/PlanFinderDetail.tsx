@@ -40,15 +40,16 @@ interface Props {
 // 히어로 커버 sizes — 본문 컬럼 폭 기준(모바일 100vw, 데스크톱 컬럼 폭 ≈640px).
 const HERO_SIZES = '(max-width: 767px) 100vw, 640px';
 
-// 0516: 섹션 제목(시안 4a/4d) — 22px(모바일 19px) 굵은 제목 + 2px 실선, 우측 13px(12px) 보조.
+// 0516: 섹션 제목(시안 4a/4d) — 22px(모바일 19px) 굵은 제목 + 2px 실선, 우측 보조.
 //   섹션을 가르는 유일한 위계 장치라 세 섹션(일정·비용·항공) 공통.
+// 0522: 공통 척도 — 섹션 제목 22px/700 자간 -0.02em, 보조는 보조 등급 14px.
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b-2 border-fg pb-2 sm:pb-2.5">
-      <h2 className="text-[19px] sm:text-[22px] font-bold tracking-[-0.015em] text-fg break-keep">
+      <h2 className="text-[19px] sm:text-[22px] font-bold tracking-[-0.02em] text-fg break-keep">
         {title}
       </h2>
-      {sub && <span className="text-xs sm:text-[13px] text-muted shrink-0">{sub}</span>}
+      {sub && <span className="text-xs sm:text-sm text-muted shrink-0">{sub}</span>}
     </div>
   );
 }
@@ -111,7 +112,8 @@ export function PlanFinderDetail({
               {region}
             </span>
           )}
-          <h1 className="absolute left-4 right-4 bottom-4 sm:bottom-[26px] text-[22px] leading-[1.3] sm:text-[30px] font-bold tracking-[-0.02em] text-white break-keep">
+          {/* 0522: 공통 척도 페이지 제목 28px/700 (0512 시안 실측 30px에서 하향). 모바일 22px 유지 */}
+          <h1 className="absolute left-4 right-4 bottom-4 sm:bottom-[26px] text-[22px] leading-[1.3] sm:text-[28px] font-bold tracking-[-0.02em] text-white break-keep">
             {title}
           </h1>
         </div>
@@ -121,7 +123,10 @@ export function PlanFinderDetail({
         {/* 커버 없는 플랜은 기존대로 히어로 생략 — 제목·버튼 인라인 유지 */}
         {!coverUrl && (
           <div className="flex items-start justify-between gap-2">
-            <h1 className="text-2xl font-bold text-fg break-keep">{title}</h1>
+            {/* 0522: 히어로 제목과 같은 페이지 제목 등급(28px/700 -0.02em). 모바일 24px 유지 */}
+            <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.02em] text-fg break-keep">
+              {title}
+            </h1>
             {actionButtons}
           </div>
         )}
@@ -230,7 +235,8 @@ export function PlanFinderDetail({
                 key={s.id}
                 className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-[#f1f2f3]"
               >
-                <span className="w-[22px] shrink-0 text-xs sm:text-[13px] font-bold text-[#b3b9bd]">
+                {/* 0522: 공통 척도 보조 등급 14px */}
+                <span className="w-[22px] shrink-0 text-xs sm:text-sm font-bold text-[#b3b9bd]">
                   {i + 1}
                 </span>
                 {s.coverUrl && (
@@ -264,13 +270,13 @@ export function PlanFinderDetail({
                           openNaverDirections({ name: s.name, lat: s.lat!, lng: s.lng! }, origin)
                         }
                         aria-label={`${s.name} 네이버 지도 길찾기`}
-                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-[13px] text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0 md:flex-1 md:min-w-0 md:justify-end"
+                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-sm text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0 md:flex-1 md:min-w-0 md:justify-end"
                       >
                         <span className="truncate">{s.address}</span>
                         <span className="text-[10px] sm:text-[11px] shrink-0">↗</span>
                       </button>
                     ) : (
-                      <p className="text-xs sm:text-[13px] text-muted truncate md:flex-1 md:min-w-0 md:text-right">{s.address}</p>
+                      <p className="text-xs sm:text-sm text-muted truncate md:flex-1 md:min-w-0 md:text-right">{s.address}</p>
                     ))}
                 </span>
               </div>
