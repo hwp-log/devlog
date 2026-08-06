@@ -662,12 +662,13 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       />
 
       {/* 0527 ⑤: 저장은 최종 행동이라 하단 전폭 파랑. 비활성도 회색이 아니라 파랑 40% —
+          0530: 글자는 흰색(primary 면 위 주요 버튼 공통, 사용자 확정 — 아래 CopyPlanFinderButton 주석 참조).
           "못 누른다"만 알리고 최종 행동이라는 인상은 유지. 데스크톱은 흐름 끝, 모바일은 고정 바. */}
       <button
         type="button"
         onClick={handleSave}
         disabled={saveDisabled}
-        className="max-sm:hidden mt-9 w-full py-4 rounded-lg bg-primary text-primary-fg text-base font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+        className="max-sm:hidden mt-9 w-full py-4 rounded-lg bg-primary text-white text-base font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {isPending ? '저장 중...' : '저장'}
       </button>
@@ -689,7 +690,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           type="button"
           onClick={handleSave}
           disabled={saveDisabled}
-          className="w-full py-[15px] rounded-lg bg-primary text-primary-fg text-base font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full py-[15px] rounded-lg bg-primary text-white text-base font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isPending ? '저장 중...' : '저장'}
         </button>
