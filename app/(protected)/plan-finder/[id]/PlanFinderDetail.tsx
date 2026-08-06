@@ -325,7 +325,9 @@ export function PlanFinderDetail({
             <CopyPlanFinderButton planId={planId} variant="bar" />
           </div>
         )}
-        <div className="min-h-0 overflow-y-auto bg-[#f7f8f9] rounded-[14px] px-5 py-[18px]">
+        {/* 0518 후속: 시안 #f7f8f9는 흰 페이지 기준 — 우리 페이지 배경(bg-deep #f6f6f8)과는
+            무대조라 카드 역할 토큰(bg-card #f2f2f5)으로 교체. surface2는 접기 hover 필과 충돌. */}
+        <div className="min-h-0 overflow-y-auto bg-card rounded-[14px] px-5 py-[18px]">
           {/* 기간/장소 — 전폭 지표 밴드 대체. 총 비용은 아래 총액과 중복이라 제외(단일 표기) */}
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between">
