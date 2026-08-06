@@ -16,10 +16,15 @@ export function CoverPicker({
   items,
   value,
   onChange,
+  header,
 }: {
   items: CoordItem[];
   value: string | null;
   onChange: (url: string | null) => void;
+  // 0528: 섹션 헤더 슬롯 — 아래 null 가드 **다음에** 렌더한다. 후보 0장이면 헤더까지 함께
+  //   사라져 "제목만 남은 빈 섹션"이 구조적으로 불가능해진다(0510 게이트 조건은 무변).
+  //   문안은 호출부가 정한다 — 컴포넌트가 화면 문구를 떠안지 않게.
+  header?: React.ReactNode;
 }) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const seqRef = useRef(0);
@@ -54,10 +59,10 @@ export function CoverPicker({
   if (candidates.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-[#1A1A1A]">대표 이미지</label>
-      <p className="text-xs text-slate-400">고르지 않으면 자동으로 정해져요.</p>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+    <>
+      {header}
+      {/* 0528: 내부 라벨·힌트는 섹션 제목·보조 문구로 승격돼 여기서는 제거(중복 방지) */}
+      <div className="mt-[18px] flex gap-2 overflow-x-auto pb-1">
         {candidates.map((c) => {
           const selected = value === c.coverUrl;
           return (
@@ -67,7 +72,7 @@ export function CoverPicker({
               onClick={() => onChange(selected ? null : c.coverUrl)}
               aria-pressed={selected}
               className={`relative shrink-0 w-[104px] h-[72px] rounded-[10px] overflow-hidden border-[3px] transition ${
-                selected ? 'border-primary' : 'border-transparent hover:border-black/20'
+                selected ? 'border-primary' : 'border-transparent hover:border-fg/20'
               } ${value != null && !selected ? 'opacity-50' : 'opacity-100'}`}
             >
               <Image src={c.coverUrl} alt={c.name} fill sizes="104px" className="object-cover" />
@@ -78,6 +83,6 @@ export function CoverPicker({
           );
         })}
       </div>
-    </div>
+    </>
   );
 }

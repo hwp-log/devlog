@@ -635,20 +635,14 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         )}
       </div>
 
-      <SectionHeader title="카테고리별 비용" sub="위 항목에서 자동 합산" />
-
-      <CostSection
-        totals={categoryTotals}
-        flightAmount={flightAmount}
-        total={total}
-        currency="KRW"
-      />
-
       {/* 0497: 대표 이미지 선택 — 후보 게이트는 컴포넌트 내부(0510: 후보 1개부터 렌더, 0장만 미표시).
-          0526: 헤더 카드 안(폼 최상단)에서 여기로 이동 — 후보는 전적으로 타임라인에서 지정한
-          장소에서 파생되므로 원인(장소 지정)이 먼저, 결과(대표 이미지)가 나중이어야 한다.
-          타임라인(항목) → CostSection(합계) 쌍은 깨지 않게 그 뒤에 둔다. */}
+          0526: 폼 최상단 헤더 카드에서 장소 지정 뒤로 이동(원인 먼저, 결과 나중).
+          0528: 다시 카테고리별 비용 **앞**으로 — 0527 개방 캔버스에서 "총 비용" 바로 밑에 붙어
+          비용에 딸린 항목처럼 보였다. 대표 이미지는 장소 파생이라 장소 입력 직후가 맞고,
+          카테고리별 비용은 "위 항목에서 자동 합산"이라 입력이 다 끝난 뒤에 와야 한다.
+          헤더를 prop으로 넘겨 게이트(null 가드) 안쪽에서 렌더 — 후보 0장이면 제목도 함께 사라진다. */}
       <CoverPicker
+        header={<SectionHeader title="대표 이미지" sub="고르지 않으면 자동으로 정해집니다" />}
         items={editor.days.flatMap((d) =>
           d.items
             .filter((it) => it.place && it.name.trim() !== '')
@@ -656,6 +650,15 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         )}
         value={editor.coverUrl}
         onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
+      />
+
+      <SectionHeader title="카테고리별 비용" sub="위 항목에서 자동 합산" />
+
+      <CostSection
+        totals={categoryTotals}
+        flightAmount={flightAmount}
+        total={total}
+        currency="KRW"
       />
 
       {/* 0527 ⑤: 저장은 최종 행동이라 하단 전폭 파랑. 비활성도 회색이 아니라 파랑 40% —
