@@ -168,6 +168,10 @@
   --color-cost-label: var(--cost-label);
   --color-hero-scrim: var(--hero-scrim);
   --color-hero-veil: var(--hero-veil);
+
+  /* 0527: 작성 화면 조판 — 입력 경계 / muted 아래 힌트 층 */
+  --color-field-border: var(--field-border);
+  --color-hint: var(--hint);
   --color-bg-deep: var(--bg-deep);
   --color-bg: var(--bg);
   --color-card: var(--card);

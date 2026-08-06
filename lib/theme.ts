@@ -94,6 +94,12 @@ export const theme = {
     // 히어로 커버 위 제목 가독 — 하단 그라디언트 + 사진 전체 베일(라이트는 베일 없음).
     heroScrim: 'rgba(10,12,13,0.72)',
     heroVeil: 'transparent',
+    // ── 0527: 작성 화면(플랜 새로/수정) 조판용.
+    // 입력 테두리 — border 토큰(rgba(255,255,255,.08))은 다크 입력에서 너무 옅어 터치 경계가
+    // 안 읽힌다. 입력 경계는 별도 축으로 둔다.
+    fieldBorder: '#dfe2e4',
+    // muted보다 한 단 옅은 층 — placeholder·빈 상태 설명·0원처럼 "아직 값이 없음" 표시 전용.
+    hint: '#b3b9bd',
   },
   dark: {
     bgDeep: '#0f1112',
@@ -161,6 +167,9 @@ export const theme = {
     costLabel: '#8b9196', // 5.64:1
     heroScrim: 'rgba(10,12,13,0.92)',
     heroVeil: 'rgba(10,12,13,0.18)',
+    // ── 0527: 라이트 짝과 같은 이름·다른 값(시안 6b·6d 실측)
+    fieldBorder: '#2f3336',
+    hint: '#6f7579',
   },
 } as const;
 
