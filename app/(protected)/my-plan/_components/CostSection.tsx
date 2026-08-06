@@ -2,8 +2,6 @@ import type React from 'react';
 import {
   CATEGORIES,
   CATEGORY_LABEL,
-  CATEGORY_COLOR,
-  FLIGHT_COLOR,
   formatAmount,
   type CostCategory,
 } from '../_lib/cost';
@@ -49,71 +47,64 @@ interface Props {
   currency: 'KRW' | 'USD' | 'JPY';
 }
 
-export function CostSection({ totals, flightAmount, total, currency }: Props) {
-  const max = Math.max(0, flightAmount, ...CATEGORIES.map((cat) => totals[cat]));
+// 0527: 카테고리 색 = 이름 왼쪽 3px 막대(아이콘·진행 막대 대체). 색은 읽기 화면(0524 cat-* 토큰)과
+//   한 벌 — 읽는 쪽과 쓰는 쪽에서 같은 카테고리가 같은 색이어야 대응이 성립한다.
+const CATEGORY_BAR: Record<CostCategory | 'FLIGHT', string> = {
+  TRANSPORT: 'bg-cat-transport',
+  FLIGHT: 'bg-cat-flight',
+  FOOD: 'bg-cat-food',
+  ACCOMMODATION: 'bg-cat-accommodation',
+  ENTRANCE: 'bg-cat-entrance',
+  ETC: 'bg-cat-etc',
+};
 
+// 0527: 금액 한 줄 — [3px 색 막대][이름][금액]. 0원은 hint로 낮춰 "아직 없음"을 표시.
+function CostRow({
+  label,
+  amount,
+  currency,
+  bar,
+}: {
+  label: string;
+  amount: number;
+  currency: Props['currency'];
+  bar: string;
+}) {
+  return (
+    <div className="flex items-center py-2.5">
+      <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${bar}`} />
+      <span className="pl-2 flex-1 text-base text-fg2">{label}</span>
+      <span className={`text-base font-semibold ${amount > 0 ? 'text-cost-amount' : 'text-hint'}`}>
+        {formatAmount(amount, currency)}
+      </span>
+    </div>
+  );
+}
+
+export function CostSection({ totals, flightAmount, total, currency }: Props) {
   return (
     <>
-      <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-        카테고리별 비용
-      </p>
-      <div className="glass-outer p-5 mb-4">
-        <div>
-          {flightAmount > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div className="flex justify-between items-center" style={{ marginBottom: 6 }}>
-                <div className="flex items-center" style={{ gap: 6 }}>
-                  <span style={{ color: FLIGHT_COLOR, fontSize: 13, lineHeight: 1, display: 'flex' }}>
-                    {FLIGHT_ICON}
-                  </span>
-                  <span style={{ fontSize: 13, color: '#4A4A4A' }}>항공</span>
-                </div>
-                <span style={{ fontSize: 12, color: '#888' }}>
-                  ₩{flightAmount.toLocaleString()}
-                </span>
-              </div>
-              <div className="rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(0,0,0,0.05)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-200"
-                  style={{ width: `${max > 0 ? (flightAmount / max) * 100 : 0}%`, backgroundColor: FLIGHT_COLOR }}
-                />
-              </div>
-            </div>
-          )}
-          {CATEGORIES.map((cat, idx) => {
-            const barPct = max > 0 ? (totals[cat] / max) * 100 : 0;
-            return (
-              <div key={cat} style={{ marginBottom: idx < CATEGORIES.length - 1 ? 14 : 0 }}>
-                <div className="flex justify-between items-center" style={{ marginBottom: 6 }}>
-                  <div className="flex items-center" style={{ gap: 6 }}>
-                    <span style={{ color: CATEGORY_COLOR[cat], fontSize: 13, lineHeight: 1, display: 'flex' }}>
-                      {CATEGORY_ICON[cat]}
-                    </span>
-                    <span style={{ fontSize: 13, color: '#4A4A4A' }}>{CATEGORY_LABEL[cat]}</span>
-                  </div>
-                  <span style={{ fontSize: 12, color: '#888' }}>
-                    {formatAmount(totals[cat], currency)}
-                  </span>
-                </div>
-                <div className="rounded-full overflow-hidden" style={{ height: 5, background: 'rgba(0,0,0,0.05)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-200"
-                    style={{ width: `${barPct}%`, backgroundColor: CATEGORY_COLOR[cat] }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div
-          className="flex justify-between"
-          style={{ marginTop: 14, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}
-        >
-          <span style={{ fontSize: 13, color: '#666' }}>총 비용</span>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#1A1A1A' }}>
-            {formatAmount(total, currency)}
-          </span>
-        </div>
+      {/* 0527: glass-outer 카드 제거 — 개방 캔버스. 진행 막대(비중)는 폐기하고 금액만 남긴다.
+          2열(좁으면 1열)로 6~7줄이 한눈에 들어오게. */}
+      <div className="mt-[18px] grid grid-cols-1 sm:grid-cols-2 gap-x-14">
+        {flightAmount > 0 && (
+          <CostRow label="항공" amount={flightAmount} currency={currency} bar={CATEGORY_BAR.FLIGHT} />
+        )}
+        {CATEGORIES.map((cat) => (
+          <CostRow
+            key={cat}
+            label={CATEGORY_LABEL[cat]}
+            amount={totals[cat]}
+            currency={currency}
+            bar={CATEGORY_BAR[cat]}
+          />
+        ))}
+      </div>
+      <div className="mt-3.5 flex items-baseline justify-between pt-[18px] border-t border-border">
+        <span className="text-base font-semibold text-fg2">총 비용</span>
+        <span className="text-[26px] font-bold tracking-[-0.02em] text-cost-total">
+          {formatAmount(total, currency)}
+        </span>
       </div>
     </>
   );

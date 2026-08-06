@@ -204,6 +204,11 @@ export function PlanDetail({ plan, dayCount, deleteAction }: Props) {
       </div>
       <PlanTimeline items={timeline} currency={plan.currency as 'KRW' | 'USD' | 'JPY'} />
 
+      {/* 0527: 섹션 라벨이 CostSection 안에서 호출부로 나왔다(작성 화면은 22px SectionHeader가 담당).
+          이 화면은 형제 섹션이 아직 12px 라벨이라 그 어휘를 유지 — 위계 정돈은 별도 사이클. */}
+      <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+        카테고리별 비용
+      </p>
       <CostSection
         totals={costSummary}
         flightAmount={flightAmount}
