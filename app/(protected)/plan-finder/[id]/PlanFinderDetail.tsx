@@ -177,13 +177,14 @@ export function PlanFinderDetail({
         </div>
 
         {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로.
-            0520: break-keep(어절 단위 줄바꿈) + 폭을 글자 수 기준 62ch(≈한글 34~35자/줄,
-            본문 권장 30~40자 대역)로 — 720px(45자/줄)는 권장 상한 초과였음.
-            0521: md+는 70ch(≈39~40자)까지 확장 — 읽기 상한 40자 미만 유지가 구속 조건이라
-            72ch(40.3~41자)가 아닌 70ch. md는 70ch가 컨테이너에 온전히 들어가는 첫 지점
-            (sm 592px는 미달). 한글 자/줄 = ch수 × '0'폭(Pretendard ≈0.56~0.57em). */}
+            0520: break-keep(어절 단위 줄바꿈) 도입 — 이 부분은 유지.
+            0525: 0520의 62ch·0521의 md+ 70ch 폭 제한은 **폐기**. 한글 본문 권장 30~40자/줄을
+            근거로 걸었으나, 이 화면은 지표 밴드·일정·비용·항공이 전부 전폭이라 소개문만
+            좁으면 중간에서 끊겨 왼쪽으로 쏠려 보였다(실화면 검수). 읽기 상한을 부정하는 게
+            아니라 "한 화면 안에서 규칙이 갈리는" 비용을 더 크게 본 판단.
+            수용한 대가: 1230px에서 ≈74자/줄로 권장 대역의 약 2배 — 알고 받아들인 값이다. */}
         {description && (
-          <p className="mt-[14px] sm:mt-[22px] max-w-[62ch] md:max-w-[70ch] break-keep text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
+          <p className="mt-[14px] sm:mt-[22px] break-keep text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
             {description}
           </p>
         )}
