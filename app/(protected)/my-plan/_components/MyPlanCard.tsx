@@ -41,10 +41,11 @@ function formatCardPeriod(start: Date | null, end: Date | null): string | null {
 
 // 상태 칩 — 색은 "공개"에만. 채움(공개) > 기본 재질(비공개) > 점선(초안)의 무게 3단이라
 // 상태 언어가 색으로 경쟁하지 않는다(CLAUDE.md §9). isDraft가 isPublic보다 우선(미완성이 먼저 읽혀야 함).
-// 공개 칩만 primary 면 — primary-fg(#0b1a2b)는 파랑 위 6.39:1(0524).
+// 공개 칩만 primary 면. 글자는 사용자 지시로 흰색 — 0529의 주요 버튼과 같은 선택
+// (primary-fg #0b1a2b가 6.39:1로 더 높지만 흰 글씨의 인상을 택함, 2.74:1은 알고 수용).
 const CHIP_BASE =
   'inline-flex items-center gap-1 shrink-0 text-[11px] leading-none px-[9px] py-[4px] rounded-full';
-const PUBLIC_CHIP = 'bg-primary text-primary-fg font-semibold';
+const PUBLIC_CHIP = 'bg-primary text-white font-semibold';
 // 초안 — 투명 점선. 라이트 커버(밝은 사진)에서 흰 점선이 날아가지 않도록 어두운 면을 깔아준다.
 const DRAFT_CHIP =
   'border border-dashed border-white/60 text-white bg-[rgba(10,10,16,0.34)]';

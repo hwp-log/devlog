@@ -94,11 +94,11 @@ export default async function MyPlanPage() {
             </h1>
           </div>
         </div>
-        {/* 검정이면 헤더의 파랑 Write와 급이 헷갈린다 → 같은 primary 면으로 통일(글자는 primary-fg #0b1a2b, 6.39:1).
-            높이 44px = §5 터치 타겟 하한. */}
+        {/* 검정이면 헤더의 파랑 Write와 급이 헷갈린다 → 같은 primary 면으로 통일.
+            글자는 사용자 지시로 흰색(0529 주요 버튼과 동일 선택). 높이 44px = §5 터치 타겟 하한. */}
         <Link
           href="/my-plan/new"
-          className="shrink-0 inline-flex items-center gap-1.5 bg-primary text-primary-fg px-[18px] min-h-11 rounded-full text-sm font-semibold appear-up transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:opacity-90 active:translate-y-0 active:scale-[0.96] active:duration-100"
+          className="shrink-0 inline-flex items-center gap-1.5 bg-primary text-white px-[18px] min-h-11 rounded-full text-sm font-semibold appear-up transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:opacity-90 active:translate-y-0 active:scale-[0.96] active:duration-100"
           style={{ animationDelay: '0.24s' }}
         >
           <Plus size={15} />
@@ -117,7 +117,7 @@ export default async function MyPlanPage() {
           <p className="text-muted text-sm mb-4">첫 여행을 계획해보세요</p>
           <Link
             href="/my-plan/new"
-            className="inline-flex items-center gap-1.5 bg-primary text-primary-fg px-[18px] min-h-11 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:opacity-90 active:translate-y-0 active:scale-[0.96] active:duration-100"
+            className="inline-flex items-center gap-1.5 bg-primary text-white px-[18px] min-h-11 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:opacity-90 active:translate-y-0 active:scale-[0.96] active:duration-100"
           >
             <Plus size={15} />
             새 계획
