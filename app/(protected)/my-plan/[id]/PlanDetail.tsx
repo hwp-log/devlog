@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { FlightLeg, type FlightLegData } from '../_components/FlightLeg';
 import { CostSection } from '../_components/CostSection';
-import { buildTimeline, type TimelineItem } from '../_components/PlanTimeline';
+import { PlanItemRow } from '@/app/(protected)/plan-finder/[id]/PlanFinderDetail';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
 import { CATEGORY_LABEL, formatAmount, type CostCategory } from '../_lib/cost';
@@ -48,18 +48,32 @@ function planFlightToLegData(f: PlanFlight): FlightLegData {
 
 type FullPlan = MyPlan & { spots: PlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
 
+// 0556: 공개 상세 page와 동일 평탄화 형태(Spot 조인값) — PlanItemRow 소비용
+type EnrichedSpot = {
+  id: string;
+  day: number;
+  order: number;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  coverUrl: string | null;
+  address: string | null;
+  movie: string | null;
+};
+
 interface Props {
   plan: FullPlan;
   dayCount: number;
   deleteAction: (planId: string) => Promise<void>;
   // 0555: 메타 행(공개 상세 동형)용
+  enrichedSpots: EnrichedSpot[];
   ownerNickname: string;
   ownerAvatarUrl: string | null;
   createdAtLabel: string;
 }
 
 
-export function PlanDetail({ plan, dayCount, deleteAction, ownerNickname, ownerAvatarUrl, createdAtLabel }: Props) {
+export function PlanDetail({ plan, dayCount, deleteAction, enrichedSpots, ownerNickname, ownerAvatarUrl, createdAtLabel }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [isPendingPublic, startPublicTransition] = useTransition();
@@ -77,7 +91,13 @@ export function PlanDetail({ plan, dayCount, deleteAction, ownerNickname, ownerA
   };
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
-  const timeline: TimelineItem[] = buildTimeline(plan.spots, plan.costs, selectedDay);
+  // 0556: 그날 항목 + 연결 비용 — buildTimeline 대체(공개 상세와 같은 필터·정렬, 비용은 costMap)
+  const costMap = new Map(
+    plan.costs.filter((c) => c.planSpotId != null).map((c) => [c.planSpotId!, c]),
+  );
+  const dayItems = enrichedSpots
+    .filter((s) => s.day === selectedDay)
+    .sort((a, b) => a.order - b.order);
 
   const costSummary = calcCostSummary(plan.costs);
   const flightAmount = plan.flight?.totalAmount ?? 0;
@@ -233,38 +253,42 @@ export function PlanDetail({ plan, dayCount, deleteAction, ownerNickname, ownerA
         ))}
       </div>
 
-      {/* 0555: 일정 행 — 공개 상세(0513) 형태의 번호+이름+hairline 행. 썸네일·주소는 PlanSpot에
-          데이터가 없어 열 생략(0517 "없으면 열 생략" 규칙). 연결 비용 금액은 우측 인라인 유지
-          (실값·"무료" 규칙 — PlanTimeline 기능 승계). 번호색 #b3b9bd는 공개 상세 리터럴과 짝. */}
+      {/* 0556: 일정 행 — 공개 상세 PlanItemRow 공용(그쪽이 정본). 썸네일·작품 칩·주소 길찾기가
+          Spot 조인(page.tsx 0556)으로 소유자에도 뜬다. 미연결 항목은 조인값 null → 열 자동 생략.
+          trailing 금액(실값·"무료" 규칙): 0492에서 "영수증 같다"로 일정에서 뺐던 자리 —
+          소유자 화면 한정 부활. 실화면 확인 후 유지 여부 재판정 예정. */}
       <div className="flex flex-col">
-        {timeline.length === 0 ? (
+        {dayItems.length === 0 ? (
           <p className="text-muted text-sm text-center py-6">항목이 없습니다.</p>
         ) : (
-          timeline.map(({ spot, cost }, i) => (
-            <div
-              key={spot.id}
-              className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-hairline"
-            >
-              <span className="w-[22px] shrink-0 text-xs sm:text-sm font-bold text-[#b3b9bd]">
-                {i + 1}
-              </span>
-              <span className="flex-1 min-w-0 text-[15px] sm:text-base font-medium text-fg2 break-keep">
-                {spot.name}
-              </span>
-              {cost != null && (
-                <span className="shrink-0 text-xs sm:text-sm font-semibold text-cost-amount">
-                  {cost.amount > 0
-                    ? formatAmount(cost.amount, plan.currency as 'KRW' | 'USD' | 'JPY')
-                    : '무료'}
-                </span>
-              )}
-            </div>
-          ))
+          dayItems.map((s, i) => {
+            const prev = i > 0 ? dayItems[i - 1] : null;
+            const origin =
+              prev && prev.lat != null && prev.lng != null
+                ? { name: prev.name, lat: prev.lat, lng: prev.lng }
+                : undefined;
+            const cost = costMap.get(s.id) ?? null;
+            return (
+              <PlanItemRow
+                key={s.id}
+                item={s}
+                index={i}
+                origin={origin}
+                trailing={
+                  cost != null ? (
+                    <span className="shrink-0 text-xs sm:text-sm font-semibold text-cost-amount">
+                      {cost.amount > 0
+                        ? formatAmount(cost.amount, plan.currency as 'KRW' | 'USD' | 'JPY')
+                        : '무료'}
+                    </span>
+                  ) : undefined
+                }
+              />
+            );
+          })
         )}
       </div>
 
-      {/* 0527: 섹션 라벨이 CostSection 안에서 호출부로 나왔다(작성 화면은 22px SectionHeader가 담당).
-          이 화면은 형제 섹션이 아직 12px 라벨이라 그 어휘를 유지 — 위계 정돈은 별도 사이클. */}
       {/* 예상 비용 — 공개 상세 순서(일정→비용→항공). CostSection은 0527에서 이미 토큰화 — 무접촉.
           sub "실제 입력값" = 공개의 "총액 기준 · 1인 환산 없음"과 대구(실값/근사 차이 명시). */}
       <div className="mt-7 sm:mt-11">
