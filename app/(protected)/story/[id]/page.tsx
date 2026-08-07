@@ -163,7 +163,9 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
       {/* PLAN 카드 — 섹션 h2("방문계획") + 카드(면·테두리·radius 기존 토큰 어휘).
           카드 안 타이틀 = 플랜 제목 겸 링크(isPublic일 때만 — 비공개는 plan-finder 상세가
           없어 미제공). 트리맵은 요약 한 줄로 대체(0452). */}
-      {story.plan && publicSummary && (
+      {/* 0557: 비공개 플랜 카드는 남에게 통째 생략(제목 포함) — "비공개 = 글 자체를 가림" 재정의.
+          작성자 본인에겐 유지. 스토리 작성자 = 연결 플랜 소유자라 isOwner로 충분(렌더 게이트 — 조회 무변). */}
+      {story.plan && publicSummary && (story.plan.isPublic || isOwner) && (
         <div className="mt-[46px]">
           {/* h2 클래스 = 방문장소 h2와 동일 문자열(섹션 제목 한 벌). 0523: 공통 척도 22px */}
           <h2 className="text-[22px] font-bold tracking-[-0.02em] text-fg mb-[16px] break-keep">방문계획</h2>
