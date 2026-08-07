@@ -32,6 +32,12 @@ export default function Loading() {
         <div className="h-11 w-[110px] shrink-0 rounded-full skeleton-shimmer" />
       </div>
 
+      {/* 0548: 검색바 자리 — MyPlanListClient TagSearchBar(w-full md:w-70 rounded-full, mb-5) 짝.
+          story/(list) 로딩의 검색바 자리와 동일형 */}
+      <div className="mb-5">
+        <div className="h-10 w-full md:w-70 rounded-full skeleton-shimmer" />
+      </div>
+
       {/* 지표줄 짝 — MyPlanListClient(text-sm lh 20 + pb-3.5 + hairline. 옅은 구조선은 실색, §11) */}
       <div className="pb-3.5 border-b border-hairline">
         <div className="h-5 flex items-center">
