@@ -111,7 +111,9 @@ export default async function MyPlanEditPage({ params }: Props) {
   }
 
   return (
-    <div>
+    // 0536: 작성 화면(my-plan/new/page)과 같은 폼·같은 폭 래퍼(--reading-w 860) —
+    //   한쪽만 바꾸면 폭이 어긋난다. 검산은 new 쪽 주석 참조.
+    <div className="max-w-[var(--reading-w)] mx-auto">
       <MyPlanNewForm initialState={buildInitialState(plan, dayCount)} mode="edit" planId={plan.id} />
     </div>
   );
