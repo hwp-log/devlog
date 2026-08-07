@@ -32,17 +32,14 @@ export default function Loading() {
         <div className="h-11 w-[110px] shrink-0 rounded-full skeleton-shimmer" />
       </div>
 
-      {/* 0548: 검색바 자리 — MyPlanListClient TagSearchBar(w-full md:w-70 rounded-full, mb-5) 짝.
-          story/(list) 로딩의 검색바 자리와 동일형 */}
-      <div className="mb-5">
-        <div className="h-10 w-full md:w-70 rounded-full skeleton-shimmer" />
-      </div>
-
-      {/* 지표줄 짝 — MyPlanListClient(text-sm lh 20 + pb-3.5 + hairline. 옅은 구조선은 실색, §11) */}
-      <div className="pb-3.5 border-b border-hairline">
+      {/* 0551: [지표(좌) ··· 검색바(우)] 한 행 짝 — MyPlanListClient와 동일 구조
+          (mt-2 · md:items-center · pb-3.5 + hairline 행 전체 마감. 옅은 구조선은 실색, §11).
+          모바일 세로 스택: 지표 바 → 검색바 전폭 */}
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline">
         <div className="h-5 flex items-center">
           <div className="h-3.5 w-64 max-w-full rounded skeleton-shimmer" />
         </div>
+        <div className="h-10 w-full md:w-70 rounded-full skeleton-shimmer" />
       </div>
 
       {/* 필터 2개 짝 — FilterDropdown 버튼(px-4 py-1.5 rounded-full ≈ h-8) 근사, my-4 */}

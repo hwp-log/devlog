@@ -123,34 +123,34 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
 
   return (
     <div>
-      {/* 0548: 검색바 — 사용자 지정 위치("새 계획" 버튼 아래 줄, 필터 줄 위). 입력 → 요약(지표) →
-          필터 → 결과 순. mb-5 = 지표줄(pb-3.5+hairline)과 한 덩이로 안 붙는 간격. 폭은 MyStory와
-          동일(w-full md:w-70 — TagSearchBar 내장). onNavigate 위임으로 URL 네비 없이 클라 상태 수신
-          (컴포넌트 무개조 재사용 — 디바운스 300ms·IME 조합·X 클리어 내장 그대로). */}
-      <div className="mb-5">
-        <TagSearchBar
-          q=""
-          basePath="/my-plan"
-          placeholder="제목, 지역, 작품을 입력하세요"
-          onNavigate={(url) => {
-            setQuery(new URL(url, location.origin).searchParams.get('q') ?? '');
-            setPage(1); // 0544: 결과 집합이 바뀌면 1페이지 복귀(필터·정렬과 동일 지점)
-          }}
-        />
+      {/* 0551: [지표(좌) ··· 검색바(우)] 한 행 — 검색바가 "새 계획" 버튼 아래 축(우측 정렬).
+          mt-2 = 헤더 mb-6에 더해 버튼과 한 덩이로 안 붙는 간격(합 32px). hairline은 행 전체 마감
+          (한 행이 된 이상 지표 밑에서만 끊기면 우측이 마감 없이 떠 보임). 모바일은 세로 스택
+          지표 → 검색바(데스크톱 좌→우 독서 순서 유지). 정렬은 center — baseline은 40px input
+          박스가 아래로 쏠려 보임. 검색 수신은 0548 그대로: onNavigate 위임(디바운스·IME 내장). */}
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline">
+        {/* 지표 — 굵기 대신 색 밝기로 위계(숫자만 fg, 라벨·구분자는 muted). 굵기는 전부 500. */}
+        <p className="text-sm font-medium text-muted">
+          계획 <span className="text-fg">{sorted.length}개</span>
+          {avgWon !== null && (
+            <> · 평균 <span className="text-fg">약 {avgWon.toLocaleString()}만원</span></>
+          )}
+          {regionCount > 0 && (
+            <> · 지역 <span className="text-fg">{regionCount}곳</span></>
+          )}
+        </p>
+        <div className="w-full md:w-auto md:shrink-0">
+          <TagSearchBar
+            q=""
+            basePath="/my-plan"
+            placeholder="제목, 지역, 작품을 입력하세요"
+            onNavigate={(url) => {
+              setQuery(new URL(url, location.origin).searchParams.get('q') ?? '');
+              setPage(1); // 0544: 결과 집합이 바뀌면 1페이지 복귀(필터·정렬과 동일 지점)
+            }}
+          />
+        </div>
       </div>
-
-      {/* 지표 — 굵기 대신 색 밝기로 위계(숫자만 fg, 라벨·구분자는 muted). 굵기는 전부 500. */}
-      <p
-        className="text-sm font-medium text-muted pb-3.5 border-b border-hairline"
-      >
-        계획 <span className="text-fg">{sorted.length}개</span>
-        {avgWon !== null && (
-          <> · 평균 <span className="text-fg">약 {avgWon.toLocaleString()}만원</span></>
-        )}
-        {regionCount > 0 && (
-          <> · 지역 <span className="text-fg">{regionCount}곳</span></>
-        )}
-      </p>
 
       <div className="flex flex-wrap gap-2 my-4 relative z-10">
         <FilterDropdown<FilterKey>
