@@ -59,7 +59,11 @@ export default async function MyPage() {
     'bg-card rounded-card border border-border px-[18px] py-[22px] sm:px-6 sm:py-[26px]';
 
   return (
-    <div>
+    // 0536: 입출력 화면 공용 폭 --reading-w(860) — 폭 규칙 2원칙(고르는 화면=풀블리드, 그 외 860).
+    //   2열 성립 검산(0536 실측): 좌측 = 860 − 400(우측 카드) − 48(gap) = 412.
+    //   지표 4열 한 칸 103px vs 최악 값 `12,345만원` 88.7px(여유 14px), 라벨 최장 55.1px.
+    //   최근 활동 행은 이름 truncate라 구조 붕괴 없음. 조판(1fr_400px·gap-12)은 무변.
+    <div className="max-w-[var(--reading-w)] mx-auto">
       <div className="mb-6 sm:mb-9">
         <p className="text-xs font-semibold tracking-[0.12em] uppercase text-primary mb-1.5 sm:mb-2">
           MyPage
