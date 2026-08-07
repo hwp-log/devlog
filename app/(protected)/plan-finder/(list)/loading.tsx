@@ -15,9 +15,9 @@ export default function Loading() {
       <PlanFinderHeader animate />
 
       {/* 0552: [지표 바(좌) ··· 검색바 자리(우)] 한 행 짝 — PlanListClient(0551 MyPlan 동조 배치)와
-          동일 구조(mt-2 · md:items-center · pb-3.5 + hairline 행 전체 마감. 옅은 구조선 실색, §11).
+          동일 구조(mt-2 · md:items-center · pb-3.5. 행 마감 hairline은 0554 실화면 기각으로 실물과 함께 제거).
           지표 text-sm(lh 20 = h-5 박스, 0553 MyPlan 동조) — 바 폭 44 ≈ "공개 코스 35개 · 지역 11곳" */}
-      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline" aria-hidden>
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5" aria-hidden>
         <div className="h-5 flex items-center">
           <div className="skeleton-shimmer h-3.5 w-44 rounded" />
         </div>

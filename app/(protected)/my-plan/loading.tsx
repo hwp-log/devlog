@@ -33,9 +33,9 @@ export default function Loading() {
       </div>
 
       {/* 0551: [지표(좌) ··· 검색바(우)] 한 행 짝 — MyPlanListClient와 동일 구조
-          (mt-2 · md:items-center · pb-3.5 + hairline 행 전체 마감. 옅은 구조선은 실색, §11).
+          (mt-2 · md:items-center · pb-3.5. 행 마감 hairline은 0554 실화면 기각으로 실물과 함께 제거).
           모바일 세로 스택: 지표 바 → 검색바 전폭 */}
-      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline">
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5">
         <div className="h-5 flex items-center">
           <div className="h-3.5 w-64 max-w-full rounded skeleton-shimmer" />
         </div>

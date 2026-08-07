@@ -156,9 +156,10 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
       <PlanFinderHeader />
 
       {/* 0552: [지표(좌) ··· 검색바(우)] 한 행 — MyPlan(0551)과 동일 배치·동일 클래스(짝).
-          hairline은 행 전체 마감, 모바일 세로 스택(지표 → 검색바), 정렬 center.
-          검색 수신은 0548 방식: onNavigate 위임(디바운스·IME 내장, URL 네비 없음). */}
-      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline">
+          모바일 세로 스택(지표 → 검색바), 정렬 center.
+          검색 수신은 0548 방식: onNavigate 위임(디바운스·IME 내장, URL 네비 없음).
+          0554: 행 마감 hairline은 실화면에서 기각(MyPlan과 함께 제거) — 간격만으로 구역 분리. */}
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5">
         {/* 공개 코스 수는 서버 데이터(sorted.length) 파생 — 검색·필터 반영값.
             평균 금액 제거(0441) — 인원수가 제각각이라 평균이 유의미하지 않음.
             0553: 글자 스타일·숫자 강조는 MyPlan 지표줄(MyPlanListClient)과 짝 — 한쪽만 바꾸면 갈린다. */}

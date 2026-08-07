@@ -124,11 +124,12 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
   return (
     <div>
       {/* 0551: [지표(좌) ··· 검색바(우)] 한 행 — 검색바가 "새 계획" 버튼 아래 축(우측 정렬).
-          mt-2 = 헤더 mb-6에 더해 버튼과 한 덩이로 안 붙는 간격(합 32px). hairline은 행 전체 마감
-          (한 행이 된 이상 지표 밑에서만 끊기면 우측이 마감 없이 떠 보임). 모바일은 세로 스택
+          mt-2 = 헤더 mb-6에 더해 버튼과 한 덩이로 안 붙는 간격(합 32px). 모바일은 세로 스택
           지표 → 검색바(데스크톱 좌→우 독서 순서 유지). 정렬은 center — baseline은 40px input
-          박스가 아래로 쏠려 보임. 검색 수신은 0548 그대로: onNavigate 위임(디바운스·IME 내장). */}
-      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline">
+          박스가 아래로 쏠려 보임. 검색 수신은 0548 그대로: onNavigate 위임(디바운스·IME 내장).
+          0554: 0551의 행 마감 hairline은 실화면에서 기각 — 검색바 밑까지 걸린 선이 어색.
+          간격만으로 구역이 갈린다(pb-3.5 + 필터 my-4 = 30px 유지). */}
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5">
         {/* 지표 — 굵기 대신 색 밝기로 위계(숫자만 fg, 라벨·구분자는 muted). 굵기는 전부 500. */}
         <p className="text-sm font-medium text-muted">
           계획 <span className="text-fg">{sorted.length}개</span>
