@@ -128,10 +128,28 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
           이 가격대 계획이 없어요
         </div>
       ) : (
-        // 열 브레이크포인트는 플랜파인더 그리드와 동일(0425) — 두 목록이 같은 폭에서 같은 열 수로 꺾인다.
+        // 0532: 열 브레이크포인트 — 이 화면의 컨테이너로 재산출. 이전엔 플랜파인더 문자열을 그대로
+        //   복사하고 "두 목록이 같은 폭에서 같은 열 수로 꺾인다"고 적었으나 사실이 아니었다.
+        //   플랜파인더는 WIDE_ROUTES(ProtectedMain)라 컨테이너 = 뷰포트−48로 무한히 넓어지는데,
+        //   /my-plan은 기본 분기라 컨테이너 = min(뷰포트−48, 1232)에서 멈춘다.
+        //
+        //   산출식(0425 형식): 임계 뷰포트 V(N) = N×하한 + gap×(N−1) + 48(px-6 좌우), 절상 후 +2.
+        //   컨테이너 = min(V−48, 1232), gap = 14(sm+), 카드 하한 320.
+        //     · 2열: 2×320 + 14×1 + 48 = 702 → min-[704px]  | 704에서 카드 321.0
+        //     · 3열: 3×320 + 14×2 + 48 = 1036 → min-[1040px] | 1040에서 321.3, 1280↑ 컨테이너캡에서 401.3
+        //     · 4열 이상은 성립하지 않는다: 4×320 + 14×3 = 1322 > 1232(컨테이너 상한).
+        //   하한 320의 근거(0415는 "메타 줄이 잘리지 않는 최소 폭"이라고만 적고 측정이 없었다):
+        //   0532 실측으로 MyPlanCard의 수축 불가 줄은 금액 줄 212px
+        //   (`6인 · 총 약 1,234만원` 123.6 + gap 8 + 좋아요 48.3 + px-4 32, 양쪽 다 nowrap/shrink-0).
+        //   320은 그 위에 얹은 디자인 여유(1.51배)이고 잘림 하한은 212다.
+        //
+        //   제거한 죽은 분기 기록 — 구 min-[1372px]:4는 컨테이너캡에서 카드 297.5px(하한 320 미달),
+        //   구 min-[2040px]:6은 194px로 **실측 하한 212도 밑돌아** 금액 줄이 overflow-hidden에
+        //   실제로 잘렸다. 게다가 컨테이너가 1232에 고정이라 뷰포트를 아무리 키워도 194px 그대로 —
+        //   즉 6열 티어는 도달 가능한 조건이 아예 없는 분기였다.
         <div
           key={`${sort}-${filter}`}
-          className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]"
+          className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 gap-[11px] sm:gap-[14px]"
         >
           {sorted.map((plan, i) => (
             <CardReveal key={plan.id} index={i} initialPhaseRef={initialPhaseRef} staggerOnRemount>
