@@ -16,6 +16,7 @@ import { PlanCard } from './PlanCard';
 import { FilterDropdown } from './FilterDropdown';
 import { PlanFinderHeader } from './PlanFinderHeader';
 import { Pagination } from '../../_components/Pagination';
+import { TagSearchBar } from '@/app/(protected)/story/_components/TagSearchBar';
 
 // SSR useLayoutEffect 경고 회피 — 스크롤은 클라 전용 (StoryListPaged와 동일 1줄 alias.
 // lib 추출은 스토리 파일 수정을 수반해 미룸 — 바꿀 땐 두 곳 함께)
@@ -50,6 +51,10 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const [sort, setSort]     = useState<SortKey>('popular');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [page, setPage]     = useState(1);
+  // 0552: 검색 — MyPlan(0548)과 같은 층·같은 방식. 전량이 이미 클라에 있어 파이프라인
+  // (검색 → 가격대 → 정렬 → slice)에 한 단계만 추가하면 지표·페이저·프리로드가 전부 정합.
+  // query는 TagSearchBar가 정규화한 값(trim·공백·# 제거).
+  const [query, setQuery] = useState('');
 
   // 페이지 전환 애니메이션 없음(0430, 0427·0429 되돌림): 데이터가 이미 클라이언트에 있어
   // 즉시 교체하면 빈 구간도 번쩍임도 없다. 서버 대기가 0이라 스켈레톤이 한 프레임만 스쳐 번쩍이던 문제 제거.
@@ -64,9 +69,20 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
     window.scrollTo(0, 0);
   }, [page]);
 
-  const filtered = filter === 'all'
+  // 0552: 검색 단계 — 제목·지역·작품 + 작성자(공개 목록은 "그 사람 코스 다시 찾기"가 용례라
+  // authorNickname 포함, 내 목록(0548)과의 차이). 공백 제거 비교는 정규화와 짝(0548).
+  const q = query.toLowerCase();
+  const searched = q === ''
     ? plans
-    : plans.filter((p) => getFilterKey(p) === filter);
+    : plans.filter((p) =>
+        [p.title, p.region, p.movie, p.authorNickname].some(
+          (f) => f != null && f.replace(/\s/g, '').toLowerCase().includes(q),
+        ),
+      );
+
+  const filtered = filter === 'all'
+    ? searched
+    : searched.filter((p) => getFilterKey(p) === filter);
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'popular') return b.likeCount - a.likeCount;
@@ -132,37 +148,49 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
 
   return (
     <div>
-      {/* 헤더 행 — 눈썹·타이틀·요약(좌) / 필터(우). 데스크톱 flex-end 정렬, 모바일 세로 스택·필터 좌측 */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
-        <div>
-          <PlanFinderHeader />
-          {/* 공개 코스 수는 서버 데이터(sorted.length) 파생 → 카드와 함께 뜨므로 등장 애니메이션 없이 바로 표시. */}
-          <p className="text-[12.5px] text-muted mt-4 sm:mt-5">
-            {/* 평균 금액 제거(0441) — 인원수가 1인·4인 등 제각각이라 평균이 유의미하지 않음. */}
-            공개 코스 {sorted.length}개
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 relative z-10">
-          <FilterDropdown<FilterKey>
-            label="가격대"
-            options={FILTER_LABELS}
-            value={filter}
-            onChange={(next) => { setFilter(next); setPage(1); }}
-          />
-          <FilterDropdown<SortKey>
-            label="정렬"
-            options={SORT_LABELS}
-            value={sort}
-            onChange={(next) => { setSort(next); setPage(1); }}
+      <PlanFinderHeader />
+
+      {/* 0552: [지표(좌) ··· 검색바(우)] 한 행 — MyPlan(0551)과 동일 배치·동일 클래스(짝).
+          hairline은 행 전체 마감, 모바일 세로 스택(지표 → 검색바), 정렬 center.
+          검색 수신은 0548 방식: onNavigate 위임(디바운스·IME 내장, URL 네비 없음). */}
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline">
+        {/* 공개 코스 수는 서버 데이터(sorted.length) 파생 — 검색·필터 반영값.
+            평균 금액 제거(0441) — 인원수가 제각각이라 평균이 유의미하지 않음. */}
+        <p className="text-[12.5px] text-muted">공개 코스 {sorted.length}개</p>
+        <div className="w-full md:w-auto md:shrink-0">
+          <TagSearchBar
+            q=""
+            basePath="/plan-finder"
+            placeholder="제목, 지역, 작품, 작성자를 입력하세요"
+            onNavigate={(url) => {
+              setQuery(new URL(url, location.origin).searchParams.get('q') ?? '');
+              setPage(1); // 결과 집합 변경 → 1페이지 복귀(0544·0548 동일 지점)
+            }}
           />
         </div>
+      </div>
+
+      {/* 필터 줄 — 좌측(0552, MyPlan 필터 줄과 동일 문법) */}
+      <div className="flex flex-wrap gap-2 my-4 relative z-10">
+        <FilterDropdown<FilterKey>
+          label="가격대"
+          options={FILTER_LABELS}
+          value={filter}
+          onChange={(next) => { setFilter(next); setPage(1); }}
+        />
+        <FilterDropdown<SortKey>
+          label="정렬"
+          options={SORT_LABELS}
+          value={sort}
+          onChange={(next) => { setSort(next); setPage(1); }}
+        />
       </div>
 
       {sorted.length === 0 ? (
         <div className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] flex flex-col items-center text-center gap-3">
           <span className="w-2 h-2 rounded-full bg-primary" />
           <p className="text-[13px] leading-[1.6] text-fg2 break-keep">
-            이 가격대의 코스가 아직 없어요.
+            {query ? `"${query}"에 맞는 코스가 없어요.` : '이 가격대의 코스가 아직 없어요.'}
             <br />
             첫 코스의 점을 찍어보세요.
           </p>
