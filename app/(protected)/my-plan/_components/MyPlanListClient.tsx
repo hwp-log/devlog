@@ -1,9 +1,15 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { FilterDropdown } from '@/app/(protected)/plan-finder/_components/FilterDropdown';
 import { MyPlanCard } from './MyPlanCard';
+import { Pagination } from '@/app/(protected)/_components/Pagination';
+import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
+
+// SSR useLayoutEffect 경고 회피 — 스크롤은 클라 전용 (PlanListClient·StoryListPaged와 동일
+// 1줄 alias. lib 추출은 두 파일 수정을 수반해 미룸 — 바꿀 땐 세 곳 함께)
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type Currency = 'KRW' | 'USD' | 'JPY';
 
@@ -54,6 +60,16 @@ function getFilterKey(item: MyPlanListItem): FilterKey | null {
 export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
   const [sort, setSort] = useState<SortKey>('newest');
   const [filter, setFilter] = useState<FilterKey>('all');
+  // 0544: 클라이언트 슬라이스 페이지네이션 — 필터·정렬이 클라이언트라 페이지도 같은 층(0416 방식 이식)
+  const [page, setPage] = useState(1);
+
+  // 페이지 변경 시 문서 최상단으로(플랜파인더·스토리와 동일 UX). 첫 마운트는 skip.
+  // useLayoutEffect: 슬라이스 교체 커밋 후·페인트 전 실행 → 이전 스크롤 위치로 그려지는 프레임 없음.
+  const didMount = useRef(false);
+  useIsoLayoutEffect(() => {
+    if (!didMount.current) { didMount.current = true; return; }
+    window.scrollTo(0, 0);
+  }, [page]);
 
   const filtered = filter === 'all'
     ? items
@@ -71,6 +87,12 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
     }
     return sort === 'price_asc' ? a.total - b.total : b.total - a.total;
   });
+
+  // 0544: 정렬·필터 완료된 sorted를 PLAN_PAGE_SIZE(12)씩 슬라이스 — 지표는 sorted 전체 기준 유지.
+  // 필터·정렬 변경 시 setPage(1)로 되돌리므로 page는 항상 유효하나, 리셋 직전 프레임 방어로 클램프(0416).
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PLAN_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = sorted.slice((currentPage - 1) * PLAN_PAGE_SIZE, currentPage * PLAN_PAGE_SIZE);
 
   const withTotal = sorted.filter((p) => p.total > 0);
   // 금액은 "약 N만원" 반올림(기준). 통화 혼재 계획은 지금도 그대로 합산된다 — 별건으로 남김.
@@ -103,13 +125,13 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
           label="가격대"
           options={FILTER_LABELS}
           value={filter}
-          onChange={setFilter}
+          onChange={(next) => { setFilter(next); setPage(1); }}
         />
         <FilterDropdown<SortKey>
           label="정렬"
           options={SORT_LABELS}
           value={sort}
-          onChange={setSort}
+          onChange={(next) => { setSort(next); setPage(1); }}
         />
       </div>
 
@@ -140,7 +162,7 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
           key={`${sort}-${filter}`}
           className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]"
         >
-          {sorted.map((plan) => (
+          {pageItems.map((plan) => (
             <MyPlanCard key={plan.id} {...plan} />
           ))}
           {/* 계획이 1~2개면 3열 그리드 오른쪽이 비어 화면이 미완성으로 읽힌다. 카드를 늘려 채우지 않고
@@ -156,6 +178,16 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
           )}
         </div>
       )}
+
+      {/* 0544: 공용 Pagination — totalPages≤1이면 자체 null(3개 미만 채움 칸 구간과 무충돌) */}
+      <Pagination
+        page={currentPage}
+        totalPages={totalPages}
+        onGo={(next) => {
+          if (next < 1 || next > totalPages || next === currentPage) return;
+          setPage(next);
+        }}
+      />
     </div>
   );
 }
