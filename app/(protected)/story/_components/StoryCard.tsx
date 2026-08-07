@@ -18,9 +18,13 @@ export interface StoryCardProps {
   extraWorkCount?: number; // 대표 작품 외 나머지 distinct 작품 수 ("호텔 델루나 +N" 신호, 0437)
   location?: string | null;
   extraLocationCount?: number; // 첫 장소 외 나머지 장소 수 ("외 N곳" 신호, 0439). 작품 +N과 세는 대상 다름.
+  /** 0547: 소유자 카드(MyStory) 변형 — 상단 하트를 생략하고 하단 메타줄 끝에 ♥N.
+   * 상단 우측을 ⋯ 메뉴(MyStoryCard 래퍼의 형제 오버레이)에 내주기 위함 — MyPlanCard(하트 하단)와 문법 통일.
+   * 기본 false = 공개 목록(/story) 무변. */
+  ownerView?: boolean;
 }
 
-export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked, work, extraWorkCount, location, extraLocationCount }: StoryCardProps) {
+export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked, work, extraWorkCount, location, extraLocationCount, ownerView }: StoryCardProps) {
   return (
     <Link href={`/story/${id}`} className="group block cursor-pointer">
       <div className="relative aspect-[4/3] rounded-[12px] overflow-hidden bg-surface2">
@@ -41,7 +45,9 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
         {/* 상단 바 — 칩(좌)·좋아요(우)를 flex 한 줄로 배치(PlanCard 상단 바와 동일 원리).
             이전엔 둘 다 absolute라 긴 작품명 칩의 max-w가 좋아요 폭을 못 빼 겹쳤다(0447).
             이제 칩은 min-w-0로 줄어들며 잘리고, 좋아요는 ml-auto·shrink-0로 항상 온전히 보인다. */}
-        <div className="absolute inset-x-2 top-2 flex items-start gap-2">
+        {/* ownerView(0547): 하트 대신 ⋯ 오버레이(래퍼 형제, right-2 폭 32)가 우측을 차지 —
+            칩이 그 밑으로 뻗지 않게 pr-10(40 = 버튼 32 + 간격 8) 확보(MyPlanCard pr-[52px]와 같은 수법) */}
+        <div className={`absolute inset-x-2 top-2 flex items-start gap-2${ownerView ? ' pr-10' : ''}`}>
           {/* 칩 — 지오메트리(11px·3/9·radius-full)는 PlanCard와 동일, 재질은 불투명 흰+어두운 글씨.
               "호텔 델루나 +2": 이름만 truncate(min-w-0), +N은 shrink-0으로 이름이 잘려도 항상 보임
               (신호 소실 방지). +N은 같은 고정 fg를 opacity로 옅게 — text-muted 같은 토큰은 다크에서
@@ -54,14 +60,17 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
               {extraWorkCount ? <span className="shrink-0 ml-1 opacity-55">+{extraWorkCount}</span> : null}
             </span>
           )}
-          {/* 좋아요 — 우측(PlanCard와 같은 크기). ml-auto=칩 유무와 무관하게 우측, shrink-0=칩이 길어도 온전. */}
-          <span
-            className={`ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium ${CARD_PILL_CLASS}`}
-          >
-            {/* 내가 누른 좋아요만 빨강 채움. 다른 사람 좋아요·미좋아요는 이전 디자인(어두운 하트). */}
-            <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
-            {likeCount}
-          </span>
+          {/* 좋아요 — 우측(PlanCard와 같은 크기). ml-auto=칩 유무와 무관하게 우측, shrink-0=칩이 길어도 온전.
+              ownerView(0547)에선 생략 — 그 자리는 ⋯ 메뉴(래퍼 오버레이), 수치는 하단 메타줄로. */}
+          {!ownerView && (
+            <span
+              className={`ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-[9px] py-[3px] text-[12.5px] leading-none font-medium ${CARD_PILL_CLASS}`}
+            >
+              {/* 내가 누른 좋아요만 빨강 채움. 다른 사람 좋아요·미좋아요는 이전 디자인(어두운 하트). */}
+              <Heart size={13} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
+              {likeCount}
+            </span>
+          )}
         </div>
       </div>
       {/* 0436: 제목·날짜·위치 12px(text-xs, §5 하한). 제목은 흰 배경+어두운 글씨라 같은 500이어도
@@ -79,6 +88,16 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
                   색은 부모 text-fg2 상속 — 장소명과 같은 톤으로 진하게. */}
               <span className="truncate min-w-0">{location}</span>
               {extraLocationCount ? <span className="shrink-0">외 {extraLocationCount}곳</span> : null}
+            </span>
+          </>
+        )}
+        {/* 0547 ownerView: 남이 누른 수 표시(토글 아님) — MyPlanCard 하단 하트와 같은 의미·같은 자리 문법 */}
+        {ownerView && (
+          <>
+            <span className="text-border shrink-0" aria-hidden>·</span>
+            <span className="flex items-center gap-0.5 shrink-0 text-muted">
+              <Heart size={12} className={isLiked ? 'fill-heart-active text-heart-active' : undefined} />
+              {likeCount}
             </span>
           </>
         )}

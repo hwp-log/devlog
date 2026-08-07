@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { StoryCard, type StoryCardProps } from '@/app/(protected)/story/_components/StoryCard';
+import { type StoryCardProps } from '@/app/(protected)/story/_components/StoryCard';
+import { MyStoryCard } from './MyStoryCard';
 import { Pagination } from '@/app/(protected)/_components/Pagination';
 
 type MyStoryItem = StoryCardProps;
@@ -54,7 +55,7 @@ export function MyStoryCardGrid({ stories, pageSize }: { stories: MyStoryItem[];
             그 폭이 된다. 220은 그 상태를 이미 전제한 값이다. */}
       <div className="grid grid-cols-1 min-[640px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6">
         {pageItems.map((story) => (
-          <StoryCard key={story.id} {...story} />
+          <MyStoryCard key={story.id} {...story} />
         ))}
       </div>
 
