@@ -16,10 +16,10 @@ export default function Loading() {
 
       {/* 0552: [지표 바(좌) ··· 검색바 자리(우)] 한 행 짝 — PlanListClient(0551 MyPlan 동조 배치)와
           동일 구조(mt-2 · md:items-center · pb-3.5 + hairline 행 전체 마감. 옅은 구조선 실색, §11).
-          지표 text-[12.5px] lh ≈ 19px 박스 근사 h-5 */}
+          지표 text-sm(lh 20 = h-5 박스, 0553 MyPlan 동조) — 바 폭 44 ≈ "공개 코스 35개 · 지역 11곳" */}
       <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-3.5 border-b border-hairline" aria-hidden>
         <div className="h-5 flex items-center">
-          <div className="skeleton-shimmer h-[13px] w-32 rounded" />
+          <div className="skeleton-shimmer h-3.5 w-44 rounded" />
         </div>
         <div className="skeleton-shimmer h-10 w-full md:w-70 rounded-full" />
       </div>
