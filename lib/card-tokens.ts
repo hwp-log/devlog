@@ -19,10 +19,16 @@ export const CARD_PILL_CLASS =
   'dark:bg-[rgba(13,13,20,0.72)] dark:text-white ' +
   'dark:shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_0_0_0.5px_rgba(255,255,255,0.14)]';
 
+// 0535: 밴드를 그리드 브레이크포인트와 1:1 재동기 — 구 '(max-width:767px) 100vw, 400px'은
+// 767 분기점이 어떤 그리드 bp와도 대응하지 않았고(0532 보고), 2열 밴드(704~1039)에서
+// 실카드 최대 488px를 400으로 과소 서빙했다. 분기점 = 그리드 bp − 1
+// (플랜 그리드 704/1040/1372/2040 — PlanListClient·MyPlanListClient 주석의 산출식 참조).
+// 각 밴드 실비율(≈49/33/25/16.5vw)에 소폭 상향 여유 — 과소보다 과대가 안전.
 // 커버 이미지 sizes — 플랜파인더 인접 페이지 프리로더(PlanListClient)가 같은 srcSet을 얻으려면
 // getImageProps에 이 값을 그대로 넣어야 한다. 단일 소스: PlanCard·MyPlanCard의 <Image>와 프리로더가 공유
 // (한쪽만 바꾸면 캐시 어긋남). MyPlan 그리드는 플랜파인더와 같은 열 브레이크포인트라 같은 값을 쓴다.
-export const PLAN_CARD_SIZES = '(max-width: 767px) 100vw, 400px';
+export const PLAN_CARD_SIZES =
+  '(max-width: 703px) 100vw, (max-width: 1039px) 50vw, (max-width: 1371px) 34vw, (max-width: 2039px) 25vw, 17vw';
 
 // 커버 위 스크림 — 하단 텍스트 대비 확보. 커버 null(무채 폴백) 시에도 동일 적용.
 // 반투명 검정은 theme 토큰 예외 허용(0406).

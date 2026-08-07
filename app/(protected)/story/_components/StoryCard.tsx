@@ -29,7 +29,10 @@ export function StoryCard({ id, thumbnail, title, createdAt, likeCount, isLiked,
             src={thumbnail}
             alt=""
             fill
-            sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, (max-width: 1535px) 20vw, 17vw"
+            // 0535: 밴드를 그리드 bp(514/758/1002/1490 — StoryCardList·MyStoryCardGrid 공통)와
+            // 1:1 재동기. 구 값은 md/lg/2xl 시절 화석 — 0448(모바일 1열 전환) 후 1열 밴드를
+            // 50vw로 절반 해상도 서빙 중이었다. 분기점 = 그리드 bp − 1, 비율은 소폭 상향 여유.
+            sizes="(max-width: 513px) 100vw, (max-width: 757px) 50vw, (max-width: 1001px) 34vw, (max-width: 1489px) 25vw, 17vw"
             className="object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]"
           />
         ) : (
