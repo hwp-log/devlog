@@ -7,10 +7,9 @@
 //   완전 동일(0535 재유도 결과)·카드 높이 동일(240/280, 빈 판 주석 방증).
 // 폭: /my-plan은 WIDE_ROUTES(풀블리드) — 레이아웃 분기 상속, 전용 래퍼 없음.
 import { PlanSkeletonGrid } from '@/app/(protected)/plan-finder/_components/PlanSkeletonGrid';
-
-// 카드 8 = 최대 밀도 4열 구간(1372~2040) 2행 — 전건 렌더라 PAGE_SIZE가 없어 첫 뷰포트
-// 채움(헤더~필터 ≈200px + 280px 2행)을 근거로. 6열(2040+)에선 1.33행이나 초광폭 예외 수용.
-const CARD_COUNT = 8;
+// 0544: 페이지네이션 도입으로 카드 수 근거를 뷰포트(8)에서 PAGE_SIZE로 정정 —
+// 실그리드가 페이지당 PLAN_PAGE_SIZE(12)장이라 12건 이상이면 그리드 높이·페이저 위치 정합.
+import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
 
 export default function Loading() {
   return (
@@ -47,7 +46,13 @@ export default function Loading() {
       </div>
 
       {/* 카드 그리드 — 실그리드(MyPlanListClient)와 동일 치수의 공용 스켈레톤 재사용 */}
-      <PlanSkeletonGrid count={CARD_COUNT} />
+      <PlanSkeletonGrid count={PLAN_PAGE_SIZE} />
+
+      {/* 0544: 페이저 자리 — 공용 Pagination(mt-10 + h-11 셀) 짝. 대표형 = totalPages>1.
+          폭 332 = 7셀×44 + gap 6×4 근사(슬롯 수 반응형이라 정확 일치 불가). */}
+      <div className="mt-10 flex justify-center">
+        <div className="skeleton-shimmer h-11 w-[332px] max-w-full rounded-[14px]" />
+      </div>
     </div>
   );
 }
