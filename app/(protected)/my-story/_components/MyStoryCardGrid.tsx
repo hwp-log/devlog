@@ -1,19 +1,11 @@
 'use client';
-import { useEffect, useRef } from 'react';
 import { StoryCard, type StoryCardProps } from '@/app/(protected)/story/_components/StoryCard';
-import { CardReveal } from '@/app/(protected)/story/_components/CardReveal';
 
 type MyStoryItem = StoryCardProps;
 
+// 0542: CardReveal 등장 연출 제거 — 진입 로딩 스켈레톤(loading.tsx) 신설로 등장 연출이
+// 이중이 됨. 무연출 즉시 렌더는 plan-finder 실그리드(0430)와 동일 구조.
 export function MyStoryCardGrid({ stories }: { stories: MyStoryItem[] }) {
-  const initialPhaseRef = useRef(true);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      initialPhaseRef.current = false;
-    }, 200);
-    return () => clearTimeout(t);
-  }, []);
-
   return (
     // 0532: 구 1/md:2/lg:3/xl:4는 0042 당시 /story 체계를 옮겨온 것으로, 이후 /story가 바뀔 때
     //   갱신되지 않아 네 번째 체계로 남아 있었다. 이 화면의 컨테이너로 재산출한다.
@@ -34,10 +26,8 @@ export function MyStoryCardGrid({ stories }: { stories: MyStoryItem[] }) {
     //   `M월 D일`(37.5)에서 `YYYY년 M월 D일`로 되돌리므로, 2027년 1월에 기존 스토리 전건이
     //   그 폭이 된다. 220은 그 상태를 이미 전제한 값이다.
     <div className="grid grid-cols-1 min-[514px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6">
-      {stories.map((story, i) => (
-        <CardReveal key={story.id} index={i} initialPhaseRef={initialPhaseRef}>
-          <StoryCard {...story} />
-        </CardReveal>
+      {stories.map((story) => (
+        <StoryCard key={story.id} {...story} />
       ))}
     </div>
   );

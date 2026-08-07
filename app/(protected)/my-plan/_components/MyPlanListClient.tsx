@@ -1,9 +1,8 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { FilterDropdown } from '@/app/(protected)/plan-finder/_components/FilterDropdown';
-import { CardReveal } from '@/app/(protected)/story/_components/CardReveal';
 import { MyPlanCard } from './MyPlanCard';
 
 type Currency = 'KRW' | 'USD' | 'JPY';
@@ -56,14 +55,6 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
   const [sort, setSort] = useState<SortKey>('newest');
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const initialPhaseRef = useRef(true);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      initialPhaseRef.current = false;
-    }, 200);
-    return () => clearTimeout(t);
-  }, []);
-
   const filtered = filter === 'all'
     ? items
     : items.filter((p) => getFilterKey(p) === filter);
@@ -96,8 +87,7 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
     <div>
       {/* 지표 — 굵기 대신 색 밝기로 위계(숫자만 fg, 라벨·구분자는 muted). 굵기는 전부 500. */}
       <p
-        className="text-sm font-medium text-muted pb-3.5 border-b border-hairline appear-up"
-        style={{ animationDelay: '0.24s' }}
+        className="text-sm font-medium text-muted pb-3.5 border-b border-hairline"
       >
         계획 <span className="text-fg">{sorted.length}개</span>
         {avgWon !== null && (
@@ -150,10 +140,8 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
           key={`${sort}-${filter}`}
           className="grid grid-cols-[minmax(min(320px,100%),1fr)] min-[704px]:grid-cols-2 min-[1040px]:grid-cols-3 min-[1372px]:grid-cols-4 min-[2040px]:grid-cols-6 gap-[11px] sm:gap-[14px]"
         >
-          {sorted.map((plan, i) => (
-            <CardReveal key={plan.id} index={i} initialPhaseRef={initialPhaseRef} staggerOnRemount>
-              <MyPlanCard {...plan} />
-            </CardReveal>
+          {sorted.map((plan) => (
+            <MyPlanCard key={plan.id} {...plan} />
           ))}
           {/* 계획이 1~2개면 3열 그리드 오른쪽이 비어 화면이 미완성으로 읽힌다. 카드를 늘려 채우지 않고
               (그러면 카드마다 폭이 달라진다) 빈 칸을 다음 행동으로 쓴다. 3개부터는 사라짐. */}

@@ -60,36 +60,26 @@ export default async function MyPlanPage() {
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <div className="appear-up" style={{ animationDelay: '0s' }}>
-            {profile?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatarUrl}
-                alt=""
-                className="w-14 h-14 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <span
-                className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0"
-                style={{ backgroundColor: avatar.color }}
-                aria-label={`${nickname} 아바타`}
-              >
-                {avatar.initial}
-              </span>
-            )}
-          </div>
+          {profile?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.avatarUrl}
+              alt=""
+              className="w-14 h-14 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <span
+              className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0"
+              style={{ backgroundColor: avatar.color }}
+              aria-label={`${nickname} 아바타`}
+            >
+              {avatar.initial}
+            </span>
+          )}
           <div>
             {/* 하드코딩 #1A1A1A·sky-500 → 토큰(다크에서 검정 제목이 배경에 묻히던 것도 함께 해소). */}
-            <p
-              className="text-xs font-semibold text-primary mb-1 appear-up"
-              style={{ animationDelay: '0s' }}
-            >
-              MyPlan
-            </p>
-            <h1
-              className="text-[21px] md:text-[28px] font-bold tracking-[-0.02em] text-fg break-keep appear-up"
-              style={{ animationDelay: '0.12s' }}
-            >
+            <p className="text-xs font-semibold text-primary mb-1">MyPlan</p>
+            <h1 className="text-[21px] md:text-[28px] font-bold tracking-[-0.02em] text-fg break-keep">
               {headline}
             </h1>
           </div>
@@ -98,8 +88,7 @@ export default async function MyPlanPage() {
             글자는 사용자 지시로 흰색(0529 주요 버튼과 동일 선택). 높이 44px = §5 터치 타겟 하한. */}
         <Link
           href="/my-plan/new"
-          className="shrink-0 inline-flex items-center gap-1.5 bg-primary text-white px-[18px] min-h-11 rounded-full text-sm font-semibold appear-up transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:opacity-90 active:translate-y-0 active:scale-[0.96] active:duration-100"
-          style={{ animationDelay: '0.24s' }}
+          className="shrink-0 inline-flex items-center gap-1.5 bg-primary text-white px-[18px] min-h-11 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:-translate-y-[3px] hover:opacity-90 active:translate-y-0 active:scale-[0.96] active:duration-100"
         >
           <Plus size={15} />
           새 계획
@@ -109,8 +98,7 @@ export default async function MyPlanPage() {
       {plans.length === 0 ? (
         // 빈 판 높이 = 카드 한 장(240/280px). 첫 계획이 생겼을 때 레이아웃이 뛰지 않는다.
         <div
-          className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] h-[240px] sm:h-[280px] flex flex-col items-center justify-center text-center appear-up"
-          style={{ animationDelay: '0.36s' }}
+          className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] h-[240px] sm:h-[280px] flex flex-col items-center justify-center text-center"
         >
           <Map size={34} strokeWidth={1.5} className="text-muted mb-3" />
           <p className="text-fg font-medium mb-1">아직 여행 계획이 없어요</p>

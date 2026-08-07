@@ -42,46 +42,33 @@ export default async function MyStoryPage({
     <div>
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <div className="appear-up" style={{ animationDelay: '0s' }}>
-            {profile?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatarUrl}
-                alt=""
-                className="w-14 h-14 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <span
-                className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0"
-                style={{ backgroundColor: avatar.color }}
-                aria-label={`${nickname} 아바타`}
-              >
-                {avatar.initial}
-              </span>
-            )}
-          </div>
+          {profile?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.avatarUrl}
+              alt=""
+              className="w-14 h-14 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <span
+              className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0"
+              style={{ backgroundColor: avatar.color }}
+              aria-label={`${nickname} 아바타`}
+            >
+              {avatar.initial}
+            </span>
+          )}
           <div>
-            <p
-              className="text-xs font-semibold text-sky-500 mb-1 appear-up"
-              style={{ animationDelay: '0s' }}
-            >
-              MyStory
-            </p>
-            <h1
-              className="text-xl md:text-3xl font-bold text-[#1A1A1A] break-keep appear-up"
-              style={{ animationDelay: '0.12s' }}
-            >
+            <p className="text-xs font-semibold text-sky-500 mb-1">MyStory</p>
+            <h1 className="text-xl md:text-3xl font-bold text-[#1A1A1A] break-keep">
               {headline}
             </h1>
-            <p
-              className="text-sm text-slate-500 mt-1 appear-up"
-              style={{ animationDelay: '0.18s' }}
-            >
+            <p className="text-sm text-slate-500 mt-1">
               {stories.length} 게시물 · {likeSum} 좋아요
             </p>
           </div>
         </div>
-        <div className="appear-up w-full md:w-auto" style={{ animationDelay: '0.24s' }}>
+        <div className="w-full md:w-auto">
           <TagSearchBar q={keyword} basePath="/my-story" tags={myTags} />
         </div>
       </div>
@@ -94,8 +81,7 @@ export default async function MyStoryPage({
             </div>
           ) : (
             <div
-              className="glass-outer p-12 h-[calc(100vh-208px)] min-h-[440px] flex flex-col items-center justify-center text-center appear-up"
-              style={{ animationDelay: '0.36s' }}
+              className="glass-outer p-12 h-[calc(100vh-208px)] min-h-[440px] flex flex-col items-center justify-center text-center"
             >
               <MapPin size={40} strokeWidth={1.5} className="text-slate-300 mb-3" />
               <p className="text-slate-700 font-medium mb-1">아직 남긴 이야기가 없어요</p>
