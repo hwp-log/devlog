@@ -63,11 +63,11 @@ export function TagSearchBar({
 
   const handleCompositionStart = () => {
     isComposing.current = true;
-    // 0549: 직전 확정 음절의 예약 검색 폐기 — "경주"의 ㅈ에서 compositionend("경")가 정식
-    // 스케줄되는데, 다음 음절 조합 시작이 그 타이머를 안 지우면 음절 간격 >300ms에 "경"이 나간다.
-    // 0086은 자모 중간("ㅈ"·"저") 억제, 0549는 확정 음절 예약 취소 — 층이 다르다.
-    // 마지막 확정값은 compositionEnd가 다시 스케줄하므로 정상 검색.
-    if (timerRef.current) clearTimeout(timerRef.current);
+    // 0550: 여기서 대기 타이머를 취소하는 안(0549)은 되돌렸다 — 한글 마지막 음절은
+    // 커밋(다음 입력·클릭·blur)까지 compositionend가 없어, 직전 확정 음절의 예약이
+    // 말미 구간의 유일한 검색인데 그걸 지우면 검색이 커밋까지 멈춘다(실사용 확정).
+    // 중간 음절 검색("경" ⊇ "경주")은 부분일치의 상위집합 프리뷰로 수용. 재제안하려면
+    // 만료 시점에 최신 입력값을 읽는 방식(D)의 자모 꼬리 정규화 판정이 선행돼야 한다.
   };
 
   const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
