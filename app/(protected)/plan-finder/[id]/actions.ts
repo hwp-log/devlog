@@ -1,5 +1,6 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { visiblePlanWhere } from '@/lib/plan/queries';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import { createClient } from '@/lib/supabase/server';
@@ -10,10 +11,10 @@ export async function togglePlanLikeAction(planId: string): Promise<{ liked: boo
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('로그인이 필요합니다');
 
-  // 공개 플랜만 좋아요 가능 — 페이지(plan-finder/[id]/page.tsx)·copyPublicPlanAction과 동일 게이트.
+  // 0557: 공개이거나 내 것(visiblePlanWhere) — 페이지·copyPublicPlanAction과 동일 게이트.
   // 미존재 planId도 여기서 걸러짐 (FK 에러 사전 차단)
   const plan = await prisma.myPlan.findFirst({
-    where: { id: planId, isPublic: true },
+    where: { id: planId, ...visiblePlanWhere(user.id) },
     select: { id: true },
   });
   if (!plan) throw new Error('플랜을 찾을 수 없습니다');
@@ -52,8 +53,9 @@ export async function copyPublicPlanAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // 0557: 공개이거나 내 것 — 자기 비공개 담기는 무해(버튼은 isOwner 숨김, 방어만 공유)
   const original = await prisma.myPlan.findFirst({
-    where: { id: planId, isPublic: true },
+    where: { id: planId, ...visiblePlanWhere(user.id) },
     select: {
       title: true,
       description: true,

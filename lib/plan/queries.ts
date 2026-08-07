@@ -19,6 +19,14 @@ export type PublicPlanListItem = {
   summary: PublicCostSummary;
 };
 
+/** 0557: 플랜 가시성 — 공개이거나 내 것. 비공개는 "금액 가공"이 아니라 글 자체를 가린다(재정의).
+ *  소비처: 공개 상세(plan-finder/[id]/page)·좋아요·담기(plan-finder/[id]/actions).
+ *  공개 목록(fetchPublicPlans)은 미적용 — 목록은 접근 제어가 아니라 공개 진열 기준이라
+ *  내 비공개가 섞이면 목록의 의미가 깨진다(내 비공개는 /my-plan 담당). */
+export function visiblePlanWhere(viewerId?: string | null) {
+  return { OR: [{ isPublic: true }, ...(viewerId ? [{ ownerId: viewerId }] : [])] };
+}
+
 export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListItem[]> {
   const plans = await prisma.myPlan.findMany({
     where: { isPublic: true },

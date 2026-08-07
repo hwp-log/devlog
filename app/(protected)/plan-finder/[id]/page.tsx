@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
+import { visiblePlanWhere } from '@/lib/plan/queries';
 import { PlanFinderDetail } from './PlanFinderDetail';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 
@@ -18,8 +19,9 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // 0557: 공개이거나 내 것 — 남의 비공개는 404 유지, 소유자는 자기 비공개도 열람(가시성 정본: visiblePlanWhere)
   const plan = await prisma.myPlan.findFirst({
-    where: { id, isPublic: true },
+    where: { id, ...visiblePlanWhere(user?.id) },
     select: {
       title: true,
       description: true,
