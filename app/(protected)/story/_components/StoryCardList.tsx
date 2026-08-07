@@ -5,9 +5,36 @@ import { StoryCard, type StoryCardProps } from './StoryCard';
 export function StoryCardList({ stories }: { stories: StoryCardProps[] }) {
   return (
     // 0425: 열 수를 12(STORY_PAGE_SIZE)의 약수로 제한 — 마지막 줄이 비는 문제 해결.
-    // 0448: 모바일 base 2→1열 — 플랜파인더(모바일 1열)와 인상 통일 + 카드 확대. 1·3·4·6 모두 12의 약수 유지.
+    // 0448: 모바일 base 2→1열 — 플랜파인더(모바일 1열)와 인상 통일 + 카드 확대. 1·2·3·4·6 모두 12의 약수 유지.
     // StorySkeletonGrid와 클래스 동일 유지 필수(한쪽만 바꾸면 크로스페이드 시 레이아웃 시프트).
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-6">
+    //
+    // 0532: Tailwind 기본 bp(md/lg/2xl)에서 컨테이너 산출식으로 전환 — 네 목록이 네 체계로
+    //   갈려 있던 것을 한 방법으로 모은다. 기본 bp는 카드 폭과 무관한 값이라 514~767 구간에서
+    //   1열 = 카드 712px까지 부풀었다(목록으로선 과한 폭).
+    //
+    //   산출식(0425 형식): 임계 뷰포트 V(N) = N×하한 + gap×(N−1) + 48(px-6 좌우), 절상 후 +2.
+    //   이 라우트는 ProtectedMain의 WIDE_ROUTES라 컨테이너 = 뷰포트−48(상한 없음). gap = 24.
+    //     · 2열: 2×220 + 24×1 + 48 = 512 → min-[514px]  | 카드 221.0
+    //     · 3열: 3×220 + 24×2 + 48 = 756 → min-[758px]  | 카드 220.7
+    //     · 4열: 4×220 + 24×3 + 48 = 1000 → min-[1002px] | 카드 220.5
+    //     · 6열: 6×220 + 24×5 + 48 = 1488 → min-[1490px] | 카드 220.3
+    //   6열 티어는 이 라우트에 max-w가 없어서만 성립한다 — 캡 라우트(/my-story, 컨테이너 1232)는
+    //   6×220 + 120 = 1440 > 1232이라 4열에서 끝난다. MyStoryCardGrid와 숫자가 갈리는 건
+    //   복사 누락이 아니라 컨테이너가 달라서다.
+    //
+    //   1열 트랙은 minmax 가드 없이 grid-cols-1 — 플랜 그리드의 minmax(min(320px,100%),1fr)는
+    //   320 하한이 368px 미만 뷰포트에서 컨테이너를 넘기 때문에 필요한 것인데, 220 하한은
+    //   최소 지원 폭 320px(컨테이너 272)에서도 이미 충족돼 넘칠 일이 없다.
+    //
+    //   하한 220의 근거: StoryCard의 수축 불가 줄은 메타 줄 159px
+    //   (날짜 91.2 + gap 6 + · 4 + gap 6 + 핀 12 + gap 2 + `외 12곳` 37.5. 장소명만 truncate 가능).
+    //   ⚠ 날짜 91.2는 `2025년 12월 31일` 기준이다 — formatStoryCardDate(lib/format-date.ts)는
+    //   올해 글만 `M월 D일`(37.5)로 줄이고 해가 바뀌면 `YYYY년 M월 D일`로 되돌린다. 즉
+    //   2027년 1월 1일에 기존 스토리 전건이 91.2로 넓어진다. 220은 그 상태를 전제한 값이므로
+    //   연초에 재검토가 필요 없다. 37.5 기준으로 낮췄다면 매년 1월 깨졌을 값.
+    //   220은 159 위에 얹은 디자인 여유이자, 현행 레이아웃이 이미 도달해 있던 최소 카드 폭
+    //   (구 md 3열 224 / 구 2xl 6열 228)을 하한으로 명문화한 값이다.
+    <div className="grid grid-cols-1 min-[514px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6">
       {stories.map((story) => (
         <StoryCard key={story.id} {...story} />
       ))}
