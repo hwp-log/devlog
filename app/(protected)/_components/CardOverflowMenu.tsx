@@ -23,9 +23,12 @@ interface Props {
   /** 메뉴 항목들 (role="menuitem" — MENU_ITEM_CLASS/MENU_DANGER_CLASS 사용).
    * render-prop: 닫힘 시점은 항목 책임(예: confirm 취소 시 열림 유지) — close를 넘겨준다. */
   children: (close: () => void) => React.ReactNode;
+  /** 카드 우상단 앵커 — 기본은 MyPlanCard 상단바 인셋(13/14px)과 짝.
+   * StoryCard는 칩 인셋이 inset-x-2 top-2(8px)라 'right-2 top-2'를 전달(칩과 정렬). */
+  positionClass?: string;
 }
 
-export function CardOverflowMenu({ title, children }: Props) {
+export function CardOverflowMenu({ title, children, positionClass = 'right-3 top-[13px] sm:top-[14px]' }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -46,7 +49,7 @@ export function CardOverflowMenu({ title, children }: Props) {
   }, [open]);
 
   return (
-    <div ref={ref} className="absolute right-3 top-[13px] z-20 sm:top-[14px]">
+    <div ref={ref} className={`absolute z-20 ${positionClass}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
