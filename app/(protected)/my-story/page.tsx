@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { MapPin, PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { fetchStoriesWithMeta, fetchMyStoryTags, mapStoryToCard, fetchLikedStoryIds } from '@/lib/story/queries';
+import { fetchStoriesWithMeta, fetchMyStoryTags, mapStoryToCard, fetchLikedStoryIds, STORY_PAGE_SIZE } from '@/lib/story/queries';
 import { getAvatarInfo } from '@/lib/avatar/generate';
 import { TagSearchBar } from '@/app/(protected)/story/_components/TagSearchBar';
 import { MyStoryCardGrid } from './_components/MyStoryCardGrid';
@@ -96,7 +96,7 @@ export default async function MyStoryPage({
             </div>
           )
         ) : (
-          <MyStoryCardGrid stories={stories.map((s) => mapStoryToCard(s, likedSet))} />
+          <MyStoryCardGrid stories={stories.map((s) => mapStoryToCard(s, likedSet))} pageSize={STORY_PAGE_SIZE} />
         )}
       </ViewTransition>
     </div>

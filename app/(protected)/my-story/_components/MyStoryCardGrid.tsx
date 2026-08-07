@@ -2,7 +2,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { StoryCard, type StoryCardProps } from '@/app/(protected)/story/_components/StoryCard';
 import { Pagination } from '@/app/(protected)/_components/Pagination';
-import { STORY_PAGE_SIZE } from '@/lib/story/queries';
 
 type MyStoryItem = StoryCardProps;
 
@@ -14,7 +13,9 @@ const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : use
 // 이중이 됨. 무연출 즉시 렌더는 plan-finder 실그리드(0430)와 동일 구조.
 // 0544: 클라이언트 슬라이스 페이지네이션(0416 방식) — 검색(?q=) 변경 시 페이지 리셋은
 // page.tsx의 <ViewTransition key={listKey}>가 결과 변경 때 이 컴포넌트를 remount시켜 담당.
-export function MyStoryCardGrid({ stories }: { stories: MyStoryItem[] }) {
+// pageSize는 prop 주입 — STORY_PAGE_SIZE 정본(lib/story/queries)이 prisma를 import해
+// 클라이언트에서 직접 가져올 수 없다(StoryListPaged와 동일 사정·동일 방식).
+export function MyStoryCardGrid({ stories, pageSize }: { stories: MyStoryItem[]; pageSize: number }) {
   const [page, setPage] = useState(1);
 
   // 페이지 변경 시 문서 최상단으로(다른 목록과 동일 UX). 첫 마운트는 skip.
@@ -24,10 +25,10 @@ export function MyStoryCardGrid({ stories }: { stories: MyStoryItem[] }) {
     window.scrollTo(0, 0);
   }, [page]);
 
-  // stories는 이미 서버 필터(검색) 완료분 — STORY_PAGE_SIZE(12)씩 슬라이스. 방어 클램프는 0416 동일.
-  const totalPages = Math.max(1, Math.ceil(stories.length / STORY_PAGE_SIZE));
+  // stories는 이미 서버 필터(검색) 완료분 — pageSize(STORY_PAGE_SIZE=12)씩 슬라이스. 방어 클램프는 0416 동일.
+  const totalPages = Math.max(1, Math.ceil(stories.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageItems = stories.slice((currentPage - 1) * STORY_PAGE_SIZE, currentPage * STORY_PAGE_SIZE);
+  const pageItems = stories.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
