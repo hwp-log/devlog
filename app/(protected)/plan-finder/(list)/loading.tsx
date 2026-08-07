@@ -28,6 +28,13 @@ export default function Loading() {
 
       {/* 카드 그리드 — 실제 PlanListClient 그리드와 동일 치수 */}
       <PlanSkeletonGrid count={PLAN_PAGE_SIZE} />
+
+      {/* 0542: 페이저 자리 — 공용 Pagination(mt-10 + h-11 셀) 짝. 자리를 안 잡으면 전환 시
+          페이저가 튀어나와 하단·푸터가 출렁임. 대표형 = totalPages>1(목록이 페이지 크기 초과).
+          폭 332 = 7셀×44 + gap 6×4 근사(슬롯 수 반응형이라 정확 일치 불가). */}
+      <div className="mt-10 flex justify-center" aria-hidden>
+        <div className="skeleton-shimmer h-11 w-[332px] max-w-full rounded-[14px]" />
+      </div>
     </div>
   );
 }
