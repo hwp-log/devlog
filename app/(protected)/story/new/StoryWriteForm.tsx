@@ -27,7 +27,7 @@ export type PlanWithSummary = {
   title: string;
   description: string | null; // MyPlan.description — 상한 없는 필드라 표시층 2줄 클램프가 방어선
   coverUrl: string | null; // MyPlan.coverUrl — 저장값 그대로. null 0건(실측)이나 방어로 있을 때만 렌더
-  summaryLine: string; // "N일 · 스팟 N곳 · N인 · 총 약 N만원" — 상세 PLAN 카드와 단일 소스(0459)
+  summaryLine: string; // "N일 · 장소 N곳 · N인 · 총 ₩N"(0558 실값) — 상세 PLAN 카드와 단일 소스(0459)
 };
 
 interface StoryWriteFormProps {

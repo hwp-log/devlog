@@ -86,14 +86,8 @@ export function MyPlanCard({
     `장소 ${spotCount}곳`,
   ].filter(Boolean).join(' · ');
 
-  // 내 플랜이라 금액을 흐릴 이유가 없다 → 플랜파인더의 band 중앙값이 아니라 실제 총액을 만원 단위 반올림.
-  // 원화 아닌 계획은 band 자체가 없으므로(summarize-plan-cost) 통화기호+정확값으로 표기.
-  const priceLabel =
-    total === 0
-      ? '금액 없음'
-      : currency === 'KRW'
-        ? `총 약 ${Math.round(total / 10_000).toLocaleString()}만원`
-        : `총 ${formatAmount(total, currency)}`;
+  // 0558: 만원 반올림 근사 폐기 — 전 화면 실값 통일(PlanCard와 동일 표기)
+  const priceLabel = total === 0 ? '금액 없음' : `총 ${formatAmount(total, currency)}`;
 
   return (
     // 카드 전체가 상세 링크(absolute inset-0 <Link>)이고, ⋯ 메뉴·커버 추가는 그 위에 얹은 형제다.
