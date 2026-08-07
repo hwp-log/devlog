@@ -32,6 +32,7 @@ import {
 } from '../_lib/cost';
 import { CATEGORY_ICON } from '../_components/CostSection';
 import { CostSection } from '../_components/CostSection';
+import { SectionHeader } from '@/app/(protected)/_components/SectionHeader';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { clampHeadcount, HEADCOUNT_MIN, HEADCOUNT_MAX } from '@/lib/plan/validate-input';
@@ -111,31 +112,10 @@ const INPUT_CLASS =
 const LABEL_CLASS = 'text-xs font-semibold text-fg2';
 const FIELD_CLASS = 'flex flex-col gap-[5px]';
 
-// 0527: 섹션 제목 — 22px(모바일 20) + 2px 실선 + 우측 보조 14px(모바일 12).
-//   읽기 화면(PlanFinderDetail SectionHeader)과 같은 어휘. badge는 제목 안 보조어("예상").
-function SectionHeader({
-  title,
-  badge,
-  sub,
-  first,
-}: {
-  title: string;
-  badge?: string;
-  sub?: string;
-  first?: boolean;
-}) {
-  return (
-    <div
-      className={`${first ? 'mt-[26px] sm:mt-[38px]' : 'mt-[26px] sm:mt-11'} flex items-baseline justify-between gap-3 border-b-2 border-section-rule pb-2 sm:pb-2.5`}
-    >
-      <h2 className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-fg break-keep">
-        {title}
-        {badge && <span className="ml-1.5 text-xs sm:text-sm font-medium text-muted">{badge}</span>}
-      </h2>
-      {sub && <span className="text-xs sm:text-sm text-muted shrink-0 text-right">{sub}</span>}
-    </div>
-  );
-}
+// 0561: 로컬 SectionHeader(0527) 폐기 — 공용(_components/SectionHeader, 0531)으로 교체.
+//   조판 동일(모바일 20px·badge 포함)이라 시각 무변. 0531 판정대로 위여백(mt)은 컴포넌트가
+//   아니라 호출부 래퍼 담당 — 구 first prop의 mt 분기(첫 섹션 sm:mt-[38px] / 이후 sm:mt-11)를
+//   각 호출부 div로 이관.
 
 // 0527: Day 항목 입력 — 구 14px은 iOS 포커스 자동확대를 부르는 §5 위반이었다(0504 주석의
 //   "기존 위반이라 미답습"을 여기서 해소). 16px 하한으로 통일.
@@ -413,7 +393,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         <p role="alert" className="mt-4 text-sm text-danger">{saveError}</p>
       )}
 
-      <SectionHeader first title="기본 정보" sub="제목과 날짜는 필수" />
+      <div className="mt-[26px] sm:mt-[38px]">
+        <SectionHeader title="기본 정보" sub="제목과 날짜는 필수" />
+      </div>
 
       {/* 0527: glass-outer 카드 제거 — 개방 캔버스. 입력 테두리는 터치 경계라 유지 */}
       <div className={`mt-[18px] sm:mt-[22px] ${FIELD_CLASS}`}>
@@ -501,7 +483,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
 
       {/* 0561: 읽기(PlanFinderDetail) "여행 일정"과 같은 이름·같은 자리(기본 정보 다음) —
           섹션 순서·용어 정합. sub는 이 섹션이 지출 입력도 겸함을 유지. */}
-      <SectionHeader title="여행 일정" sub="장소와 그날 쓴 지출" />
+      <div className="mt-[26px] sm:mt-11">
+        <SectionHeader title="여행 일정" sub="장소와 그날 쓴 지출" />
+      </div>
 
       {/* Day 탭 */}
       {hasDays ? (
@@ -574,7 +558,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           이제 여행 일정 바로 다음, 비용·항공 앞.
           헤더를 prop으로 넘겨 게이트(null 가드) 안쪽에서 렌더 — 후보 0장이면 제목도 함께 사라진다. */}
       <CoverPicker
-        header={<SectionHeader title="대표 이미지" sub="고르지 않으면 자동으로 정해집니다" />}
+        header={
+          <div className="mt-[26px] sm:mt-11">
+            <SectionHeader title="대표 이미지" sub="고르지 않으면 자동으로 정해집니다" />
+          </div>
+        }
         items={editor.days.flatMap((d) =>
           d.items
             .filter((it) => it.place && it.name.trim() !== '')
@@ -587,7 +575,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       {/* 0504 2단계: 여행 고정 비용 — 일정에 안 묶인 비용(렌터카·보험 등).
           0561: 일정 다음·항공 앞으로 이동 — 읽기의 비용 묶음(예상 비용 안 접기 그룹)과 인접 대응.
           행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
-      <SectionHeader title="여행 고정 비용" sub="렌터카·숙소처럼 날짜에 안 묶이는 지출" />
+      <div className="mt-[26px] sm:mt-11">
+        <SectionHeader title="여행 고정 비용" sub="렌터카·숙소처럼 날짜에 안 묶이는 지출" />
+      </div>
 
       {/* 0527: 카드 제거 — 행은 시안 6a의 4열(이름·카테고리·금액·삭제), 360px에선 2줄 스택 유지 */}
       <div className="mt-[18px] flex flex-col">
@@ -647,7 +637,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         </button>
       </div>
 
-      <SectionHeader title="항공편" badge="예상" sub="검색 시점의 최저가가 채워집니다" />
+      <div className="mt-[26px] sm:mt-11">
+        <SectionHeader title="항공편" badge="예상" sub="검색 시점의 최저가가 채워집니다" />
+      </div>
 
       <FlightSearchSection
         startDate={editor.startDate}
@@ -662,7 +654,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           모든 입력(일정·고정·항공)이 끝난 뒤 "저장 직전 확인" 자리가 맞고, 합산이 항공 위로
           가면 sub "위 항목에서 자동 합산"이 거짓이 된다. B안(완전 정합)은 0537 헤더 폭
           전례처럼 정합을 위해 없던 불편을 만드는 것이라 기각. */}
-      <SectionHeader title="예상 비용" sub="위 항목에서 자동 합산" />
+      <div className="mt-[26px] sm:mt-11">
+        <SectionHeader title="예상 비용" sub="위 항목에서 자동 합산" />
+      </div>
 
       <CostSection
         totals={categoryTotals}
