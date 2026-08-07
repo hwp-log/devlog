@@ -23,10 +23,12 @@ function LabelBar() {
 }
 
 // 섹션 헤더 자리 — ActivityDashboardCard·RecentActivityCard 헤더 짝.
-// 제목 text-[20px]/[22px]는 arbitrary라 lh 상속(1.5) = 30/33px 박스. 2px 실선은 구조선이라 실색.
+// 제목 text-[20px]/[22px]는 arbitrary라 lh 상속(1.5) = 30/33px 박스.
+// 2px 실선은 로딩 중 숨김(사용자 판정: 진한 선이 로딩 화면에서 먼저 보이는 게 어색) —
+// border-transparent로 2px 자리는 유지해 전환 시프트 없음.
 function SectionHeaderBar() {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b-2 border-section-rule pb-2 sm:pb-2.5">
+    <div className="flex items-baseline justify-between gap-3 border-b-2 border-transparent pb-2 sm:pb-2.5">
       <div className="h-[30px] sm:h-[33px] flex items-center">
         <div className="h-5 sm:h-6 w-24 rounded skeleton-shimmer" />
       </div>
