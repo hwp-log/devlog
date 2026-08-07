@@ -389,7 +389,9 @@ export async function toggleLikeAction(storyId: string): Promise<{ liked: boolea
   return { liked, count };
 }
 
-export async function deleteStoryAction(storyId: string): Promise<void> {
+// 0547: redirectTo — 삭제 후 목적지. 상세(기본 '/story')와 내 목록('/my-story', MyStoryCardMenu)이
+// 같은 액션을 공유하되 돌아갈 곳만 다르다. 검증·삭제 로직은 무변.
+export async function deleteStoryAction(storyId: string, redirectTo: string = '/story'): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -421,5 +423,5 @@ export async function deleteStoryAction(storyId: string): Promise<void> {
     }
   });
 
-  redirect('/story');
+  redirect(redirectTo);
 }
