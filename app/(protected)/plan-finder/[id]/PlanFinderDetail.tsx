@@ -9,8 +9,8 @@ import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
-import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
+import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 
 interface Props {
@@ -255,7 +255,7 @@ export function PlanFinderDetail({
             <div className="flex flex-col gap-[3px] sm:gap-1">
               <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
               <span className="text-base sm:text-xl font-bold text-fg">
-                {formatApproxCost(summary.total, currency)}
+                {formatAmount(summary.total, currency)}
               </span>
             </div>
           )}
@@ -343,7 +343,7 @@ export function PlanFinderDetail({
             title="왕복 항공편"
             sub={`조회 시점 기준${
               publicFlight.totalAmount > 0
-                ? ` · ${publicFlight.tripType === 'ROUND_TRIP' ? '왕복 ' : ''}${formatApproxCost(publicFlight.totalAmount, currency)}`
+                ? ` · ${publicFlight.tripType === 'ROUND_TRIP' ? '왕복 ' : ''}${formatAmount(publicFlight.totalAmount, currency)}`
                 : ''
             }`}
           />

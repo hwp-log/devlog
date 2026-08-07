@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
-import { formatApproxCost } from '@/lib/plan/format-approx-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 
@@ -36,7 +35,7 @@ function ItemRow({
       {/* 0524: 금액 위계 토큰 — 요약(카테고리)과 같은 등급을 써야 다크에서 상세가 요약보다
           밝아지는 역전이 안 생긴다 */}
       <span className="pl-2 pr-5 flex-1 min-w-0 text-cost-label truncate">{name}</span>
-      <span className="shrink-0 font-semibold text-cost-amount">{formatApproxCost(item.amount, currency)}</span>
+      <span className="shrink-0 font-semibold text-cost-amount">{formatAmount(item.amount, currency)}</span>
     </div>
   );
 }
@@ -108,7 +107,9 @@ const CATEGORY_BAR: Record<Item['category'], string> = {
 
 /**
  * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
- * (0343 트리맵·"공개 정책(금액 없음)"은 폐기 — 상세는 실금액을 "약 N만원"으로 노출.)
+ * (0343 트리맵·"공개 정책(금액 없음)"은 폐기.)
+ * 0558: "약 N만원" 만원 근사도 폐기 — 실값(formatAmount) 통일. 비공개는 0557 접근 제어가
+ *   글 자체를 가리므로 금액만 흐리는 가공의 존재 이유가 소멸(현우 재정의).
  * ratios는 summarizePlanCost가 비중 내림차순 정렬 보장 — index가 곧 rank(색 결정).
  * 금액은 계획 총액 기준(1인당 환산 없음 — 항목의 1인당/전체 구분이 없어 나누면 틀린 값, 0492 확정).
  * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
@@ -130,11 +131,8 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
     if (items.length === 0) return undefined;
     const sum = items.reduce((acc, it) => acc + it.amount, 0);
     if (sum <= 0) return `${items.length}건`;
-    const amountLabel =
-      currency === 'KRW'
-        ? `${(Math.round(sum / 1000) / 10).toLocaleString()}만원`
-        : formatAmount(sum, currency);
-    return `${items.length}건 · ${amountLabel}`;
+    // 0558: 만원 근사 폐기 — 전 화면 실값 통일(비공개는 0557이 글 자체를 가리므로 가공 불필요)
+    return `${items.length}건 · ${formatAmount(sum, currency)}`;
   };
   const periodLabel =
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
@@ -147,7 +145,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         {/* 0516: 총액 26px(시안 4a 실측) — 20px는 한 단 작게 들어간 오차.
             0524: 금액 위계 3단의 최상단(다크 #f2f4f5) */}
         <span className="text-[26px] tracking-[-0.02em] font-bold text-cost-total">
-          총 {formatApproxCost(total, currency)}
+          총 {formatAmount(total, currency)}
         </span>
         <span className="text-sm text-muted">· {headcount}인</span>
       </div>
@@ -170,7 +168,7 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
           <div key={item.category} className="flex items-center py-2">
             <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${CATEGORY_BAR[item.category]}`} />
             <span className="pl-2 flex-1 text-sm font-semibold text-cost-label">{item.label}</span>
-            <span className="text-sm font-semibold text-cost-amount">{formatApproxCost(item.amount, currency)}</span>
+            <span className="text-sm font-semibold text-cost-amount">{formatAmount(item.amount, currency)}</span>
           </div>
         ))}
       </div>
