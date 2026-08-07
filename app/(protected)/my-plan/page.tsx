@@ -3,7 +3,6 @@ import { Map, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
-import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { getAvatarInfo } from '@/lib/avatar/generate';
 import { MyPlanListClient, type MyPlanListItem } from './_components/MyPlanListClient';
 
@@ -35,7 +34,6 @@ export default async function MyPlanPage() {
 
   const items: MyPlanListItem[] = plans.map((plan) => {
     const currency = plan.currency as 'KRW' | 'USD' | 'JPY';
-    const summary = summarizePlanCost(plan.costs, plan.flight, currency);
     return {
       id: plan.id,
       title: plan.title,
@@ -49,7 +47,6 @@ export default async function MyPlanPage() {
       spotCount: plan._count.spots,
       headcount: plan.headcount,
       total: calcPlanTotal(plan.costs, plan.flight),
-      band: summary.band,
       isPublic: plan.isPublic,
       isDraft: plan.isDraft,
       likeCount: plan._count.planLikes,

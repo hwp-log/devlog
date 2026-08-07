@@ -39,11 +39,12 @@ const FILTER_LABELS: Record<FilterKey, string> = {
   over100:   '100만~',
 };
 
+// 0558: band(구간 하한) → total(실값) 기준 — 근사·구간 폐기. 0은 금액 없음 = 필터 제외(구 band null과 동일 규칙)
 function getFilterKey(plan: PublicPlanListItem): FilterKey | null {
-  const lower = plan.summary.band?.lower;
-  if (lower === undefined || lower === null) return null;
-  if (lower < 500_000)   return 'under50';
-  if (lower < 1_000_000) return '50to100';
+  const total = plan.summary.total;
+  if (total <= 0) return null;
+  if (total < 500_000)   return 'under50';
+  if (total < 1_000_000) return '50to100';
   return 'over100';
 }
 
@@ -87,9 +88,10 @@ export function PlanListClient({ plans }: { plans: PublicPlanListItem[] }) {
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'popular') return b.likeCount - a.likeCount;
     if (sort === 'newest')  return b.createdAt.getTime() - a.createdAt.getTime();
-    const aLower = a.summary.band?.lower ?? (sort === 'price_asc' ? Infinity : -1);
-    const bLower = b.summary.band?.lower ?? (sort === 'price_asc' ? Infinity : -1);
-    return sort === 'price_asc' ? aLower - bLower : bLower - aLower;
+    // 0558: 정렬도 total 실값 기준 — 금액 없음(0)은 말단(구 band null 규칙 승계)
+    const aTotal = a.summary.total > 0 ? a.summary.total : (sort === 'price_asc' ? Infinity : -1);
+    const bTotal = b.summary.total > 0 ? b.summary.total : (sort === 'price_asc' ? Infinity : -1);
+    return sort === 'price_asc' ? aTotal - bTotal : bTotal - aTotal;
   });
 
   // 0553: 지역 수 — MyPlan 지표줄과 동일 수법(non-null region distinct). 검색·필터 반영 집합 기준.

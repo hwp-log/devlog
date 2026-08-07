@@ -27,7 +27,6 @@ export type MyPlanListItem = {
   spotCount: number;
   headcount: number;
   total: number;
-  band: { lower: number; upper: number } | null;
   isPublic: boolean;
   isDraft: boolean;
   likeCount: number;
@@ -50,11 +49,11 @@ const FILTER_LABELS: Record<FilterKey, string> = {
   over100:   '100만~',
 };
 
+// 0558: band → total 실값 기준(플랜파인더 getFilterKey와 동일 규칙 — 0은 필터 제외)
 function getFilterKey(item: MyPlanListItem): FilterKey | null {
-  const lower = item.band?.lower;
-  if (lower == null) return null;
-  if (lower < 500_000) return 'under50';
-  if (lower < 1_000_000) return '50to100';
+  if (item.total <= 0) return null;
+  if (item.total < 500_000) return 'under50';
+  if (item.total < 1_000_000) return '50to100';
   return 'over100';
 }
 
