@@ -499,79 +499,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         />
       </div>
 
-      <SectionHeader title="항공편" badge="예상" sub="검색 시점의 최저가가 채워집니다" />
-
-      <FlightSearchSection
-        startDate={editor.startDate}
-        endDate={editor.endDate}
-        flight={editor.flight}
-        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
-        onDateMissingChange={setDateMissing}
-      />
-
-      {/* 0504 2단계: 여행 고정 비용 — 일정에 안 묶인 비용(렌터카·보험 등). 항공(위)의 형제, Day 앞.
-          행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
-      <SectionHeader title="여행 고정 비용" sub="렌터카·숙소처럼 날짜에 안 묶이는 지출" />
-
-      {/* 0527: 카드 제거 — 행은 시안 6a의 4열(이름·카테고리·금액·삭제), 360px에선 2줄 스택 유지 */}
-      <div className="mt-[18px] flex flex-col">
-        {editor.daylessCosts.map((cost, index) => (
-          <div
-            key={index}
-            className="flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0"
-          >
-            <input
-              type="text"
-              value={cost.label}
-              onChange={(e) => updateDaylessCost(index, { label: e.target.value })}
-              placeholder="이름 (예: 렌터카)"
-              className={DAYLESS_INPUT_CLASS}
-            />
-            <div className="flex gap-2 sm:contents">
-              <select
-                value={cost.category}
-                onChange={(e) => updateDaylessCost(index, { category: e.target.value as CostCategory | '' })}
-                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
-              >
-                <option value="">카테고리</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {CATEGORY_LABEL[cat]}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min={0}
-                value={cost.amount === 0 ? '' : cost.amount}
-                onChange={(e) => {
-                  const raw = Number(e.target.value);
-                  updateDaylessCost(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
-                }}
-                placeholder="금액"
-                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0 sm:text-right'}
-              />
-              <button
-                type="button"
-                onClick={() => removeDaylessCost(index)}
-                aria-label="항목 삭제"
-                className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-md text-hint hover:bg-surface2 hover:text-fg2 transition-colors text-base"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={addDaylessCost}
-          className="mt-3 w-full py-[14px] border border-dashed border-field-border rounded-lg text-[15px] font-semibold text-fg2 hover:border-primary hover:text-primary transition-colors"
-        >
-          + 항목 추가
-        </button>
-      </div>
-
-      <SectionHeader title="여행 일자별 비용" sub="식비·입장료처럼 그날 쓴 지출" />
+      {/* 0561: 읽기(PlanFinderDetail) "여행 일정"과 같은 이름·같은 자리(기본 정보 다음) —
+          섹션 순서·용어 정합. sub는 이 섹션이 지출 입력도 겸함을 유지. */}
+      <SectionHeader title="여행 일정" sub="장소와 그날 쓴 지출" />
 
       {/* Day 탭 */}
       {hasDays ? (
@@ -640,6 +570,8 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           0528: 다시 카테고리별 비용 **앞**으로 — 0527 개방 캔버스에서 "총 비용" 바로 밑에 붙어
           비용에 딸린 항목처럼 보였다. 대표 이미지는 장소 파생이라 장소 입력 직후가 맞고,
           카테고리별 비용은 "위 항목에서 자동 합산"이라 입력이 다 끝난 뒤에 와야 한다.
+          0561: 섹션 순서 정합(일정이 앞으로) 후에도 "장소 입력 직후" 원칙 그대로 —
+          이제 여행 일정 바로 다음, 비용·항공 앞.
           헤더를 prop으로 넘겨 게이트(null 가드) 안쪽에서 렌더 — 후보 0장이면 제목도 함께 사라진다. */}
       <CoverPicker
         header={<SectionHeader title="대표 이미지" sub="고르지 않으면 자동으로 정해집니다" />}
@@ -652,7 +584,85 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
       />
 
-      <SectionHeader title="카테고리별 비용" sub="위 항목에서 자동 합산" />
+      {/* 0504 2단계: 여행 고정 비용 — 일정에 안 묶인 비용(렌터카·보험 등).
+          0561: 일정 다음·항공 앞으로 이동 — 읽기의 비용 묶음(예상 비용 안 접기 그룹)과 인접 대응.
+          행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
+      <SectionHeader title="여행 고정 비용" sub="렌터카·숙소처럼 날짜에 안 묶이는 지출" />
+
+      {/* 0527: 카드 제거 — 행은 시안 6a의 4열(이름·카테고리·금액·삭제), 360px에선 2줄 스택 유지 */}
+      <div className="mt-[18px] flex flex-col">
+        {editor.daylessCosts.map((cost, index) => (
+          <div
+            key={index}
+            className="flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0"
+          >
+            <input
+              type="text"
+              value={cost.label}
+              onChange={(e) => updateDaylessCost(index, { label: e.target.value })}
+              placeholder="이름 (예: 렌터카)"
+              className={DAYLESS_INPUT_CLASS}
+            />
+            <div className="flex gap-2 sm:contents">
+              <select
+                value={cost.category}
+                onChange={(e) => updateDaylessCost(index, { category: e.target.value as CostCategory | '' })}
+                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
+              >
+                <option value="">카테고리</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_LABEL[cat]}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={0}
+                value={cost.amount === 0 ? '' : cost.amount}
+                onChange={(e) => {
+                  const raw = Number(e.target.value);
+                  updateDaylessCost(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
+                }}
+                placeholder="금액"
+                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0 sm:text-right'}
+              />
+              <button
+                type="button"
+                onClick={() => removeDaylessCost(index)}
+                aria-label="항목 삭제"
+                className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-md text-hint hover:bg-surface2 hover:text-fg2 transition-colors text-base"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addDaylessCost}
+          className="mt-3 w-full py-[14px] border border-dashed border-field-border rounded-lg text-[15px] font-semibold text-fg2 hover:border-primary hover:text-primary transition-colors"
+        >
+          + 항목 추가
+        </button>
+      </div>
+
+      <SectionHeader title="항공편" badge="예상" sub="검색 시점의 최저가가 채워집니다" />
+
+      <FlightSearchSection
+        startDate={editor.startDate}
+        endDate={editor.endDate}
+        flight={editor.flight}
+        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
+        onDateMissingChange={setDateMissing}
+      />
+
+      {/* 0561: 읽기 "예상 비용"과 이름 통일. 순서는 읽기(비용→항공)와 의도적으로 다르다 —
+          읽기는 훑는 순서, 폼은 입력 흐름(A안, 사용자 확정): 합산은 입력이 아니라 파생이라
+          모든 입력(일정·고정·항공)이 끝난 뒤 "저장 직전 확인" 자리가 맞고, 합산이 항공 위로
+          가면 sub "위 항목에서 자동 합산"이 거짓이 된다. B안(완전 정합)은 0537 헤더 폭
+          전례처럼 정합을 위해 없던 불편을 만드는 것이라 기각. */}
+      <SectionHeader title="예상 비용" sub="위 항목에서 자동 합산" />
 
       <CostSection
         totals={categoryTotals}
