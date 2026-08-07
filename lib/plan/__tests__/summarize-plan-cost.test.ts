@@ -35,38 +35,23 @@ describe('summarizePlanCost', () => {
     });
   });
 
-  describe('구간 경계 (KRW)', () => {
-    it.each([
-      [150_000,     { lower: 100_000,   upper: 200_000   }],
-      [500_000,     { lower: 500_000,   upper: 750_000   }],
-      [1_000_000,   { lower: 1_000_000, upper: 1_500_000 }],
-      [2_900_000,   { lower: 2_500_000, upper: 3_000_000 }],
-    ])('total=%i → band %o', (amount, expectedBand) => {
-      const result = summarizePlanCost(
-        [{ category: 'TRANSPORT', amount }],
-        null,
-        'KRW',
-      );
-      expect(result.band).toEqual(expectedBand);
-    });
-  });
-
+  // 0558: band(구간) 폐기 — '구간 경계'·band 단언 제거(승인된 기능 제거의 대응, 로직 회귀 아님)
   describe('total=0 조기 반환', () => {
-    it('KRW: ratios 빈 배열, band = {lower:0, upper:100_000}', () => {
+    it('KRW: ratios 빈 배열, total 0', () => {
       const result = summarizePlanCost([], null, 'KRW');
       expect(result.ratios).toEqual([]);
-      expect(result.band).toEqual({ lower: 0, upper: 100_000 });
+      expect(result.total).toBe(0);
     });
 
-    it('USD: ratios 빈 배열, band = null', () => {
+    it('USD: ratios 빈 배열, total 0', () => {
       const result = summarizePlanCost([], null, 'USD');
       expect(result.ratios).toEqual([]);
-      expect(result.band).toBeNull();
+      expect(result.total).toBe(0);
     });
   });
 
-  describe('비-KRW — band null, ratios 정상 계산', () => {
-    it('USD: band null, ratios 합=100, FOOD ratio=67', () => {
+  describe('비-KRW — ratios 정상 계산', () => {
+    it('USD: ratios 합=100, FOOD ratio=67', () => {
       const result = summarizePlanCost(
         [
           { category: 'TRANSPORT', amount: 100 },
@@ -75,25 +60,24 @@ describe('summarizePlanCost', () => {
         null,
         'USD',
       );
-      expect(result.band).toBeNull();
       const sum = result.ratios.reduce((s, r) => s + r.ratio, 0);
       expect(sum).toBe(100);
       const food = result.ratios.find((r) => r.category === 'FOOD');
       expect(food?.ratio).toBe(67);
     });
 
-    it('JPY: band null', () => {
+    it('JPY: total 실값 유지', () => {
       const result = summarizePlanCost(
         [{ category: 'TRANSPORT', amount: 500 }],
         null,
         'JPY',
       );
-      expect(result.band).toBeNull();
+      expect(result.total).toBe(500);
     });
   });
 
   describe('FLIGHT 항목 포함', () => {
-    it('FLIGHT가 항공 라벨로 ratios에 포함되고 총액·비중·band에 반영됨', () => {
+    it('FLIGHT가 항공 라벨로 ratios에 포함되고 총액·비중에 반영됨', () => {
       const result = summarizePlanCost(
         [{ category: 'TRANSPORT', amount: 300_000 }],
         { totalAmount: 200_000 },
@@ -106,7 +90,7 @@ describe('summarizePlanCost', () => {
       expect(flight?.ratio).toBe(40);
       const sum = result.ratios.reduce((s, r) => s + r.ratio, 0);
       expect(sum).toBe(100);
-      expect(result.band).toEqual({ lower: 500_000, upper: 750_000 });
+      expect(result.total).toBe(500_000);
     });
   });
 });

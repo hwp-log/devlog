@@ -26,36 +26,18 @@ export type PublicCostSummary = {
     }>;
   }>;
   total: number; // 0492: 금액 공개 — 계획 총액(항공 포함)
-  band: { lower: number; upper: number } | null;
+  // 0558: band(구간) 폐기 — 비공개는 0557 접근 제어가 글 자체를 가리므로 구간 가공 불필요.
   currency: 'KRW' | 'USD' | 'JPY';
 };
 
-function computeBand(
-  total: number,
-  currency: 'KRW' | 'USD' | 'JPY',
-): { lower: number; upper: number } | null {
-  if (currency !== 'KRW') return null;
-  let width: number;
-  if (total < 500_000) {
-    width = 100_000;
-  } else if (total < 1_000_000) {
-    width = 250_000;
-  } else {
-    width = 500_000;
-  }
-  const lower = Math.floor(total / width) * width;
-  return { lower, upper: lower + width };
-}
-
 export function summarizePlanCost(
-  // 0498: label·day는 항목 리스트용(옵셔널) — band만 쓰는 소비처(story 3곳)는 select 안 해도 됨.
+  // 0498: label·day는 항목 리스트용(옵셔널) — 요약 한 줄만 쓰는 소비처(story 3곳)는 select 안 해도 됨.
   // 0504: day는 nullable — null = 무장소 비용('여행 전체' 그룹). day 미select 소비처는 undefined(itemGroups 미렌더).
   costs: { category: string; amount: number; label?: string; day?: number | null }[],
   flight: { totalAmount: number } | null | undefined,
   currency: 'KRW' | 'USD' | 'JPY',
 ): PublicCostSummary {
   const total = calcPlanTotal(costs, flight);
-  const band = computeBand(total, currency);
 
   // 0499: 일자별 그룹핑. 존재하는 PlanCost 행에서만 파생 → 비용 없는 날은 그룹 자체가 안 생김(머리글 생략).
   // 0504: day=null(무장소 비용)은 별도 '여행 전체' 버킷으로. day 미select 소비처는 전부 여기로 모이나 itemGroups 미렌더라 무해.
@@ -108,7 +90,7 @@ export function summarizePlanCost(
   ];
 
   if (total === 0) {
-    return { ratios: [], itemGroups: [], total, band, currency };
+    return { ratios: [], itemGroups: [], total, currency };
   }
 
   const items = [
@@ -145,5 +127,5 @@ export function summarizePlanCost(
     }))
     .sort((a, b) => b.ratio - a.ratio);
 
-  return { ratios, itemGroups, total, band, currency };
+  return { ratios, itemGroups, total, currency };
 }
