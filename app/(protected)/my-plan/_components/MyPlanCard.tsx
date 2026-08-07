@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Lock, Globe, PencilLine, ImagePlus } from 'lucide-react';
+import { Heart, Lock, Globe, ImagePlus } from 'lucide-react';
 import { formatAmount } from '../_lib/cost';
 import {
   CARD_PILL_CLASS,
@@ -26,7 +26,6 @@ interface MyPlanCardProps {
   headcount: number;
   total: number;
   isPublic: boolean;
-  isDraft: boolean;
   likeCount: number;
 }
 
@@ -39,26 +38,15 @@ function formatCardPeriod(start: Date | null, end: Date | null): string | null {
   return `${md(start)}~${md(end)}`;
 }
 
-// 상태 칩 — 색은 "공개"에만. 채움(공개) > 기본 재질(비공개) > 점선(초안)의 무게 3단이라
-// 상태 언어가 색으로 경쟁하지 않는다(CLAUDE.md §9). isDraft가 isPublic보다 우선(미완성이 먼저 읽혀야 함).
+// 상태 칩 — 색은 "공개"에만. 채움(공개) > 기본 재질(비공개) 2단(CLAUDE.md §9).
+// 0558: 초안(isDraft) 칩 폐기 — "미완성=숨김"은 isPublic=false가 담는다(0557 재정의). 컬럼 drop은 별도 사이클.
 // 공개 칩만 primary 면. 글자는 사용자 지시로 흰색 — 0529의 주요 버튼과 같은 선택
 // (primary-fg #0b1a2b가 6.39:1로 더 높지만 흰 글씨의 인상을 택함, 2.74:1은 알고 수용).
 const CHIP_BASE =
   'inline-flex items-center gap-1 shrink-0 text-[11px] leading-none px-[9px] py-[4px] rounded-full';
 const PUBLIC_CHIP = 'bg-primary text-white font-semibold';
-// 초안 — 투명 점선. 라이트 커버(밝은 사진)에서 흰 점선이 날아가지 않도록 어두운 면을 깔아준다.
-const DRAFT_CHIP =
-  'border border-dashed border-white/60 text-white bg-[rgba(10,10,16,0.34)]';
 
-function StateChip({ isPublic, isDraft }: { isPublic: boolean; isDraft: boolean }) {
-  if (isDraft) {
-    return (
-      <span className={`${CHIP_BASE} ${DRAFT_CHIP}`}>
-        <PencilLine size={11} />
-        초안
-      </span>
-    );
-  }
+function StateChip({ isPublic }: { isPublic: boolean }) {
   if (isPublic) {
     return (
       <span className={`${CHIP_BASE} ${PUBLIC_CHIP}`}>
@@ -88,7 +76,6 @@ export function MyPlanCard({
   headcount,
   total,
   isPublic,
-  isDraft,
   likeCount,
 }: MyPlanCardProps) {
   // 메타 한 줄 — 지역은 칩으로 올라갔으므로 여기선 작품이 앞. 작품이 없을 때만 지역으로 대체
@@ -130,7 +117,7 @@ export function MyPlanCard({
 
         {/* 상단 바 — 상태 칩 + 지역 칩. ⋯ 자리는 아래 형제가 차지하므로 오른쪽 여백만 비워둔다. */}
         <div className="relative flex items-start gap-1.5 pl-4 pr-[52px] pt-[13px] sm:pt-[14px]">
-          <StateChip isPublic={isPublic} isDraft={isDraft} />
+          <StateChip isPublic={isPublic} />
           {region && (
             <span className={`${CHIP_BASE} min-w-0 ${CARD_PILL_CLASS}`}>
               <span className="truncate min-w-0">{region}</span>

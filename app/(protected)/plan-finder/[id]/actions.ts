@@ -78,7 +78,6 @@ export async function copyPublicPlanAction(
         data: {
           ownerId: user.id,
           isPublic: false,
-          isDraft: true,
           sourcePlanId: planId,
           sourceNickname: original.owner.nickname,
           title: original.title,

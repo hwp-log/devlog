@@ -48,7 +48,6 @@ export default async function MyPlanPage() {
       headcount: plan.headcount,
       total: calcPlanTotal(plan.costs, plan.flight),
       isPublic: plan.isPublic,
-      isDraft: plan.isDraft,
       likeCount: plan._count.planLikes,
     };
   });

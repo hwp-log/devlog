@@ -28,7 +28,6 @@ export type MyPlanListItem = {
   headcount: number;
   total: number;
   isPublic: boolean;
-  isDraft: boolean;
   likeCount: number;
 };
 
