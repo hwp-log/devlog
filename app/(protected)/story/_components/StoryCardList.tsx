@@ -14,7 +14,12 @@ export function StoryCardList({ stories }: { stories: StoryCardProps[] }) {
     //
     //   산출식(0425 형식): 임계 뷰포트 V(N) = N×하한 + gap×(N−1) + 48(px-6 좌우), 절상 후 +2.
     //   이 라우트는 ProtectedMain의 WIDE_ROUTES라 컨테이너 = 뷰포트−48(상한 없음). gap = 24.
-    //     · 2열: 2×220 + 24×1 + 48 = 512 → min-[514px]  | 카드 221.0
+    //   ⚠ 0545: **모바일 1열은 실기기 판정(0448·0545)으로 고정 — 계산 결과보다 우선.**
+    //     산출식의 2열 최소점은 514지만 그건 220 하한이 성립하는 하한선일 뿐, 사진이 주인공인
+    //     카드라 폰에서는 1열이 판정(514~639 반쪽 카드 어색 — 실기기 확인). 2열 진입 640 =
+    //     폰 세로 최대(~440) 위 · 폰 가로/폴더블(2열 적정, 카드 284) 아래. 0448의 md(768)
+    //     1열 상한은 2열 티어가 없던 열 집합(1·3·4·6)의 부산물이라 640으로 존중 충분.
+    //     · 2열: 실기기 판정 640 → min-[640px] (산출식 최소점 512는 미채택)
     //     · 3열: 3×220 + 24×2 + 48 = 756 → min-[758px]  | 카드 220.7
     //     · 4열: 4×220 + 24×3 + 48 = 1000 → min-[1002px] | 카드 220.5
     //     · 6열: 6×220 + 24×5 + 48 = 1488 → min-[1490px] | 카드 220.3
@@ -34,7 +39,7 @@ export function StoryCardList({ stories }: { stories: StoryCardProps[] }) {
     //   연초에 재검토가 필요 없다. 37.5 기준으로 낮췄다면 매년 1월 깨졌을 값.
     //   220은 159 위에 얹은 디자인 여유이자, 현행 레이아웃이 이미 도달해 있던 최소 카드 폭
     //   (구 md 3열 224 / 구 2xl 6열 228)을 하한으로 명문화한 값이다.
-    <div className="grid grid-cols-1 min-[514px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6">
+    <div className="grid grid-cols-1 min-[640px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6">
       {stories.map((story) => (
         <StoryCard key={story.id} {...story} />
       ))}

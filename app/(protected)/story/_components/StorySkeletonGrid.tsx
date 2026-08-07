@@ -8,7 +8,7 @@ export function StorySkeletonGrid({ count, shimmer = true }: { count: number; sh
       aria-hidden
       // 0425/0448: StoryCardList 그리드와 클래스 동일 유지 필수(한쪽만 바꾸면 크로스페이드 시 레이아웃 시프트).
       // 0532: 브레이크포인트 산출식(컨테이너 = 뷰포트−48, gap 24, 카드 하한 220)은 StoryCardList 주석 참조.
-      className="grid grid-cols-1 min-[514px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6"
+      className="grid grid-cols-1 min-[640px]:grid-cols-2 min-[758px]:grid-cols-3 min-[1002px]:grid-cols-4 min-[1490px]:grid-cols-6 gap-6"
     >
       {Array.from({ length: count }).map((_, i) => (
         <div key={i}>
