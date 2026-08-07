@@ -312,12 +312,12 @@ export function PlanDetail({ plan, dayCount, deleteAction, ownerNickname, ownerA
         {plan.sourcePlanId && (
           <Link
             href={`/plan-finder/${plan.sourcePlanId}`}
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
+            className="text-sm text-muted hover:text-fg transition-colors"
           >
             원본 플랜 보기 →
           </Link>
         )}
-        <Link href="/my-plan" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+        <Link href="/my-plan" className="text-sm text-muted hover:text-fg transition-colors">
           ← 목록으로
         </Link>
       </div>
