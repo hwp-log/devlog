@@ -55,7 +55,8 @@ export function RecentActivityCard({ recentStories, recentPlans }: Props) {
         {recentPlans.length > 0 ? (
           <ul className="mt-1">
             {recentPlans.map((p) => (
-              <Row key={p.id} href={`/my-plan/${p.id}`} title={p.title} createdAt={p.createdAt} />
+              // 0560: 상세 한 벌화 — 플랜 상세는 공개 상세(/plan-finder/[id])가 정본
+              <Row key={p.id} href={`/plan-finder/${p.id}`} title={p.title} createdAt={p.createdAt} />
             ))}
           </ul>
         ) : (

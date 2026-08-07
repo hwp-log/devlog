@@ -237,7 +237,8 @@ export async function createPlanWithItemsAction(
     return { error: '저장 중 오류가 발생했습니다' };
   }
 
-  redirect(`/my-plan/${planId}`);
+  // 0560: 상세 한 벌화 — 저장 후 도착지는 공개 상세(소유자 렌더)
+  redirect(`/plan-finder/${planId}`);
 }
 
 export async function updatePlanWithItemsAction(
@@ -292,7 +293,8 @@ export async function updatePlanWithItemsAction(
     return { error: '저장 중 오류가 발생했습니다' };
   }
 
-  redirect(`/my-plan/${planId}`);
+  // 0560: 상세 한 벌화 — 편집 저장 후 도착지도 공개 상세(소유자 렌더)
+  redirect(`/plan-finder/${planId}`);
 }
 
 export async function searchFlightsAction(params: {

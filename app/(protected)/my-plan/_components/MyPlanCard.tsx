@@ -96,7 +96,8 @@ export function MyPlanCard({
       className="group relative h-[240px] sm:h-[280px] rounded-[14px] overflow-hidden"
       style={{ backgroundColor: CARD_FALLBACK_BG }}
     >
-      <Link href={`/my-plan/${id}`} className="absolute inset-0 flex flex-col">
+      {/* 0560: 상세 한 벌화 — /my-plan/[id] 폐기, 공개 상세가 정본(소유자는 관리 버튼 포함 렌더) */}
+      <Link href={`/plan-finder/${id}`} className="absolute inset-0 flex flex-col">
         {coverUrl && (
           <Image
             src={coverUrl}
