@@ -6,10 +6,10 @@
 //   skeleton-shimmer 유틸 재사용(새 애니메이션 없음).
 
 // 섹션 헤더 골격 — PlanFinderDetail SectionHeader 짝(22px 제목 + 2px 실선 + 우측 보조).
-// 실선은 구조선이라 shimmer 없이 실제 토큰 색 그대로.
+// 0542: 2px 강조선은 로딩 중 숨김(§11 승격 규칙) — 투명 보더로 자리 유지, 시프트 없음.
 function SectionHeaderSkeleton() {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b-2 border-section-rule pb-2 sm:pb-2.5">
+    <div className="flex items-baseline justify-between gap-3 border-b-2 border-transparent pb-2 sm:pb-2.5">
       <div className="h-6 sm:h-7 w-28 rounded skeleton-shimmer" />
       <div className="h-4 w-24 rounded skeleton-shimmer" />
     </div>
