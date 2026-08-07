@@ -1,43 +1,128 @@
 // 0490: 플랜파인더 상세 진입 로딩 스켈레톤 — 상세 라우트 무방비(2~3초 무피드백) 해소용 route-level fallback.
-// 실제 PlanFinderDetail 골격 준용(B-1): 제목 행·메타·지역/작품 칩·"여행 일정" 라벨·Day 탭·타임라인.
-// 생략: 소개 카드·항공편·비용·목록 링크(조건부/하단). skeleton-shimmer 재사용(새 애니메이션 없음).
-// 폭은 레이아웃 max-w-7xl 상속(PlanFinderDetail처럼 전용 컨테이너 없음).
+// 0538: 0512~0536 실화면 개편(폭 860·히어로·지표 밴드·섹션 헤더·행 목록·비용·항공)에 재동기.
+//   구조 클래스(폭·높이·마진)는 PlanFinderDetail.tsx / PublicCostSection.tsx / PublicFlightTable.tsx의
+//   해당 블록과 짝 — **한쪽만 바꾸면 스켈레톤→실콘텐츠 전환 시 시프트가 생긴다** (각 블록 주석에 짝 명시).
+//   조건부 요소(커버·소개문·비용·항공)는 데이터를 모르므로 "공개 플랜 대표형 = 전부 있음"으로 고정.
+//   skeleton-shimmer 유틸 재사용(새 애니메이션 없음).
+
+// 섹션 헤더 골격 — PlanFinderDetail SectionHeader 짝(22px 제목 + 2px 실선 + 우측 보조).
+// 실선은 구조선이라 shimmer 없이 실제 토큰 색 그대로.
+function SectionHeaderSkeleton() {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b-2 border-section-rule pb-2 sm:pb-2.5">
+      <div className="h-6 sm:h-7 w-28 rounded skeleton-shimmer" />
+      <div className="h-4 w-24 rounded skeleton-shimmer" />
+    </div>
+  );
+}
+
 export default function Loading() {
   return (
-    <div aria-hidden>
+    // 폭: 실화면 래퍼와 동일 토큰(--reading-w = 860, 0534) — 갈리면 좌우 정렬선이 튄다.
+    <div aria-hidden className="max-w-[var(--reading-w)] mx-auto">
+      {/* 히어로 — PlanFinderDetail 커버 블록 짝(h-200/300 rounded-[14px] mb-4) */}
+      <div className="h-[200px] sm:h-[300px] rounded-[14px] mb-4 skeleton-shimmer" />
+
       <div className="mb-6">
-        {/* 제목 + 우측 액션(좋아요는 항상 노출) */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="h-8 w-[55%] rounded skeleton-shimmer" />
+        {/* 메타 행 — 아바타 → 닉네임 → 날짜, 우측 액션(좋아요는 항상 노출) */}
+        <div className="flex items-center justify-between gap-5">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full skeleton-shimmer" />
+            <div className="h-3.5 w-16 rounded skeleton-shimmer" />
+            <div className="h-3.5 w-20 rounded skeleton-shimmer" />
+          </div>
           <div className="h-8 w-16 shrink-0 rounded-full skeleton-shimmer" />
         </div>
-        {/* 메타 — 날짜 · 아바타 이름 */}
-        <div className="mt-1 flex items-center gap-2">
-          <div className="h-3 w-20 rounded skeleton-shimmer" />
-          <span aria-hidden className="text-border">·</span>
-          <div className="w-5 h-5 rounded-full skeleton-shimmer" />
-          <div className="h-3 w-16 rounded skeleton-shimmer" />
+
+        {/* 지표 밴드 3열(기간·장소·총 비용) — 실화면 밴드와 mt·py·border 동일 */}
+        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-3 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-col gap-[3px] sm:gap-1">
+              <div className="h-3.5 sm:h-4 w-10 rounded skeleton-shimmer" />
+              <div className="h-6 sm:h-7 w-20 rounded skeleton-shimmer" />
+            </div>
+          ))}
         </div>
-        {/* 지역·작품 칩 */}
-        <div className="mt-2 flex gap-2">
-          <div className="h-6 w-16 rounded-full skeleton-shimmer" />
-          <div className="h-6 w-20 rounded-full skeleton-shimmer" />
+
+        {/* 소개문 — 대표형 2줄 */}
+        <div className="mt-[14px] sm:mt-[22px] flex flex-col gap-2">
+          <div className="h-4 rounded skeleton-shimmer" />
+          <div className="h-4 w-[70%] rounded skeleton-shimmer" />
         </div>
       </div>
-      {/* "여행 일정" 라벨 */}
-      <div className="mb-3 h-3 w-16 rounded skeleton-shimmer" />
-      {/* Day 탭 */}
-      <div className="mb-6 flex gap-2">
-        <div className="h-8 w-16 rounded-full skeleton-shimmer" />
-        <div className="h-8 w-16 rounded-full skeleton-shimmer" />
-        <div className="h-8 w-16 rounded-full skeleton-shimmer" />
+
+      {/* 여행 일정 */}
+      <div className="mt-4">
+        <SectionHeaderSkeleton />
       </div>
-      {/* 타임라인 — Day 항목 행 */}
-      <div className="flex flex-col gap-3">
-        <div className="h-16 w-full rounded-xl skeleton-shimmer" />
-        <div className="h-16 w-full rounded-xl skeleton-shimmer" />
-        <div className="h-16 w-full rounded-xl skeleton-shimmer" />
-        <div className="h-16 w-full rounded-xl skeleton-shimmer" />
+      {/* Day 탭 — 대표 3개(2박3일). 실탭은 px-4 날짜 라벨이라 구 w-16보다 넓은 72px */}
+      <div className="mt-4 mb-6 flex gap-1.5 sm:gap-2">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-8 w-[72px] rounded-full skeleton-shimmer" />
+        ))}
+      </div>
+      {/* 일정 행 4개 — 실행(py + 60px 썸네일 + hairline)과 동일 골격. 카드 아님(0513) */}
+      <div className="flex flex-col">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-hairline"
+          >
+            <div className="w-[22px] shrink-0">
+              <div className="h-4 w-3 rounded skeleton-shimmer" />
+            </div>
+            <div className="w-[60px] h-[60px] shrink-0 rounded-[10px] skeleton-shimmer" />
+            <div className="flex flex-col gap-[5px] sm:gap-1 flex-1">
+              <div className="h-4 sm:h-5 w-32 rounded skeleton-shimmer" />
+              <div className="h-3.5 w-48 max-w-full rounded skeleton-shimmer" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 예상 비용 — PublicCostSection 짝: 총액 26px → 누적 막대 h-3 → 카테고리 2열 → 접기 헤더 2줄(기본 접힘 = 제목 줄만) */}
+      <div className="mt-7 sm:mt-11">
+        <SectionHeaderSkeleton />
+        <div className="mt-[18px]">
+          <div className="h-8 w-40 rounded skeleton-shimmer" />
+          <div className="mt-3 h-3 rounded-md skeleton-shimmer" />
+          {/* 카테고리 대표 4칸 — 2열 조판(0517)이 드러나는 최소 짝수 */}
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between py-2">
+                <div className="h-4 w-16 rounded skeleton-shimmer" />
+                <div className="h-4 w-20 rounded skeleton-shimmer" />
+              </div>
+            ))}
+          </div>
+          {/* 접기 그룹 헤더 2줄 — GroupHeader 짝(pt-2.5 + 구분선 + mt-2.5 필 py-1.5). 항목 행 없음 */}
+          {[0, 1].map((i) => (
+            <div key={i} className={i === 0 ? 'mt-4 pt-2.5' : 'mt-1.5 pt-2.5'}>
+              <div className="border-t border-fg/15" />
+              <div className="mt-2.5 flex items-center py-1.5">
+                <div className="h-[21px] w-40 rounded skeleton-shimmer" />
+                <div className="ml-auto h-4 w-4 rounded skeleton-shimmer" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 왕복 항공편 — PublicFlightTable 짝: 가는편·오는편 2행(왕복 대표형) */}
+      <div className="mt-7 sm:mt-11">
+        <SectionHeaderSkeleton />
+        <div className="flex flex-col gap-3.5 sm:gap-0">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="flex flex-col gap-[3px] sm:grid sm:grid-cols-[60px_1fr_max-content] sm:items-center sm:gap-5 sm:py-[15px] sm:border-b sm:border-hairline"
+            >
+              <div className="h-4 sm:h-5 w-11 rounded skeleton-shimmer" />
+              <div className="h-5 sm:h-6 w-56 max-w-full rounded skeleton-shimmer" />
+              <div className="h-4 sm:h-5 w-28 rounded skeleton-shimmer" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
