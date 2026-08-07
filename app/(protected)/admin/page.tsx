@@ -25,7 +25,9 @@ export default async function AdminPage() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    // 0536: 구 max-w-3xl(768)은 0149 도입 — 커밋·회고에 폭 판정 기록 없음(근거 없음 판정).
+    //   입출력 화면 공용 --reading-w(860)로 편입. 내부는 카드+행 목록이라 +92px에 고정 요소 없음.
+    <div className="max-w-[var(--reading-w)] mx-auto space-y-8">
       <div>
         <p className="text-xs font-semibold text-sky-500 mb-1">Admin</p>
         <h1 className="text-2xl md:text-3xl font-bold text-[#1A1A1A]">작품 관리</h1>
