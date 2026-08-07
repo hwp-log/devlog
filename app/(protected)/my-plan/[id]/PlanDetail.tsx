@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { FlightLeg, type FlightLegData } from '../_components/FlightLeg';
 import { CostSection } from '../_components/CostSection';
-import { PlanTimeline, buildTimeline, type TimelineItem } from '../_components/PlanTimeline';
+import { buildTimeline, type TimelineItem } from '../_components/PlanTimeline';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
 import { CATEGORY_LABEL, formatAmount, type CostCategory } from '../_lib/cost';
@@ -13,6 +13,7 @@ import { togglePlanPublicAction } from './actions';
 import Image from 'next/image';
 import { PencilLine, Trash2 } from 'lucide-react';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
+import { SectionHeader } from '@/app/(protected)/_components/SectionHeader';
 import { BTN_ICON_CHIP } from '@/lib/button-styles';
 
 // 0555: 히어로 커버 sizes — 공개 상세(PlanFinderDetail HERO_SIZES)와 짝(리터럴 복제 —
@@ -202,27 +203,28 @@ export function PlanDetail({ plan, dayCount, deleteAction, ownerNickname, ownerA
           )}
         </div>
 
+        {/* 소개문 — glass 카드 폐기, 본문 텍스트(공개 상세 195~199행 준용) */}
         {plan.description && (
-          <div className="mt-3 glass-outer p-4">
-            <p className="text-xs font-semibold text-slate-500 mb-1">여행계획 간단소개</p>
-            <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">{plan.description}</p>
-          </div>
+          <p className="mt-[14px] sm:mt-[22px] break-keep text-[15px] leading-[1.7] sm:text-base sm:leading-[1.75] text-fg2 text-pretty whitespace-pre-wrap">
+            {plan.description}
+          </p>
         )}
       </div>
 
-      <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-        여행 일정
-      </p>
+      {/* 여행 일정 — 공용 SectionHeader(0531 첫 적용) + 공개 상세 스타일 Day 탭·행 목록 */}
+      <div className="mt-4">
+        <SectionHeader title="여행 일정" sub="내가 넣은 순서" />
+      </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+      <div className="flex gap-1.5 sm:gap-2 mt-4 mb-6 overflow-x-auto pb-1">
         {days.map((d) => (
           <button
             key={d}
             onClick={() => setSelectedDay(d)}
-            className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+            className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors shrink-0 ${
               selectedDay === d
-                ? 'bg-[#1A1A1A] text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                ? 'bg-fg text-bg'
+                : 'bg-card border border-border text-fg2 hover:bg-surface2'
             }`}
           >
             {/* 0511: Day N 병기 제거 — 날짜만(0505 비용 라벨과 동일 포맷, 세 화면 통일). startDate 없으면 방어 폴백 */}
@@ -230,50 +232,79 @@ export function PlanDetail({ plan, dayCount, deleteAction, ownerNickname, ownerA
           </button>
         ))}
       </div>
-      <PlanTimeline items={timeline} currency={plan.currency as 'KRW' | 'USD' | 'JPY'} />
+
+      {/* 0555: 일정 행 — 공개 상세(0513) 형태의 번호+이름+hairline 행. 썸네일·주소는 PlanSpot에
+          데이터가 없어 열 생략(0517 "없으면 열 생략" 규칙). 연결 비용 금액은 우측 인라인 유지
+          (실값·"무료" 규칙 — PlanTimeline 기능 승계). 번호색 #b3b9bd는 공개 상세 리터럴과 짝. */}
+      <div className="flex flex-col">
+        {timeline.length === 0 ? (
+          <p className="text-muted text-sm text-center py-6">항목이 없습니다.</p>
+        ) : (
+          timeline.map(({ spot, cost }, i) => (
+            <div
+              key={spot.id}
+              className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-hairline"
+            >
+              <span className="w-[22px] shrink-0 text-xs sm:text-sm font-bold text-[#b3b9bd]">
+                {i + 1}
+              </span>
+              <span className="flex-1 min-w-0 text-[15px] sm:text-base font-medium text-fg2 break-keep">
+                {spot.name}
+              </span>
+              {cost != null && (
+                <span className="shrink-0 text-xs sm:text-sm font-semibold text-cost-amount">
+                  {cost.amount > 0
+                    ? formatAmount(cost.amount, plan.currency as 'KRW' | 'USD' | 'JPY')
+                    : '무료'}
+                </span>
+              )}
+            </div>
+          ))
+        )}
+      </div>
 
       {/* 0527: 섹션 라벨이 CostSection 안에서 호출부로 나왔다(작성 화면은 22px SectionHeader가 담당).
           이 화면은 형제 섹션이 아직 12px 라벨이라 그 어휘를 유지 — 위계 정돈은 별도 사이클. */}
-      {/* 0504 2단계 / 0505: 여행 고정 비용 — 항공편 아래·여행 일정 위. 항목 있을 때만 렌더(읽기 전용).
-          라벨은 작성·플랜파인더와 통일("여행 고정 비용"). 행은 3열([항목명 truncate][카테고리 11px][금액]) + 0.5px 구분선. */}
-      {daylessCosts.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-            여행 고정 비용
-          </p>
-          <div className="glass-outer px-5 py-2">
-            {daylessCosts.map((c, i) => (
-              <div
-                key={c.id}
-                className={`flex items-baseline gap-2 py-1.5 text-sm${i === daylessCosts.length - 1 ? '' : ' border-b border-black/[0.06]'}`}
-              >
-                <span className="text-[#1A1A1A] truncate min-w-0">{c.label}</span>
-                <span className="text-[11px] text-slate-400 shrink-0">{CATEGORY_LABEL[c.category as CostCategory]}</span>
-                <span className="ml-auto shrink-0 font-medium text-[#1A1A1A]">
-                  {formatAmount(c.amount, plan.currency as 'KRW' | 'USD' | 'JPY')}
-                </span>
-              </div>
-            ))}
+      {/* 예상 비용 — 공개 상세 순서(일정→비용→항공). CostSection은 0527에서 이미 토큰화 — 무접촉.
+          sub "실제 입력값" = 공개의 "총액 기준 · 1인 환산 없음"과 대구(실값/근사 차이 명시). */}
+      <div className="mt-7 sm:mt-11">
+        <SectionHeader title="예상 비용" sub="실제 입력값" />
+        <CostSection
+          totals={costSummary}
+          flightAmount={flightAmount}
+          total={total}
+          currency={plan.currency as 'KRW' | 'USD' | 'JPY'}
+        />
+        {/* 0504/0505 여행 고정 비용 — glass 폐기, 3열([항목][카테고리][금액]) 토큰 행.
+            카테고리 11px → 12px(§5 하한). 항목 있을 때만. */}
+        {daylessCosts.length > 0 && (
+          <div className="mt-5">
+            <p className="text-[15px] font-semibold text-fg2">여행 고정 비용</p>
+            <div className="mt-1">
+              {daylessCosts.map((c, i) => (
+                <div
+                  key={c.id}
+                  className={`flex items-baseline gap-2 py-[11px] text-sm${i === daylessCosts.length - 1 ? '' : ' border-b border-hairline'}`}
+                >
+                  <span className="text-fg2 truncate min-w-0">{c.label}</span>
+                  <span className="text-xs text-muted shrink-0">{CATEGORY_LABEL[c.category as CostCategory]}</span>
+                  <span className="ml-auto shrink-0 font-semibold text-cost-amount">
+                    {formatAmount(c.amount, plan.currency as 'KRW' | 'USD' | 'JPY')}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-        카테고리별 비용
-      </p>
-      <CostSection
-        totals={costSummary}
-        flightAmount={flightAmount}
-        total={total}
-        currency={plan.currency as 'KRW' | 'USD' | 'JPY'}
-      />
-
+      {/* 항공편 — FlightLeg 유지(형태 교체는 목표 밖), 제목만 SectionHeader */}
       {plan.flight && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-            항공편 (예상)
-          </p>
-          <FlightLeg data={planFlightToLegData(plan.flight)} />
+        <div className="mt-7 sm:mt-11">
+          <SectionHeader title="항공편" sub="예상" />
+          <div className="mt-4">
+            <FlightLeg data={planFlightToLegData(plan.flight)} />
+          </div>
         </div>
       )}
 
