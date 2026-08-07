@@ -62,14 +62,8 @@ export function UserDropdown({ email, avatarUrl, nickname, isAdmin }: Props) {
           >
             MyPage
           </Link>
-          <Link
-            href="/my-plan"
-            role="menuitem"
-            className="block px-4 py-2 text-sm text-slate-700 dark:text-fg2 hover:bg-slate-50 dark:hover:bg-surface2 transition-colors duration-150"
-            onClick={() => setOpen(false)}
-          >
-            MyPlan
-          </Link>
+          {/* 0546: MyStory → MyPlan 순 — 상단 내비(NavLinks: Story → SpotFinder → PlanFinder)와
+              내 화면 축을 같은 순서로 동조(두 메뉴가 한 벌로 읽히게) */}
           <Link
             href="/my-story"
             role="menuitem"
@@ -77,6 +71,14 @@ export function UserDropdown({ email, avatarUrl, nickname, isAdmin }: Props) {
             onClick={() => setOpen(false)}
           >
             MyStory
+          </Link>
+          <Link
+            href="/my-plan"
+            role="menuitem"
+            className="block px-4 py-2 text-sm text-slate-700 dark:text-fg2 hover:bg-slate-50 dark:hover:bg-surface2 transition-colors duration-150"
+            onClick={() => setOpen(false)}
+          >
+            MyPlan
           </Link>
           {/* Admin은 이동 그룹에 편입(0482 3구역 재구성) — 선행 구분선 제거해 MyStory와 한 그룹.
               항목·순서 불변, 구분선만 재배치 */}
