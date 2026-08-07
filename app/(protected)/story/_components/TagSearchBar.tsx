@@ -9,12 +9,14 @@ export function TagSearchBar({
   tags = [],
   inputId,
   onNavigate,
+  placeholder = '제목, 지역명을 입력하세요',
 }: {
   q: string;
   basePath: string;
   tags?: string[];
   inputId?: string;
   onNavigate?: (url: string) => void; // 있으면 검색 네비를 공용 transition으로 위임(로딩 표시). my-story는 미전달 → 기존 router.replace
+  placeholder?: string; // 0548: 화면별 검색 대상이 달라 문구만 주입(MyPlan: 제목·지역·작품). 기본값 = 기존 문구 무변
 }) {
   const router = useRouter();
   const [value, setValue] = useState(q);
@@ -82,7 +84,7 @@ export function TagSearchBar({
         onBlur={() => setIsFocused(false)}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
-        placeholder={tags.length > 0 ? '' : '제목, 지역명을 입력하세요'}
+        placeholder={tags.length > 0 ? '' : placeholder}
         aria-label="제목, 지역명 또는 인기 태그로 검색"
         className="w-full md:w-70 pl-9 pr-9 py-2 text-base md:text-sm text-fg rounded-full bg-surface2 border border-transparent dark:border-border
                    focus:outline-none dark:focus:border-primary dark:hover:border-muted

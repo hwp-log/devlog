@@ -3,6 +3,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { FilterDropdown } from '@/app/(protected)/plan-finder/_components/FilterDropdown';
+import { TagSearchBar } from '@/app/(protected)/story/_components/TagSearchBar';
 import { MyPlanCard } from './MyPlanCard';
 import { Pagination } from '@/app/(protected)/_components/Pagination';
 import { PLAN_PAGE_SIZE } from '@/lib/plan/pagination';
@@ -62,6 +63,9 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
   const [filter, setFilter] = useState<FilterKey>('all');
   // 0544: 클라이언트 슬라이스 페이지네이션 — 필터·정렬이 클라이언트라 페이지도 같은 층(0416 방식 이식)
   const [page, setPage] = useState(1);
+  // 0548: 검색도 같은 층 — 전건이 이미 클라에 있어(34건) 서버 검색 이득이 없고, 필터·정렬·페이지와
+  // 한 파이프라인이어야 동시 적용이 정합. query는 TagSearchBar가 정규화한 값(trim·공백·# 제거).
+  const [query, setQuery] = useState('');
 
   // 페이지 변경 시 문서 최상단으로(플랜파인더·스토리와 동일 UX). 첫 마운트는 skip.
   // useLayoutEffect: 슬라이스 교체 커밋 후·페인트 전 실행 → 이전 스크롤 위치로 그려지는 프레임 없음.
@@ -71,9 +75,21 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
     window.scrollTo(0, 0);
   }, [page]);
 
-  const filtered = filter === 'all'
+  // 0548: 검색 단계 — 제목·지역·작품 contains. TagSearchBar 정규화가 공백을 제거하므로
+  // 대상 필드도 공백을 제거해 비교("제주 여행"이 "제주여행"으로 검색되게). 파이프라인:
+  // 검색 → 가격대 필터 → 정렬 → 슬라이스 (지표줄·페이저가 전부 같은 결과 집합에서 파생).
+  const q = query.toLowerCase();
+  const searched = q === ''
     ? items
-    : items.filter((p) => getFilterKey(p) === filter);
+    : items.filter((p) =>
+        [p.title, p.region, p.movie].some(
+          (f) => f != null && f.replace(/\s/g, '').toLowerCase().includes(q),
+        ),
+      );
+
+  const filtered = filter === 'all'
+    ? searched
+    : searched.filter((p) => getFilterKey(p) === filter);
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'newest') return b.createdAt.getTime() - a.createdAt.getTime();
@@ -107,6 +123,22 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
 
   return (
     <div>
+      {/* 0548: 검색바 — 사용자 지정 위치("새 계획" 버튼 아래 줄, 필터 줄 위). 입력 → 요약(지표) →
+          필터 → 결과 순. mb-5 = 지표줄(pb-3.5+hairline)과 한 덩이로 안 붙는 간격. 폭은 MyStory와
+          동일(w-full md:w-70 — TagSearchBar 내장). onNavigate 위임으로 URL 네비 없이 클라 상태 수신
+          (컴포넌트 무개조 재사용 — 디바운스 300ms·IME 조합·X 클리어 내장 그대로). */}
+      <div className="mb-5">
+        <TagSearchBar
+          q=""
+          basePath="/my-plan"
+          placeholder="제목, 지역, 작품을 입력하세요"
+          onNavigate={(url) => {
+            setQuery(new URL(url, location.origin).searchParams.get('q') ?? '');
+            setPage(1); // 0544: 결과 집합이 바뀌면 1페이지 복귀(필터·정렬과 동일 지점)
+          }}
+        />
+      </div>
+
       {/* 지표 — 굵기 대신 색 밝기로 위계(숫자만 fg, 라벨·구분자는 muted). 굵기는 전부 500. */}
       <p
         className="text-sm font-medium text-muted pb-3.5 border-b border-hairline"
@@ -137,7 +169,8 @@ export function MyPlanListClient({ items }: { items: MyPlanListItem[] }) {
 
       {sorted.length === 0 ? (
         <div className="border-[1.5px] border-dashed border-border rounded-[14px] p-[22px] flex items-center justify-center text-center h-[240px] sm:h-[280px] text-sm text-muted">
-          이 가격대 계획이 없어요
+          {/* 0548: 검색 중이면 가격대 전제 문구가 틀리다 — MyStory 빈 검색과 동형 분기 */}
+          {query ? `"${query}"에 맞는 계획이 없어요` : '이 가격대 계획이 없어요'}
         </div>
       ) : (
         // 0535: /my-plan이 WIDE_ROUTES 편입(고르는 화면 = 풀블리드 원칙) — 컨테이너 = 뷰포트−48.
