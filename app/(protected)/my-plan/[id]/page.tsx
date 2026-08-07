@@ -2,7 +2,6 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { PlanDetail } from './PlanDetail';
-import { deleteMyPlanAction } from '../actions';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -75,7 +74,6 @@ export default async function MyPlanDetailPage({ params }: Props) {
       plan={plan}
       enrichedSpots={enrichedSpots}
       dayCount={dayCount}
-      deleteAction={deleteMyPlanAction}
       ownerNickname={profile?.nickname ?? ''}
       ownerAvatarUrl={profile?.avatarUrl ?? null}
       createdAtLabel={plan.createdAt.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}

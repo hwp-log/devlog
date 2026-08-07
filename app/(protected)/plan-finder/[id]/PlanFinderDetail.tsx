@@ -7,6 +7,7 @@ import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { PublicFlightTable } from './PublicFlightTable';
 import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
+import { PlanOwnerActions, PlanOwnerNotice } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
@@ -35,6 +36,8 @@ interface Props {
   authorNickname: string;
   authorAvatarUrl: string | null;
   isOwner: boolean;
+  // 0559: 소유자 관리 버튼군(공개 전환 토글 초기 상태) — 비소유자 화면엔 미사용
+  isPublic: boolean;
 }
 
 // 히어로 커버 sizes — 본문 컬럼 폭 기준(모바일 100vw, 데스크톱 = --reading-w 860).
@@ -154,6 +157,7 @@ export function PlanFinderDetail({
   authorNickname,
   authorAvatarUrl,
   isOwner,
+  isPublic,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
 
@@ -220,16 +224,25 @@ export function PlanFinderDetail({
           </div>
         )}
 
-        {/* 메타 — 작성자·날짜, 커버 있으면 버튼을 우측에(시안 4a의 ♥ 자리) */}
+        {/* 메타 — 작성자·날짜, 커버 있으면 버튼을 우측에(시안 4a의 ♥ 자리).
+            0559: 소유자면 관리 버튼군(공개 전환·수정·삭제) — 소유자 상세와 같은 자리(메타 행
+            우측), 스토리 상세 방식(한 화면 + isOwner 게이트). 좌측은 min-w-0·truncate 보강
+            (소유자 상세 동형) — 버튼군과 공존 시 모바일 넘침 방지. */}
         <div className={`flex items-center justify-between gap-5 ${coverUrl ? '' : 'mt-2'}`}>
-          <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted">
+          <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted min-w-0">
             <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
-            <span className="text-fg font-semibold">{authorNickname}</span>
+            <span className="text-fg font-semibold truncate">{authorNickname}</span>
             <span className="opacity-40">·</span>
-            <span>{createdAtLabel}</span>
+            <span className="shrink-0">{createdAtLabel}</span>
           </div>
-          {coverUrl && actionButtons}
+          {(isOwner || coverUrl) && (
+            <div className="flex items-center gap-2 shrink-0">
+              {isOwner && <PlanOwnerActions planId={planId} isPublic={isPublic} />}
+              {coverUrl && actionButtons}
+            </div>
+          )}
         </div>
+        {isOwner && <PlanOwnerNotice />}
 
         {/* 커버 없을 때 지역 칩은 인라인으로 유지(작품 칩은 별도 트랙이라 제외) */}
         {!coverUrl && region && (

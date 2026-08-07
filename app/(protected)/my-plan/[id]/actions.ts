@@ -29,6 +29,9 @@ export async function togglePlanPublicAction(
   revalidatePath(`/my-plan/${planId}`);
   revalidatePath('/my-plan');
   revalidatePath('/plan-finder');
+  // 0559: 공개 상세에서도 토글 가능(PlanOwnerActions 공용) — 미갱신 시 transition 종료 후
+  //   optimistic이 stale 서버 값으로 되돌아가 버튼이 이전 상태로 보인다.
+  revalidatePath(`/plan-finder/${planId}`);
 }
 
 export async function addPlanItemAction(

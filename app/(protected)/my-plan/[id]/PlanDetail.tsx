@@ -1,20 +1,18 @@
 'use client';
-import { useState, useTransition, useOptimistic } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { FlightLeg, type FlightLegData } from '../_components/FlightLeg';
 import { CostSection } from '../_components/CostSection';
 import { PlanItemRow } from '@/app/(protected)/plan-finder/[id]/PlanFinderDetail';
+import { PlanOwnerActions, PlanOwnerNotice } from './PlanOwnerActions';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
 import { calcCostSummary } from '@/lib/plan/calc-cost-summary';
 import { CATEGORY_LABEL, formatAmount, type CostCategory } from '../_lib/cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
-import { togglePlanPublicAction } from './actions';
 import Image from 'next/image';
-import { PencilLine, Trash2 } from 'lucide-react';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 import { SectionHeader } from '@/app/(protected)/_components/SectionHeader';
-import { BTN_ICON_CHIP } from '@/lib/button-styles';
 
 // 0555: 히어로 커버 sizes — 공개 상세(PlanFinderDetail HERO_SIZES)와 짝(리터럴 복제 —
 // 로컬 const라 참조 불가. 한쪽만 바꾸면 서빙 해상도가 갈린다).
@@ -64,7 +62,6 @@ type EnrichedSpot = {
 interface Props {
   plan: FullPlan;
   dayCount: number;
-  deleteAction: (planId: string) => Promise<void>;
   // 0555: 메타 행(공개 상세 동형)용
   enrichedSpots: EnrichedSpot[];
   ownerNickname: string;
@@ -73,22 +70,8 @@ interface Props {
 }
 
 
-export function PlanDetail({ plan, dayCount, deleteAction, enrichedSpots, ownerNickname, ownerAvatarUrl, createdAtLabel }: Props) {
+export function PlanDetail({ plan, dayCount, enrichedSpots, ownerNickname, ownerAvatarUrl, createdAtLabel }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
-  const [isPending, startTransition] = useTransition();
-  const [isPendingPublic, startPublicTransition] = useTransition();
-  const [optimisticPublic, setOptimisticPublic] = useOptimistic(
-    plan.isPublic,
-    (_, next: boolean) => next,
-  );
-
-  const handleTogglePublic = () => {
-    const next = !optimisticPublic;
-    startPublicTransition(async () => {
-      setOptimisticPublic(next);
-      await togglePlanPublicAction(plan.id, next);
-    });
-  };
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
   // 0556: 그날 항목 + 연결 비용 — buildTimeline 대체(공개 상세와 같은 필터·정렬, 비용은 costMap)
@@ -139,8 +122,7 @@ export function PlanDetail({ plan, dayCount, deleteAction, enrichedSpots, ownerN
         )}
 
         {/* 메타 행 — 공개 상세 동형(아바타·닉네임·작성일). 우측 = 소유자 버튼군(0481 선례:
-            메타 행 우측 아이콘). 공개 전환만 pill — 상태 표시를 겸하는 토글이라 아이콘으론
-            현재 상태가 안 읽힘. 수정·삭제는 아이콘 칩(스토리 상세 DeleteButton과 동일 재질). */}
+            메타 행 우측 아이콘). 0559: 버튼군·안내 문구는 PlanOwnerActions로 추출(공개 상세 공용). */}
         <div className={`flex items-center justify-between gap-5 ${plan.coverUrl ? '' : 'mt-2'}`}>
           <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted min-w-0">
             <AuthorAvatar nickname={ownerNickname} avatarUrl={ownerAvatarUrl} />
@@ -148,44 +130,9 @@ export function PlanDetail({ plan, dayCount, deleteAction, enrichedSpots, ownerN
             <span className="opacity-40">·</span>
             <span className="shrink-0">{createdAtLabel}</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleTogglePublic}
-              disabled={isPendingPublic}
-              className={`px-4 py-1.5 rounded-full text-sm transition-colors disabled:opacity-50 ${
-                optimisticPublic
-                  ? 'bg-fg text-bg'
-                  : 'border border-border text-fg2 hover:bg-surface2'
-              }`}
-            >
-              {optimisticPublic ? '공개 중' : '비공개'}
-            </button>
-            <Link
-              href={`/my-plan/${plan.id}/edit`}
-              aria-label="수정"
-              className={`${BTN_ICON_CHIP} text-fg2 hover:text-fg`}
-            >
-              <PencilLine size={18} />
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                if (!confirm('계획을 삭제하시겠습니까?')) return;
-                startTransition(() => deleteAction(plan.id));
-              }}
-              disabled={isPending}
-              aria-label="삭제"
-              className={`${BTN_ICON_CHIP} text-fg2 hover:text-danger disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
+          <PlanOwnerActions planId={plan.id} isPublic={plan.isPublic} />
         </div>
-        {/* 공개 가공 안내 — 유지(공개 실값/근사 차이를 설명하는 장치) */}
-        <p className="mt-1.5 text-xs text-muted text-right">
-          공개하면 비용이 비중·구간으로 가공되어 표시됩니다 (정밀 금액은 비공개)
-        </p>
+        <PlanOwnerNotice />
 
         {/* 커버 없을 때 지역·작품 칩 인라인(커버 있으면 지역은 히어로 안 — 공개 상세 동형) */}
         {!plan.coverUrl && (plan.region || plan.movie) && (

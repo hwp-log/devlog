@@ -23,6 +23,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   const plan = await prisma.myPlan.findFirst({
     where: { id, ...visiblePlanWhere(user?.id) },
     select: {
+      // 0559: 소유자 관리 버튼군(공개 전환 토글 초기 상태)용 — 비소유자 화면엔 미사용
+      isPublic: true,
       title: true,
       description: true,
       region: true,
@@ -165,6 +167,7 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       authorNickname={plan.owner.nickname}
       authorAvatarUrl={plan.owner.avatarUrl}
       isOwner={isOwner}
+      isPublic={plan.isPublic}
     />
   );
 }
