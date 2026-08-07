@@ -94,7 +94,8 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         spotCount: story.plan._count.spots,
         headcount: story.plan.headcount,
         showCost: story.plan.isPublic,
-        band: publicSummary?.band ?? null,
+        total: publicSummary?.total ?? 0,
+        currency: story.plan.currency as 'KRW' | 'USD' | 'JPY',
       })
     : '';
 

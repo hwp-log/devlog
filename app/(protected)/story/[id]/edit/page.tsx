@@ -57,7 +57,8 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
       spotCount: p._count.spots,
       headcount: p.headcount,
       showCost: p.isPublic,
-      band: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY').band,
+      total: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY').total,
+      currency: p.currency as 'KRW' | 'USD' | 'JPY',
     }),
   }));
 

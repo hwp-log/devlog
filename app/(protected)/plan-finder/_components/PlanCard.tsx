@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import type { PublicPlanListItem } from '@/lib/plan/queries';
@@ -38,8 +39,10 @@ export function PlanCard({
   ].filter(Boolean).join(' · ');
 
   // "총" = 총액 신호. 인원과 나란히 둘 때 1인당으로 오해되지 않도록("N인 기준"은 여행상품 1인당 관행이라 회피).
-  const priceLabel = summary.band
-    ? `총 약 ${Math.round((summary.band.lower + summary.band.upper) / 2 / 10_000).toLocaleString()}만원`
+  // 0558: band 중앙값 근사 폐기 — 실값(formatAmount). 0532 금액줄 227px 실측 대비 +~20px,
+  // 카드 하한 320 여유(1.41배) 안. 총액 0이면 기존 '금액 없음' 유지.
+  const priceLabel = summary.total > 0
+    ? `총 ${formatAmount(summary.total, summary.currency)}`
     : '금액 없음';
 
   return (

@@ -23,7 +23,7 @@ export default async function StoryNewPage() {
     },
     orderBy: { createdAt: 'desc' },
   });
-  // 요약 한 줄은 server-only(summarizePlanCost band → buildPlanSummaryLine) — 여기서 문자열로
+  // 요약 한 줄은 server-only(summarizePlanCost total → buildPlanSummaryLine) — 여기서 문자열로
   // 완성해 내림. 원 금액(costs·flight)은 안 내림(상세·plan-finder와 동일 공개 수준).
   const availablePlans = plans.map((p) => ({
     id: p.id,
@@ -36,7 +36,8 @@ export default async function StoryNewPage() {
       spotCount: p._count.spots,
       headcount: p.headcount,
       showCost: p.isPublic,
-      band: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY').band,
+      total: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY').total,
+      currency: p.currency as 'KRW' | 'USD' | 'JPY',
     }),
   }));
 
