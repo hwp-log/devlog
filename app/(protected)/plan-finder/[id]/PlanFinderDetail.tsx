@@ -57,6 +57,83 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
+
+// 0556: 일정 행 — 이 파일이 정본(0513 행 형태), 소유자 상세(PlanDetail)와 공용. 조판 무변 추출.
+// trailing = 소유자 화면 전용 우측 슬롯(실값 금액) — 공개는 미전달, 행에 금액 없음 유지(0492).
+export function PlanItemRow({
+  item: s,
+  index: i,
+  origin,
+  trailing,
+}: {
+  item: {
+    id: string;
+    name: string;
+    coverUrl?: string | null;
+    address?: string | null;
+    movie?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  };
+  index: number;
+  origin?: { name: string; lat: number; lng: number };
+  trailing?: React.ReactNode;
+}) {
+  return (
+              <div
+                className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-hairline"
+              >
+                {/* 0522: 공통 척도 보조 등급 14px */}
+                <span className="w-[22px] shrink-0 text-xs sm:text-sm font-bold text-[#b3b9bd]">
+                  {i + 1}
+                </span>
+                {s.coverUrl && (
+                  <div className="relative w-[60px] h-[60px] shrink-0 rounded-[10px] overflow-hidden">
+                    <Image src={s.coverUrl} alt="" fill sizes="60px" className="object-cover" />
+                  </div>
+                )}
+                {/* 0520: md+는 [이름 ─ 주소(우측)] 한 줄 — 실데이터 최악 조합(이름 11자+주소
+                    27자 ≈ 652px)이 md 콘텐츠 폭 720px에 들어감(sm 592px는 미달이라 2줄 유지).
+                    이름은 온전(shrink-0), 주소가 남는 폭을 쓰고 넘치면 말줄임(표시만 — 링크는 전체). */}
+                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0 flex-1 md:flex-row md:items-center md:gap-5">
+                  <span className="flex items-center gap-[7px] sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap md:shrink-0">
+                    <span
+                      className={`text-[15px] sm:text-base break-keep ${
+                        s.address ? 'font-semibold text-fg' : 'font-medium text-fg2'
+                      }`}
+                    >
+                      {s.name}
+                    </span>
+                    {s.movie && (
+                      // 0524: 다크는 옅은 파랑 면을 못 써 면·글자 반전(대비 6.89:1).
+                      // 11px → 12px은 CLAUDE.md §5 "12px 미만 금지" 시정이라 라이트도 함께 올림.
+                      <span className="shrink-0 px-[7px] py-[2px] sm:px-2 sm:py-[3px] rounded-[3px] bg-chip-movie-bg text-chip-movie-fg text-xs font-semibold">
+                        {s.movie}
+                      </span>
+                    )}
+                  </span>
+                  {s.address &&
+                    (s.lat != null && s.lng != null ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openNaverDirections({ name: s.name, lat: s.lat!, lng: s.lng! }, origin)
+                        }
+                        aria-label={`${s.name} 네이버 지도 길찾기`}
+                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-sm text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0 md:flex-1 md:min-w-0 md:justify-end"
+                      >
+                        <span className="truncate">{s.address}</span>
+                        <span className="text-[10px] sm:text-[11px] shrink-0">↗</span>
+                      </button>
+                    ) : (
+                      <p className="text-xs sm:text-sm text-muted truncate md:flex-1 md:min-w-0 md:text-right">{s.address}</p>
+                    ))}
+                </span>
+                {trailing}
+              </div>
+  );
+}
+
 export function PlanFinderDetail({
   planId,
   initialLiked,
@@ -244,59 +321,7 @@ export function PlanFinderDetail({
               prev && prev.lat != null && prev.lng != null
                 ? { name: prev.name, lat: prev.lat, lng: prev.lng }
                 : undefined;
-            return (
-              <div
-                key={s.id}
-                className="flex items-center gap-2.5 sm:gap-3 py-[13px] sm:py-[14px] border-b border-hairline"
-              >
-                {/* 0522: 공통 척도 보조 등급 14px */}
-                <span className="w-[22px] shrink-0 text-xs sm:text-sm font-bold text-[#b3b9bd]">
-                  {i + 1}
-                </span>
-                {s.coverUrl && (
-                  <div className="relative w-[60px] h-[60px] shrink-0 rounded-[10px] overflow-hidden">
-                    <Image src={s.coverUrl} alt="" fill sizes="60px" className="object-cover" />
-                  </div>
-                )}
-                {/* 0520: md+는 [이름 ─ 주소(우측)] 한 줄 — 실데이터 최악 조합(이름 11자+주소
-                    27자 ≈ 652px)이 md 콘텐츠 폭 720px에 들어감(sm 592px는 미달이라 2줄 유지).
-                    이름은 온전(shrink-0), 주소가 남는 폭을 쓰고 넘치면 말줄임(표시만 — 링크는 전체). */}
-                <span className="flex flex-col gap-[5px] sm:gap-1 min-w-0 flex-1 md:flex-row md:items-center md:gap-5">
-                  <span className="flex items-center gap-[7px] sm:gap-2 min-w-0 flex-wrap sm:flex-nowrap md:shrink-0">
-                    <span
-                      className={`text-[15px] sm:text-base break-keep ${
-                        s.address ? 'font-semibold text-fg' : 'font-medium text-fg2'
-                      }`}
-                    >
-                      {s.name}
-                    </span>
-                    {s.movie && (
-                      // 0524: 다크는 옅은 파랑 면을 못 써 면·글자 반전(대비 6.89:1).
-                      // 11px → 12px은 CLAUDE.md §5 "12px 미만 금지" 시정이라 라이트도 함께 올림.
-                      <span className="shrink-0 px-[7px] py-[2px] sm:px-2 sm:py-[3px] rounded-[3px] bg-chip-movie-bg text-chip-movie-fg text-xs font-semibold">
-                        {s.movie}
-                      </span>
-                    )}
-                  </span>
-                  {s.address &&
-                    (s.lat != null && s.lng != null ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openNaverDirections({ name: s.name, lat: s.lat!, lng: s.lng! }, origin)
-                        }
-                        aria-label={`${s.name} 네이버 지도 길찾기`}
-                        className="inline-flex max-w-full items-center gap-1 sm:gap-[5px] text-left text-xs sm:text-sm text-muted hover:text-[#2f7fe0] transition-colors min-h-[44px] -my-[13px] sm:min-h-0 sm:my-0 md:flex-1 md:min-w-0 md:justify-end"
-                      >
-                        <span className="truncate">{s.address}</span>
-                        <span className="text-[10px] sm:text-[11px] shrink-0">↗</span>
-                      </button>
-                    ) : (
-                      <p className="text-xs sm:text-sm text-muted truncate md:flex-1 md:min-w-0 md:text-right">{s.address}</p>
-                    ))}
-                </span>
-              </div>
-            );
+            return <PlanItemRow key={s.id} item={s} index={i} origin={origin} />;
           })
         )}
       </div>
