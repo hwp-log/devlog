@@ -38,6 +38,8 @@ interface Props {
   isOwner: boolean;
   // 0559: 소유자 관리 버튼군(공개 전환 토글 초기 상태) — 비소유자 화면엔 미사용
   isPublic: boolean;
+  // 0560: 담은 플랜의 원본 링크(구 PlanDetail 흡수) — isOwner일 때만 렌더
+  sourcePlanId: string | null;
 }
 
 // 히어로 커버 sizes — 본문 컬럼 폭 기준(모바일 100vw, 데스크톱 = --reading-w 860).
@@ -158,6 +160,7 @@ export function PlanFinderDetail({
   authorAvatarUrl,
   isOwner,
   isPublic,
+  sourcePlanId,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
 
@@ -364,8 +367,22 @@ export function PlanFinderDetail({
         </div>
       )}
 
-      <div className="mt-7 sm:mt-10">
-        <Link href="/plan-finder" className="text-sm text-muted hover:text-fg transition-colors">
+      {/* 0560: 상세 한 벌화(구 PlanDetail 하단 흡수) — 원본 링크는 소유자만(담은 플랜은
+          비공개라 사실상 소유자만 열람하지만 게이트 명시). 목록은 진입 맥락 따라 분기 —
+          소유자는 내 목록(/my-plan)에서 들어온다. */}
+      <div className="mt-7 sm:mt-10 flex flex-col gap-2">
+        {isOwner && sourcePlanId && (
+          <Link
+            href={`/plan-finder/${sourcePlanId}`}
+            className="text-sm text-muted hover:text-fg transition-colors"
+          >
+            원본 플랜 보기 →
+          </Link>
+        )}
+        <Link
+          href={isOwner ? '/my-plan' : '/plan-finder'}
+          className="text-sm text-muted hover:text-fg transition-colors"
+        >
           ← 목록으로
         </Link>
       </div>

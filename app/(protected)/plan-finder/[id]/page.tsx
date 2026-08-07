@@ -25,6 +25,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
     select: {
       // 0559: 소유자 관리 버튼군(공개 전환 토글 초기 상태)용 — 비소유자 화면엔 미사용
       isPublic: true,
+      // 0560: 담은 플랜의 원본 링크(구 PlanDetail 흡수) — isOwner일 때만 렌더
+      sourcePlanId: true,
       title: true,
       description: true,
       region: true,
@@ -168,6 +170,7 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       authorAvatarUrl={plan.owner.avatarUrl}
       isOwner={isOwner}
       isPublic={plan.isPublic}
+      sourcePlanId={plan.sourcePlanId}
     />
   );
 }
