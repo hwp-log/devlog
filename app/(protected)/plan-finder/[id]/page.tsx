@@ -93,7 +93,10 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   // summarizePlanCost — server-only, 결과만 클라로 전송
   const summary = summarizePlanCost(plan.costs, plan.flight, currency);
 
-  // 항공편: duration 계산 후 시간·날짜 제거(금액은 공개 — 왕복 총액은 상세 섹션 제목이 표기)
+  // 항공편. 0569: 구 처리는 "duration 계산 후 시간·날짜 제거"였다 — 공개 화면에서 값을 가공해
+  //   덜 보여주는 계열(0492 금액 비중·구간 가공)의 잔재다. 0557(비공개 = 글 자체를 가림)·
+  //   0558(공개한 것은 실값으로)이 그 계열을 뒤집었으므로 시각만 남겨둘 이유가 없다.
+  //   departsAt·arrivesAt를 실값으로 넘긴다(표시 조판은 PublicFlightTable).
   const publicFlight: FlightLegData | null = plan.flight
     ? {
         tripType: plan.flight.tripType as 'ONE_WAY' | 'ROUND_TRIP',
@@ -101,8 +104,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
         out: {
           origin: plan.flight.outOrigin,
           destination: plan.flight.outDestination,
-          departsAt: '',
-          arrivesAt: '',
+          departsAt: plan.flight.outDepartsAt.toISOString(),
+          arrivesAt: plan.flight.outArrivesAt.toISOString(),
           airline: plan.flight.outAirline,
           flightNo: plan.flight.outFlightNo,
           durationLabel: calcDurationLabel(plan.flight.outDepartsAt, plan.flight.outArrivesAt),
@@ -112,8 +115,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
               ret: {
                 origin: plan.flight.retOrigin,
                 destination: plan.flight.retDestination!,
-                departsAt: '',
-                arrivesAt: '',
+                departsAt: plan.flight.retDepartsAt.toISOString(),
+                arrivesAt: plan.flight.retArrivesAt.toISOString(),
                 airline: plan.flight.retAirline!,
                 flightNo: plan.flight.retFlightNo!,
                 durationLabel: calcDurationLabel(
