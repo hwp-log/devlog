@@ -3,9 +3,23 @@
 // 0571(플랜 작성·수정)과 증상이 달랐다: 그쪽은 상위 my-plan/loading(목록용)이 **엉뚱한 골격**으로
 //   떴고, 여기는 app/·app/(protected)/ 어디에도 loading.tsx가 없어 **아무것도 안 떴다**
 //   (Suspense 경계 자체가 안 생겨 응답이 올 때까지 이전 화면에 머문다).
-// 노출 구간은 충분하다 — 실측: layout 권한 조회 45.8ms + page 조회 44.9ms(중앙값, 워밍업 후
-//   7회, Supabase ap-northeast-1)가 직렬로 쌓인다. page는 movie.findMany 2종(Promise.all) +
-//   대기 작품 1건당 findMergeCandidates 1회.
+// ── 실제 노출 구간: page 조회 ~44.9ms뿐 (빠른 환경에선 거의 안 보인다) ──────
+// loading.tsx는 **layout 안쪽**이다(Next 16 loading.md: "In the same folder, loading.js will be
+//   nested inside layout.js"). 구성은 <AdminLayout>→<Suspense fallback={이 파일}>→<AdminPage>라
+//   **AdminLayout이 await하는 동안에는 경계가 아직 없어 스켈레톤이 못 뜬다.**
+//   그 앞에 app/(protected)/layout.tsx(auth + user.findUnique)의 대기도 더 붙는다.
+//
+//   실측(워밍업 후 7회, Supabase ap-northeast-1):
+//     [(protected) auth] → [admin layout 권한 조회 45.8ms] → ★여기부터 스켈레톤★ → [page 44.9ms]
+//   즉 **덮이는 건 뒤쪽 ~44.9ms뿐**이고 60fps 기준 2~3프레임이다.
+//   → 데이터가 적고 회선이 빠른 조건에서 거의 안 보이는 것이 **정상**이다. 결함이 아니라
+//     "기다릴 구간이 짧다"는 사실의 반영.
+//   → 승인 대기가 쌓이면 page의 findMergeCandidates가 대기 1건당 1회 돌아 이 구간이 길어지고,
+//     그때 제 역할을 한다(page = movie.findMany 2종 Promise.all + 후보 조회 N회).
+//
+//   덮이지 않는 앞 구간을 없애려면 app/(protected)/loading.tsx가 필요한데, 그건 (protected)
+//   **전 화면에 영향**을 주는 변경이라 별도 판단으로 뺐다(백로그). 권한 게이트를 layout에서
+//   page로 내리는 안은 **보안 구조를 로딩 UI 때문에 바꾸는 것**이라 채택하지 않는다.
 //
 // §11 갈래: 실물로 남길 게 한두 줄이 아니라 **골격 전체 shimmer**. 눈썹("Admin")·h1("작품 관리")도
 //   회색 블록 — my-plan/loading(0542)이 눈썹까지 shimmer로 둔 선례와 같다.
