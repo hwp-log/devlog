@@ -17,12 +17,15 @@ enum TripType {
   ROUND_TRIP
 }
 
+// 이 enum은 app/(protected)/my-plan/_lib/cost.ts의 CostCategory 유니온과 수기 복제 관계다
+// (자동 파생 아님). 값을 고치면 그쪽 유니온·CATEGORIES·라벨·색 맵까지 같이 봐야 한다.
 enum CostCategory {
   TRANSPORT
   ACCOMMODATION
   FOOD
   ENTRANCE
   ETC
+  PARKING // 0564: 화면 순서는 CATEGORIES 배열이 정하므로 여기 위치는 무의미(맨 뒤 append)
 }
 
 enum MovieStatus {
