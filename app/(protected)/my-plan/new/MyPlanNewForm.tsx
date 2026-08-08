@@ -813,14 +813,23 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           </div>
           <div className="flex flex-col">
             {currentDayCostEntries.map(({ cost, index }) => (
-              <div
-                key={index}
-                className="flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0"
-              >
-                {/* 장소 연결 — 값 '' = 기타 지출(localId null → planSpotId NULL 저장).
-                    옵션은 그날 저장 대상 항목의 **현재 이름**을 라이브 렌더 — 이름이 정본이라
-                    라벨 사본을 만들지 않는다(저장 시 서버가 장소 이름으로 라벨 강제). */}
-                <div className="flex flex-col gap-2 min-w-0">
+              <div key={index} className="flex flex-col gap-2 py-3 border-b border-hairline">
+                {/* 0562 D fix③: 기타 지출의 라벨은 **행 위 전폭 한 줄** — 구 조판(드롭다운 아래
+                    같은 열에 스택)은 왼쪽 열만 2줄로 커져 카테고리·금액이 중간 높이에 떠 보였다
+                    (실검수 발견). 고정 비용 행의 모바일 문법(이름 한 줄 / 나머지 아래 줄) 준용. */}
+                {cost.localId === null && (
+                  <input
+                    type="text"
+                    value={cost.label}
+                    onChange={(e) => updateDayCost(index, { label: e.target.value })}
+                    placeholder="지출 이름 (예: 주차비)"
+                    className={DAYLESS_INPUT_CLASS + ' w-full'}
+                  />
+                )}
+                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3">
+                  {/* 장소 연결 — 값 '' = 기타 지출(localId null → planSpotId NULL 저장).
+                      옵션은 그날 저장 대상 항목의 **현재 이름**을 라이브 렌더 — 이름이 정본이라
+                      라벨 사본을 만들지 않는다(저장 시 서버가 장소 이름으로 라벨 강제). */}
                   <select
                     value={cost.localId ?? ''}
                     onChange={(e) =>
@@ -835,17 +844,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
                     ))}
                     <option value="">기타 지출</option>
                   </select>
-                  {cost.localId === null && (
-                    <input
-                      type="text"
-                      value={cost.label}
-                      onChange={(e) => updateDayCost(index, { label: e.target.value })}
-                      placeholder="지출 이름 (예: 주차비)"
-                      className={DAYLESS_INPUT_CLASS}
-                    />
-                  )}
-                </div>
-                <div className="flex gap-2 sm:contents">
+                  <div className="flex gap-2 sm:contents">
                   <select
                     value={cost.category}
                     onChange={(e) =>
@@ -879,6 +878,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
                   >
                     ✕
                   </button>
+                  </div>
                 </div>
               </div>
             ))}

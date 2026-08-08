@@ -30,7 +30,12 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
       day: c.day!,
       category: c.category,
       amount: c.amount,
-      label: c.label,
+      // 0562 D fix①: 연결 비용의 label은 비운다 — label은 기타 지출에서만 의미(서버가 연결
+      //   비용의 label을 장소 이름으로 강제하는 규칙과 정합). 저장값(장소 이름 사본)을 실으면
+      //   "기타 지출"로 전환할 때 직전 장소 이름이 라벨 칸에 남는다(실검수 발견).
+      //   빈 label로 저장될 위험은 없다 — 연결이면 서버가 다시 장소 이름을 넣고(2패스 label
+      //   강제), 기타 지출은 클라 선별(savableDayCosts)이 빈 라벨을 제외한다.
+      label: c.planSpotId ? '' : c.label,
     }));
 
   const spotsByDay = new Map<number, FullPlanSpot[]>();
