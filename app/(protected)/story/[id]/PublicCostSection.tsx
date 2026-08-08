@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { formatAmount, CATEGORY_LABEL } from '@/app/(protected)/my-plan/_lib/cost';
+import { DayTabs } from '@/app/(protected)/_components/DayTabs';
 
 type ItemGroup = PublicCostSummary['itemGroups'][number];
 type Item = ItemGroup['items'][number];
@@ -152,6 +153,11 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
   const [fixedOpen, setFixedOpen] = useState(false);
   const [flightOpen, setFlightOpen] = useState(false);
   const [dayOpen, setDayOpen] = useState(false);
+  // 0565: 선택 날짜. null = "아직 안 고름" → 파생으로 dayGroups[0].day를 쓴다.
+  //   초깃값에 실제 날짜를 박지 않는 이유: dayGroups는 props에서 오므로 같은 사실이
+  //   상태와 props 두 곳에 생긴다(단일 소스 + 파생). 일정 탭의 useState(1) 고정은
+  //   여기선 못 쓴다 — 1일차에 비용이 없으면 첫 화면이 빈다.
+  const [pickedDay, setPickedDay] = useState<number | null>(null);
   if (ratios.length === 0) return null;
 
   // 0505: 두 층으로 분리 — 고정 비용(day=null: 항공권 + 무장소) / 일자별 비용(day 있는 그룹).
@@ -180,6 +186,15 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
   const dayDateLabel = (day: number) =>
     startDate ? formatDayLabel(addDays(startDate, day - 1)) : `DAY ${day}`;
+
+  // 0565: 탭 목록 = 비용이 있는 날만(dayGroups 그대로). 0499 "비용 없는 날은 그룹 자체가
+  //   안 생김"을 승계 — 눌러도 빈 화면인 탭은 헛걸음이고, 이 섹션은 "얼마 썼나"를 보는
+  //   자리라 지출 없는 날은 정보가 아니다. 일정 탭(전 일수)과 개수가 갈리는 건 정확한 표시.
+  // 선택 유효성: pickedDay가 목록에 없으면(있을 수 없지만 방어) 첫 탭으로 되돌린다.
+  const costDays = dayGroups.map((g) => g.day);
+  const selectedCostDay =
+    pickedDay != null && costDays.includes(pickedDay) ? pickedDay : costDays[0];
+  const selectedGroup = dayGroups.find((g) => g.day === selectedCostDay);
 
   return (
     <div>
@@ -282,53 +297,63 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
             open={dayOpen}
             onToggle={() => setDayOpen((v) => !v)}
           />
-          {/* 0563: 장소 단위 층위 — 날짜 칩(+그날 소계) → 장소(+합계) → 카테고리 줄.
+          {/* 0563: 장소 단위 층위 — 날짜 → 장소(+합계) → 카테고리 줄.
               구 평면 나열(PlanCost 행 금액순, 0499 롤업 X)은 같은 장소 지출이 흩어지고
               카테고리가 색 막대뿐이라 "얼마가 어디에"에 답을 못 했다.
-              날짜 칩은 일정 Day 탭과 같은 필 형태(같은 날짜를 같은 모양으로) — 크기만
-              보조 등급(12px/500). 칩 아래 1px 선(fg/15 — 그룹 구분선과 같은 값),
-              날짜 블록 간 26px.
+              0565: 이 중 **날짜 층**이 칩 세로 반복 → 탭 한 줄로 바뀌었다(아래 주석 정본).
+              구 서술 "날짜 칩은 일정 Day 탭과 같은 필 형태 / 크기만 보조 등급(12px/500) /
+              날짜 블록 간 26px"은 폐기 — 이제 일정 탭과 **같은 컴포넌트·같은 치수**이고,
+              블록이 하나뿐이라 블록 간 여백 자체가 없다. 장소·카테고리 조판은 0563 그대로.
               0563 후속②: 카테고리 1건일 때 한 줄로 접던 분기 폐기(실화면 판정) —
               **장소는 항상 [이름+합계] 한 줄, 그 아래 항상 카테고리 나열**.
               접으면 장소마다 형태가 갈려 훑을 때 리듬·열이 깨진다. 채택 사유였던
               "금액 두 번 표기 중복"은 위계(15px 합계 / 13px muted 내역)가 이미
               "합계와 내역"으로 읽히게 해 문제가 아니었다. 재제안하지 않는다. */}
-          {dayOpen && (
+          {dayOpen && selectedGroup && (
             <div className="flex flex-col">
-              {dayGroups.map((group, gi) => (
-                <div key={group.day} className={gi === 0 ? '' : 'mt-[26px]'}>
-                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-fg/15">
-                    <span className="px-2.5 py-1 rounded-full bg-surface2 text-xs font-medium text-fg2">
-                      {dayDateLabel(group.day)}
+              {/* 0565: 날짜 칩 + 소계가 날짜 수만큼 세로로 반복되던 구조(0563) 폐기 — 날짜가
+                  여럿이면 세로로 길게 늘어져 한 프레임에 들어오는 정보량이 날짜 수에 비례했다.
+                  탭 한 줄로 바꾸면 정보량이 하루치로 고정돼 인식 부담이 일정하고, 탭이 보이므로
+                  다른 날의 존재도 알 수 있다. 위 "여행 일정"과 같은 DayTabs — 같은 플랜의 같은
+                  날짜를 같은 모양으로.
+                  이 줄은 탭이면서 동시에 구 날짜 칩 줄의 머리글 역할(어느 날 · 소계)을 승계한다.
+                  탭이 1개여도 생략하지 않는 이유: 그날이 언제인지가 사라지고 플랜마다 형태가
+                  갈린다. 밑선(border-fg/15)·소계 조판은 0563 그대로. */}
+              <div className="pb-2 border-b border-fg/15">
+                <DayTabs
+                  days={costDays}
+                  selected={selectedCostDay}
+                  onSelect={setPickedDay}
+                  label={dayDateLabel}
+                  right={
+                    <span className="shrink-0 pb-1 text-sm font-semibold text-cost-amount tabular-nums">
+                      {formatAmount(selectedGroup.total, currency)}
+                    </span>
+                  }
+                />
+              </div>
+              {selectedGroup.places.map((place, pi) => (
+                <div key={pi} className="pt-[11px]">
+                  <div className="flex items-baseline justify-between gap-2 min-w-0">
+                    <span className="min-w-0 truncate text-[15px] font-medium text-fg">
+                      {place.label}
                     </span>
                     <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
-                      {formatAmount(group.total, currency)}
+                      {formatAmount(place.total, currency)}
                     </span>
                   </div>
-                  {group.places.map((place, pi) => (
-                    <div key={pi} className="pt-[11px]">
-                      <div className="flex items-baseline justify-between gap-2 min-w-0">
-                        <span className="min-w-0 truncate text-[15px] font-medium text-fg">
-                          {place.label}
-                        </span>
-                        <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
-                          {formatAmount(place.total, currency)}
+                  <div className="pl-[13px]">
+                    {place.items.map((it, i) => (
+                      <div key={i} className="flex items-center gap-1.5 py-[5px] text-[13px]">
+                        <CategoryDot category={it.category} />
+                        <span className="text-muted">{CATEGORY_LABEL[it.category]}</span>
+                        {/* 장소 합계(cost-amount)보다 한 단 아래 위계(cost-label) */}
+                        <span className="ml-auto text-cost-label tabular-nums">
+                          {formatAmount(it.amount, currency)}
                         </span>
                       </div>
-                      <div className="pl-[13px]">
-                        {place.items.map((it, i) => (
-                          <div key={i} className="flex items-center gap-1.5 py-[5px] text-[13px]">
-                            <CategoryDot category={it.category} />
-                            <span className="text-muted">{CATEGORY_LABEL[it.category]}</span>
-                            {/* 장소 합계(cost-amount)보다 한 단 아래 위계(cost-label) */}
-                            <span className="ml-auto text-cost-label tabular-nums">
-                              {formatAmount(it.amount, currency)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
