@@ -60,8 +60,12 @@ function ItemRow({
 // 0507 후속: 발견성 — 제목 줄에 무채 surface2 호버 필(데스크톱, v4 hover:는 hover 지원 기기만).
 //   버튼을 좌우 8px 넓혀(-mx-2 + calc) 여백까지 히트. 구분선(mx-2)·제목(필 px-2)의 시각
 //   x위치는 그대로 상쇄되고, 꺾쇠도 필 content 우측 끝 = 기존 위치.
-//   터치 타겟: pt-2.5(10) + 선~필(mt-2.5=10) + 필(py-1.5+텍스트=32) = 52px(≥44, CLAUDE.md §5).
-//   선 위치는 0505와 동일: 이전 내용 16px 아래(컨테이너 mt-1.5 + 버튼 pt-2.5).
+// 0567: 세 그룹 골격 통일 — 구분선 위 여백이 10px(pt-2.5+mt-2.5)에서 22px로, 아래는 그룹
+//   래퍼가 16px(pb-4). 구분선·여백을 **버튼 안에** 두는 건 0507 그대로다(히트 영역에 포함).
+//   터치 타겟 재검산: 선~필 mt-[22px] + 필(py-1.5=12 + 텍스트 21) = 55px(≥44, CLAUDE.md §5).
+//   구 "선 위치 = 이전 내용 16px 아래(컨테이너 mt-1.5)"는 GROUP_MT 폐기로 무효 —
+//   이제 그룹 간격은 앞 그룹의 pb-4 하나가 정한다(첫 그룹 분기 없음).
+// 0567: 요약(금액)은 **접혔을 때만** — 펼치면 같은 금액이 아래에 다 있어 중복이다.
 function GroupHeader({
   title,
   summary,
@@ -69,7 +73,7 @@ function GroupHeader({
   onToggle,
 }: {
   title: string;
-  // 0517: "N건 · N만원" 요약 — 호출부가 실제 데이터에서 계산해 전달. 없으면 생략.
+  // 0567: 구 "N건 · 금액"에서 건수 제거 — 건수는 펼치면 세면 되고, 접힘 요약이 답할 건 금액이다.
   summary?: string;
   open: boolean;
   onToggle: () => void;
@@ -79,16 +83,17 @@ function GroupHeader({
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className="group -mx-2 block w-[calc(100%+16px)] pt-2.5 text-left"
+      className="group -mx-2 block w-[calc(100%+16px)] text-left"
     >
       <span aria-hidden className="mx-2 block border-t border-fg/15" />
-      {/* 0517: 섹션 제목(22px)과 급이 겹치지 않게 강등 — 15px/600 + 6px 회색 점 + 우측 요약.
-          접기 동작·hover 필·터치 타겟 구조(0507)는 유지, 표시만 변경. */}
-      <span className="mt-2.5 flex items-center rounded-md px-2 py-1.5 group-hover:bg-surface2">
+      {/* 0517: 섹션 제목(22px)과 급이 겹치지 않게 강등 — 15px/600 + 6px 회색 점 + 우측 요약. */}
+      <span className="mt-[22px] flex items-center rounded-md px-2 py-1.5 group-hover:bg-surface2">
         <span aria-hidden className="w-1.5 h-1.5 rounded-[3px] bg-[#b3b9bd] shrink-0 mr-[9px]" />
         <span className="text-[15px] font-semibold text-fg2">{title}</span>
         {/* 0522: 공통 척도 보조 등급 14px */}
-        {summary && <span className="ml-2 text-sm font-medium text-muted tabular-nums">{summary}</span>}
+        {!open && summary && (
+          <span className="ml-2 text-sm font-medium text-muted tabular-nums">{summary}</span>
+        )}
         <ChevronDown
           size={16}
           aria-hidden
@@ -98,6 +103,18 @@ function GroupHeader({
     </button>
   );
 }
+
+// 0567: 그룹 래퍼 — 세 그룹이 같은 골격을 쓰게 하는 자리. 위 구분선·22px은 GroupHeader가
+//   (버튼 히트 영역이라) 담당하고 여기는 아래 여백 16px만.
+const GROUP_WRAP = 'pb-4';
+
+// 0567: 그룹 내용(날짜 줄·항목·카테고리)의 왼쪽 시작선 14px — 헤더 점(6px)+간격(9px) 뒤
+//   제목 x위치와 나란히. 세 그룹이 같은 값을 써야 세로로 훑을 때 열이 성립한다.
+const GROUP_BODY = 'pl-[14px]';
+
+// 0567: 그룹 두 번째 줄 = 날짜. 세 그룹 공통 등급(13px, fg2 — muted보다 한 단 위).
+//   고정·항공은 여행 기간(periodLabel), 일자별은 날짜 선택 줄이 이 자리를 쓴다.
+const GROUP_DATE = 'text-[13px] text-fg2';
 
 interface Props {
   summary: PublicCostSummary;
@@ -133,9 +150,9 @@ const CATEGORY_BAR: Record<Item['category'], string> = {
   ETC: 'bg-cat-etc',
 };
 
-// 0562: 접기 그룹의 위여백 — 첫 그룹만 카테고리 목록과 26px(mt-4 + 헤더 pt-2.5, 0514),
-//   이후는 그룹 사이 간격(mt-1.5). 완전 리터럴만 JIT 스캔되므로 클래스는 조합하지 않고 통째 반환.
-const GROUP_MT = (first: boolean) => (first ? 'mt-4' : 'mt-1.5');
+// 0567: GROUP_MT(0562, 첫 그룹만 mt-4 / 이후 mt-1.5) 폐기 — 그룹 여백이 "앞 그룹이 있는가"에
+//   의존하던 분기를 없앴다. 이제 모든 그룹이 [구분선 + 위 22px + 아래 16px] 한 규칙이라
+//   항공 유무·고정 비용 유무로 첫 그룹이 바뀌어도 형태가 같다.
 
 /**
  * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
@@ -172,15 +189,12 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
     .filter((g) => g.day === null)
     .flatMap((g) => g.items)
     .filter((it) => it.category !== 'FLIGHT');
-  // 0517: 접기 그룹 요약 "N건 · N만원" — 실제 데이터 합산. KRW는 0.1만원 단위(시안 37.7만원 검산),
-  //   비KRW는 시안에 형식이 없어 formatAmount. 합계 0이면 건수만(지어내지 않음).
-  // 0563: 건수·합계만 쓰므로 amount만 요구 — dayGroups(장소 단위, label 없음)도 수용
+  // 0517: 접기 그룹 요약 — 실제 데이터 합산.
+  // 0558: 만원 근사 폐기 — 전 화면 실값 통일(비공개는 0557이 글 자체를 가리므로 가공 불필요)
+  // 0567: 건수("N건 · ") 제거 — 금액만. 합계가 0이면 표시할 게 없어 생략(구 "N건" 폴백도 폐기).
   const groupSummary = (items: { amount: number }[]): string | undefined => {
-    if (items.length === 0) return undefined;
     const sum = items.reduce((acc, it) => acc + it.amount, 0);
-    if (sum <= 0) return `${items.length}건`;
-    // 0558: 만원 근사 폐기 — 전 화면 실값 통일(비공개는 0557이 글 자체를 가리므로 가공 불필요)
-    return `${items.length}건 · ${formatAmount(sum, currency)}`;
+    return sum > 0 ? formatAmount(sum, currency) : undefined;
   };
   const periodLabel =
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
@@ -236,11 +250,35 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
           0507 후속: 접힘(기본) 상태는 전 그룹 제목 줄만 — 기간 라벨도 접힘 대상(접힘 높이 동일).
           제목 아래 6px은 헤더 필의 pb-1.5가 담당 → 펼침 첫 요소는 mt 없이 시작.
           0562: 두 층(고정 / 일자별) → 세 층(고정 / 항공권 / 일자별). 위 규칙은 세 층 공통. */}
-      {/* 0514: 카테고리 목록→첫 그룹 26px(시안 4a) = mt-4(16) + 헤더 pt-2.5(10), 그룹 사이는 mt-1.5.
-          0562: "첫 그룹"이 고정으로 확정돼 있지 않다 — 항공을 고정에서 뺀 뒤로 무장소 비용이 없으면
-          항공권이, 항공도 없으면 일자별이 첫 그룹이 된다. 앞 그룹 존재 여부로 산출(GROUP_MT). */}
+      {/* 0567: 그룹 순서 = 항공권 → 고정 → 일자별. 구 순서(고정 → 항공권 → 일자별, 0562)에서
+          바뀐 근거 둘 — ① 시간 순서다(항공이 여행의 시작). ② 금액 열이 비던 항공권이 맨 위로
+          가야 아래로 열이 안 끊긴다. ②는 0567 ⑪(항공권도 금액 있는 2줄 조판)로 항공권 자체가
+          금액을 갖게 돼 약해졌지만, ①만으로 순서는 유지된다.
+          구 "첫 그룹이 고정으로 확정돼 있지 않다"(0562)는 고민은 GROUP_MT 폐기로 소멸 —
+          어느 그룹이 첫째든 형태가 같다. */}
+      {flight && (
+        <div className={GROUP_WRAP}>
+          <GroupHeader
+            title="항공권"
+            summary={formatAmount(flight.totalAmount, currency)}
+            open={flightOpen}
+            onToggle={() => setFlightOpen((v) => !v)}
+          />
+          {/* 0562: 항공권은 구 "왕복 항공편" 섹션(0492)을 비용의 형제 그룹으로 편입한 것.
+              제목은 tripType 무관 "항공권" — 구 제목이 편도 플랜에서 거짓이던 경로가 사라졌다.
+              0567: 요약에서 "왕복 ·" 제거 — 왕복/편도는 아래 카테고리 줄이 말한다(⑪).
+              0566: 펼침 첫 줄 "조회 시점 기준" 폐기(설명 문구 일괄 제거). */}
+          {flightOpen && (
+            <div className={GROUP_BODY}>
+              {periodLabel && <p className={GROUP_DATE}>{periodLabel}</p>}
+              <div className="mt-1.5">{flight.table}</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {fixedItems.length > 0 && (
-        <div className={GROUP_MT(true)}>
+        <div className={GROUP_WRAP}>
           <GroupHeader
             title="여행 고정 비용"
             summary={groupSummary(fixedItems)}
@@ -248,8 +286,8 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
             onToggle={() => setFixedOpen((v) => !v)}
           />
           {fixedOpen && (
-            <>
-              {periodLabel && <p className="text-xs text-muted">{periodLabel}</p>}
+            <div className={GROUP_BODY}>
+              {periodLabel && <p className={GROUP_DATE}>{periodLabel}</p>}
               <div className={periodLabel ? 'mt-1.5' : ''}>
                 {fixedItems.map((item, i) => (
                   <ItemRow
@@ -260,36 +298,13 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
                   />
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
 
-      {/* 0562: 항공권 — 고정 비용과 일자별 비용 사이의 형제 그룹(구 "왕복 항공편" 섹션 폐기).
-          summary는 다른 두 그룹의 groupSummary("N건 · 금액")를 쓰지 않는다 — 왕복은 실제로
-          2편이라 "1건"이 거짓이 된다. 왕복/편도 어휘는 FlightLeg·FlightSearchSection과 한 벌.
-          제목은 tripType 무관 "항공권" — 구 제목("왕복 항공편")이 편도 플랜에서 거짓이던 건
-          제목이 사라지며 재발 경로 자체가 없어졌다.
-          펼침 첫 줄 "조회 시점 기준"은 고정 비용의 기간 라벨(periodLabel)과 같은 자리·같은
-          조판 — 구 섹션 sub의 단서를 잃지 않는다. */}
-      {flight && (
-        <div className={GROUP_MT(fixedItems.length === 0)}>
-          <GroupHeader
-            title="항공권"
-            summary={`${flight.tripType === 'ROUND_TRIP' ? '왕복' : '편도'} · ${formatAmount(flight.totalAmount, currency)}`}
-            open={flightOpen}
-            onToggle={() => setFlightOpen((v) => !v)}
-          />
-          {/* 0566: 펼침 첫 줄 "조회 시점 기준" 폐기 — 화면을 보면 알거나 몰라도 되는 설명.
-              0562가 이 줄을 고정 비용의 periodLabel과 같은 자리·같은 조판으로 둔 건 구 섹션
-              sub의 단서를 잃지 않으려던 것인데, 그 sub 자체가 이번에 사라졌다. periodLabel은
-              데이터(기간)라 남아 두 그룹의 펼침 첫 줄 구조가 갈린다 — 조판은 안 건드린다. */}
-          {flightOpen && <div className="mt-1.5">{flight.table}</div>}
-        </div>
-      )}
-
       {dayGroups.length > 0 && (
-        <div className={GROUP_MT(fixedItems.length === 0 && !flight)}>
+        <div className={GROUP_WRAP}>
           <GroupHeader
             title="여행 일자별 비용"
             summary={groupSummary(dayGroups.flatMap((g) => g.places.flatMap((p) => p.items)))}
@@ -309,7 +324,7 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
               "금액 두 번 표기 중복"은 위계(15px 합계 / 13px muted 내역)가 이미
               "합계와 내역"으로 읽히게 해 문제가 아니었다. 재제안하지 않는다. */}
           {dayOpen && selectedGroup && (
-            <div className="flex flex-col">
+            <div className={`flex flex-col ${GROUP_BODY}`}>
               {/* 0565: 날짜 칩 + 소계가 날짜 수만큼 세로로 반복되던 구조(0563) 폐기 — 날짜가
                   여럿이면 세로로 길게 늘어져 한 프레임에 들어오는 정보량이 날짜 수에 비례했다.
                   탭 한 줄로 바꾸면 정보량이 하루치로 고정돼 인식 부담이 일정하고, 탭이 보이므로
