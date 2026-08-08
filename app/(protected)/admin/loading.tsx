@@ -30,18 +30,19 @@
 //   - 승인됨 행 3개 — APPROVED 17건이 지배적 대표형(뷰포트에 들어오는 몫만).
 //   - 생략(조건부): 병합 후보 칩(candidates.length > 0) · 인라인 수정 입력(editing).
 //
-// ── glass-outer를 쓰는 이유와 유효 기간 ──────────────────────────────────
+// ── glass-outer를 쓰는 이유 ──────────────────────────────────────────────
 // 스켈레톤은 실화면의 **짝**이지 개선안이 아니다. 실화면 섹션이 glass-outer(카드 면·그림자)를
 // 쓰므로 여기서도 쓴다 — 안 쓰면 전환 시 카드 면이 갑자기 생긴다.
-// **실화면이 이 유틸을 쓰는 동안만 유효 — 어드민 토큰 이전 시 함께 바꿀 것.**
+// 0573: 구 주석의 "실화면이 이 유틸을 쓰는 동안만 유효 — 어드민 토큰 이전 시 함께 바꿀 것"은
+//   **전제가 틀렸다.** glass-outer는 폐기된 유틸이 아니라 지금도 랜딩·auth·my-story 빈 상태가
+//   쓴다. 0513·0527의 "카드 제거"는 플랜 상세·작성 한정이었고 대체물은 다른 유틸이 아니라
+//   개방 캔버스(조판 변경)였다. 토큰 이전(0573)에서도 면은 손대지 않았으므로 짝은 그대로 유효.
 //
-// ── 알고 남기는 역전 (다음에 어드민 다크를 볼 때의 단서) ──────────────────
-// 이 화면은 토큰 이전에서 빠진 유일한 화면이다: text-[#1A1A1A] / text-slate-* / divide-black/5 /
-// border-slate-200 / glass-outer / btn-elevated 전부 하드코딩. 다른 화면이 0524~0527에서
-// fg·fg2·muted·border 토큰으로 옮길 때 여기만 남았다.
-// 그래서 **스켈레톤(토큰 기반)은 다크에서 정상인데 콘텐츠가 오면 깨지는 역전**이 생길 수 있다
-// — 흰 카드에 #1A1A1A 글자가 고정이라. 스켈레톤 탓이 아니라 실화면 탓이고, 어드민 토큰 이전
-// 사이클에서 함께 해소한다(백로그 등재).
+// ── 0572에 예고했던 역전은 0573에서 해소됨 ───────────────────────────────
+// 구 주석: "스켈레톤(토큰 기반)은 다크에서 정상인데 콘텐츠가 오면 깨지는 역전이 생길 수 있다."
+// 0573에서 실화면을 토큰으로 옮기고(page·행 컴포넌트) btn-elevated에 다크 오버라이드를
+// 더해 **역전이 사라졌다** — 이제 로딩과 콘텐츠의 재질이 라이트·다크 모두 같다.
+// divide-hairline도 실화면과 짝을 맞췄다(구 divide-black/5).
 //
 // 치수는 실화면 리터럴 준용 — **한쪽만 바꾸면 스켈레톤이 어긋난다**. 짝은 admin/page.tsx의
 //   헤더·섹션 블록과 _components/ApprovedMovieRow의 행(p-6 + 2줄 좌 / 버튼 2개 우).
@@ -62,12 +63,12 @@ export default function Loading() {
       </div>
 
       {/* 승인 대기 — 헤더만(대표형 0건) */}
-      <section className="glass-outer divide-y divide-black/5">
+      <section className="glass-outer divide-y divide-hairline">
         <SectionHead />
       </section>
 
       {/* 승인됨 — 헤더 + 행 3개 */}
-      <section className="glass-outer divide-y divide-black/5">
+      <section className="glass-outer divide-y divide-hairline">
         <SectionHead />
         {[0, 1, 2].map((i) => (
           <Row key={i} />
