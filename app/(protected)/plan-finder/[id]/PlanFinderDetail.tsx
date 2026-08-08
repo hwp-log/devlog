@@ -235,9 +235,25 @@ export function PlanFinderDetail({
         {/* 메타 — 작성자·날짜, 커버 있으면 버튼을 우측에(시안 4a의 ♥ 자리).
             0559: 소유자면 관리 버튼군(공개 전환·수정·삭제) — 소유자 상세와 같은 자리(메타 행
             우측), 스토리 상세 방식(한 화면 + isOwner 게이트). 좌측은 min-w-0·truncate 보강
-            (소유자 상세 동형) — 버튼군과 공존 시 모바일 넘침 방지. */}
-        <div className={`flex items-center justify-between gap-5 ${coverUrl ? '' : 'mt-2'}`}>
-          <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted min-w-0">
+            (소유자 상세 동형) — 버튼군과 공존 시 모바일 넘침 방지.
+            0574: **소유자만 모바일 2줄로 접는다** — 360에서 [왼쪽 최소 123 + gap 20 +
+            버튼군 218] = 361px이 콘텐츠 312px를 49px 넘겨 날짜가 공개 pill 위로 겹쳐 그려졌다.
+            겹침의 원인은 절대 위치도 음수 마진도 아니다: 왼쪽 그룹에 `min-w-0`이 있어 **박스는
+            0까지 줄어드는데** 안의 날짜가 `shrink-0`이라 안 줄고, `overflow-hidden`이 없어
+            내용이 박스 밖으로 새어 오른쪽 그룹 위를 덮었다. 0559 주석의 "min-w-0 = 넘침 방지"는
+            안쪽에 shrink-0이 있으면 성립하지 않는다 — 그래서 `overflow-hidden`을 함께 보강한다.
+            비소유자는 손대지 않는다: 버튼이 좋아요뿐이라 199px < 312로 여유가 있고, 좋아요의
+            우측 상단 자리는 시안 4a(♥ 자리) 판정이다 — 문제 없는 쪽을 건드리지 않는다.
+            액션 줄을 전폭 justify-between으로 벌리지 않는 이유: 메타와 같은 좌측 정렬선을
+            공유해야 위아래가 한 덩어리로 읽힌다(218px이라 한 줄에 든다). */}
+        <div
+          className={`${
+            isOwner
+              ? 'flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-5'
+              : 'flex items-center justify-between gap-5'
+          }${coverUrl ? '' : ' mt-2'}`}
+        >
+          <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted min-w-0 overflow-hidden">
             <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
             <span className="text-fg font-semibold truncate">{authorNickname}</span>
             <span className="opacity-40">·</span>
