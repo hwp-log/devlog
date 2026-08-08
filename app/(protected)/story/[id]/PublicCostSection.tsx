@@ -3,39 +3,49 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
-import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
+import { formatAmount, CATEGORY_LABEL } from '@/app/(protected)/my-plan/_lib/cost';
 
 type ItemGroup = PublicCostSummary['itemGroups'][number];
 type Item = ItemGroup['items'][number];
 
-// 0505: 3열 항목 행 — [항목명 flex truncate] [카테고리 11px] [금액 우측]. 마지막 행만 아래 선 없음.
-// 0506: last는 일자 묶음이 아니라 그룹(고정/일자별) 전체 기준 —
-//   일자당 항목이 1개인 경우가 많아 묶음 기준이면 선이 거의 안 보임.
-// 0506: 선 두께는 1px — 0.5px은 비레티나에서 0으로 반올림될 수 있음(globals.css 0345 실측 결정).
+// 0563: 카테고리 점(7px 원형) — 구 3px 세로 막대 폐기. 막대는 색만으로 카테고리를 말해
+//   무엇인지 알 수 없었다. 점은 항상 카테고리명과 병기(고정 행·장소 1건 줄·카테고리 줄 공통) —
+//   1건일 때와 여러 건일 때의 표시 언어를 하나로 통일. 색 맵은 CATEGORY_BAR 재사용
+//   (누적 막대·카테고리 요약과 같은 한자리 대응 유지).
+function CategoryDot({ category }: { category: Item['category'] }) {
+  return (
+    <span aria-hidden className={`w-[7px] h-[7px] rounded-full shrink-0 ${CATEGORY_BAR[category]}`} />
+  );
+}
+
+// 0505: 항목 행 — 마지막 행만 아래 선 없음.
+// 0506: last는 일자 묶음이 아니라 그룹 전체 기준 / 선 두께 1px(0345 실측).
+// 0563: 3px 막대 → 점 + 카테고리명 병기 — 고정 비용 행도 일자별과 같은 표시 언어.
 function ItemRow({
   item,
   currency,
   last,
-  barClass,
 }: {
   item: Item;
   currency: PublicCostSummary['currency'];
   last: boolean;
-  // 0514: 카테고리 텍스트 라벨 대신 이름 왼쪽 3px 색 막대(시안 4a) — 색은 요약 rank와 동일 매핑.
-  // 0516: border-left 방식이 실화면에서 무채로 떠 누적 막대와 동일한 bg 클래스 span으로 교체.
-  barClass: string;
 }) {
   // 항공 합성 항목은 '항공권'으로 표기(0505 목표3).
   const name = item.category === 'FLIGHT' ? '항공권' : item.label;
   return (
     <div
-      className={`flex items-center py-[11px] text-sm${last ? '' : ' border-b border-hairline'}`}
+      className={`flex items-center gap-1.5 py-[11px] text-sm${last ? '' : ' border-b border-hairline'}`}
     >
-      <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${barClass}`} />
+      <CategoryDot category={item.category} />
       {/* 0524: 금액 위계 토큰 — 요약(카테고리)과 같은 등급을 써야 다크에서 상세가 요약보다
           밝아지는 역전이 안 생긴다 */}
-      <span className="pl-2 pr-5 flex-1 min-w-0 text-cost-label truncate">{name}</span>
-      <span className="shrink-0 font-semibold text-cost-amount">{formatAmount(item.amount, currency)}</span>
+      <span className="pr-1 min-w-0 text-cost-label truncate">{name}</span>
+      <span className="shrink-0 text-xs text-muted">
+        {item.category === 'FLIGHT' ? '' : CATEGORY_LABEL[item.category]}
+      </span>
+      <span className="ml-auto shrink-0 font-semibold text-cost-amount tabular-nums">
+        {formatAmount(item.amount, currency)}
+      </span>
     </div>
   );
 }
@@ -128,7 +138,7 @@ const GROUP_MT = (first: boolean) => (first ? 'mt-4' : 'mt-1.5');
  * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
  */
 export function PublicCostSection({ summary, startDate, endDate, flight }: Props) {
-  const { ratios, itemGroups, total, currency } = summary;
+  const { ratios, itemGroups, dayGroups, total, currency } = summary;
   // 0507: 두 층 각각 접기 — 기본 접힘. 카테고리 요약(막대·색 라벨)은 접기 대상 아님.
   // 0562: 항공권 그룹이 형제로 합류해 세 층 — 접힘 상태도 각각.
   const [fixedOpen, setFixedOpen] = useState(false);
@@ -143,14 +153,15 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
   //   FLIGHT 제외는 category 기준 — CostCategory enum(schema)에 FLIGHT가 없어 실 PlanCost는
   //   이 값을 절대 못 갖는다(label 문자열 '항공' 매칭보다 견고). summarize의 '항공' 그룹은
   //   이 화면에서 미소비 — 금액·tripType·표 전부 flight prop 한 소스에서 나온다.
+  // 0563: 일자별은 summary.dayGroups(장소 단위 구조)가 정본 — itemGroups는 day=null 전용이 됐다.
   const fixedItems = itemGroups
     .filter((g) => g.day === null)
     .flatMap((g) => g.items)
     .filter((it) => it.category !== 'FLIGHT');
-  const dayGroups = itemGroups.filter((g): g is ItemGroup & { day: number } => g.day !== null);
   // 0517: 접기 그룹 요약 "N건 · N만원" — 실제 데이터 합산. KRW는 0.1만원 단위(시안 37.7만원 검산),
   //   비KRW는 시안에 형식이 없어 formatAmount. 합계 0이면 건수만(지어내지 않음).
-  const groupSummary = (items: Item[]): string | undefined => {
+  // 0563: 건수·합계만 쓰므로 amount만 요구 — dayGroups(장소 단위, label 없음)도 수용
+  const groupSummary = (items: { amount: number }[]): string | undefined => {
     if (items.length === 0) return undefined;
     const sum = items.reduce((acc, it) => acc + it.amount, 0);
     if (sum <= 0) return `${items.length}건`;
@@ -223,7 +234,6 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
                     item={item}
                     currency={currency}
                     last={i === fixedItems.length - 1}
-                    barClass={CATEGORY_BAR[item.category]}
                   />
                 ))}
               </div>
@@ -260,27 +270,75 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
         <div className={GROUP_MT(fixedItems.length === 0 && !flight)}>
           <GroupHeader
             title="여행 일자별 비용"
-            summary={groupSummary(dayGroups.flatMap((g) => g.items))}
+            summary={groupSummary(dayGroups.flatMap((g) => g.places.flatMap((p) => p.items)))}
             open={dayOpen}
             onToggle={() => setDayOpen((v) => !v)}
           />
-          {/* 0505 후속: 제목→첫 일자 6px은 고정 비용과 동일(헤더 필 pb-1.5 담당). gap-3은 일자 그룹 사이(8.5→8.6)만 담당 */}
+          {/* 0563: 장소 단위 층위 — 날짜 칩(+그날 소계) → 장소(+합계) → 카테고리 줄.
+              구 평면 나열(PlanCost 행 금액순, 0499 롤업 X)은 같은 장소 지출이 흩어지고
+              카테고리가 색 막대뿐이라 "얼마가 어디에"에 답을 못 했다.
+              날짜 칩은 일정 Day 탭과 같은 필 형태(같은 날짜를 같은 모양으로) — 크기만
+              보조 등급(12px/500). 칩 아래 1px 선(fg/15 — 그룹 구분선과 같은 값),
+              날짜 블록 간 26px. 장소는 15px, 카테고리 1건이면 이름 옆 [점+카테고리명]을
+              병기하고 한 줄(금액 두 번 표기 제거), 2건 이상이면 13px 들여쓰기 나열. */}
           {dayOpen && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col">
               {dayGroups.map((group, gi) => (
-                <div key={group.day}>
-                  <p className="text-xs text-muted">{dayDateLabel(group.day)}</p>
-                  <div className="mt-1">
-                    {group.items.map((item, i) => (
-                      <ItemRow
-                        key={`day-${group.day}-${i}`}
-                        item={item}
-                        currency={currency}
-                        last={gi === dayGroups.length - 1 && i === group.items.length - 1}
-                        barClass={CATEGORY_BAR[item.category]}
-                      />
-                    ))}
+                <div key={group.day} className={gi === 0 ? '' : 'mt-[26px]'}>
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-fg/15">
+                    <span className="px-2.5 py-1 rounded-full bg-surface2 text-xs font-medium text-fg2">
+                      {dayDateLabel(group.day)}
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
+                      {formatAmount(group.total, currency)}
+                    </span>
                   </div>
+                  {group.places.map((place, pi) => (
+                    <div key={pi} className="pt-[11px]">
+                      {place.items.length === 1 ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="min-w-0 truncate text-[15px] font-medium text-fg">
+                            {place.label}
+                          </span>
+                          <span className="flex items-center gap-1.5 shrink-0">
+                            <CategoryDot category={place.items[0].category} />
+                            <span className="text-xs text-muted">
+                              {CATEGORY_LABEL[place.items[0].category]}
+                            </span>
+                          </span>
+                          <span className="ml-auto shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
+                            {formatAmount(place.total, currency)}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-baseline justify-between gap-2 min-w-0">
+                            <span className="min-w-0 truncate text-[15px] font-medium text-fg">
+                              {place.label}
+                            </span>
+                            <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
+                              {formatAmount(place.total, currency)}
+                            </span>
+                          </div>
+                          <div className="pl-[13px]">
+                            {place.items.map((it, i) => (
+                              <div
+                                key={i}
+                                className="flex items-center gap-1.5 py-[5px] text-[13px]"
+                              >
+                                <CategoryDot category={it.category} />
+                                <span className="text-muted">{CATEGORY_LABEL[it.category]}</span>
+                                {/* 장소 합계(cost-amount)보다 한 단 아래 위계(cost-label) */}
+                                <span className="ml-auto text-cost-label tabular-nums">
+                                  {formatAmount(it.amount, currency)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
