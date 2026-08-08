@@ -280,12 +280,11 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
             open={flightOpen}
             onToggle={() => setFlightOpen((v) => !v)}
           />
-          {flightOpen && (
-            <>
-              <p className="text-xs text-muted">조회 시점 기준</p>
-              <div className="mt-1.5">{flight.table}</div>
-            </>
-          )}
+          {/* 0566: 펼침 첫 줄 "조회 시점 기준" 폐기 — 화면을 보면 알거나 몰라도 되는 설명.
+              0562가 이 줄을 고정 비용의 periodLabel과 같은 자리·같은 조판으로 둔 건 구 섹션
+              sub의 단서를 잃지 않으려던 것인데, 그 sub 자체가 이번에 사라졌다. periodLabel은
+              데이터(기간)라 남아 두 그룹의 펼침 첫 줄 구조가 갈린다 — 조판은 안 건드린다. */}
+          {flightOpen && <div className="mt-1.5">{flight.table}</div>}
         </div>
       )}
 

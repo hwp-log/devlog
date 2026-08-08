@@ -7,7 +7,7 @@ import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { PublicFlightTable } from './PublicFlightTable';
 import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
-import { PlanOwnerActions, PlanOwnerNotice } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
+import { PlanOwnerActions } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
@@ -250,7 +250,6 @@ export function PlanFinderDetail({
             </div>
           )}
         </div>
-        {isOwner && <PlanOwnerNotice />}
 
         {/* 커버 없을 때 지역 칩은 인라인으로 유지(작품 칩은 별도 트랙이라 제외) */}
         {!coverUrl && region && (
@@ -318,7 +317,7 @@ export function PlanFinderDetail({
 
       {/* 여행 일정 — 0516: 시안 헤더(소개문 뒤 40px = 상단부 mb-6 + mt-4) */}
       <div className="mt-4">
-        <SectionHeader title="여행 일정" sub="작성자가 넣은 순서" />
+        <SectionHeader title="여행 일정" />
       </div>
 
       {/* 0515: 모바일 날짜 탭 — 전폭 한 줄 가로 스크롤 + 오른쪽 페이드(시안 4d). 데스크톱은 기존 그대로.
@@ -364,7 +363,7 @@ export function PlanFinderDetail({
           표는 슬롯으로 넘긴다(PublicCostSection이 plan-finder를 import하지 않게 — 그쪽 주석 참조). */}
       {summary.ratios.length > 0 && (
         <div className="mt-7 sm:mt-11">
-          <SectionHeader title="예상 비용" sub="총액 기준 · 1인 환산 없음" />
+          <SectionHeader title="예상 비용" />
           <div className="mt-[18px]">
             <PublicCostSection
               summary={summary}
