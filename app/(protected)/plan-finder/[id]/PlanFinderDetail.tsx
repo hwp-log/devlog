@@ -7,7 +7,7 @@ import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { PublicFlightTable } from './PublicFlightTable';
 import { PlanLikeButton } from './PlanLikeButton';
 import { CopyPlanFinderButton } from './CopyPlanFinderButton';
-import { PlanOwnerActions } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
+import { PlanPublicToggle, PlanManageIcons } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
@@ -244,25 +244,35 @@ export function PlanFinderDetail({
             안쪽에 shrink-0이 있으면 성립하지 않는다 — 그래서 `overflow-hidden`을 함께 보강한다.
             비소유자는 손대지 않는다: 버튼이 좋아요뿐이라 199px < 312로 여유가 있고, 좋아요의
             우측 상단 자리는 시안 4a(♥ 자리) 판정이다 — 문제 없는 쪽을 건드리지 않는다.
-            액션 줄을 전폭 justify-between으로 벌리지 않는 이유: 메타와 같은 좌측 정렬선을
-            공유해야 위아래가 한 덩어리로 읽힌다(218px이라 한 줄에 든다). */}
+            0574 후속: 구 조판(액션 4개가 2행에 좌측 정렬로 뭉침)은 오른쪽 94px이 비었다.
+            **각 행이 양끝을 쓰도록** 재배치 — 1행 [메타 … 수정·삭제] / 2행 [pill … 좋아요].
+            1행은 스토리 상세(/story/[id])와 같은 형태다(좌측 메타 + 우측 끝 관리 아이콘).
+            데스크톱은 두 행 컨테이너가 그대로 [좌측 메타] / [pill·수정·삭제·좋아요]가 되어
+            **간격까지 무변**(구 gap-2 중첩과 같은 8px). */}
         <div
           className={`${
             isOwner
-              ? 'flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-5'
+              ? 'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5'
               : 'flex items-center justify-between gap-5'
           }${coverUrl ? '' : ' mt-2'}`}
         >
+          {/* 1행(모바일) / 좌측(데스크톱) */}
           <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted min-w-0 overflow-hidden">
             <AuthorAvatar nickname={authorNickname} avatarUrl={authorAvatarUrl} />
             <span className="text-fg font-semibold truncate">{authorNickname}</span>
             <span className="opacity-40">·</span>
             <span className="shrink-0">{createdAtLabel}</span>
+            {/* 모바일 전용 사본 — 아이콘은 렌더 후 이탈(수정=이동, 삭제=redirect)뿐이라
+                두 번 그려도 상태가 갈리지 않는다. **토글은 절대 복제하지 않는다**(optimistic
+                상태가 갈림) — 그래서 pill은 2행에만 한 번 있다. */}
+            {isOwner && <PlanManageIcons planId={planId} className="ml-auto sm:hidden" />}
           </div>
           {(isOwner || coverUrl) && (
-            <div className="flex items-center gap-2 shrink-0">
-              {isOwner && <PlanOwnerActions planId={planId} isPublic={isPublic} />}
-              {coverUrl && actionButtons}
+            /* 2행(모바일) / 우측 묶음(데스크톱) */
+            <div className="flex items-center gap-2 sm:shrink-0">
+              {isOwner && <PlanPublicToggle planId={planId} isPublic={isPublic} />}
+              {isOwner && <PlanManageIcons planId={planId} className="max-sm:hidden" />}
+              {coverUrl && <div className="ml-auto sm:ml-0">{actionButtons}</div>}
             </div>
           )}
         </div>

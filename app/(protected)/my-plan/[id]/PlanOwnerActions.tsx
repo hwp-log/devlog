@@ -12,14 +12,15 @@ import { BTN_ICON_CHIP } from '@/lib/button-styles';
 //   수정·삭제는 아이콘 칩(스토리 상세 DeleteButton과 동일 재질).
 //   삭제 후 이동은 deleteMyPlanAction 내부 redirect('/my-plan') — 두 화면 공통(삭제된 플랜
 //   상세는 어차피 404, 삭제 = 내 플랜 관리 행위).
+// 0574 후속: 구 PlanOwnerActions(pill+수정+삭제 한 덩어리) 폐기 → **두 조각으로 분리**.
+//   모바일 소유자 메타 행이 2행이 되면서 pill(2행 왼쪽)과 아이콘(1행 오른쪽)이 **서로 다른
+//   줄**에 놓이기 때문 — 한 덩어리로는 나눌 수 없다. 소비처는 PlanFinderDetail 하나뿐이라
+//   합쳐진 형태를 남겨둘 이유가 없다(소비처 0 래퍼 = 화석).
+//   상태는 조각별로 자기 것만 갖는다: 토글의 optimistic은 PlanPublicToggle,
+//   삭제의 pending은 PlanManageIcons. **토글은 절대 두 번 렌더하지 않는다** — 같은 화면에
+//   두 인스턴스가 있으면 optimistic 상태가 갈린다(아이콘 쪽은 렌더 후 이탈뿐이라 무해).
 
-interface Props {
-  planId: string;
-  isPublic: boolean;
-}
-
-export function PlanOwnerActions({ planId, isPublic }: Props) {
-  const [isPending, startTransition] = useTransition();
+export function PlanPublicToggle({ planId, isPublic }: { planId: string; isPublic: boolean }) {
   const [isPendingPublic, startPublicTransition] = useTransition();
   const [optimisticPublic, setOptimisticPublic] = useOptimistic(
     isPublic,
@@ -35,19 +36,29 @@ export function PlanOwnerActions({ planId, isPublic }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-2 shrink-0">
-      <button
-        type="button"
-        onClick={handleTogglePublic}
-        disabled={isPendingPublic}
-        className={`px-4 py-1.5 rounded-full text-sm transition-colors disabled:opacity-50 ${
-          optimisticPublic
-            ? 'bg-fg text-bg'
-            : 'border border-border text-fg2 hover:bg-surface2'
-        }`}
-      >
-        {optimisticPublic ? '공개 중' : '비공개'}
-      </button>
+    <button
+      type="button"
+      onClick={handleTogglePublic}
+      disabled={isPendingPublic}
+      className={`shrink-0 px-4 py-1.5 rounded-full text-sm transition-colors disabled:opacity-50 ${
+        optimisticPublic
+          ? 'bg-fg text-bg'
+          : 'border border-border text-fg2 hover:bg-surface2'
+      }`}
+    >
+      {optimisticPublic ? '공개 중' : '비공개'}
+    </button>
+  );
+}
+
+// className: 호출부가 배치만 얹는다(모바일 1행 오른쪽 ml-auto / 데스크톱 우측 묶음).
+//   조판을 prop으로 분기하지 않는 원칙(0518)과 어긋나지 않는다 — variant가 아니라
+//   **위치 클래스 전달**이고, 내부 조판(gap-2·칩 크기)은 여기서 고정이다.
+export function PlanManageIcons({ planId, className = '' }: { planId: string; className?: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <div className={`flex items-center gap-2 shrink-0 ${className}`}>
       <Link
         href={`/my-plan/${planId}/edit`}
         aria-label="수정"
