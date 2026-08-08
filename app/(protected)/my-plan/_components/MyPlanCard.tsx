@@ -125,7 +125,7 @@ export function MyPlanCard({
           <p className="text-[14px] font-semibold text-white truncate">{title}</p>
           <p className="mt-1 text-[12.5px] text-white/75 truncate">{meta}</p>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="text-[14px] font-medium text-white whitespace-nowrap">
+            <span className="text-[14px] font-medium text-white whitespace-nowrap tabular-nums">
               {headcount}인 · {priceLabel}
             </span>
             {isPublic && (

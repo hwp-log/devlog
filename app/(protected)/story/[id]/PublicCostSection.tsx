@@ -82,7 +82,7 @@ function GroupHeader({
         <span aria-hidden className="w-1.5 h-1.5 rounded-[3px] bg-[#b3b9bd] shrink-0 mr-[9px]" />
         <span className="text-[15px] font-semibold text-fg2">{title}</span>
         {/* 0522: 공통 척도 보조 등급 14px */}
-        {summary && <span className="ml-2 text-sm font-medium text-muted">{summary}</span>}
+        {summary && <span className="ml-2 text-sm font-medium text-muted tabular-nums">{summary}</span>}
         <ChevronDown
           size={16}
           aria-hidden
@@ -180,7 +180,7 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
             0524: 금액 위계 3단의 최상단(다크 #f2f4f5)
             0562(B): 총액 옆 "· N인" 제거 — 인원은 지표 밴드의 한 칸이 됐다.
               같은 값을 밴드와 여기 둘로 두면 어느 쪽이 정본인지 흐려진다. */}
-        <span className="text-[26px] tracking-[-0.02em] font-bold text-cost-total">
+        <span className="text-[26px] tracking-[-0.02em] font-bold text-cost-total tabular-nums">
           총 {formatAmount(total, currency)}
         </span>
       </div>
@@ -203,7 +203,7 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
           <div key={item.category} className="flex items-center py-2">
             <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${CATEGORY_BAR[item.category]}`} />
             <span className="pl-2 flex-1 text-sm font-semibold text-cost-label">{item.label}</span>
-            <span className="text-sm font-semibold text-cost-amount">{formatAmount(item.amount, currency)}</span>
+            <span className="text-sm font-semibold text-cost-amount tabular-nums">{formatAmount(item.amount, currency)}</span>
           </div>
         ))}
       </div>

@@ -74,7 +74,7 @@ function CostRow({
     <div className="flex items-center py-2.5">
       <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${bar}`} />
       <span className="pl-2 flex-1 text-base text-fg2">{label}</span>
-      <span className={`text-base font-semibold ${amount > 0 ? 'text-cost-amount' : 'text-hint'}`}>
+      <span className={`text-base font-semibold tabular-nums ${amount > 0 ? 'text-cost-amount' : 'text-hint'}`}>
         {formatAmount(amount, currency)}
       </span>
     </div>
@@ -102,7 +102,7 @@ export function CostSection({ totals, flightAmount, total, currency }: Props) {
       </div>
       <div className="mt-3.5 flex items-baseline justify-between pt-[18px] border-t border-border">
         <span className="text-base font-semibold text-fg2">총 비용</span>
-        <span className="text-[26px] font-bold tracking-[-0.02em] text-cost-total">
+        <span className="text-[26px] font-bold tracking-[-0.02em] text-cost-total tabular-nums">
           {formatAmount(total, currency)}
         </span>
       </div>

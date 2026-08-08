@@ -98,7 +98,7 @@ function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice, showDetails 
                 <p className="text-[11px] text-[#888]">
                   {isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}
                 </p>
-                <p className="text-[18px] font-bold text-[#1A1A1A] mt-0.5">
+                <p className="text-[18px] font-bold text-[#1A1A1A] mt-0.5 tabular-nums">
                   ₩{totalAmount.toLocaleString()}
                 </p>
               </>

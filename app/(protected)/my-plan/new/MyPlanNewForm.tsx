@@ -662,7 +662,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
             실값이라 "—" 대상이 아니다(없는 게 아니라 0이고 기본값). */}
         <div className="flex flex-col gap-[3px] sm:gap-1">
           <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
-          <span className="text-base sm:text-xl font-bold text-fg">
+          <span className="text-base sm:text-xl font-bold text-fg tabular-nums">
             {total > 0 ? formatAmount(total, 'KRW') : '—'}
           </span>
         </div>

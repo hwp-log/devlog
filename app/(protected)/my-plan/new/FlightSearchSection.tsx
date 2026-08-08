@@ -184,7 +184,7 @@ function OfferCard({
             </p>
           )}
         </div>
-        <p className="text-base font-semibold text-fg shrink-0 ml-2">
+        <p className="text-base font-semibold text-fg shrink-0 ml-2 tabular-nums">
           ₩{offer.totalAmount.toLocaleString()}
         </p>
       </div>

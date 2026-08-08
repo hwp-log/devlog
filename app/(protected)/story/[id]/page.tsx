@@ -202,7 +202,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
                 )}
                 {/* 요약 한 줄(트리맵 대체) — 소스·게이트 규칙은 planSummaryLine 파생부 주석 참조 */}
                 {planSummaryLine && (
-                  <p className="mt-[8px] text-[13px] sm:text-sm text-muted">{planSummaryLine}</p>
+                  <p className="mt-[8px] text-[13px] sm:text-sm text-muted tabular-nums">{planSummaryLine}</p>
                 )}
               </div>
             </div>

@@ -98,7 +98,7 @@ export function PlanCard({
         <div className="mt-2 flex items-center justify-between gap-2">
           {/* 인원수를 금액 앞에 — 비싼 총액도 인원 옆이면 납득된다(0441). 인원·금액 같은 흰색으로 한 덩어리.
               금액 없음 카드도 "N인 · 금액 없음"으로 인원 유지. */}
-          <span className="text-[14px] font-medium text-white whitespace-nowrap">
+          <span className="text-[14px] font-medium text-white whitespace-nowrap tabular-nums">
             {headcount}인 · {priceLabel}
           </span>
           {/* 0435: 강조색(#4d9eff)은 12.5px 작은 글씨라 스크림 위 4.5:1 미달(≈2.1:1) → 흰색.

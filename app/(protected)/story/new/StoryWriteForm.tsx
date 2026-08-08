@@ -194,7 +194,7 @@ export function StoryWriteForm({ action, initialData, userId, storyId, storySpot
                       <p className="text-[13px] leading-[1.6] text-fg2 line-clamp-2">{plan.description}</p>
                     )}
                     {plan.summaryLine && (
-                      <p className="mt-[8px] text-[13px] text-muted">{plan.summaryLine}</p>
+                      <p className="mt-[8px] text-[13px] text-muted tabular-nums">{plan.summaryLine}</p>
                     )}
                   </div>
                 </div>
