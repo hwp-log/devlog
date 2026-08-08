@@ -708,6 +708,37 @@ body {
     transition-duration: .1s;
   }
 
+  /* 0573: 다크 대응. 라이트 정의(background:#fff)가 다크에서 **흰 알약**으로 남아
+     토큰 글자(fg2 다크 #c8c4be)와 대비 ≈1.9:1로 읽히지 않았다.
+     면을 surface2로 바꾸고 그림자를 완화한다 — 다크는 배경이 어두워 큰 드롭섀도가
+     "떠 있음"이 아니라 얼룩으로 보인다(0290 마커 hover 판정 계열).
+     inset 하이라이트도 흰 알약 전제라 다크에선 알파를 낮춘다.
+     소비처가 어드민 3파일뿐(+그 스켈레톤)이라 부수 영향 없음 — 다른 화면은 이 유틸을
+     쓰지 않는다(glass-outer와 달리 사실상 어드민 전용). */
+  [data-theme="dark"] .btn-elevated {
+    background: var(--surface2);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  [data-theme="dark"] .btn-elevated:hover {
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* 광택 스윕(::after)은 흰 그라디언트라 다크에서 과하게 번쩍인다 — 알파를 낮춰 유지
+     (제거하면 hover 피드백이 transform만 남아 라이트와 언어가 갈린다) */
+  [data-theme="dark"] .btn-elevated::after {
+    background: linear-gradient(115deg,
+        transparent 35%,
+        rgba(255, 255, 255, 0.12) 50%,
+        transparent 65%);
+    background-size: 250% 100%;
+    background-position: 150% 0;
+  }
+
   .btn-soft {
     position: relative;
     background: rgba(255, 255, 255, 0.45);
