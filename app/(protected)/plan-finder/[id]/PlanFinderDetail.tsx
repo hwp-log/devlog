@@ -272,7 +272,10 @@ export function PlanFinderDetail({
               ₩1,460,000이 16px bold로 ≈81px라 넘친다(공백이 없어 줄바꿈도 안 됨 → 가로 스크롤).
               앞 3칸을 콘텐츠 폭으로 두면(기간 55·장소 34·인원 24 = 113) 총 비용에 175px이 남는다.
               0516의 균등은 **3열일 때** 판정이고 4열은 새 조건 — 데스크톱(sm+, 칸당 209px)은
-              균등 그대로라 기존 판정이 유효한 구간은 안 건드린다. */}
+              균등 그대로라 기존 판정이 유효한 구간은 안 건드린다.
+            0562(C): 작성 폼(MyPlanNewForm)이 **같은 형태의 밴드**를 제목 아래에 둔다 —
+              한쪽만 바꾸면 "저장하면 이 모습"이 어긋난다. 컴포넌트는 공유하지 않고(0556)
+              조판 리터럴을 준용하므로 열 분배·gap·py·border·글자 등급을 양쪽 같이 고칠 것. */}
         <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
           <div className="flex flex-col gap-[3px] sm:gap-1">
             <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>

@@ -28,13 +28,14 @@ import {
   CATEGORIES,
   CATEGORY_LABEL,
   CATEGORY_COLOR,
+  formatAmount,
   type CostCategory,
 } from '../_lib/cost';
 import { CATEGORY_ICON } from '../_components/CostSection';
 import { CostSection } from '../_components/CostSection';
 import { SectionHeader } from '@/app/(protected)/_components/SectionHeader';
 import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
-import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
+import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
 import { clampHeadcount, HEADCOUNT_MIN, HEADCOUNT_MAX } from '@/lib/plan/validate-input';
 
 export type PlanItem = {
@@ -77,6 +78,13 @@ interface Props {
   initialState?: EditorState;
   mode?: 'create' | 'edit';
   planId?: string;
+}
+
+// 0562(C): 저장 대상 항목 판정 — 이름이 빈 행은 저장되지 않는다.
+//   지표 밴드의 "장소 N곳"과 handleSave가 **같은 조건**을 써야 저장 직후 읽기 화면의
+//   장소 수(= PlanSpot 행 수)와 어긋나지 않는다. 조건을 두 곳에 적으면 조용히 갈린다.
+function isSavableItem(item: PlanItem): boolean {
+  return item.name.trim() !== '';
 }
 
 function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[] {
@@ -267,6 +275,20 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
     editor.flight,
   );
 
+  // 0562(C): 지표 밴드 파생값 — 전부 입력에서 계산되는 읽기 전용 값(입력 필드 아님).
+  //   읽기 상세(PlanFinderDetail)의 같은 밴드와 값이 맞아야 "저장하면 이 모습"이 성립한다.
+  //   장소: 저장 대상 항목 수(isSavableItem) = 저장 후 PlanSpot 행 수 = 읽기의 spots.length.
+  const spotCount = useMemo(
+    () => editor.days.reduce((n, d) => n + d.items.filter(isSavableItem).length, 0),
+    [editor.days],
+  );
+  // 기간: 날짜 미설정이면 "—". days는 calcDays 산출이라 역순 날짜(diff<0)면 빈 배열이 되므로
+  //   길이도 함께 본다 — 그때 formatDurationLabel(0)은 "당일"이 돼 거짓이 된다.
+  const durationLabel =
+    editor.startDate && editor.endDate && editor.days.length > 0
+      ? formatDurationLabel(editor.days.length)
+      : '—';
+
   // 0527: 저장 게이트는 기존 조건 그대로(제목만) — 조판 작업이라 기능 무변.
   //   시안 안내문은 "제목·출발일·도착일"이지만 실제 게이트와 어긋나면 거짓 안내라 문구를 실제에 맞춘다.
   const saveDisabled = !editor.title.trim() || isPending;
@@ -344,7 +366,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       headcount: editor.headcount,
       items: editor.days.flatMap((day) =>
         day.items
-          .filter((item) => item.name.trim() !== '')
+          .filter(isSavableItem) // 0562(C): 지표 밴드 "장소 N곳"과 같은 조건(위 정의 참조)
           .map((item, idx) => ({
             day: day.day,
             order: idx + 1,
@@ -392,6 +414,36 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       {saveError && (
         <p role="alert" className="mt-4 text-sm text-danger">{saveError}</p>
       )}
+
+      {/* 0562(C): 지표 밴드 — 읽기 상세(PlanFinderDetail)의 밴드와 **같은 형태·같은 값**.
+          입력이 아니라 파생이라 읽기 전용이고, 아래 입력이 바뀌면 즉시 따라 움직인다
+          ("저장하면 이 모습"의 예측을 상단에서 먼저 보여준다).
+          조판은 읽기 쪽 리터럴 준용 — 열 분배·gap·py·border·글자 등급 전부 동일.
+          **한쪽만 바꾸면 두 화면 형태가 갈린다**(짝: PlanFinderDetail 지표 밴드 주석).
+          컴포넌트로 공유하지 않는 건 0556 결정(폼 정합은 조판·용어만) — 값 산출만 lib 공유.
+          설명 문구는 두지 않는다(사용자 확정) — 라벨이 이미 뜻을 담는다. */}
+      <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+        <div className="flex flex-col gap-[3px] sm:gap-1">
+          <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>
+          <span className="text-base sm:text-xl font-bold text-fg">{durationLabel}</span>
+        </div>
+        <div className="flex flex-col gap-[3px] sm:gap-1">
+          <span className="text-[11px] sm:text-xs sm:font-medium text-muted">장소</span>
+          <span className="text-base sm:text-xl font-bold text-fg">{spotCount}곳</span>
+        </div>
+        <div className="flex flex-col gap-[3px] sm:gap-1">
+          <span className="text-[11px] sm:text-xs sm:font-medium text-muted">인원</span>
+          <span className="text-base sm:text-xl font-bold text-fg">{editor.headcount}인</span>
+        </div>
+        {/* 값 없으면 "—" — 칸을 빼지 않는다(읽기와 같은 규칙). 장소 0곳·인원 1인은
+            실값이라 "—" 대상이 아니다(없는 게 아니라 0이고 기본값). */}
+        <div className="flex flex-col gap-[3px] sm:gap-1">
+          <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
+          <span className="text-base sm:text-xl font-bold text-fg">
+            {total > 0 ? formatAmount(total, 'KRW') : '—'}
+          </span>
+        </div>
+      </div>
 
       <div className="mt-[26px] sm:mt-[38px]">
         <SectionHeader title="기본 정보" sub="제목과 날짜는 필수" />
