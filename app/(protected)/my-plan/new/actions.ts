@@ -20,12 +20,22 @@ type SaveItem = {
   day: number;
   order: number;
   name: string;
-  category: CostCategory | '';
-  amount: number;
+  // 0562 D②: localId = 폼 항목 키(생성 randomUUID / 편집 PlanSpot.id) — dayCosts.localId와
+  //   이어 2패스에서 planSpotId를 복원. category·amount는 dayCosts로 분리돼 제거.
+  localId: string;
   // 0493 3단계: 검색-선택 좌표·주소. place 없는 항목(타이핑한 이동 기록 등)은 undefined.
   lat?: number;
   lng?: number;
   address?: string | null;
+};
+
+// 0562 D②: 일자별 비용 — PlanCost(day ≠ null) 동형. localId null = 기타 지출(planSpotId NULL).
+type DayCostPayload = {
+  localId: string | null;
+  day: number;
+  category: CostCategory;
+  amount: number;
+  label: string;
 };
 
 // 0504: 하루에 안 묶이는 비용(렌터카·항공권·보험 등). day·planSpotId 없이 저장(둘 다 NULL).
@@ -56,7 +66,8 @@ export async function getPlanCoverCandidates(
   items: { name: string; lat: number; lng: number }[],
 ): Promise<{ coverUrl: string; name: string }[]> {
   const resolved = await resolveReuse(
-    items.map((it, i) => ({ day: 1, order: i, name: it.name, category: '' as const, amount: 0, lat: it.lat, lng: it.lng })),
+    // 0562 D②: SaveItem에서 category·amount 소멸 — 합성 항목도 동형으로(localId는 여기선 미사용)
+    items.map((it, i) => ({ day: 1, order: i, name: it.name, localId: String(i), lat: it.lat, lng: it.lng })),
   );
   const ids = [...new Set(resolved.map((r) => r.reusedSpotId).filter((x): x is string => !!x))];
   if (ids.length === 0) return [];
@@ -129,6 +140,8 @@ type SavePayload = {
   description: string;
   headcount: number;
   items: SaveItem[];
+  // 0562 D②: 일자별 비용 — 항목과 분리 수신, 2패스에서 localId로 planSpotId 복원.
+  dayCosts: DayCostPayload[];
   // 0504: 무장소 비용(렌터카·항공권·보험 등). 항목 루프 밖에서 day·planSpotId NULL로 저장.
   daylessCosts: DaylessCost[];
   flight: FlightOffer | null;
@@ -155,7 +168,18 @@ function flightFields(offer: FlightOffer) {
   };
 }
 
-async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items: ResolvedItem[], dayless: DaylessCost[]): Promise<void> {
+// 0562 D②: 2패스 — 1패스에서 planSpot을 만들며 localId → {id, name} 매핑을 세우고,
+//   2패스에서 dayCosts를 planCost로 잇는다. 구 구조(항목 루프 안 즉석 1건 생성)는 매핑이
+//   없어 장소당 비용 1건·항목 부착이 강제됐다 — 분리로 다건·기타 지출(planSpotId NULL)이 열림.
+async function buildPlanRows(
+  tx: Prisma.TransactionClient,
+  planId: string,
+  items: ResolvedItem[],
+  dayCosts: DayCostPayload[],
+  dayless: DaylessCost[],
+): Promise<void> {
+  // 1패스: planSpot 생성 + localId 매핑
+  const spotByLocalId = new Map<string, { id: string; name: string }>();
   for (const item of items) {
     // 0493 3단계: 좌표 있으면 create-or-reuse로 실 Spot 연결, 없으면 좌표·spotId NULL(0,0 폐기).
     let spotId: string | null = null;
@@ -176,14 +200,26 @@ async function buildPlanRows(tx: Prisma.TransactionClient, planId: string, items
     const spot = await tx.planSpot.create({
       data: { planId, day: item.day, order: item.order, name: item.name, lat, lng, spotId },
     });
-    if (item.amount > 0) {
-      const category: CostCategory = item.category === '' ? 'ETC' : item.category;
-      await tx.planCost.create({
-        data: { planId, planSpotId: spot.id, day: item.day, category, label: item.name, amount: item.amount },
-      });
-    }
+    spotByLocalId.set(item.localId, { id: spot.id, name: spot.name });
   }
-  // 0504: 무장소 비용 — 항목 루프 밖. planSpotId·day 모두 NULL로 저장(create/update 공통 경로).
+  // 2패스: 일자별 비용 — 연결이 풀린 localId(클라 선별을 통과 못 한 경우는 없어야 정상)는
+  //   기타 지출로 강등(planSpotId NULL·라벨 유지). 연결 비용의 label은 **장소 이름으로 강제**
+  //   — 이름이 정본(단일 소스), 클라 label은 기타 지출에서만 의미.
+  for (const cost of dayCosts) {
+    if (cost.amount <= 0) continue;
+    const linked = cost.localId ? spotByLocalId.get(cost.localId) : undefined;
+    await tx.planCost.create({
+      data: {
+        planId,
+        planSpotId: linked?.id ?? null,
+        day: cost.day,
+        category: cost.category,
+        label: linked ? linked.name : cost.label,
+        amount: cost.amount,
+      },
+    });
+  }
+  // 0504: 무장소 비용 — planSpotId·day 모두 NULL로 저장(create/update 공통 경로).
   for (const cost of dayless) {
     if (cost.amount > 0) {
       await tx.planCost.create({
@@ -226,7 +262,7 @@ export async function createPlanWithItemsAction(
           coverUrl,
         },
       });
-      await buildPlanRows(tx, plan.id, resolvedItems, payload.daylessCosts);
+      await buildPlanRows(tx, plan.id, resolvedItems, payload.dayCosts, payload.daylessCosts);
       if (payload.flight) {
         await tx.planFlight.create({ data: { planId: plan.id, ...flightFields(payload.flight) } });
       }
@@ -278,7 +314,7 @@ export async function updatePlanWithItemsAction(
       });
       await tx.planCost.deleteMany({ where: { planId } });
       await tx.planSpot.deleteMany({ where: { planId } });
-      await buildPlanRows(tx, planId, resolvedItems, payload.daylessCosts);
+      await buildPlanRows(tx, planId, resolvedItems, payload.dayCosts, payload.daylessCosts);
       if (payload.flight) {
         await tx.planFlight.upsert({
           where:  { planId },

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { MyPlanNewForm } from '../../new/MyPlanNewForm';
-import type { EditorState, DayPlan, PlanItem } from '../../new/MyPlanNewForm';
+import type { EditorState, DayPlan, PlanItem, DayCost } from '../../new/MyPlanNewForm';
 import type { FlightOffer } from '@/lib/flights';
 
 type Props = { params: Promise<{ id: string }> };
@@ -12,17 +12,26 @@ type FullPlanSpot = PlanSpot & { spot: { address: string | null } | null };
 type FullPlan = MyPlan & { spots: FullPlanSpot[]; costs: PlanCost[]; flight: PlanFlight | null };
 
 function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
-  const costBySpotId = new Map(
-    plan.costs
-      .filter((c) => c.planSpotId != null)
-      .map((c) => [c.planSpotId!, c]),
-  );
-
-  // 0504: 무장소 비용(day·planSpotId 둘 다 NULL)을 별도 컬렉션으로 복원 —
-  //   장소 매칭에서 드롭돼 다음 저장 때 영구 소실되던 경로 차단(라운드트립 보존).
+  // 0562 D②: 비용 복원 3분류 — 구 costBySpotId Map(planSpotId당 1건, 항목에 부착) 폐기.
+  //   ① day=null                → daylessCosts (여행 고정 비용).
+  //     day=null && planSpotId≠null은 현 저장 경로가 만들지 않는 형태 — 생기면 라벨이
+  //     있으니 고정 비용으로 방어 편입(드롭 금지).
+  //   ② day≠null                → dayCosts. localId = planSpotId(편집의 item.id = PlanSpot.id).
+  //     planSpotId=null(시드 90행·기타 지출)도 localId null로 자연 포섭 —
+  //     **구 코드는 이 형태를 어느 분류에도 못 넣고 드롭해 재저장 시 전량 소실**되던 버그 해소.
   const daylessCosts = plan.costs
-    .filter((c) => c.day == null && c.planSpotId == null)
+    .filter((c) => c.day == null)
     .map((c) => ({ label: c.label, category: c.category, amount: c.amount }));
+
+  const dayCosts: DayCost[] = plan.costs
+    .filter((c) => c.day != null)
+    .map((c) => ({
+      localId: c.planSpotId,
+      day: c.day!,
+      category: c.category,
+      amount: c.amount,
+      label: c.label,
+    }));
 
   const spotsByDay = new Map<number, FullPlanSpot[]>();
   for (const spot of plan.spots) {
@@ -34,21 +43,16 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
   const days: DayPlan[] = Array.from({ length: dayCount }, (_, i) => {
     const day = i + 1;
     const daySpots = spotsByDay.get(day) ?? [];
-    const items: PlanItem[] = daySpots.map((ps) => {
-      const cost = costBySpotId.get(ps.id);
-      return {
-        id: ps.id,
-        name: ps.name,
-        category: (cost?.category ?? '') as PlanItem['category'],
-        amount: cost?.amount ?? 0,
-        // 0493 4단계: 좌표 있으면 1단계 place 메타 형태로 복원(주소는 연결 Spot에서 조인). 없으면 undefined.
-        // 0562 D①: 구 id: ps.spotId 복원 폐기 — 생성 경로(Kakao POI id)와 의미가 갈리던
-        //   필드 자체를 제거(정본 주석: MyPlanNewForm PlanItem.place).
-        place: (ps.lat != null && ps.lng != null)
-          ? { lat: ps.lat, lng: ps.lng, address: ps.spot?.address ?? '' }
-          : undefined,
-      };
-    });
+    const items: PlanItem[] = daySpots.map((ps) => ({
+      id: ps.id,
+      name: ps.name,
+      // 0493 4단계: 좌표 있으면 1단계 place 메타 형태로 복원(주소는 연결 Spot에서 조인). 없으면 undefined.
+      // 0562 D①: 구 id: ps.spotId 복원 폐기 — 생성 경로(Kakao POI id)와 의미가 갈리던
+      //   필드 자체를 제거(정본 주석: MyPlanNewForm PlanItem.place).
+      place: (ps.lat != null && ps.lng != null)
+        ? { lat: ps.lat, lng: ps.lng, address: ps.spot?.address ?? '' }
+        : undefined,
+    }));
     return { day, items };
   });
 
@@ -83,7 +87,8 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
     description: plan.description ?? '',
     headcount: plan.headcount,
     days,
-    daylessCosts, // 0504: 무장소 비용 복원(현재 UI 없음 — 라운드트립 보존용)
+    dayCosts, // 0562 D②: 일자별 비용 복원 — 장소당 다건·기타 지출 포함
+    daylessCosts,
     flight: flightSlot,
     coverUrl: plan.coverUrl, // 0497: 기존 대표 이미지 복원(picker 후보면 선택 상태로 표시)
   };
