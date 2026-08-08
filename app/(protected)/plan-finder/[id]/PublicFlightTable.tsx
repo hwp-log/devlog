@@ -7,9 +7,15 @@ import { AIRPORT_NAME, type FlightLegData, type FlightSegmentData } from '@/app/
 
 // 0515: 모바일은 라벨을 위로 올린 2줄 카드(시안 4d) — 라벨 / 노선 / 소요·직항·편명 한 줄.
 // 0522: 공통 척도 — 노선은 본문 16px, 나머지(라벨·공항명·소요·편명)는 보조 14px.
-function LegRow({ seg, label }: { seg: FlightSegmentData; label: string }) {
+// 0562: last — 비용 섹션의 접기 그룹 안으로 들어오면서(구 독립 섹션 폐기) 마지막 행의 아래 선이
+//   그룹 끝에 선 하나를 더 만든다. PublicCostSection ItemRow의 last와 같은 처리.
+function LegRow({ seg, label, last }: { seg: FlightSegmentData; label: string; last: boolean }) {
   return (
-    <div className="flex flex-col gap-[3px] sm:grid sm:grid-cols-[60px_1fr_max-content_max-content] sm:items-center sm:gap-5 sm:py-[15px] sm:border-b sm:border-hairline">
+    <div
+      className={`flex flex-col gap-[3px] sm:grid sm:grid-cols-[60px_1fr_max-content_max-content] sm:items-center sm:gap-5 sm:py-[15px]${
+        last ? '' : ' sm:border-b sm:border-hairline'
+      }`}
+    >
       <span className="text-[11px] sm:text-sm font-semibold text-muted shrink-0">{label}</span>
 
       <div className="flex items-center gap-2 flex-wrap min-w-0 text-base font-semibold text-fg">
@@ -34,11 +40,12 @@ function LegRow({ seg, label }: { seg: FlightSegmentData; label: string }) {
 }
 
 export function PublicFlightTable({ data }: { data: FlightLegData }) {
-  const isRoundTrip = data.tripType === 'ROUND_TRIP';
+  // 0562: 오는편이 없으면(편도·ret 누락) 가는편이 곧 마지막 행 — 아래 선 없음.
+  const hasReturn = data.tripType === 'ROUND_TRIP' && !!data.ret;
   return (
     <div className="flex flex-col gap-3.5 sm:block">
-      <LegRow seg={data.out} label="가는편" />
-      {isRoundTrip && data.ret && <LegRow seg={data.ret} label="오는편" />}
+      <LegRow seg={data.out} label="가는편" last={!hasReturn} />
+      {hasReturn && <LegRow seg={data.ret!} label="오는편" last />}
     </div>
   );
 }

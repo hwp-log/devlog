@@ -342,28 +342,31 @@ export function PlanFinderDetail({
         )}
       </div>
 
-      {/* 예상 비용 — 0516: 시안 4a 순서(일정→비용→항공). 총액이 지표 밴드에 나오므로 비용이 이어받음 */}
+      {/* 예상 비용 — 0516: 시안 4a 순서(일정→비용→항공). 총액이 지표 밴드에 나오므로 비용이 이어받음.
+          0562: 별도 "왕복 항공편" 섹션 폐기 — 항공은 비용 안의 형제 그룹(고정 비용 / 항공권 /
+          일자별 비용)으로 편입. 0492가 "왕복 총액은 섹션 제목 옆에 한 번만"으로 잡았던 자리는
+          그룹 헤더 summary로 이관 — 원칙(같은 값은 한 곳)은 그대로고 위치만 옮겼다.
+          이로써 총액이 고정 비용 항목과 섹션 제목 두 곳에 나오던 중복이 해소되고, 제목이
+          tripType 무관 "왕복 항공편"이라 편도에서 거짓이던 표기도 함께 사라진다.
+          표는 슬롯으로 넘긴다(PublicCostSection이 plan-finder를 import하지 않게 — 그쪽 주석 참조). */}
       {summary.ratios.length > 0 && (
         <div className="mt-7 sm:mt-11">
           <SectionHeader title="예상 비용" sub="총액 기준 · 1인 환산 없음" />
           <div className="mt-[18px]">
-            <PublicCostSection summary={summary} headcount={headcount} startDate={startDate} endDate={endDate} />
+            <PublicCostSection
+              summary={summary}
+              headcount={headcount}
+              startDate={startDate}
+              endDate={endDate}
+              flight={
+                publicFlight && {
+                  tripType: publicFlight.tripType,
+                  totalAmount: publicFlight.totalAmount,
+                  table: <PublicFlightTable data={publicFlight} />,
+                }
+              }
+            />
           </div>
-        </div>
-      )}
-
-      {/* 왕복 항공편 — 왕복 총액은 제목 옆에 한 번만(같은 열엔 같은 종류의 값, 0492 원칙 복원) */}
-      {publicFlight && (
-        <div className="mt-7 sm:mt-11">
-          <SectionHeader
-            title="왕복 항공편"
-            sub={`조회 시점 기준${
-              publicFlight.totalAmount > 0
-                ? ` · ${publicFlight.tripType === 'ROUND_TRIP' ? '왕복 ' : ''}${formatAmount(publicFlight.totalAmount, currency)}`
-                : ''
-            }`}
-          />
-          <PublicFlightTable data={publicFlight} />
         </div>
       )}
 

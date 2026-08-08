@@ -89,6 +89,15 @@ interface Props {
   // 0505: 일자 라벨용. null이면 일자 라벨을 "DAY N"으로 폴백.
   startDate: Date | null;
   endDate: Date | null;
+  // 0562: 항공권 그룹 — 구 "왕복 항공편" 섹션(0492)을 비용의 형제 그룹으로 편입.
+  //   table을 **슬롯으로 받는** 이유: 이 파일은 story/[id]/, PublicFlightTable은 plan-finder/[id]/에
+  //   있어 직접 import하면 역방향 의존이 생긴다. CoverPicker의 header 슬롯(0528 "문안은 호출부가
+  //   정한다")과 동형 — 표를 호출부가 렌더해 넘긴다.
+  flight?: {
+    tripType: 'ONE_WAY' | 'ROUND_TRIP';
+    totalAmount: number;
+    table: React.ReactNode;
+  } | null;
 }
 
 // 0517: 카테고리 고정색(시안 4a) — rank(비중 순위) 기반 chart 토큰에서 교체.
@@ -105,6 +114,10 @@ const CATEGORY_BAR: Record<Item['category'], string> = {
   ETC: 'bg-cat-etc',
 };
 
+// 0562: 접기 그룹의 위여백 — 첫 그룹만 카테고리 목록과 26px(mt-4 + 헤더 pt-2.5, 0514),
+//   이후는 그룹 사이 간격(mt-1.5). 완전 리터럴만 JIT 스캔되므로 클래스는 조합하지 않고 통째 반환.
+const GROUP_MT = (first: boolean) => (first ? 'mt-4' : 'mt-1.5');
+
 /**
  * 0492: 예산 요약 — 금액 공개. 총액 먼저 → 한 줄 누적 막대 → 항목별 금액 라벨.
  * (0343 트리맵·"공개 정책(금액 없음)"은 폐기.)
@@ -114,16 +127,26 @@ const CATEGORY_BAR: Record<Item['category'], string> = {
  * 금액은 계획 총액 기준(1인당 환산 없음 — 항목의 1인당/전체 구분이 없어 나누면 틀린 값, 0492 확정).
  * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
  */
-export function PublicCostSection({ summary, headcount, startDate, endDate }: Props) {
+export function PublicCostSection({ summary, headcount, startDate, endDate, flight }: Props) {
   const { ratios, itemGroups, total, currency } = summary;
   // 0507: 두 층 각각 접기 — 기본 접힘. 카테고리 요약(막대·색 라벨)은 접기 대상 아님.
+  // 0562: 항공권 그룹이 형제로 합류해 세 층 — 접힘 상태도 각각.
   const [fixedOpen, setFixedOpen] = useState(false);
+  const [flightOpen, setFlightOpen] = useState(false);
   const [dayOpen, setDayOpen] = useState(false);
   if (ratios.length === 0) return null;
 
   // 0505: 두 층으로 분리 — 고정 비용(day=null: 항공권 + 무장소) / 일자별 비용(day 있는 그룹).
-  //   summarize의 itemGroups 순서(항공 → 여행 전체 → Day)를 그대로 이어받아 항공권이 고정 맨 위.
-  const fixedItems = itemGroups.filter((g) => g.day === null).flatMap((g) => g.items);
+  // 0562: 세 층으로 — 항공권이 고정 비용 **안의 항목**에서 **형제 그룹**으로 승격(고정 다음, 일자별 앞).
+  //   구 "항공권이 고정 맨 위"(0505)는 이 승격으로 무효. 총액이 여기와 구 항공 섹션 제목(0492)
+  //   두 곳에 나오던 중복이 해소된다 — 이제 그룹 헤더 summary가 유일한 표기.
+  //   FLIGHT 제외는 category 기준 — CostCategory enum(schema)에 FLIGHT가 없어 실 PlanCost는
+  //   이 값을 절대 못 갖는다(label 문자열 '항공' 매칭보다 견고). summarize의 '항공' 그룹은
+  //   이 화면에서 미소비 — 금액·tripType·표 전부 flight prop 한 소스에서 나온다.
+  const fixedItems = itemGroups
+    .filter((g) => g.day === null)
+    .flatMap((g) => g.items)
+    .filter((it) => it.category !== 'FLIGHT');
   const dayGroups = itemGroups.filter((g): g is ItemGroup & { day: number } => g.day !== null);
   // 0517: 접기 그룹 요약 "N건 · N만원" — 실제 데이터 합산. KRW는 0.1만원 단위(시안 37.7만원 검산),
   //   비KRW는 시안에 형식이 없어 formatAmount. 합계 0이면 건수만(지어내지 않음).
@@ -173,13 +196,16 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         ))}
       </div>
 
-      {/* 0505: 두 층(고정 / 일자별). 각 층 = 큰 제목(진한 구분선+14px 굵게) → 날짜 라벨(12px 회색) → 3열 항목.
+      {/* 0505: 각 층 = 큰 제목(진한 구분선+14px 굵게) → 날짜 라벨(12px 회색) → 3열 항목.
           한쪽이 비면 그 제목도 생략(목표6). 계층은 색·선이 아니라 위치(날짜 라벨만 왼쪽 머리)로 가른다.
-          0507 후속: 접힘(기본) 상태는 두 그룹 모두 제목 줄만 — 기간 라벨도 접힘 대상(접힘 높이 동일).
-          제목 아래 6px은 헤더 필의 pb-1.5가 담당 → 펼침 첫 요소는 mt 없이 시작. */}
-      {/* 0514: 카테고리 목록→첫 그룹 26px(시안 4a) = mt-4(16) + 헤더 pt-2.5(10) */}
+          0507 후속: 접힘(기본) 상태는 전 그룹 제목 줄만 — 기간 라벨도 접힘 대상(접힘 높이 동일).
+          제목 아래 6px은 헤더 필의 pb-1.5가 담당 → 펼침 첫 요소는 mt 없이 시작.
+          0562: 두 층(고정 / 일자별) → 세 층(고정 / 항공권 / 일자별). 위 규칙은 세 층 공통. */}
+      {/* 0514: 카테고리 목록→첫 그룹 26px(시안 4a) = mt-4(16) + 헤더 pt-2.5(10), 그룹 사이는 mt-1.5.
+          0562: "첫 그룹"이 고정으로 확정돼 있지 않다 — 항공을 고정에서 뺀 뒤로 무장소 비용이 없으면
+          항공권이, 항공도 없으면 일자별이 첫 그룹이 된다. 앞 그룹 존재 여부로 산출(GROUP_MT). */}
       {fixedItems.length > 0 && (
-        <div className="mt-4">
+        <div className={GROUP_MT(true)}>
           <GroupHeader
             title="여행 고정 비용"
             summary={groupSummary(fixedItems)}
@@ -205,8 +231,32 @@ export function PublicCostSection({ summary, headcount, startDate, endDate }: Pr
         </div>
       )}
 
+      {/* 0562: 항공권 — 고정 비용과 일자별 비용 사이의 형제 그룹(구 "왕복 항공편" 섹션 폐기).
+          summary는 다른 두 그룹의 groupSummary("N건 · 금액")를 쓰지 않는다 — 왕복은 실제로
+          2편이라 "1건"이 거짓이 된다. 왕복/편도 어휘는 FlightLeg·FlightSearchSection과 한 벌.
+          제목은 tripType 무관 "항공권" — 구 제목("왕복 항공편")이 편도 플랜에서 거짓이던 건
+          제목이 사라지며 재발 경로 자체가 없어졌다.
+          펼침 첫 줄 "조회 시점 기준"은 고정 비용의 기간 라벨(periodLabel)과 같은 자리·같은
+          조판 — 구 섹션 sub의 단서를 잃지 않는다. */}
+      {flight && (
+        <div className={GROUP_MT(fixedItems.length === 0)}>
+          <GroupHeader
+            title="항공권"
+            summary={`${flight.tripType === 'ROUND_TRIP' ? '왕복' : '편도'} · ${formatAmount(flight.totalAmount, currency)}`}
+            open={flightOpen}
+            onToggle={() => setFlightOpen((v) => !v)}
+          />
+          {flightOpen && (
+            <>
+              <p className="text-xs text-muted">조회 시점 기준</p>
+              <div className="mt-1.5">{flight.table}</div>
+            </>
+          )}
+        </div>
+      )}
+
       {dayGroups.length > 0 && (
-        <div className="mt-1.5">
+        <div className={GROUP_MT(fixedItems.length === 0 && !flight)}>
           <GroupHeader
             title="여행 일자별 비용"
             summary={groupSummary(dayGroups.flatMap((g) => g.items))}
