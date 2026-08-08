@@ -22,8 +22,10 @@ function CategoryDot({ category }: { category: Item['category'] }) {
 //   구조: 고정 비용은 지출 항목, 일자별은 장소, 항공권은 "탑승료"가 이 자리에 온다.
 //   구 ItemRow(0505~0563: 이름·카테고리·금액 **한 줄**, 아래 hairline)는 폐기 —
 //   같은 층의 정보를 세 그룹이 서로 다른 골격으로 그리던 게 이번 통일의 대상이었다.
-//   행간 구분선(hairline)도 함께 폐기: 카테고리 묶음의 세로 안내선(⑨)이 소속을 말하므로
-//   가로선까지 있으면 선이 두 언어로 경쟁한다.
+//   행간 구분선(hairline)도 함께 폐기. 당시 근거는 "카테고리 묶음의 세로 안내선(⑨)이 소속을
+//   말하므로 가로선까지 있으면 선이 두 언어로 경쟁한다"였는데, **그 세로선도 0567 후속②에서
+//   빠졌다**(CostCategoryList 주석 참조). 근거는 사라졌지만 결론은 유지 — 선 없이 들여쓰기 +
+//   크기 3단(15/13/12px)만으로 층위가 읽힌다는 게 후속② 실화면 판정의 결과다.
 function CostItemRow({
   name,
   amount,
@@ -43,12 +45,14 @@ function CostItemRow({
   );
 }
 
-// 0567: 카테고리 묶음 — 왼쪽 1px 세로 안내선이 "이 카테고리들은 위 항목에 속한다"를 말한다.
-//   border-divider는 0345가 **짧은 세로 구분선 전용**으로 만든 토큰이다(긴 수평선용 --border는
-//   1px 세로 조각에서 대비 1.23:1로 식별 불가 — divider는 1.48:1). 정확히 이 용도.
-//   지시 원안은 0.5px이었으나 1px — 0345·0362 실측 판정(0.5px은 비레티나에서 0으로 반올림).
+// 0567: 카테고리 묶음 — 들여쓰기 16px이 "이 카테고리들은 위 항목에 속한다"를 말한다.
+// 0567 후속②: 왼쪽 1px 세로 안내선(border-divider) 폐기 — 실화면 판정에서 **없어도 층위가
+//   읽힌다**로 확정. 들여쓰기 + 크기 차(항목 15px / 카테고리 13px)로 충분하고, 선은 그만큼의
+//   시각 비용을 더 받아갈 이유가 없었다. 재제안하지 않는다.
+//   구 `ml-1 pl-3`은 그 사이에 선을 두려던 분할이라 선이 사라진 지금은 의미가 없다 —
+//   같은 16px을 pl-4 하나로. (0345 divider 토큰은 다른 소비처가 있어 그대로 둔다.)
 function CostCategoryList({ children }: { children: React.ReactNode }) {
-  return <div className="ml-1 pl-3 border-l border-divider">{children}</div>;
+  return <div className="pl-4">{children}</div>;
 }
 
 // 0567: 카테고리 줄 — [7px 점 + 이름 13px muted + 금액 12px muted]. 금액이 항목(15px)보다
@@ -73,6 +77,16 @@ function CostCategoryRow({
     <>
       <CategoryDot category={category} />
       <span className="text-muted">{label}</span>
+      {/* 0567 후속①: 접기 가능한 줄에만 꺾쇠 — 없으면 누를 수 있는 줄로 안 읽힌다.
+          오른쪽 끝은 금액이 차지하므로 텍스트 바로 뒤 인라인. 아이콘·방향 규칙은 그룹
+          헤더와 같다(접힘=아래·펼침=위, 표준 아코디언) — 크기만 14px로 한 단 작게. */}
+      {onToggle && (
+        <ChevronDown
+          size={14}
+          aria-hidden
+          className={`shrink-0 text-muted transition-transform${open ? ' rotate-180' : ''}`}
+        />
+      )}
       <span className="ml-auto text-xs text-muted tabular-nums">
         {formatAmount(amount, currency)}
       </span>
