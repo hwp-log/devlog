@@ -42,8 +42,10 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
         category: (cost?.category ?? '') as PlanItem['category'],
         amount: cost?.amount ?? 0,
         // 0493 4단계: 좌표 있으면 1단계 place 메타 형태로 복원(주소는 연결 Spot에서 조인). 없으면 undefined.
+        // 0562 D①: 구 id: ps.spotId 복원 폐기 — 생성 경로(Kakao POI id)와 의미가 갈리던
+        //   필드 자체를 제거(정본 주석: MyPlanNewForm PlanItem.place).
         place: (ps.lat != null && ps.lng != null)
-          ? { id: ps.spotId ?? '', lat: ps.lat, lng: ps.lng, address: ps.spot?.address ?? '' }
+          ? { lat: ps.lat, lng: ps.lng, address: ps.spot?.address ?? '' }
           : undefined,
       };
     });

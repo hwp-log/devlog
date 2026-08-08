@@ -43,8 +43,12 @@ export type PlanItem = {
   name: string;
   category: CostCategory | '';
   amount: number;
-  // 검색-선택한 장소 메타 — 화면 상태에만 보관(저장 payload 미포함, 다음 단계).
-  place?: { id: string; lat: number; lng: number; address: string };
+  // 검색-선택한 장소 메타 — 좌표·주소만. id는 두지 않는다(0562 D①):
+  //   구 place.id는 생성 경로에선 Kakao POI id, 편집 복원에선 우리 Spot.id로 **같은 필드에
+  //   다른 의미**가 들어갔다. payload에 안 실려 무해했지만 키로 쓰는 순간 화면마다 다르게
+  //   동작한다. 스팟 해소는 서버(resolveReuse)가 (name, lat, lng)로 하므로 클라 id는
+  //   어느 의미로도 쓸 곳이 없다 — 의미가 둘인 필드는 맞추는 게 아니라 없애는 게 통일.
+  place?: { lat: number; lng: number; address: string };
 };
 
 export type DayPlan = {
@@ -192,7 +196,7 @@ function SortablePlanItem({
         onPick={(p) =>
           onUpdate(item.id, {
             name: p.name,
-            place: { id: p.id, lat: p.lat, lng: p.lng, address: p.address },
+            place: { lat: p.lat, lng: p.lng, address: p.address },
           })
         }
         className={ITEM_INPUT_CLASS}
