@@ -81,6 +81,11 @@ export const theme = {
     catAccommodation: '#f4b8bd',
     catEntrance: '#bcd0da',
     catEtc: '#a9dfc4',
+    // 0564: 주차비 — 7번째 색. 기존 6색 hue(교통213·입장료200·기타152·항공41·숙박355·식비262)에서
+    //   41→152 사이 111°가 유일한 큰 공백이라 그 중앙(95° 라임)을 잡았다. 나머지 인접 간격
+    //   46~49°와 동형. 색차 검산(CIEDE2000, 기존 6색 중 최근접): 라이트 12.5(항공) — 기존 6색끼리의
+    //   최소값 10.7(교통/입장료, 이미 붙어도 갈린다고 확정된 쌍)을 상회.
+    catParking: '#cfe0a2',
     // 행 구분선(1px) / 섹션 2px 밑줄 — 위계는 굵기가 아니라 밝기가 만든다.
     hairline: '#f1f2f3',
     sectionRule: '#191a1c',
@@ -158,6 +163,7 @@ export const theme = {
     catAccommodation: '#ef8592', // 7.23:1
     catEntrance: '#7fb0c4', // 7.63:1
     catEtc: '#57c894', // 8.65:1
+    catParking: '#a8c85f', // 9.50:1 — 색차 최근접 17.5(기타), 다크 6색 최소값 12.1 상회
     hairline: '#212426', // 배경 대비 명도 +4%(1.15:1) — 보이되 튀지 않는 선
     sectionRule: '#e7eaec', // 2px 밑줄은 밝게 남겨 섹션 위계를 밝기로 표현
     chipMovieBg: '#16324f',

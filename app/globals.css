@@ -159,6 +159,7 @@
   --color-cat-accommodation: var(--cat-accommodation);
   --color-cat-entrance: var(--cat-entrance);
   --color-cat-etc: var(--cat-etc);
+  --color-cat-parking: var(--cat-parking); /* 0564 */
   --color-hairline: var(--hairline);
   --color-section-rule: var(--section-rule);
   --color-chip-movie-bg: var(--chip-movie-bg);
