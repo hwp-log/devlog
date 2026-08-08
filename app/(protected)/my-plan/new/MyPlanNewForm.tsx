@@ -854,7 +854,23 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         currency="KRW"
       />
 
-      {/* 그룹 1 — 여행 고정 비용 (0504 UI 그대로 이동, 헤더만 SectionHeader → 그룹 헤더 강등).
+      {/* 0568: 그룹 순서 = 항공권 → 고정 → 일자별. 읽기(PublicCostSection)가 0567 ③에서
+          그 순서로 확정됐고(근거: 시간 순서 — 항공이 여행의 시작), 폼은 "저장하면 이 모습"을
+          보여주는 자리라 같은 순서여야 한다. JSX 블록 이동만 — 상태·핸들러·검증 무접촉.
+          구 순서(고정 → 항공권 → 일자별, 0562 D②)의 "그룹 1/2/3" 번호 주석도 함께 정정. */}
+
+      {/* 그룹 1 — 항공권 (구 "항공편" 독립 섹션 이동). 구 badge "예상"은 상위 섹션 이름
+          "예상 비용"이 대체. 그룹 이름은 읽기의 항공권 그룹(0562 A)과 통일. */}
+      <CostGroupHeader title="항공권" />
+      <FlightSearchSection
+        startDate={editor.startDate}
+        endDate={editor.endDate}
+        flight={editor.flight}
+        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
+        onDateMissingChange={setDateMissing}
+      />
+
+      {/* 그룹 2 — 여행 고정 비용 (0504 UI 그대로 이동, 헤더만 SectionHeader → 그룹 헤더 강등).
           행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
       <CostGroupHeader title="여행 고정 비용" />
       <div className="mt-1 flex flex-col">
@@ -914,17 +930,6 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           + 고정 비용 추가
         </button>
       </div>
-
-      {/* 그룹 2 — 항공권 (구 "항공편" 독립 섹션 이동). 구 badge "예상"은 상위 섹션 이름
-          "예상 비용"이 대체. 그룹 이름은 읽기의 항공권 그룹(0562 A)과 통일. */}
-      <CostGroupHeader title="항공권" />
-      <FlightSearchSection
-        startDate={editor.startDate}
-        endDate={editor.endDate}
-        flight={editor.flight}
-        onChange={(offer) => setEditor((p) => ({ ...p, flight: offer }))}
-        onDateMissingChange={setDateMissing}
-      />
 
       {/* 그룹 3 — 여행 일자별 비용 (0562 D② 신설): 날짜 탭(일정 탭과 같은 포맷·독립 선택)
           + 행 = [장소 드롭다운(그날 일정 한정 + 기타 지출) / 카테고리·금액·삭제].
