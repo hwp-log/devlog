@@ -208,6 +208,8 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
   const [fixedOpen, setFixedOpen] = useState(false);
   const [flightOpen, setFlightOpen] = useState(false);
   const [dayOpen, setDayOpen] = useState(false);
+  // 0567 ⑪: 항공권 그룹 안의 티켓 표 접기 — 그룹 접기와 별개 층(편별 노선까지 볼지).
+  const [ticketOpen, setTicketOpen] = useState(false);
   // 0565: 선택 날짜. null = "아직 안 고름" → 파생으로 dayGroups[0].day를 쓴다.
   //   초깃값에 실제 날짜를 박지 않는 이유: dayGroups는 props에서 오므로 같은 사실이
   //   상태와 props 두 곳에 생긴다(단일 소스 + 파생). 일정 탭의 useState(1) 고정은
@@ -306,10 +308,29 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
               제목은 tripType 무관 "항공권" — 구 제목이 편도 플랜에서 거짓이던 경로가 사라졌다.
               0567: 요약에서 "왕복 ·" 제거 — 왕복/편도는 아래 카테고리 줄이 말한다(⑪).
               0566: 펼침 첫 줄 "조회 시점 기준" 폐기(설명 문구 일괄 제거). */}
+          {/* 0567 ⑪: 항공권도 다른 두 그룹과 같은 [항목 줄 + 카테고리 줄] 두 줄로.
+              구 조판은 펼치면 곧장 티켓 표라 금액 열이 이 그룹에서만 비어 세로 정렬이 끊겼다.
+              항목 줄 "탑승료" / 카테고리 줄 "왕복(상세내역)" — 왕복·편도 어휘는 FlightLeg·
+              FlightSearchSection과 한 벌이고, 구 헤더 요약의 "왕복 ·"이 여기로 내려왔다.
+              카테고리 줄이 곧 티켓 표 토글(기본 접힘) — 그룹 접기 안의 두 번째 겹이지만
+              성격이 다르다(그룹=이 비용을 볼지 / 여기=편별 노선까지 볼지). */}
           {flightOpen && (
             <div className={GROUP_BODY}>
               {periodLabel && <p className={GROUP_DATE}>{periodLabel}</p>}
-              <div className="mt-1.5">{flight.table}</div>
+              <div className="mt-1.5">
+                <CostItemRow name="탑승료" amount={flight.totalAmount} currency={currency} />
+                <CostCategoryList>
+                  <CostCategoryRow
+                    category="FLIGHT"
+                    label={`${flight.tripType === 'ROUND_TRIP' ? '왕복' : '편도'}(상세내역)`}
+                    amount={flight.totalAmount}
+                    currency={currency}
+                    open={ticketOpen}
+                    onToggle={() => setTicketOpen((v) => !v)}
+                  />
+                  {ticketOpen && <div className="pt-1.5 pb-1">{flight.table}</div>}
+                </CostCategoryList>
+              </div>
             </div>
           )}
         </div>
