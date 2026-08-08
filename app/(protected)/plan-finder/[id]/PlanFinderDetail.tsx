@@ -13,6 +13,7 @@ import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
 import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
+import { DayTabs } from '@/app/(protected)/_components/DayTabs';
 
 interface Props {
   planId: string;
@@ -320,27 +321,16 @@ export function PlanFinderDetail({
         <SectionHeader title="여행 일정" sub="작성자가 넣은 순서" />
       </div>
 
-      {/* 0515: 모바일 날짜 탭 — 전폭 한 줄 가로 스크롤 + 오른쪽 페이드(시안 4d). 데스크톱은 기존 그대로. */}
-      <div className="relative mt-4 mb-6">
-        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 max-sm:pr-6">
-          {days.map((d) => (
-            <button
-              key={d}
-              onClick={() => setSelectedDay(d)}
-              className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors shrink-0 ${
-                selectedDay === d
-                  ? 'bg-fg text-bg'
-                  : 'bg-card border border-border text-fg2 hover:bg-surface2'
-              }`}
-            >
-              {/* 0511: 비용 섹션(0505)과 동일 포맷 — Day N 병기 없이 날짜만(세 화면 통일). startDate 없으면 방어 폴백 */}
-              {startDate ? formatDayLabel(addDays(startDate, d - 1)) : `Day ${d}`}
-            </button>
-          ))}
-        </div>
-        <div
-          aria-hidden
-          className="sm:hidden absolute right-0 top-0 bottom-1 w-[34px] bg-gradient-to-r from-transparent to-bg pointer-events-none"
+      {/* 0515: 모바일 날짜 탭 — 전폭 한 줄 가로 스크롤 + 오른쪽 페이드(시안 4d). 데스크톱은 기존 그대로.
+          0565: 공용 DayTabs로 추출(렌더 무변) — 같은 화면 비용 섹션이 같은 탭을 쓴다.
+          여백(mt-4 mb-6)은 컴포넌트가 아니라 여기 — 섹션 간 조판은 호출부 책임(SectionHeader 선례③). */}
+      <div className="mt-4 mb-6">
+        <DayTabs
+          days={days}
+          selected={selectedDay}
+          onSelect={setSelectedDay}
+          // 0511: 비용 섹션(0505)과 동일 포맷 — Day N 병기 없이 날짜만(세 화면 통일). startDate 없으면 방어 폴백
+          label={(d) => (startDate ? formatDayLabel(addDays(startDate, d - 1)) : `Day ${d}`)}
         />
       </div>
 
