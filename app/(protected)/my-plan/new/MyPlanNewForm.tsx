@@ -340,6 +340,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   const categoryTotals = useMemo(() => {
     const totals: Record<CostCategory, number> = {
       TRANSPORT: 0,
+      PARKING: 0,
       ACCOMMODATION: 0,
       FOOD: 0,
       ENTRANCE: 0,

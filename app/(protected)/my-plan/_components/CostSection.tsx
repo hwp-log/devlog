@@ -16,6 +16,7 @@ interface Props {
 //   한 벌 — 읽는 쪽과 쓰는 쪽에서 같은 카테고리가 같은 색이어야 대응이 성립한다.
 const CATEGORY_BAR: Record<CostCategory | 'FLIGHT', string> = {
   TRANSPORT: 'bg-cat-transport',
+  PARKING: 'bg-cat-parking',
   FLIGHT: 'bg-cat-flight',
   FOOD: 'bg-cat-food',
   ACCOMMODATION: 'bg-cat-accommodation',

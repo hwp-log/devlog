@@ -124,6 +124,7 @@ interface Props {
 //   사장돼 제거됐다. 소유자 뷰(CostSection)도 0527부터 같은 cat-* 토큰 한 벌을 쓴다.
 const CATEGORY_BAR: Record<Item['category'], string> = {
   TRANSPORT: 'bg-cat-transport',
+  PARKING: 'bg-cat-parking',
   FLIGHT: 'bg-cat-flight',
   FOOD: 'bg-cat-food',
   ACCOMMODATION: 'bg-cat-accommodation',
