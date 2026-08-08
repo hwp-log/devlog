@@ -272,13 +272,17 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
         ))}
       </div>
 
-      {/* 0514: 카테고리 색 = 이름 왼쪽 3px 막대(닷 제거) — 누적 막대 색과 이름의 한자리 대응.
-          0517: 실화면 판정으로 2열 확정(sm:grid-cols-2 재복원, 좁아지면 1열). max-width 미적용. */}
+      {/* 0517: 실화면 판정으로 2열 확정(sm:grid-cols-2 재복원, 좁아지면 1열). max-width 미적용.
+          0567 ⑭: 구 "이름 왼쪽 3px 세로 막대"(0514) 폐기 → 7px 원형 점(CategoryDot).
+          아래 세 그룹이 전부 점으로 카테고리를 말하는데 여기만 막대라 표시 언어가 갈렸다.
+          색↔카테고리 대응은 바로 위 누적 막대가 이미 하므로 여기 표식은 "어느 카테고리 줄인가"만
+          가리키면 된다 — 0563이 일자별에서 "막대는 색만 말해 무엇인지 알 수 없다"로 점을
+          택한 판정을 요약 층에도 적용. */}
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-5">
         {ratios.map((item) => (
-          <div key={item.category} className="flex items-center py-2">
-            <span aria-hidden className={`w-[3px] self-stretch shrink-0 ${CATEGORY_BAR[item.category]}`} />
-            <span className="pl-2 flex-1 text-sm font-semibold text-cost-label">{item.label}</span>
+          <div key={item.category} className="flex items-center gap-2 py-2">
+            <CategoryDot category={item.category} />
+            <span className="flex-1 text-sm font-semibold text-cost-label">{item.label}</span>
             <span className="text-sm font-semibold text-cost-amount tabular-nums">{formatAmount(item.amount, currency)}</span>
           </div>
         ))}
