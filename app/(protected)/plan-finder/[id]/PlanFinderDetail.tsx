@@ -10,7 +10,7 @@ import { CopyPlanFinderButton } from './CopyPlanFinderButton';
 import { PlanOwnerActions, PlanOwnerNotice } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
-import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
+import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
 import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 
@@ -171,7 +171,11 @@ export function PlanFinderDetail({
     .filter((s) => s.day === selectedDay)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  const durationLabel = dayCount > 1 ? `${dayCount - 1}박 ${dayCount}일` : '당일';
+  // 0562(B): 문구 산출은 lib으로 승격(작성 폼과 한 벌 — format-day-label 주석 참조).
+  //   날짜 미설정이면 "—" — page.tsx가 dayCount를 1로 폴백해 실제 당일치기와 구분되지 않으므로
+  //   dayCount가 아니라 startDate·endDate 유무로 판정한다.
+  const durationLabel =
+    startDate && endDate ? formatDurationLabel(dayCount) : '—';
 
   const actionButtons = (
     <div className="flex items-center gap-2 shrink-0">
@@ -256,9 +260,20 @@ export function PlanFinderDetail({
           </div>
         )}
 
-        {/* 0512: 지표 밴드 3열(기간·장소·총 비용) — 요약 앵커 한 줄 대체, 위아래 구분선.
-            0516: 세 칸이 본문 폭 균등 분배(각 칸 1fr) — 시안 4a는 max-content 뭉침형이나 지시 우선. */}
-        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-3 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+        {/* 0512: 지표 밴드 — 요약 앵커 한 줄 대체, 위아래 구분선.
+            0516: 칸이 본문 폭 균등 분배(각 칸 1fr) — 시안 4a는 max-content 뭉침형이나 지시 우선.
+            0562(B): 3열 → **4열 고정**(기간·장소·인원·총 비용). 인원이 합류한 건 총액 옆
+              "· N인"(구 PublicCostSection)을 걷어내고 인원을 지표의 한 칸으로 세우기 위함 —
+              같은 값이 두 자리에 있던 것을 한 자리로.
+              **모바일에서도 4열 유지**(2×2로 접지 않는다) — 작성 폼이 같은 밴드를 쓰므로
+              형태가 갈리면 "저장하면 이 모습"이라는 예측이 깨진다.
+            0562(B) 열 분배: 모바일만 비균등(앞 3칸 auto + 총 비용 1fr). 360px 실측 —
+              콘텐츠 폭 312(px-6) − gap 24 = 288, 균등이면 칸당 72px인데 실데이터 최장
+              ₩1,460,000이 16px bold로 ≈81px라 넘친다(공백이 없어 줄바꿈도 안 됨 → 가로 스크롤).
+              앞 3칸을 콘텐츠 폭으로 두면(기간 55·장소 34·인원 24 = 113) 총 비용에 175px이 남는다.
+              0516의 균등은 **3열일 때** 판정이고 4열은 새 조건 — 데스크톱(sm+, 칸당 209px)은
+              균등 그대로라 기존 판정이 유효한 구간은 안 건드린다. */}
+        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
           <div className="flex flex-col gap-[3px] sm:gap-1">
             <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>
             <span className="text-base sm:text-xl font-bold text-fg">{durationLabel}</span>
@@ -267,14 +282,19 @@ export function PlanFinderDetail({
             <span className="text-[11px] sm:text-xs sm:font-medium text-muted">장소</span>
             <span className="text-base sm:text-xl font-bold text-fg">{spots.length}곳</span>
           </div>
-          {summary.total > 0 && (
-            <div className="flex flex-col gap-[3px] sm:gap-1">
-              <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
-              <span className="text-base sm:text-xl font-bold text-fg">
-                {formatAmount(summary.total, currency)}
-              </span>
-            </div>
-          )}
+          <div className="flex flex-col gap-[3px] sm:gap-1">
+            <span className="text-[11px] sm:text-xs sm:font-medium text-muted">인원</span>
+            <span className="text-base sm:text-xl font-bold text-fg">{headcount}인</span>
+          </div>
+          {/* 0562(B): 구 `summary.total > 0` 조건부 렌더 폐기 — 칸이 통째로 빠지면 남은 칸이
+              늘어나 밴드 형태가 플랜마다 달라졌다. 값이 없을 때는 칸을 유지하고 "—"를 넣는다
+              (장소 0곳·인원 1인은 실값이라 "—" 대상이 아니다 — 없는 게 아니라 0/기본값). */}
+          <div className="flex flex-col gap-[3px] sm:gap-1">
+            <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
+            <span className="text-base sm:text-xl font-bold text-fg">
+              {summary.total > 0 ? formatAmount(summary.total, currency) : '—'}
+            </span>
+          </div>
         </div>
 
         {/* 0512: 소개문 — 회색 박스 제거, 본문 텍스트로.
@@ -355,7 +375,6 @@ export function PlanFinderDetail({
           <div className="mt-[18px]">
             <PublicCostSection
               summary={summary}
-              headcount={headcount}
               startDate={startDate}
               endDate={endDate}
               flight={

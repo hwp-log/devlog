@@ -85,7 +85,7 @@ function GroupHeader({
 
 interface Props {
   summary: PublicCostSummary;
-  headcount: number;
+  // 0562(B): headcount prop 제거 — 유일 소비처였던 총액 옆 "· N인"이 지표 밴드로 이관됐다.
   // 0505: 일자 라벨용. null이면 일자 라벨을 "DAY N"으로 폴백.
   startDate: Date | null;
   endDate: Date | null;
@@ -127,7 +127,7 @@ const GROUP_MT = (first: boolean) => (first ? 'mt-4' : 'mt-1.5');
  * 금액은 계획 총액 기준(1인당 환산 없음 — 항목의 1인당/전체 구분이 없어 나누면 틀린 값, 0492 확정).
  * 소비처: plan-finder/[id]뿐(story/[id]·story/new는 요약 한 줄로 대체).
  */
-export function PublicCostSection({ summary, headcount, startDate, endDate, flight }: Props) {
+export function PublicCostSection({ summary, startDate, endDate, flight }: Props) {
   const { ratios, itemGroups, total, currency } = summary;
   // 0507: 두 층 각각 접기 — 기본 접힘. 카테고리 요약(막대·색 라벨)은 접기 대상 아님.
   // 0562: 항공권 그룹이 형제로 합류해 세 층 — 접힘 상태도 각각.
@@ -166,11 +166,12 @@ export function PublicCostSection({ summary, headcount, startDate, endDate, flig
     <div>
       <div className="flex items-baseline gap-2">
         {/* 0516: 총액 26px(시안 4a 실측) — 20px는 한 단 작게 들어간 오차.
-            0524: 금액 위계 3단의 최상단(다크 #f2f4f5) */}
+            0524: 금액 위계 3단의 최상단(다크 #f2f4f5)
+            0562(B): 총액 옆 "· N인" 제거 — 인원은 지표 밴드의 한 칸이 됐다.
+              같은 값을 밴드와 여기 둘로 두면 어느 쪽이 정본인지 흐려진다. */}
         <span className="text-[26px] tracking-[-0.02em] font-bold text-cost-total">
           총 {formatAmount(total, currency)}
         </span>
-        <span className="text-sm text-muted">· {headcount}인</span>
       </div>
 
       {/* 0517: 12px/r6(시안 4a) + 카테고리 고정색 — 구간 색과 아래 이름 옆 막대가 한자리 대응 */}
