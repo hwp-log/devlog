@@ -4,7 +4,6 @@ import { ChevronDown } from 'lucide-react';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
 import { formatDayLabel, addDays } from '@/lib/plan/format-day-label';
 import { formatAmount, CATEGORY_LABEL } from '@/app/(protected)/my-plan/_lib/cost';
-import { DayTabs } from '@/app/(protected)/_components/DayTabs';
 
 type ItemGroup = PublicCostSummary['itemGroups'][number];
 type Item = ItemGroup['items'][number];
@@ -401,24 +400,31 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
             <div className={`flex flex-col ${GROUP_BODY}`}>
               {/* 0565: 날짜 칩 + 소계가 날짜 수만큼 세로로 반복되던 구조(0563) 폐기 — 날짜가
                   여럿이면 세로로 길게 늘어져 한 프레임에 들어오는 정보량이 날짜 수에 비례했다.
-                  탭 한 줄로 바꾸면 정보량이 하루치로 고정돼 인식 부담이 일정하고, 탭이 보이므로
-                  다른 날의 존재도 알 수 있다. 위 "여행 일정"과 같은 DayTabs — 같은 플랜의 같은
-                  날짜를 같은 모양으로.
-                  이 줄은 탭이면서 동시에 구 날짜 칩 줄의 머리글 역할(어느 날 · 소계)을 승계한다.
-                  탭이 1개여도 생략하지 않는 이유: 그날이 언제인지가 사라지고 플랜마다 형태가
-                  갈린다. 밑선(border-fg/15)·소계 조판은 0563 그대로. */}
-              <div className="pb-2 border-b border-fg/15">
-                <DayTabs
-                  days={costDays}
-                  selected={selectedCostDay}
-                  onSelect={setPickedDay}
-                  label={dayDateLabel}
-                  right={
-                    <span className="shrink-0 pb-1 text-sm font-semibold text-cost-amount tabular-nums">
-                      {formatAmount(selectedGroup.total, currency)}
-                    </span>
-                  }
-                />
+                  탭 한 줄이면 정보량이 하루치로 고정돼 인식 부담이 일정하고, 탭이 보이므로
+                  다른 날의 존재도 알 수 있다. 탭이 1개여도 생략하지 않는다(그날이 언제인지가
+                  사라지고 플랜마다 형태가 갈린다).
+                  0567 ⑫: 필 형태(공용 DayTabs) → **텍스트 탭**. 0565가 "같은 플랜의 같은 날짜니
+                  일정 탭과 형태가 같아야 한다"로 DayTabs를 썼던 근거를 뒤집는다 — 두 탭은 층위가
+                  다르다. 일정 탭은 콘텐츠 전환(섹션의 본체가 통째로 바뀜)이고, 이건 그룹 안의
+                  하위 선택이다. 그래서 이 줄은 다른 두 그룹의 **날짜 줄과 같은 자리·같은 크기**
+                  (GROUP_DATE 13px)를 쓰고, 선택만 색+1.5px 밑줄로 든다.
+                  DayTabs는 무변경 — 일정 섹션이 계속 쓴다(0567 지시).
+                  구 소계(탭 줄 오른쪽)와 밑선은 폐기 — 소계는 목록 아래로 내려갔다(⑬). */}
+              <div className="flex flex-wrap gap-x-4">
+                {costDays.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setPickedDay(d)}
+                    className={`py-1 text-[13px] whitespace-nowrap transition-colors ${
+                      selectedCostDay === d
+                        ? 'font-medium text-fg border-b-[1.5px] border-fg'
+                        : 'text-muted hover:text-fg2'
+                    }`}
+                  >
+                    {dayDateLabel(d)}
+                  </button>
+                ))}
               </div>
               {selectedGroup.places.map((place, pi) => (
                 <div key={pi} className="pt-[11px]">
@@ -436,6 +442,16 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
                   </CostCategoryList>
                 </div>
               ))}
+              {/* 0567 ⑬: 소계를 탭 줄 오른쪽(0565)에서 목록 아래로 — 재무 표기에서 소계는
+                  항목 다음에 온다. 탭 옆에 있을 땐 "탭의 값"인지 "목록의 합"인지 헷갈렸다.
+                  선은 그룹 구분선과 같은 값(border-fg/15) — 지시 원안 0.5px은 1px로
+                  (0345·0362: 0.5px은 비레티나에서 0으로 반올림). */}
+              <div className="mt-2 pt-2 border-t border-fg/15 flex items-baseline justify-between gap-2">
+                <span className={GROUP_DATE}>합계</span>
+                <span className="shrink-0 text-[15px] font-medium text-cost-amount tabular-nums">
+                  {formatAmount(selectedGroup.total, currency)}
+                </span>
+              </div>
             </div>
           )}
         </div>
