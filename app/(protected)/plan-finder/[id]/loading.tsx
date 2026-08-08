@@ -114,16 +114,21 @@ export default function Loading() {
               0567: 여백 골격 동기 — 실화면이 GROUP_MT(첫 그룹 mt-4 / 이후 mt-1.5 + pt-2.5 +
               mt-2.5)에서 [구분선 + 위 22px + 아래 16px] 한 규칙으로 통일됐다. 여기만 구 값이면
               로딩→콘텐츠 전환에 그룹마다 세로 시프트가 생긴다.
-              **한쪽만 바꾸면 어긋남** — 짝은 PublicCostSection의 GROUP_WRAP·GroupHeader mt-[22px]. */}
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="pb-4">
-              <div className="border-t border-fg/15" />
-              <div className="mt-[22px] flex items-center py-1.5">
-                <div className="h-[21px] w-40 rounded skeleton-shimmer" />
-                <div className="ml-auto h-4 w-4 rounded skeleton-shimmer" />
+              0567 후속③: 요약↔첫 그룹 40px(mt-10) — 실화면이 요약과 상세를 이 간격 하나로
+              가른다. 래퍼에 주는 것도 실화면과 같다(첫 그룹이 데이터에 따라 바뀌므로).
+              **한쪽만 바꾸면 어긋남** — 짝은 PublicCostSection의 그룹 래퍼 mt-10 ·
+              GROUP_WRAP(pb-4) · GroupHeader mt-[22px]. */}
+          <div className="mt-10">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="pb-4">
+                <div className="border-t border-fg/15" />
+                <div className="mt-[22px] flex items-center py-1.5">
+                  <div className="h-[21px] w-40 rounded skeleton-shimmer" />
+                  <div className="ml-auto h-4 w-4 rounded skeleton-shimmer" />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 

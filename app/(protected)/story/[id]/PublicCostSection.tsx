@@ -129,6 +129,8 @@ function GroupHeader({
   open: boolean;
   onToggle: () => void;
 }) {
+  // 0567: 요약(금액)은 접혔을 때만 — 펼치면 같은 금액이 아래에 다 있어 중복이다.
+  const showSummary = !open && !!summary;
   return (
     <button
       type="button"
@@ -142,13 +144,19 @@ function GroupHeader({
         <span aria-hidden className="w-1.5 h-1.5 rounded-[3px] bg-[#b3b9bd] shrink-0 mr-[9px]" />
         <span className="text-[15px] font-semibold text-fg2">{title}</span>
         {/* 0522: 공통 척도 보조 등급 14px */}
-        {!open && summary && (
-          <span className="ml-2 text-sm font-medium text-muted tabular-nums">{summary}</span>
+        {/* 0567 후속③: 금액을 제목 바로 뒤에서 **오른쪽 끝(꺾쇠 왼쪽)** 으로 — 제목 뒤에 두면
+            제목 길이에 따라 금액 x위치가 그룹마다 흔들렸다. 오른쪽 끝으로 보내면 위 카테고리
+            요약의 금액 열·펼친 그룹의 항목 금액과 세로로 이어진다. 꺾쇠와 간격 12px.
+            여백 클래스는 완전 리터럴로 분기 — Tailwind JIT는 조합된 클래스를 못 본다. */}
+        {showSummary && (
+          <span className="ml-auto shrink-0 pl-2 text-sm font-medium text-muted tabular-nums">
+            {summary}
+          </span>
         )}
         <ChevronDown
           size={16}
           aria-hidden
-          className={`ml-auto shrink-0 text-muted transition-transform${open ? ' rotate-180' : ''}`}
+          className={`${showSummary ? 'ml-3' : 'ml-auto'} shrink-0 text-muted transition-transform${open ? ' rotate-180' : ''}`}
         />
       </span>
     </button>
@@ -307,6 +315,12 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
           0507 후속: 접힘(기본) 상태는 전 그룹 제목 줄만 — 기간 라벨도 접힘 대상(접힘 높이 동일).
           제목 아래 6px은 헤더 필의 pb-1.5가 담당 → 펼침 첫 요소는 mt 없이 시작.
           0562: 두 층(고정 / 일자별) → 세 층(고정 / 항공권 / 일자별). 위 규칙은 세 층 공통. */}
+      {/* 0567 후속③: 카테고리 요약(위 2열)과 첫 그룹 사이 40px — 구 값은 그룹 사이 간격과
+          같아 "요약"과 "상세 내역"이 같은 층으로 읽혔다. 그룹 사이(22px)는 그대로라
+          이 40px이 두 층을 가르는 유일한 신호가 된다.
+          래퍼로 주는 이유: 첫 그룹이 항공 유무·고정 비용 유무로 바뀌므로(0567에서 GROUP_MT를
+          없앤 그 이유) 어느 그룹에 mt를 붙이면 분기가 되살아난다. */}
+      <div className="mt-10">
       {/* 0567: 그룹 순서 = 항공권 → 고정 → 일자별. 구 순서(고정 → 항공권 → 일자별, 0562)에서
           바뀐 근거 둘 — ① 시간 순서다(항공이 여행의 시작). ② 금액 열이 비던 항공권이 맨 위로
           가야 아래로 열이 안 끊긴다. ②는 0567 ⑪(항공권도 금액 있는 2줄 조판)로 항공권 자체가
@@ -460,20 +474,17 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
                   </CostCategoryList>
                 </div>
               ))}
-              {/* 0567 ⑬: 소계를 탭 줄 오른쪽(0565)에서 목록 아래로 — 재무 표기에서 소계는
-                  항목 다음에 온다. 탭 옆에 있을 땐 "탭의 값"인지 "목록의 합"인지 헷갈렸다.
-                  선은 그룹 구분선과 같은 값(border-fg/15) — 지시 원안 0.5px은 1px로
-                  (0345·0362: 0.5px은 비레티나에서 0으로 반올림). */}
-              <div className="mt-2 pt-2 border-t border-fg/15 flex items-baseline justify-between gap-2">
-                <span className={GROUP_DATE}>합계</span>
-                <span className="shrink-0 text-[15px] font-medium text-cost-amount tabular-nums">
-                  {formatAmount(selectedGroup.total, currency)}
-                </span>
-              </div>
+              {/* 0567 후속③: "합계" 줄(+위 구분선) 폐기. 0567 ⑬이 소계를 탭 줄 오른쪽(0565)에서
+                  목록 아래로 내렸던 자리다 — 재무 표기 순서(소계는 항목 다음)는 맞았지만,
+                  **그 값은 이미 그룹 헤더에 있고 다른 두 그룹엔 합계 줄이 없다.** 빼면 세 그룹이
+                  끝나는 방식까지 같아진다(0567의 골격 통일이 여기까지 미치지 않았던 것).
+                  구 판정 "탭 옆에선 탭의 값인지 목록의 합인지 헷갈린다"는 지금도 유효 —
+                  탭 옆으로 되돌리지는 않는다. */}
             </div>
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
