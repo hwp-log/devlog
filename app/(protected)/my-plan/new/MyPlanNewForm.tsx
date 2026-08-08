@@ -937,16 +937,22 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       <CostGroupHeader title="여행 일자별 비용" />
       {hasDays ? (
         <>
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+          {/* 0568: 칩 → 텍스트 탭. 읽기의 일자별 비용 탭(0567 ⑫)과 같은 형태 — 리터럴 준용
+              (13px / 선택만 진한 색 + 1.5px 밑줄 / 나머지 muted / gap-x-4).
+              **위 "여행 일정" 섹션의 날짜 탭은 칩 그대로** — 읽기도 일정은 칩, 비용은 텍스트다.
+              한 화면에 두 형태가 공존하는 게 의도다(0567 ⓒ): 일정 탭은 콘텐츠 전환(섹션 본체가
+              통째로 바뀜)이고, 비용의 날짜 줄은 그룹 안의 하위 선택이라 층위가 다르다.
+              **한쪽만 바꾸면 읽기와 어긋남** — 짝은 PublicCostSection의 일자별 탭. */}
+          <div className="mt-3 flex flex-wrap gap-x-4">
             {editor.days.map(({ day }) => (
               <button
                 key={day}
                 type="button"
                 onClick={() => setSelectedCostDay(day)}
-                className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                className={`py-1 text-[13px] whitespace-nowrap transition-colors ${
                   clampedCostDay === day
-                    ? 'bg-fg text-bg'
-                    : 'border border-field-border text-fg2 hover:bg-surface2'
+                    ? 'font-medium text-fg border-b-[1.5px] border-fg'
+                    : 'text-muted hover:text-fg2'
                 }`}
               >
                 {editor.startDate

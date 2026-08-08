@@ -441,6 +441,8 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
                   하위 선택이다. 그래서 이 줄은 다른 두 그룹의 **날짜 줄과 같은 자리·같은 크기**
                   (GROUP_DATE 13px)를 쓰고, 선택만 색+1.5px 밑줄로 든다.
                   DayTabs는 무변경 — 일정 섹션이 계속 쓴다(0567 지시).
+                  0568: 작성 폼(MyPlanNewForm)의 일자별 비용 탭도 이 리터럴을 준용한다 —
+                  **한쪽만 바꾸면 두 화면 형태가 갈린다**(0556 "폼 정합은 조판·용어만").
                   구 소계(탭 줄 오른쪽)와 밑선은 폐기 — 소계는 목록 아래로 내려갔다(⑬). */}
               <div className="flex flex-wrap gap-x-4">
                 {costDays.map((d) => (
