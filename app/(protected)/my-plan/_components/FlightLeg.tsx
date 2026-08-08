@@ -73,10 +73,12 @@ function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice, showDetails 
 
         <div className="flex-1 flex flex-col items-center min-w-[80px]">
           <p className="text-[11px] text-[#888] mb-1">{duration} · 직항</p>
-          <div className="w-full h-px bg-[#E0E0E0] relative">
-            <span className="absolute -right-1 top-1/2 -translate-y-1/2 bg-white px-1 text-[#5C7BC9]">
-              {PLANE_ICON}
-            </span>
+          {/* 0563 ⑤: 구 마스크 방식(bg-white 패치로 선 가림) 폐기 — 카드가 반투명(glass-outer)이라
+              배경과 일치하는 단색이 없어 라이트에서 흰 사각형이 떴다. 선을 아이콘 양옆 두 토막으로
+              갈라 배경색 의존 자체를 제거. 아이콘 색은 검색 폼(FlightSearchSection)과 한 벌(primary). */}
+          <div className="w-full flex items-center gap-1">
+            <span aria-hidden className="flex-1 h-px bg-[#E0E0E0]" />
+            <span className="text-primary">{PLANE_ICON}</span>
           </div>
           <p className="text-[11px] text-[#888] mt-1">{seg.airline} {seg.flightNo}</p>
         </div>
