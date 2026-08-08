@@ -1,6 +1,7 @@
 'use client';
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useEffect, useRef, useTransition } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { GripVertical } from 'lucide-react';
 import {
   DndContext,
@@ -19,10 +20,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { createPlanWithItemsAction, updatePlanWithItemsAction } from './actions';
+import {
+  createPlanWithItemsAction,
+  updatePlanWithItemsAction,
+  resolvePlanItems,
+  type ResolvedItemMeta,
+} from './actions';
 import { FlightSearchSection } from './FlightSearchSection';
 import { PlaceSearchInput } from './PlaceSearchInput';
-import { CoverPicker } from './CoverPicker';
 import type { FlightOffer } from '@/lib/flights';
 import {
   CATEGORIES,
@@ -161,6 +166,9 @@ const FIELD_CLASS = 'flex flex-col gap-[5px]';
 const ITEM_INPUT_CLASS =
   'border border-field-border rounded-lg px-[10px] py-2 text-base text-fg bg-transparent placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
 
+// 0562 E: 항목 메타 해소 디바운스 — 구 CoverPicker(0497)의 값 이식.
+const RESOLVE_DEBOUNCE_MS = 400;
+
 // 0504: 여행 고정 비용 입력 — 16px으로 iOS 자동확대 방지(CLAUDE.md §5).
 const DAYLESS_INPUT_CLASS =
   'border border-field-border rounded-lg px-[10px] py-2.5 text-base text-fg bg-transparent placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
@@ -199,10 +207,18 @@ function CostGroupHeader({ title, sub }: { title: string; sub?: string }) {
 
 function SortablePlanItem({
   item,
+  index,
+  meta,
+  isCover,
+  onToggleCover,
   onUpdate,
   onRemove,
 }: {
   item: PlanItem;
+  index: number; // 그날 순번(0-기반) — 읽기 행과 같은 연속 번호 표기용
+  meta: ResolvedItemMeta | null; // 서버 해소 결과(재사용 Spot 한정) — 썸네일·칩·주소의 소스
+  isCover: boolean;
+  onToggleCover: () => void;
   onUpdate: (id: string, patch: Partial<PlanItem>) => void;
   onRemove: (id: string) => void;
 }) {
@@ -210,38 +226,76 @@ function SortablePlanItem({
     useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  // 0562 D②: 카테고리 원·카테고리 select·금액 input 제거 — 비용은 예상 비용 > 일자별 비용으로
-  //   이동(장부형 행 해소의 상태 단계). 썸네일·작품 칩·주소 조판은 E에서.
+  // 0562 E: 읽기 행(PlanItemRow)과 같은 골격 — [드래그][번호][72px 썸네일][이름·칩·주소][삭제].
+  //   썸네일·칩은 해소된 재사용 Spot(meta)에서만 — 없으면 자리 자체 생략(플레이스홀더 금지,
+  //   읽기 `{s.coverUrl && …}`·0517과 동일). 주소는 meta.address ?? place.address —
+  //   신규 생성될 Spot도 저장 시 Kakao 주소를 가지므로 저장 후 읽기와 같은 표시 규칙.
+  //   72px는 사용자 지정(읽기 60px — 폼 행은 입력 박스가 있어 한 단 크게).
+  //   썸네일 클릭 = 대표 이미지 토글(0562 E②) — 배지는 항목 단위(coverItemId), 같은 커버를
+  //   쓰는 두 행이 있어도 배지는 누른 행에만. 선택 표시는 구 CoverPicker의 border-primary 어휘.
+  const address = meta?.address || item.place?.address || null;
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[auto_1fr_auto] gap-2 items-center${isDragging ? ' opacity-50' : ''}`}
+      className={`flex items-center gap-2 ${isDragging ? ' opacity-50' : ''}`}
     >
       <button
         type="button"
         aria-label="순서 변경"
         {...attributes}
         {...listeners}
-        className="text-hint cursor-grab active:cursor-grabbing hover:text-fg2 transition-colors"
+        className="shrink-0 text-hint cursor-grab active:cursor-grabbing hover:text-fg2 transition-colors"
       >
         <GripVertical size={14} />
       </button>
-      <PlaceSearchInput
-        value={item.name}
-        onType={(name) => onUpdate(item.id, { name, place: undefined })}
-        onPick={(p) =>
-          onUpdate(item.id, {
-            name: p.name,
-            place: { lat: p.lat, lng: p.lng, address: p.address },
-          })
-        }
-        className={ITEM_INPUT_CLASS}
-      />
+      {/* 번호 — 읽기 행과 동일 등급(굵은 회색, #b3b9bd는 읽기와 같은 하드코딩 화석) */}
+      <span className="w-[22px] shrink-0 text-sm font-bold text-[#b3b9bd]">{index + 1}</span>
+      {meta?.coverUrl && (
+        <button
+          type="button"
+          onClick={onToggleCover}
+          aria-pressed={isCover}
+          aria-label={isCover ? '대표 이미지 해제' : '대표 이미지로 지정'}
+          className={`relative w-[72px] h-[72px] shrink-0 rounded-[10px] overflow-hidden border-[3px] transition ${
+            isCover ? 'border-primary' : 'border-transparent hover:border-fg/20'
+          }`}
+        >
+          <Image src={meta.coverUrl} alt="" fill sizes="72px" className="object-cover" />
+          {isCover && (
+            <span className="absolute left-1 top-1 rounded px-1.5 py-0.5 bg-primary text-white text-xs font-semibold leading-none pt-1">
+              대표
+            </span>
+          )}
+        </button>
+      )}
+      <div className="flex flex-col gap-1 min-w-0 flex-1">
+        <PlaceSearchInput
+          value={item.name}
+          onType={(name) => onUpdate(item.id, { name, place: undefined })}
+          onPick={(p) =>
+            onUpdate(item.id, {
+              name: p.name,
+              place: { lat: p.lat, lng: p.lng, address: p.address },
+            })
+          }
+          className={ITEM_INPUT_CLASS}
+        />
+        {(meta?.movie || address) && (
+          <div className="flex items-center gap-[7px] min-w-0">
+            {meta?.movie && (
+              <span className="shrink-0 px-[7px] py-[2px] rounded-[3px] bg-chip-movie-bg text-chip-movie-fg text-xs font-semibold">
+                {meta.movie}
+              </span>
+            )}
+            {address && <span className="text-xs text-muted truncate">{address}</span>}
+          </div>
+        )}
+      </div>
       <button
         type="button"
         onClick={() => onRemove(item.id)}
-        className="w-7 h-7 flex items-center justify-center rounded-full border border-field-border text-hint hover:text-danger hover:border-danger-border transition-colors text-base"
+        className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full border border-field-border text-hint hover:text-danger hover:border-danger-border transition-colors text-base"
       >
         ×
       </button>
@@ -254,6 +308,13 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   const [selectedDay, setSelectedDay] = useState(1);
   // 0562 D②: 일자별 비용의 날짜 탭 — 일정 탭과 독립 선택(비용 입력 중 일정 탭이 안 튀게)
   const [selectedCostDay, setSelectedCostDay] = useState(1);
+  // 0562 E: 항목 메타 해소 캐시(파생 — payload 미포함, 정본은 저장 시 서버 재해소) +
+  //   대표 이미지 항목(coverItemId — 배지는 항목 단위, URL 단위면 같은 커버 두 행에 배지 중복)
+  const [resolvedById, setResolvedById] = useState<Record<string, ResolvedItemMeta | null>>({});
+  const [coverItemId, setCoverItemId] = useState<string | null>(null);
+  const resolveSeqRef = useRef(0);
+  const resolveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coverInitRef = useRef(false); // 편집 복원 배지 초기화 1회 게이트
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dateMissing, setDateMissing] = useState({ start: false, end: false });
@@ -314,6 +375,78 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       ? formatDurationLabel(editor.days.length)
       : '—';
 
+  // 0562 E: 좌표 있는 저장 대상 항목 — 해소 대상. 키는 (id·이름·좌표)라 제목·금액 타이핑과
+  //   무관하게 이 값이 바뀔 때만 재조회(구 CoverPicker의 key 관용구 이식, 디바운스·seq 동일).
+  const placedItems = useMemo(
+    () => editor.days.flatMap((d) => d.items.filter((it) => it.place && isSavableItem(it))),
+    [editor.days],
+  );
+  const resolveKey = JSON.stringify(
+    placedItems.map((it) => [it.id, it.name, it.place!.lat, it.place!.lng]),
+  );
+
+  useEffect(() => {
+    if (resolveDebounceRef.current) clearTimeout(resolveDebounceRef.current);
+    const seq = ++resolveSeqRef.current;
+    const snapshot = placedItems;
+    if (snapshot.length === 0) {
+      // 빈 목록 리셋도 타임아웃 경로로 — 효과 본문 동기 setState 금지(린트) + seq 가드 일관
+      resolveDebounceRef.current = setTimeout(() => {
+        if (seq === resolveSeqRef.current) setResolvedById({});
+      }, 0);
+      return () => {
+        if (resolveDebounceRef.current) clearTimeout(resolveDebounceRef.current);
+      };
+    }
+    resolveDebounceRef.current = setTimeout(async () => {
+      try {
+        const metas = await resolvePlanItems(
+          snapshot.map((it) => ({ name: it.name.trim(), lat: it.place!.lat, lng: it.place!.lng })),
+        );
+        if (seq !== resolveSeqRef.current) return; // 스테일 응답 폐기
+        const next: Record<string, ResolvedItemMeta | null> = {};
+        snapshot.forEach((it, i) => {
+          next[it.id] = metas[i] ?? null;
+        });
+        setResolvedById(next);
+        // 0562 E②: 편집 복원 배지 초기화 — 첫 해소 도착 시 1회, 기존 coverUrl과 일치하는
+        //   **첫 항목**에만(URL 판정이지만 첫 매치 한정이라 배지는 항상 한 행). 일치 없음 =
+        //   자동 커버 상태(배지 없음). 이후 배지는 사용자 클릭만 따라간다.
+        if (!coverInitRef.current) {
+          coverInitRef.current = true;
+          const cover = editor.coverUrl;
+          if (cover) {
+            const hit = snapshot.find((it) => next[it.id]?.coverUrl === cover);
+            if (hit) setCoverItemId(hit.id);
+          }
+        }
+      } catch {
+        if (seq === resolveSeqRef.current) setResolvedById({}); // 미인증 등 실패는 빈 매핑으로 흡수
+      }
+    }, RESOLVE_DEBOUNCE_MS);
+    return () => {
+      if (resolveDebounceRef.current) clearTimeout(resolveDebounceRef.current);
+    };
+    // resolveKey로 항목 변경만 추적
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolveKey]);
+
+  // 0562 E②: 썸네일 클릭 토글 — 지정 시 그 항목의 커버 URL을 payload 값(coverUrl)으로,
+  //   재클릭 시 해제(null = 자동: 생성은 resolveCover, 편집은 기존 유지 — 0497 시맨틱 무변).
+  //   클릭 = 사용자 의사 확정이라 복원 초기화 게이트도 닫는다(늦게 온 해소가 배지를 덮지 않게).
+  function toggleCover(item: PlanItem) {
+    coverInitRef.current = true;
+    const url = resolvedById[item.id]?.coverUrl ?? null;
+    if (!url) return;
+    if (coverItemId === item.id) {
+      setCoverItemId(null);
+      setEditor((p) => ({ ...p, coverUrl: null }));
+    } else {
+      setCoverItemId(item.id);
+      setEditor((p) => ({ ...p, coverUrl: url }));
+    }
+  }
+
   // 0527: 저장 게이트는 기존 조건 그대로(제목만) — 조판 작업이라 기능 무변.
   //   시안 안내문은 "제목·출발일·도착일"이지만 실제 게이트와 어긋나면 거짓 안내라 문구를 실제에 맞춘다.
   const saveDisabled = !editor.title.trim() || isPending;
@@ -340,6 +473,19 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   }
 
   function updateItem(id: string, patch: Partial<PlanItem>) {
+    // 0562 E②: 대표 항목의 장소 연결이 바뀌면(타이핑=place 해제 / 재선택=place 교체) 배지·커버
+    //   함께 해제 — 커버 URL은 구 장소의 것이라 스테일. 해소 응답 대기 중 일시 상태로 판정하지
+    //   않고 명시적 조작 시점에만 해제(디바운스 중 오해제 방지).
+    if (id === coverItemId && 'place' in patch) {
+      setCoverItemId(null);
+      setEditor((prev) => ({
+        ...updateDayItems(prev, clampedDay, (items) =>
+          items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
+        ),
+        coverUrl: null,
+      }));
+      return;
+    }
     setEditor((prev) =>
       updateDayItems(prev, clampedDay, (items) =>
         items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
@@ -350,9 +496,12 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
   function removeItem(id: string) {
     // 0562 D②: 연결된 일자별 비용도 함께 삭제 — 구 구조(비용이 항목에 부착)에서
     //   항목 삭제 = 비용 삭제였던 동작을 분리 후에도 보존.
+    // 0562 E②: 대표 항목 삭제면 배지·커버도 해제.
+    if (id === coverItemId) setCoverItemId(null);
     setEditor((prev) => ({
       ...updateDayItems(prev, clampedDay, (items) => items.filter((it) => it.id !== id)),
       dayCosts: prev.dayCosts.filter((c) => c.localId !== id),
+      ...(id === coverItemId ? { coverUrl: null } : {}),
     }));
   }
 
@@ -651,10 +800,14 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={currentItems.map((it) => it.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-3">
-                {currentItems.map((item) => (
+                {currentItems.map((item, i) => (
                   <SortablePlanItem
                     key={item.id}
                     item={item}
+                    index={i}
+                    meta={resolvedById[item.id] ?? null}
+                    isCover={coverItemId === item.id}
+                    onToggleCover={() => toggleCover(item)}
                     onUpdate={updateItem}
                     onRemove={removeItem}
                   />
@@ -675,28 +828,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
         )}
       </div>
 
-      {/* 0497: 대표 이미지 선택 — 후보 게이트는 컴포넌트 내부(0510: 후보 1개부터 렌더, 0장만 미표시).
-          0526: 폼 최상단 헤더 카드에서 장소 지정 뒤로 이동(원인 먼저, 결과 나중).
-          0528: 다시 카테고리별 비용 **앞**으로 — 0527 개방 캔버스에서 "총 비용" 바로 밑에 붙어
-          비용에 딸린 항목처럼 보였다. 대표 이미지는 장소 파생이라 장소 입력 직후가 맞고,
-          카테고리별 비용은 "위 항목에서 자동 합산"이라 입력이 다 끝난 뒤에 와야 한다.
-          0561: 섹션 순서 정합(일정이 앞으로) 후에도 "장소 입력 직후" 원칙 그대로 —
-          이제 여행 일정 바로 다음, 비용·항공 앞.
-          헤더를 prop으로 넘겨 게이트(null 가드) 안쪽에서 렌더 — 후보 0장이면 제목도 함께 사라진다. */}
-      <CoverPicker
-        header={
-          <div className="mt-[26px] sm:mt-11">
-            <SectionHeader title="대표 이미지" sub="고르지 않으면 자동으로 정해집니다" />
-          </div>
-        }
-        items={editor.days.flatMap((d) =>
-          d.items
-            .filter((it) => it.place && it.name.trim() !== '')
-            .map((it) => ({ name: it.name.trim(), lat: it.place!.lat, lng: it.place!.lng })),
-        )}
-        value={editor.coverUrl}
-        onChange={(url) => setEditor((p) => ({ ...p, coverUrl: url }))}
-      />
+      {/* 0562 E②: 구 "대표 이미지" 섹션(CoverPicker, 0497~0510·0528) 폐기 — 대표 지정은
+          일정 행 썸네일 클릭으로 이동(원인과 결과가 한 자리). 후보 0장이면 지정 UI 자체가
+          안 뜨고 서버 자동 폴백(resolveCover: 담은 Spot 커버 → 작품 → 지역)은 무변경으로
+          돈다. 구 안내 문구("고르지 않으면 자동으로 정해집니다")는 함께 폐기(사용자 확정) —
+          안 뜨는 UI의 설명을 남기면 혼란만 된다. */}
 
       {/* 0562 D②: 비용 입력 전부를 "예상 비용" 아래로 통합(목표 ③) — 요약(파생)이 위,
           입력 그룹 셋(고정 / 항공권 / 일자별)이 아래. 읽기 비용 섹션(요약 → 회색 점 그룹 셋)과

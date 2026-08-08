@@ -57,29 +57,41 @@ async function resolveReuse(items: SaveItem[]): Promise<ResolvedItem[]> {
   }));
 }
 
-// 0497: 대표 이미지 후보 조회 — 담은 좌표 항목을 200m+이름으로 Spot 해소, 커버 있는 재사용 Spot의
-//   {coverUrl,name}을 order순 수집(coverUrl 중복 제거). 작성 화면 CoverPicker가 항목 변경 시 호출.
-//   findNearbySpots가 자체 인증 가드 → 미인증이면 throw(UNAUTHENTICATED). 클라는 실패를 빈 후보로 흡수.
-// 0510: 후보에 스토리 폴백 — Spot당 coverUrl ?? 사진 있는 최신 스토리 사진(0509와 동일 규칙·정렬축).
-//   후보로만 올린다 — 자동 채택(resolveCover)은 스토리를 안 봄("폴백은 자동이 아니라 질문으로").
-export async function getPlanCoverCandidates(
+// 0562 E: 항목 메타 해소 — 담은 좌표 항목을 200m+이름으로 Spot 해소해 **항목 인덱스별**
+//   {spotId, coverUrl, movie, address}를 돌려준다. 구 getPlanCoverCandidates(0497·0510)의
+//   상위집합이라 그것을 대체 — 구 액션은 coverUrl 중복 제거·커버 있는 Spot만 수집이라
+//   항목↔메타 1:1이 성립하지 않았다(행 썸네일·칩·주소에 못 쓰는 형태).
+//   coverUrl = spot.coverUrl ?? 사진 있는 최신 스토리 사진(0509) — 읽기 행
+//   (plan-finder/[id]/page.tsx 평탄화)과 **같은 규칙**이어야 "저장하면 이렇게 나온다"가 성립.
+//   movie = 최신 연결 대표(0185, spotMovies createdAt desc [0]).
+//   findNearbySpots가 자체 인증 가드 → 미인증이면 throw. 클라는 실패를 빈 매핑으로 흡수.
+//   호출 비용: 구 CoverPicker가 같은 resolveReuse를 400ms 디바운스로 돌던 자리라 신규 부하 아님.
+export type ResolvedItemMeta = {
+  spotId: string;
+  coverUrl: string | null;
+  movie: string | null;
+  address: string | null;
+};
+
+export async function resolvePlanItems(
   items: { name: string; lat: number; lng: number }[],
-): Promise<{ coverUrl: string; name: string }[]> {
+): Promise<(ResolvedItemMeta | null)[]> {
   const resolved = await resolveReuse(
-    // 0562 D②: SaveItem에서 category·amount 소멸 — 합성 항목도 동형으로(localId는 여기선 미사용)
     items.map((it, i) => ({ day: 1, order: i, name: it.name, localId: String(i), lat: it.lat, lng: it.lng })),
   );
   const ids = [...new Set(resolved.map((r) => r.reusedSpotId).filter((x): x is string => !!x))];
-  if (ids.length === 0) return [];
+  if (ids.length === 0) return resolved.map(() => null);
   const spots = await prisma.spot.findMany({
-    where: {
-      id: { in: ids },
-      OR: [{ coverUrl: { not: null } }, { storySpots: { some: { photoUrl: { not: null } } } }],
-    },
+    where: { id: { in: ids } },
     select: {
       id: true,
-      name: true,
       coverUrl: true,
+      address: true,
+      spotMovies: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { movie: { select: { title: true } } },
+      },
       storySpots: {
         where: { photoUrl: { not: null } },
         orderBy: { story: { createdAt: 'desc' } },
@@ -88,17 +100,17 @@ export async function getPlanCoverCandidates(
       },
     },
   });
-  const coverById = new Map(spots.map((s) => [s.id, s]));
-  const seen = new Set<string>();
-  const out: { coverUrl: string; name: string }[] = [];
-  for (const r of resolved) {
-    const s = r.reusedSpotId ? coverById.get(r.reusedSpotId) : undefined;
-    const url = s?.coverUrl ?? s?.storySpots[0]?.photoUrl;
-    if (!s || !url || seen.has(url)) continue;
-    seen.add(url);
-    out.push({ coverUrl: url, name: s.name });
-  }
-  return out;
+  const byId = new Map(spots.map((s) => [s.id, s]));
+  return resolved.map((r) => {
+    const s = r.reusedSpotId ? byId.get(r.reusedSpotId) : undefined;
+    if (!s) return null;
+    return {
+      spotId: s.id,
+      coverUrl: s.coverUrl ?? s.storySpots[0]?.photoUrl ?? null,
+      movie: s.spotMovies[0]?.movie.title ?? null,
+      address: s.address,
+    };
+  });
 }
 
 // 0495: 재사용 Spot의 커버·작품을 한 번에 조회 → 자기 커버(우선순위 1)·작품 추론에 사용.
