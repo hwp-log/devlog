@@ -633,7 +633,6 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       <h1 className="text-[26px] sm:text-[28px] font-bold tracking-[-0.02em] text-fg break-keep">
         {mode === 'edit' ? '계획 수정' : '새 계획'}
       </h1>
-      <p className="mt-1.5 sm:mt-2 text-sm text-muted">저장하면 PlanFinder 목록에 공개됩니다</p>
 
       {saveError && (
         <p role="alert" className="mt-4 text-sm text-danger">{saveError}</p>
@@ -645,7 +644,10 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           조판은 읽기 쪽 리터럴 준용 — 열 분배·gap·py·border·글자 등급 전부 동일.
           **한쪽만 바꾸면 두 화면 형태가 갈린다**(짝: PlanFinderDetail 지표 밴드 주석).
           컴포넌트로 공유하지 않는 건 0556 결정(폼 정합은 조판·용어만) — 값 산출만 lib 공유.
-          설명 문구는 두지 않는다(사용자 확정) — 라벨이 이미 뜻을 담는다. */}
+          설명 문구는 두지 않는다(사용자 확정) — 라벨이 이미 뜻을 담는다.
+          0566: 이 원칙이 화면 전체로 확대됐다 — 읽기·작성·수정의 보조 설명 문구를 전부 제거.
+          근거: 화면을 보면 알거나 몰라도 되는 설명이고, 규칙이 바뀌면 문구가 썩는다
+          (구 PlanOwnerNotice가 0492·0558로 두 번 사실이 아니게 된 이력). */}
       <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
         <div className="flex flex-col gap-[3px] sm:gap-1">
           <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>
@@ -670,7 +672,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       </div>
 
       <div className="mt-[26px] sm:mt-[38px]">
-        <SectionHeader title="기본 정보" sub="제목과 날짜는 필수" />
+        <SectionHeader title="기본 정보" />
       </div>
 
       {/* 0527: glass-outer 카드 제거 — 개방 캔버스. 입력 테두리는 터치 경계라 유지 */}
@@ -760,7 +762,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       {/* 0561: 읽기(PlanFinderDetail) "여행 일정"과 같은 이름·같은 자리(기본 정보 다음) —
           섹션 순서·용어 정합. sub는 이 섹션이 지출 입력도 겸함을 유지. */}
       <div className="mt-[26px] sm:mt-11">
-        <SectionHeader title="여행 일정" sub="장소와 그날 쓴 지출" />
+        <SectionHeader title="여행 일정" />
       </div>
 
       {/* Day 탭 */}
@@ -842,7 +844,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           "합산이 항공 위로 가면 sub '위 항목에서 자동 합산'이 거짓"은 입력이 전부 합산 아래로
           들어오면서 소멸했다 — sub도 "아래 입력에서 자동 합산"으로 갱신. */}
       <div className="mt-[26px] sm:mt-11">
-        <SectionHeader title="예상 비용" sub="아래 입력에서 자동 합산" />
+        <SectionHeader title="예상 비용" />
       </div>
 
       <CostSection
@@ -854,7 +856,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
 
       {/* 그룹 1 — 여행 고정 비용 (0504 UI 그대로 이동, 헤더만 SectionHeader → 그룹 헤더 강등).
           행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
-      <CostGroupHeader title="여행 고정 비용" sub="렌터카·숙소처럼 날짜에 안 묶이는 지출" />
+      <CostGroupHeader title="여행 고정 비용" />
       <div className="mt-1 flex flex-col">
         {editor.daylessCosts.map((cost, index) => (
           <div
@@ -915,7 +917,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
 
       {/* 그룹 2 — 항공권 (구 "항공편" 독립 섹션 이동). 구 badge "예상"은 상위 섹션 이름
           "예상 비용"이 대체. 그룹 이름은 읽기의 항공권 그룹(0562 A)과 통일. */}
-      <CostGroupHeader title="항공권" sub="검색 시점의 최저가가 채워집니다" />
+      <CostGroupHeader title="항공권" />
       <FlightSearchSection
         startDate={editor.startDate}
         endDate={editor.endDate}
@@ -927,7 +929,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       {/* 그룹 3 — 여행 일자별 비용 (0562 D② 신설): 날짜 탭(일정 탭과 같은 포맷·독립 선택)
           + 행 = [장소 드롭다운(그날 일정 한정 + 기타 지출) / 카테고리·금액·삭제].
           행 조판은 고정 비용 행의 2줄 스택 준용 — 360px 리플로우 동일. */}
-      <CostGroupHeader title="여행 일자별 비용" sub="그날 일정의 장소별 지출" />
+      <CostGroupHeader title="여행 일자별 비용" />
       {hasDays ? (
         <>
           <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
