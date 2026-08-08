@@ -51,8 +51,8 @@ export function PendingMovieRow({ id, title, spotCount, createdAt, candidates }:
     <div className="p-6 space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-[#1A1A1A] truncate">{title}</p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-sm font-semibold text-fg truncate">{title}</p>
+          <p className="text-xs text-muted mt-1">
             Spot {spotCount}개 · {formatYmd(createdAt)}
           </p>
         </div>
@@ -61,7 +61,7 @@ export function PendingMovieRow({ id, title, spotCount, createdAt, candidates }:
             type="button"
             onClick={handleApprove}
             disabled={isPending}
-            className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
+            className="btn-elevated px-3 py-1.5 text-xs text-fg2 disabled:opacity-50"
           >
             승인
           </button>
@@ -69,7 +69,7 @@ export function PendingMovieRow({ id, title, spotCount, createdAt, candidates }:
             type="button"
             onClick={handleReject}
             disabled={isPending}
-            className="btn-elevated px-3 py-1.5 text-xs text-rose-600 disabled:opacity-50"
+            className="btn-elevated px-3 py-1.5 text-xs text-danger disabled:opacity-50"
           >
             거절
           </button>
@@ -77,8 +77,8 @@ export function PendingMovieRow({ id, title, spotCount, createdAt, candidates }:
       </div>
 
       {candidates.length > 0 && (
-        <div className="pt-3 border-t border-black/5 space-y-2">
-          <p className="text-xs text-slate-500">유사한 승인 작품:</p>
+        <div className="pt-3 border-t border-hairline space-y-2">
+          <p className="text-xs text-muted">유사한 승인 작품:</p>
           <div className="flex flex-wrap gap-2">
             {candidates.map((c) => (
               <button
@@ -86,7 +86,7 @@ export function PendingMovieRow({ id, title, spotCount, createdAt, candidates }:
                 type="button"
                 onClick={() => handleMerge(c.id)}
                 disabled={isPending}
-                className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
+                className="btn-elevated px-3 py-1.5 text-xs text-fg2 disabled:opacity-50"
               >
                 {c.title} (Spot {c.spotCount}개)(으)로 병합
               </button>
@@ -95,7 +95,7 @@ export function PendingMovieRow({ id, title, spotCount, createdAt, candidates }:
         </div>
       )}
 
-      {error && <p className="text-xs text-rose-500">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
 }

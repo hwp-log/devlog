@@ -63,21 +63,24 @@ export function ApprovedMovieRow({ id, title, spotCount, createdAt }: Props) {
               value={value}
               onChange={(e) => setValue(e.target.value)}
               disabled={isPending}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
+              // 0573: 색만 토큰화(ring-slate-300 → ring-fg/20). 레포 관용구는 ring이 아니라
+              //   focus:border-fg/40(INPUT_CLASS, 0527)이지만, 방식을 바꾸면 라이트 표현이
+              //   달라져 이번 범위(색·유틸 전환만)를 벗어난다 — 포커스 방식 통일은 별건.
+              className="w-full border border-field-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-fg/20 disabled:opacity-50"
             />
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-muted mt-2">
               Spot {spotCount}개 · {formatYmd(createdAt)}
             </p>
           </>
         ) : (
           <>
-            <p className="text-sm font-semibold text-[#1A1A1A] truncate">{title}</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-sm font-semibold text-fg truncate">{title}</p>
+            <p className="text-xs text-muted mt-1">
               Spot {spotCount}개 · {formatYmd(createdAt)}
             </p>
           </>
         )}
-        {error && <p className="text-xs text-rose-500 mt-2">{error}</p>}
+        {error && <p className="text-xs text-danger mt-2">{error}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {editing ? (
@@ -86,7 +89,7 @@ export function ApprovedMovieRow({ id, title, spotCount, createdAt }: Props) {
               type="button"
               onClick={handleSave}
               disabled={isPending}
-              className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
+              className="btn-elevated px-3 py-1.5 text-xs text-fg2 disabled:opacity-50"
             >
               저장
             </button>
@@ -94,7 +97,7 @@ export function ApprovedMovieRow({ id, title, spotCount, createdAt }: Props) {
               type="button"
               onClick={handleCancel}
               disabled={isPending}
-              className="btn-elevated px-3 py-1.5 text-xs text-slate-500 disabled:opacity-50"
+              className="btn-elevated px-3 py-1.5 text-xs text-muted disabled:opacity-50"
             >
               취소
             </button>
@@ -105,7 +108,7 @@ export function ApprovedMovieRow({ id, title, spotCount, createdAt }: Props) {
               type="button"
               onClick={handleEdit}
               disabled={isPending}
-              className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
+              className="btn-elevated px-3 py-1.5 text-xs text-fg2 disabled:opacity-50"
             >
               수정
             </button>
@@ -113,7 +116,7 @@ export function ApprovedMovieRow({ id, title, spotCount, createdAt }: Props) {
               type="button"
               onClick={handleUnapprove}
               disabled={isPending}
-              className="btn-elevated px-3 py-1.5 text-xs text-slate-700 disabled:opacity-50"
+              className="btn-elevated px-3 py-1.5 text-xs text-fg2 disabled:opacity-50"
             >
               대기로 되돌리기
             </button>
