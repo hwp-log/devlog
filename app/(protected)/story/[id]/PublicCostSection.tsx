@@ -21,6 +21,8 @@ function CategoryDot({ category }: { category: Item['category'] }) {
 // 0505: 항목 행 — 마지막 행만 아래 선 없음.
 // 0506: last는 일자 묶음이 아니라 그룹 전체 기준 / 선 두께 1px(0345 실측).
 // 0563: 3px 막대 → 점 + 카테고리명 병기 — 고정 비용 행도 일자별과 같은 표시 언어.
+// 0563 후속①: 점 위치를 **카테고리명 옆**으로(구 이름 왼쪽) — 일자별 장소 줄과 같은 배치.
+//   이름 왼쪽에 두면 그룹 헤더 점과 x축이 겹쳐 "같은 층"으로 읽혀 위계가 어긋난다.
 function ItemRow({
   item,
   currency,
@@ -30,19 +32,22 @@ function ItemRow({
   currency: PublicCostSummary['currency'];
   last: boolean;
 }) {
-  // 항공 합성 항목은 '항공권'으로 표기(0505 목표3).
+  // 항공 합성 항목은 '항공권'으로 표기(0505 목표3). 현 구조상 고정 그룹엔 FLIGHT가 안 들어오지만
+  // (0562 A에서 category !== 'FLIGHT'로 제외) 라벨 없는 점만 남지 않게 방어.
   const name = item.category === 'FLIGHT' ? '항공권' : item.label;
   return (
     <div
-      className={`flex items-center gap-1.5 py-[11px] text-sm${last ? '' : ' border-b border-hairline'}`}
+      className={`flex items-center gap-2 py-[11px] text-sm${last ? '' : ' border-b border-hairline'}`}
     >
-      <CategoryDot category={item.category} />
       {/* 0524: 금액 위계 토큰 — 요약(카테고리)과 같은 등급을 써야 다크에서 상세가 요약보다
           밝아지는 역전이 안 생긴다 */}
-      <span className="pr-1 min-w-0 text-cost-label truncate">{name}</span>
-      <span className="shrink-0 text-xs text-muted">
-        {item.category === 'FLIGHT' ? '' : CATEGORY_LABEL[item.category]}
-      </span>
+      <span className="min-w-0 truncate text-cost-label">{name}</span>
+      {item.category !== 'FLIGHT' && (
+        <span className="flex items-center gap-1.5 shrink-0">
+          <CategoryDot category={item.category} />
+          <span className="text-xs text-muted">{CATEGORY_LABEL[item.category]}</span>
+        </span>
+      )}
       <span className="ml-auto shrink-0 font-semibold text-cost-amount tabular-nums">
         {formatAmount(item.amount, currency)}
       </span>
@@ -279,8 +284,12 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
               카테고리가 색 막대뿐이라 "얼마가 어디에"에 답을 못 했다.
               날짜 칩은 일정 Day 탭과 같은 필 형태(같은 날짜를 같은 모양으로) — 크기만
               보조 등급(12px/500). 칩 아래 1px 선(fg/15 — 그룹 구분선과 같은 값),
-              날짜 블록 간 26px. 장소는 15px, 카테고리 1건이면 이름 옆 [점+카테고리명]을
-              병기하고 한 줄(금액 두 번 표기 제거), 2건 이상이면 13px 들여쓰기 나열. */}
+              날짜 블록 간 26px.
+              0563 후속②: 카테고리 1건일 때 한 줄로 접던 분기 폐기(실화면 판정) —
+              **장소는 항상 [이름+합계] 한 줄, 그 아래 항상 카테고리 나열**.
+              접으면 장소마다 형태가 갈려 훑을 때 리듬·열이 깨진다. 채택 사유였던
+              "금액 두 번 표기 중복"은 위계(15px 합계 / 13px muted 내역)가 이미
+              "합계와 내역"으로 읽히게 해 문제가 아니었다. 재제안하지 않는다. */}
           {dayOpen && (
             <div className="flex flex-col">
               {dayGroups.map((group, gi) => (
@@ -295,48 +304,26 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
                   </div>
                   {group.places.map((place, pi) => (
                     <div key={pi} className="pt-[11px]">
-                      {place.items.length === 1 ? (
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="min-w-0 truncate text-[15px] font-medium text-fg">
-                            {place.label}
-                          </span>
-                          <span className="flex items-center gap-1.5 shrink-0">
-                            <CategoryDot category={place.items[0].category} />
-                            <span className="text-xs text-muted">
-                              {CATEGORY_LABEL[place.items[0].category]}
-                            </span>
-                          </span>
-                          <span className="ml-auto shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
-                            {formatAmount(place.total, currency)}
-                          </span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-baseline justify-between gap-2 min-w-0">
-                            <span className="min-w-0 truncate text-[15px] font-medium text-fg">
-                              {place.label}
-                            </span>
-                            <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
-                              {formatAmount(place.total, currency)}
+                      <div className="flex items-baseline justify-between gap-2 min-w-0">
+                        <span className="min-w-0 truncate text-[15px] font-medium text-fg">
+                          {place.label}
+                        </span>
+                        <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
+                          {formatAmount(place.total, currency)}
+                        </span>
+                      </div>
+                      <div className="pl-[13px]">
+                        {place.items.map((it, i) => (
+                          <div key={i} className="flex items-center gap-1.5 py-[5px] text-[13px]">
+                            <CategoryDot category={it.category} />
+                            <span className="text-muted">{CATEGORY_LABEL[it.category]}</span>
+                            {/* 장소 합계(cost-amount)보다 한 단 아래 위계(cost-label) */}
+                            <span className="ml-auto text-cost-label tabular-nums">
+                              {formatAmount(it.amount, currency)}
                             </span>
                           </div>
-                          <div className="pl-[13px]">
-                            {place.items.map((it, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center gap-1.5 py-[5px] text-[13px]"
-                              >
-                                <CategoryDot category={it.category} />
-                                <span className="text-muted">{CATEGORY_LABEL[it.category]}</span>
-                                {/* 장소 합계(cost-amount)보다 한 단 아래 위계(cost-label) */}
-                                <span className="ml-auto text-cost-label tabular-nums">
-                                  {formatAmount(it.amount, currency)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
