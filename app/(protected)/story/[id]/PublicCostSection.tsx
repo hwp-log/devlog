@@ -19,40 +19,78 @@ function CategoryDot({ category }: { category: Item['category'] }) {
   );
 }
 
-// 0505: 항목 행 — 마지막 행만 아래 선 없음.
-// 0506: last는 일자 묶음이 아니라 그룹 전체 기준 / 선 두께 1px(0345 실측).
-// 0563: 3px 막대 → 점 + 카테고리명 병기 — 고정 비용 행도 일자별과 같은 표시 언어.
-// 0563 후속①: 점 위치를 **카테고리명 옆**으로(구 이름 왼쪽) — 일자별 장소 줄과 같은 배치.
-//   이름 왼쪽에 두면 그룹 헤더 점과 x축이 겹쳐 "같은 층"으로 읽혀 위계가 어긋난다.
-function ItemRow({
-  item,
+// 0567: 항목 줄 — [이름 + 금액] 둘 다 15px/500. 세 그룹이 이 한 조각을 공유한다.
+//   구조: 고정 비용은 지출 항목, 일자별은 장소, 항공권은 "탑승료"가 이 자리에 온다.
+//   구 ItemRow(0505~0563: 이름·카테고리·금액 **한 줄**, 아래 hairline)는 폐기 —
+//   같은 층의 정보를 세 그룹이 서로 다른 골격으로 그리던 게 이번 통일의 대상이었다.
+//   행간 구분선(hairline)도 함께 폐기: 카테고리 묶음의 세로 안내선(⑨)이 소속을 말하므로
+//   가로선까지 있으면 선이 두 언어로 경쟁한다.
+function CostItemRow({
+  name,
+  amount,
   currency,
-  last,
 }: {
-  item: Item;
+  name: string;
+  amount: number;
   currency: PublicCostSummary['currency'];
-  last: boolean;
 }) {
-  // 항공 합성 항목은 '항공권'으로 표기(0505 목표3). 현 구조상 고정 그룹엔 FLIGHT가 안 들어오지만
-  // (0562 A에서 category !== 'FLIGHT'로 제외) 라벨 없는 점만 남지 않게 방어.
-  const name = item.category === 'FLIGHT' ? '항공권' : item.label;
   return (
-    <div
-      className={`flex items-center gap-2 py-[11px] text-sm${last ? '' : ' border-b border-hairline'}`}
-    >
-      {/* 0524: 금액 위계 토큰 — 요약(카테고리)과 같은 등급을 써야 다크에서 상세가 요약보다
-          밝아지는 역전이 안 생긴다 */}
-      <span className="min-w-0 truncate text-cost-label">{name}</span>
-      {item.category !== 'FLIGHT' && (
-        <span className="flex items-center gap-1.5 shrink-0">
-          <CategoryDot category={item.category} />
-          <span className="text-xs text-muted">{CATEGORY_LABEL[item.category]}</span>
-        </span>
-      )}
-      <span className="ml-auto shrink-0 font-semibold text-cost-amount tabular-nums">
-        {formatAmount(item.amount, currency)}
+    <div className="flex items-baseline justify-between gap-2 min-w-0">
+      <span className="min-w-0 truncate text-[15px] font-medium text-fg">{name}</span>
+      <span className="shrink-0 text-[15px] font-medium text-cost-amount tabular-nums">
+        {formatAmount(amount, currency)}
       </span>
     </div>
+  );
+}
+
+// 0567: 카테고리 묶음 — 왼쪽 1px 세로 안내선이 "이 카테고리들은 위 항목에 속한다"를 말한다.
+//   border-divider는 0345가 **짧은 세로 구분선 전용**으로 만든 토큰이다(긴 수평선용 --border는
+//   1px 세로 조각에서 대비 1.23:1로 식별 불가 — divider는 1.48:1). 정확히 이 용도.
+//   지시 원안은 0.5px이었으나 1px — 0345·0362 실측 판정(0.5px은 비레티나에서 0으로 반올림).
+function CostCategoryList({ children }: { children: React.ReactNode }) {
+  return <div className="ml-1 pl-3 border-l border-divider">{children}</div>;
+}
+
+// 0567: 카테고리 줄 — [7px 점 + 이름 13px muted + 금액 12px muted]. 금액이 항목(15px)보다
+//   한 단 작은 게 "합계와 내역"의 위계를 만든다(0563 후속② 판정 계승).
+//   onToggle이 있으면 버튼 — 항공권의 "왕복(상세내역)" 줄만 해당(⑪).
+function CostCategoryRow({
+  category,
+  label,
+  amount,
+  currency,
+  onToggle,
+  open,
+}: {
+  category: Item['category'];
+  label: string;
+  amount: number;
+  currency: PublicCostSummary['currency'];
+  onToggle?: () => void;
+  open?: boolean;
+}) {
+  const body = (
+    <>
+      <CategoryDot category={category} />
+      <span className="text-muted">{label}</span>
+      <span className="ml-auto text-xs text-muted tabular-nums">
+        {formatAmount(amount, currency)}
+      </span>
+    </>
+  );
+  if (!onToggle) {
+    return <div className="flex items-center gap-1.5 py-[5px] text-[13px]">{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex w-full items-center gap-1.5 py-[5px] text-[13px] text-left"
+    >
+      {body}
+    </button>
   );
 }
 
@@ -288,16 +326,31 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
           {fixedOpen && (
             <div className={GROUP_BODY}>
               {periodLabel && <p className={GROUP_DATE}>{periodLabel}</p>}
-              <div className={periodLabel ? 'mt-1.5' : ''}>
-                {fixedItems.map((item, i) => (
-                  <ItemRow
-                    key={`fixed-${i}`}
-                    item={item}
+              {/* 0567 ⑩: 고정 비용 항목도 일자별과 **같은 두 줄 구조** — 구 한 줄
+                  (이름 옆에 카테고리가 붙던 0563 조판)은 세 그룹 중 여기만 달랐다.
+                  카테고리가 1개라 금액이 두 번 나오지만, 위계(15px 합계 / 12px 내역)가
+                  "합계와 내역"으로 읽히게 한다 — 0563 후속②가 일자별에서 이미 확정한 판정. */}
+              {fixedItems.map((item, i) => (
+                <div key={`fixed-${i}`} className={i === 0 && periodLabel ? 'mt-1.5' : 'pt-[11px]'}>
+                  {/* 항공 합성 항목은 '항공권'으로 표기(0505 목표3). 현 구조상 고정 그룹엔
+                      FLIGHT가 안 들어오지만(0562 A에서 제외) 라벨 없는 점만 남지 않게 방어. */}
+                  <CostItemRow
+                    name={item.category === 'FLIGHT' ? '항공권' : item.label}
+                    amount={item.amount}
                     currency={currency}
-                    last={i === fixedItems.length - 1}
                   />
-                ))}
-              </div>
+                  {item.category !== 'FLIGHT' && (
+                    <CostCategoryList>
+                      <CostCategoryRow
+                        category={item.category}
+                        label={CATEGORY_LABEL[item.category]}
+                        amount={item.amount}
+                        currency={currency}
+                      />
+                    </CostCategoryList>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -348,26 +401,18 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
               </div>
               {selectedGroup.places.map((place, pi) => (
                 <div key={pi} className="pt-[11px]">
-                  <div className="flex items-baseline justify-between gap-2 min-w-0">
-                    <span className="min-w-0 truncate text-[15px] font-medium text-fg">
-                      {place.label}
-                    </span>
-                    <span className="shrink-0 text-sm font-semibold text-cost-amount tabular-nums">
-                      {formatAmount(place.total, currency)}
-                    </span>
-                  </div>
-                  <div className="pl-[13px]">
+                  <CostItemRow name={place.label} amount={place.total} currency={currency} />
+                  <CostCategoryList>
                     {place.items.map((it, i) => (
-                      <div key={i} className="flex items-center gap-1.5 py-[5px] text-[13px]">
-                        <CategoryDot category={it.category} />
-                        <span className="text-muted">{CATEGORY_LABEL[it.category]}</span>
-                        {/* 장소 합계(cost-amount)보다 한 단 아래 위계(cost-label) */}
-                        <span className="ml-auto text-cost-label tabular-nums">
-                          {formatAmount(it.amount, currency)}
-                        </span>
-                      </div>
+                      <CostCategoryRow
+                        key={i}
+                        category={it.category}
+                        label={CATEGORY_LABEL[it.category]}
+                        amount={it.amount}
+                        currency={currency}
+                      />
                     ))}
-                  </div>
+                  </CostCategoryList>
                 </div>
               ))}
             </div>
