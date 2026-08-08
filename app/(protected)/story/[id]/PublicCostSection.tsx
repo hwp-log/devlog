@@ -117,9 +117,11 @@ interface Props {
 
 // 0517: 카테고리 고정색(시안 4a) — rank(비중 순위) 기반 chart 토큰에서 교체.
 //   누적 막대 구간·카테고리 줄·접기 항목 줄이 전부 이 맵 하나를 공유(색 왕복 제거의 정본).
-//   소유자 뷰 CATEGORY_COLOR(_lib/cost)와는 별개 팔레트. 완전 리터럴만 JIT 스캔 — 조합 금지.
+//   완전 리터럴만 JIT 스캔 — 조합 금지.
 //   0524: 하드코딩 hex → 토큰(lib/theme.ts) — 라이트 파스텔이 다크 배경에서 묻혀(1.5~1.7:1)
 //   다크만 값이 갈린다. 클래스 이름은 한 벌이라 대응 규칙은 그대로.
+//   0564: 구 "소유자 뷰 CATEGORY_COLOR(_lib/cost)와는 별개 팔레트" 문구 삭제 — 그 맵이
+//   사장돼 제거됐다. 소유자 뷰(CostSection)도 0527부터 같은 cat-* 토큰 한 벌을 쓴다.
 const CATEGORY_BAR: Record<Item['category'], string> = {
   TRANSPORT: 'bg-cat-transport',
   FLIGHT: 'bg-cat-flight',
