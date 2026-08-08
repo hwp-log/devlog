@@ -34,11 +34,19 @@ export function MyPlanFormSkeleton() {
         <div className="h-6 w-40 rounded skeleton-shimmer sm:h-7" />
       </div>
 
-      {/* 지표 밴드 4칸 — 실화면과 같은 grid·py·border. 라벨 11/12px, 값 16/20px.
-          값이 없어도 "—"로 항상 뜨는 블록이라 조건부가 아니다(생략 대상 아님). */}
-      <div className="mt-[14px] grid grid-cols-[auto_auto_auto_1fr] gap-x-2 border-t border-b border-border py-[14px] sm:mt-[22px] sm:grid-cols-4 sm:py-5">
+      {/* 지표 밴드 4칸 — 실화면과 같은 grid·py·border·정렬. 라벨 11/12px, 값 16/20px.
+          값이 없어도 "—"로 항상 뜨는 블록이라 조건부가 아니다(생략 대상 아님).
+          0574: 모바일 2×2 균등 + sm+ 4열 균등, 마지막 칸만 sm+ 우측 정렬. */}
+      <div className="mt-[14px] grid grid-cols-2 gap-x-2 gap-y-3 border-t border-b border-border py-[14px] sm:mt-[22px] sm:grid-cols-4 sm:gap-y-0 sm:py-5">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col gap-[3px] sm:gap-1">
+          <div
+            key={i}
+            className={
+              i === 3
+                ? 'flex flex-col gap-[3px] sm:gap-1 sm:items-end'
+                : 'flex flex-col gap-[3px] sm:gap-1'
+            }
+          >
             {/* 라벨 text-[11px] lh 1.5 = 16.5px / sm:text-xs lh 16px */}
             <div className="flex h-[17px] items-center sm:h-4">
               <div className="h-2.5 w-8 rounded skeleton-shimmer" />

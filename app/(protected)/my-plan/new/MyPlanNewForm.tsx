@@ -648,7 +648,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           0566: 이 원칙이 화면 전체로 확대됐다 — 읽기·작성·수정의 보조 설명 문구를 전부 제거.
           근거: 화면을 보면 알거나 몰라도 되는 설명이고, 규칙이 바뀌면 문구가 썩는다
           (구 PlanOwnerNotice가 0492·0558로 두 번 사실이 아니게 된 이력). */}
-      <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+      <div className="mt-[14px] sm:mt-[22px] grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3 sm:gap-y-0 py-[14px] sm:py-5 border-t border-b border-border">
         <div className="flex flex-col gap-[3px] sm:gap-1">
           <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>
           <span className="text-base sm:text-xl font-bold text-fg">{durationLabel}</span>
@@ -662,8 +662,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
           <span className="text-base sm:text-xl font-bold text-fg">{editor.headcount}인</span>
         </div>
         {/* 값 없으면 "—" — 칸을 빼지 않는다(읽기와 같은 규칙). 장소 0곳·인원 1인은
-            실값이라 "—" 대상이 아니다(없는 게 아니라 0이고 기본값). */}
-        <div className="flex flex-col gap-[3px] sm:gap-1">
+            실값이라 "—" 대상이 아니다(없는 게 아니라 0이고 기본값).
+            0574: sm+ 우측 정렬 — 읽기 밴드와 같은 처리(짝 주석은 PlanFinderDetail). */}
+        <div className="flex flex-col gap-[3px] sm:gap-1 sm:items-end sm:text-right">
           <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
           <span className="text-base sm:text-xl font-bold text-fg tabular-nums">
             {total > 0 ? formatAmount(total, 'KRW') : '—'}

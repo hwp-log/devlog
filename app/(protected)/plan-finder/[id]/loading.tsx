@@ -36,18 +36,26 @@ export default function Loading() {
           <div className="h-8 w-16 shrink-0 rounded-full skeleton-shimmer" />
         </div>
 
-        {/* 지표 밴드 4열(기간·장소·인원·총 비용) — 실화면 밴드와 열 분배·mt·py·border 동일.
-            0562(B): 3 → 4열. 모바일 비균등(앞 3칸 auto + 총 비용 1fr)도 그대로 준용 —
-            셔머 바는 콘텐츠가 없어 auto 트랙이 바 폭으로 결정되므로 실화면 칸 폭을
-            리터럴로 맞춘다(기간 55·장소 34·인원 24 실측 근사, 총 비용은 1fr이라 무지정). */}
-        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+        {/* 지표 밴드 — 실화면 밴드와 열 분배·mt·py·border·정렬 동일.
+            0574: 모바일 2×2 균등 + sm+ 4열 균등. 구 "모바일 비균등(앞 3칸 auto + 총 비용 1fr)"
+            준용은 폐기 — 균등 트랙에선 셔머 바 폭이 트랙을 결정하지 않으므로, 아래 w-* 는
+            **트랙 결정용이 아니라 값 길이 근사**로만 남는다(기간 55·장소 34·인원 24·금액 96). */}
+        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3 sm:gap-y-0 py-[14px] sm:py-5 border-t border-b border-border">
           {[
             { label: 'w-8', value: 'w-[55px]' },
             { label: 'w-8', value: 'w-[34px]' },
             { label: 'w-8', value: 'w-6' },
             { label: 'w-12', value: 'w-24' },
           ].map((w, i) => (
-            <div key={i} className="flex flex-col gap-[3px] sm:gap-1">
+            // 0574: 마지막 칸만 sm+ 우측 정렬 — 실화면 짝(총 비용)
+            <div
+              key={i}
+              className={
+                i === 3
+                  ? 'flex flex-col gap-[3px] sm:gap-1 sm:items-end'
+                  : 'flex flex-col gap-[3px] sm:gap-1'
+              }
+            >
               <div className={`h-3.5 sm:h-4 rounded skeleton-shimmer ${w.label}`} />
               <div className={`h-6 sm:h-7 rounded skeleton-shimmer ${w.value}`} />
             </div>

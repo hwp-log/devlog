@@ -265,18 +265,21 @@ export function PlanFinderDetail({
             0562(B): 3열 → **4열 고정**(기간·장소·인원·총 비용). 인원이 합류한 건 총액 옆
               "· N인"(구 PublicCostSection)을 걷어내고 인원을 지표의 한 칸으로 세우기 위함 —
               같은 값이 두 자리에 있던 것을 한 자리로.
-              **모바일에서도 4열 유지**(2×2로 접지 않는다) — 작성 폼이 같은 밴드를 쓰므로
-              형태가 갈리면 "저장하면 이 모습"이라는 예측이 깨진다.
-            0562(B) 열 분배: 모바일만 비균등(앞 3칸 auto + 총 비용 1fr). 360px 실측 —
-              콘텐츠 폭 312(px-6) − gap 24 = 288, 균등이면 칸당 72px인데 실데이터 최장
-              ₩1,460,000이 16px bold로 ≈81px라 넘친다(공백이 없어 줄바꿈도 안 됨 → 가로 스크롤).
-              앞 3칸을 콘텐츠 폭으로 두면(기간 55·장소 34·인원 24 = 113) 총 비용에 175px이 남는다.
-              0516의 균등은 **3열일 때** 판정이고 4열은 새 조건 — 데스크톱(sm+, 칸당 209px)은
-              균등 그대로라 기존 판정이 유효한 구간은 안 건드린다.
+            0574: **0562(B)의 "모바일에서도 4열 유지"를 뒤집는다 → 모바일 2×2 균등.**
+              번복 근거: 0562(B)의 검산 대상이 **"가로로 넘치는가"뿐이었고 "격자로 읽히는가"는
+              판정 대상이 아니었다.** 구 분배(앞 3칸 auto + 총 비용 1fr)는 넘치진 않았지만
+              앞 3칸이 콘텐츠 폭으로 뭉치고(기간 72·장소 43·인원 34) 마지막 칸만 139px로 넓어
+              네 칸이 격자로 안 읽혔다 — 실화면에서 "왼쪽으로 몰려 오른쪽이 빈다"로 관측.
+              4열 균등은 불가: 360에서 칸당 72px인데 ₩1,460,000(7자리)이 ≈81px, 8자리는 ≈90px라
+              넘친다(공백이 없어 줄바꿈도 안 됨 → 가로 스크롤). 값 폰트를 13px까지 낮춰도 경계라
+              **2×2가 유일한 성립안**이다 — 칸당 (312−8)/2 = 152px, 8자리 90px에 여유 62px.
+              대가: 모바일 밴드 세로 +55px(2행). 폼도 같은 밴드라 함께 바꾼다.
+              데스크톱(sm+)은 `grid-cols-4` = repeat(4, minmax(0,1fr))로 **이미 균등**이라
+              트랙 무변 — 0516의 균등 판정이 유효한 구간은 안 건드린다(마지막 칸 정렬만 추가).
             0562(C): 작성 폼(MyPlanNewForm)이 **같은 형태의 밴드**를 제목 아래에 둔다 —
               한쪽만 바꾸면 "저장하면 이 모습"이 어긋난다. 컴포넌트는 공유하지 않고(0556)
               조판 리터럴을 준용하므로 열 분배·gap·py·border·글자 등급을 양쪽 같이 고칠 것. */}
-        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-[auto_auto_auto_1fr] sm:grid-cols-4 gap-x-2 py-[14px] sm:py-5 border-t border-b border-border">
+        <div className="mt-[14px] sm:mt-[22px] grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3 sm:gap-y-0 py-[14px] sm:py-5 border-t border-b border-border">
           <div className="flex flex-col gap-[3px] sm:gap-1">
             <span className="text-[11px] sm:text-xs sm:font-medium text-muted">기간</span>
             <span className="text-base sm:text-xl font-bold text-fg">{durationLabel}</span>
@@ -292,7 +295,12 @@ export function PlanFinderDetail({
           {/* 0562(B): 구 `summary.total > 0` 조건부 렌더 폐기 — 칸이 통째로 빠지면 남은 칸이
               늘어나 밴드 형태가 플랜마다 달라졌다. 값이 없을 때는 칸을 유지하고 "—"를 넣는다
               (장소 0곳·인원 1인은 실값이라 "—" 대상이 아니다 — 없는 게 아니라 0/기본값). */}
-          <div className="flex flex-col gap-[3px] sm:gap-1">
+          {/* 0574: 총 비용만 sm+ 우측 정렬 — 균등 4열에서 마지막 칸 값이 칸(209px)보다
+              짧아 밴드 오른쪽 끝이 100px 가까이 비어 보였다. 금액은 성격이 다른 값이라
+              정렬선이 갈려도 된다(사용자 확정).
+              **모바일은 좌측 정렬 유지** — 2×2의 오른쪽 열이 [장소 / 총 비용]이라
+              여기만 우측으로 붙이면 같은 열 안에서 정렬이 갈린다(62px 빈 자리보다 큰 대가). */}
+          <div className="flex flex-col gap-[3px] sm:gap-1 sm:items-end sm:text-right">
             <span className="text-[11px] sm:text-xs sm:font-medium text-muted">총 비용</span>
             <span className="text-base sm:text-xl font-bold text-fg tabular-nums">
               {summary.total > 0 ? formatAmount(summary.total, currency) : '—'}
