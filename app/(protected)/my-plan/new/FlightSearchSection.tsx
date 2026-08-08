@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import type { FlightOffer } from '@/lib/flights';
 import { searchFlightsAction } from './actions';
-import { FlightLeg, AIRPORT_NAME, PLANE_ICON } from '../_components/FlightLeg';
+import { AIRPORT_NAME, type FlightSegmentData } from '../_components/FlightLeg';
+import { FlightLegRow } from '../_components/FlightLegRow';
 
 interface Props {
   startDate: string;
@@ -54,96 +55,65 @@ const ROUTES: Record<string, string[]> = {
   OKA: ['ICN'],
 };
 
-// 0527: 입력 16px 하한(iOS 포커스 자동확대 방지, CLAUDE.md §5) + 토큰화
-const IATA_SELECT_CLASS =
-  'border border-field-border rounded-lg px-[14px] py-[13px] text-base ' +
-  'text-fg bg-transparent focus:outline-none focus:border-fg/40 transition-colors w-full';
+// 0569: 티켓 블록 아래 전폭 행동 버튼(검색·변경 공용). 0527의 outline 위계는 유지 —
+//   최종 행동인 저장(파랑 채움)과 급을 구분한다. 구 IATA_SELECT_CLASS(입력 상자)는
+//   공항 칸이 AirportPicker로 바뀌며 소비처 0이 돼 폐기.
+const ACTION_BTN_CLASS =
+  'mt-4 w-full py-[13px] rounded-lg border border-fg text-[15px] font-semibold text-fg ' +
+  'hover:bg-surface2 transition-colors';
 
-function SkeletonCard({
-  label, origin, dest, dateStr, isReturn, isRoundTrip,
-  onOriginChange, onDestChange,
+// 0569: 선택 완료된 편 — 읽기(PublicFlightTable)와 같은 값 조판.
+function SelectedLeg({ seg, label, last }: { seg: FlightSegmentData; label: string; last: boolean }) {
+  const dt = (iso: string) => `${fmtDateFromStr(iso.slice(0, 10))} ${fmtTime(iso)}`;
+  return (
+    <FlightLegRow
+      label={label}
+      origin={{ code: seg.origin, name: AIRPORT_NAME[seg.origin] ?? '', time: dt(seg.departsAt) }}
+      dest={{ code: seg.destination, name: AIRPORT_NAME[seg.destination] ?? '', time: dt(seg.arrivesAt) }}
+      duration={durationFromIso(seg.departsAt, seg.arrivesAt)}
+      flightNo={`${seg.airline} ${seg.flightNo}`}
+      last={last}
+    />
+  );
+}
+
+// 0569: 공항 코드 자리 = 선택 버튼. 코드(24px)를 그대로 두고 **아래 1px 밑줄**로 조작 가능함을
+//   표시한다 — 구 카드 안 입력 상자는 폐기(면·테두리를 쓰지 않는 게 0569 ①).
+//   네이티브 select를 투명하게 겹치는 이유: 옵션 목록·키보드·모바일 피커를 브라우저에 맡겨
+//   접근성을 잃지 않으면서 표시만 우리 조판으로 가져간다.
+//   터치 타겟: 오버레이가 코드 줄(24px)과 공항명 줄을 덮어 44px(h-11) — CLAUDE.md §5.
+//   select 글자 16px(text-base)은 iOS 포커스 자동확대 방지(§5) — 투명이라 안 보이지만
+//   확대 여부는 폰트 크기로 판정된다.
+function AirportPicker({
+  value,
+  placeholder,
+  options,
+  onChange,
 }: {
-  label: string;
-  origin: string;
-  dest: string;
-  dateStr: string;
-  isReturn: boolean;
-  isRoundTrip: boolean;
-  onOriginChange?: (v: string) => void;
-  onDestChange?: (v: string) => void;
+  value: string;
+  placeholder: string;
+  options: readonly string[];
+  onChange: (v: string) => void;
 }) {
   return (
-    // 0527: 카드 제거 — 개방 캔버스. 360px에선 출발/도착이 세로로 쌓인다(flex-wrap).
-    <div className={`py-3.5 ${isReturn ? 'opacity-60' : ''}`}>
-      <p className="text-xs font-semibold text-fg2 mb-2">{label}{dateStr ? ` · ${fmtDateFromStr(dateStr)}` : ''}</p>
-      <div className="flex items-center gap-5 flex-wrap">
-
-        <div className="w-[180px] shrink-0">
-          {isReturn ? (
-            <div className="h-8 flex items-center justify-center">
-              <p className="text-[22px] font-bold text-hint tracking-[-0.5px] leading-none">{origin || '?'}</p>
-            </div>
-          ) : (
-            <select value={origin} onChange={(e) => onOriginChange?.(e.target.value)} className={IATA_SELECT_CLASS}>
-              <option value="">공항 선택</option>
-              <optgroup label="한국">
-                {KR_AIRPORTS.map((iata) => (
-                  <option key={iata} value={iata}>{AIRPORT_NAME[iata]} ({iata})</option>
-                ))}
-              </optgroup>
-              <optgroup label="일본">
-                {JP_AIRPORTS.map((iata) => (
-                  <option key={iata} value={iata}>{AIRPORT_NAME[iata]} ({iata})</option>
-                ))}
-              </optgroup>
-            </select>
-          )}
-          <p className={`text-xs mt-0.5 ${isReturn ? "text-muted text-center" : "invisible"}`}>
-            {isReturn ? (AIRPORT_NAME[origin] ?? '') : ' '}
-          </p>
-        </div>
-
-        <div className="flex-1 flex flex-col items-center min-w-[80px]">
-          <p className="text-xs text-muted mb-1">직항</p>
-          <div className="w-full h-px bg-field-border relative">
-            <span className="absolute -right-1 top-1/2 -translate-y-1/2 bg-bg px-1 text-primary">
-              {PLANE_ICON}
-            </span>
-          </div>
-          <p className="text-xs text-muted mt-1">—</p>
-        </div>
-
-        <div className="w-[180px] shrink-0">
-          {isReturn ? (
-            <div className="h-8 flex items-center justify-center">
-              <p className="text-[22px] font-bold text-hint tracking-[-0.5px] leading-none">{dest || '?'}</p>
-            </div>
-          ) : (() => {
-            const destOptions = ROUTES[origin] ?? [];
-            return (
-              <select value={dest} onChange={(e) => onDestChange?.(e.target.value)}
-                disabled={destOptions.length === 0} className={IATA_SELECT_CLASS}>
-                <option value="">공항 선택</option>
-                {destOptions.map((iata) => (
-                  <option key={iata} value={iata}>{AIRPORT_NAME[iata]} ({iata})</option>
-                ))}
-              </select>
-            );
-          })()}
-          <p className={`text-xs mt-0.5 ${isReturn ? "text-muted text-center" : "invisible"}`}>
-            {isReturn ? (AIRPORT_NAME[dest] ?? '') : ' '}
-          </p>
-        </div>
-
-        <div className="shrink-0 text-right min-w-[110px]">
-          {!isReturn ? (
-            <p className="text-xs text-muted">{isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}</p>
-          ) : (
-            <p className="text-xs text-muted">상기 금액에 포함됨</p>
-          )}
-        </div>
-      </div>
-    </div>
+    <span className="relative inline-block">
+      <span className={`border-b border-fg/40 ${value ? 'text-fg' : 'text-hint'}`}>
+        {value || placeholder}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={placeholder}
+        className="absolute inset-x-0 top-0 h-11 w-full cursor-pointer text-base opacity-0"
+      >
+        <option value="">공항 선택</option>
+        {options.map((iata) => (
+          <option key={iata} value={iata}>
+            {AIRPORT_NAME[iata]} ({iata})
+          </option>
+        ))}
+      </select>
+    </span>
   );
 }
 
@@ -252,7 +222,10 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
     <div className="mt-5 mb-4">
       {flight && !showForm && (
         <>
-          <FlightLeg data={{ tripType: flight.tripType, totalAmount: flight.totalAmount, out: flight.outbound, ret: flight.return }} />
+          {/* 0569: 선택된 항공편도 읽기와 같은 조판(FlightLegRow) — 구 FlightLeg 카드 2장 폐기.
+              값은 검색 결과라 읽기와 같은 텍스트다. */}
+          <SelectedLeg seg={flight.outbound} label="가는편" last={!flight.return} />
+          {flight.return && <SelectedLeg seg={flight.return} label="오는편" last />}
           <button
             type="button"
             onClick={() => {
@@ -261,7 +234,7 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
               setStatus('idle');
               setOffers([]);
             }}
-            className="mt-1 mb-3 px-4 py-2 rounded-2xl text-[13px] font-semibold border border-field-border text-fg2 hover:bg-surface2 transition-colors"
+            className={ACTION_BTN_CLASS}
           >
             변경
           </button>
@@ -287,43 +260,63 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
             ))}
           </div>
 
-          <SkeletonCard
+          {/* 0569: 미검색 상태 — 일시·소요·편명 자리를 비우지 않고 "—"로 유지한다.
+              검색 전후 줄 높이가 같아 결과가 들어올 때 레이아웃이 안 튄다(FlightLegRow가 담당).
+              출발 일시는 검색 전에도 계획 날짜로 알 수 있으므로 날짜만 먼저 채운다 —
+              검색 후 같은 자리에 시각이 붙는다(정보 손실 없이 자리도 안 바뀜). */}
+          <FlightLegRow
             label="가는편"
-            origin={originIata}
-            dest={destIata}
-            dateStr={startDate}
-            isReturn={false}
-            isRoundTrip={tripType === 'ROUND_TRIP'}
-            onOriginChange={(v) => {
-              setOriginIata(v);
-              if (destIata && !(ROUTES[v] ?? []).includes(destIata)) setDestIata('');
+            origin={{
+              code: (
+                <AirportPicker
+                  value={originIata}
+                  placeholder="출발"
+                  options={[...KR_AIRPORTS, ...JP_AIRPORTS]}
+                  onChange={(v) => {
+                    setOriginIata(v);
+                    if (destIata && !(ROUTES[v] ?? []).includes(destIata)) setDestIata('');
+                  }}
+                />
+              ),
+              name: AIRPORT_NAME[originIata] ?? '',
+              time: startDate ? fmtDateFromStr(startDate) : undefined,
             }}
-            onDestChange={(v) => setDestIata(v)}
+            dest={{
+              code: (
+                <AirportPicker
+                  value={destIata}
+                  placeholder="도착"
+                  options={ROUTES[originIata] ?? []}
+                  onChange={(v) => setDestIata(v)}
+                />
+              ),
+              name: AIRPORT_NAME[destIata] ?? '',
+            }}
+            last={tripType !== 'ROUND_TRIP'}
           />
           {tripType === 'ROUND_TRIP' && (
-            <SkeletonCard
+            /* 오는편은 가는편의 역방향이라 선택 대상이 아니다 — 코드는 텍스트(hint) */
+            <FlightLegRow
               label="오는편"
-              origin={destIata}
-              dest={originIata}
-              dateStr={endDate}
-              isReturn={true}
-              isRoundTrip={true}
+              origin={{ code: destIata || '—', name: AIRPORT_NAME[destIata] ?? '', time: endDate ? fmtDateFromStr(endDate) : undefined }}
+              dest={{ code: originIata || '—', name: AIRPORT_NAME[originIata] ?? '' }}
+              last
             />
           )}
 
           {/* 0527: 검색 버튼은 outline(최종 행동인 저장과 위계 구분) + 안내는 옆에 14px.
               360px에선 세로 스택. */}
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5">
+          {/* 0569 ⑥: 검색 버튼은 티켓 블록 아래 전폭 — 구 인라인 배치(버튼 옆 경고문)는
+              카드가 있던 시절의 조판이다. 경고문은 버튼 아래로 내린다. */}
           <button
             type="button"
             onClick={handleSearch}
             disabled={!canSearch || status === 'searching'}
-            className="shrink-0 px-7 py-[13px] rounded-lg border border-fg text-[15px] font-semibold text-fg hover:bg-surface2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className={ACTION_BTN_CLASS + ' disabled:opacity-40 disabled:cursor-not-allowed'}
           >
             {status === 'searching' ? '검색 중...' : '항공편 검색'}
           </button>
-            {dateWarning && <p className="text-sm text-danger">{dateWarning}</p>}
-          </div>
+          {dateWarning && <p className="mt-2.5 text-sm text-danger">{dateWarning}</p>}
         </>
       )}
 
@@ -345,10 +338,6 @@ export function FlightSearchSection({ startDate, endDate, flight, onChange, onDa
                   onClick={() => { onChange(offer); setShowForm(false); }}
                 />
               ))}
-              <p className="text-sm text-muted mt-2 leading-relaxed">
-                💡 검색 시점 기준 참고 가격이며, 실제 요금·좌석은 변동될 수 있습니다.
-                예약은 항공사 또는 예약 서비스에 문의하시기 바랍니다.
-              </p>
             </>
           )}
         </div>

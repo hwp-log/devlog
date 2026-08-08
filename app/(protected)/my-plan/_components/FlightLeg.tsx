@@ -5,7 +5,7 @@ export type FlightSegmentData = {
   arrivesAt: string;
   airline: string;
   flightNo: string;
-  durationLabel?: string;  // showDetails=false 시 서버 계산값 사용
+  durationLabel?: string;  // 서버 계산값(읽기) — 폼은 departsAt·arrivesAt에서 직접 산출
 };
 
 export type FlightLegData = {
@@ -25,20 +25,12 @@ export const AIRPORT_NAME: Record<string, string> = {
   PVG: '상하이 푸동', JFK: 'New York JFK', LAX: 'LA 국제',
 };
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-
-function fmtDateFlight(iso: string) {
-  const d = new Date(iso);
-  const wd = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
-  return `${d.getMonth() + 1}.${d.getDate()} (${wd})`;
-}
-
-function durationMin(from: string, to: string) {
-  const m = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60000);
-  return `${Math.floor(m / 60)}시간 ${m % 60}분`;
-}
+// 0569: 이 파일은 **타입·상수 모듈**이다. 구 FlightLeg/LegCard(카드 2장 조판)는 폐기됐다 —
+//   읽기·폼이 공용 FlightLegRow 한 벌을 쓰면서 소비처가 0이 됐고, 카드 면·그림자는 0569 ①
+//   ("형제 그룹이 선과 여백만으로 구획되는데 여기만 면을 깔면 재질이 갈린다")로 금지됐다.
+//   같이 죽은 것: fmtTime·fmtDateFlight·durationMin(카드 전용 포매터, 각 화면이 자기 것을 가짐),
+//   showDetails 분기(이미 소비처 0이었다).
+//   파일명을 안 바꾼 이유: import 4곳의 경로만 흔들고 얻는 게 없다. 내용은 이 주석이 말한다.
 
 export const PLANE_ICON = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -46,99 +38,3 @@ export const PLANE_ICON = (
   </svg>
 );
 
-function LegCard({ seg, label, isRoundTrip, totalAmount, showPrice, showDetails = true }: {
-  seg: FlightSegmentData;
-  label: string;
-  isRoundTrip: boolean;
-  totalAmount: number;
-  showPrice: boolean;
-  showDetails?: boolean;
-}) {
-  const duration = showDetails
-    ? durationMin(seg.departsAt, seg.arrivesAt)
-    : (seg.durationLabel ?? '');
-  return (
-    <div className="glass-outer px-6 py-5 mb-[10px]">
-      <p className="text-[11px] text-[#888] mb-3">{label}</p>
-      <div className="flex items-center gap-5 flex-wrap">
-        <div className="shrink-0 min-w-[100px]">
-          <p className="text-[22px] font-bold text-[#1A1A1A] tracking-[-0.5px] leading-none">{seg.origin}</p>
-          <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[seg.origin] ?? ''}</p>
-          {showDetails && (
-            <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">
-              {fmtDateFlight(seg.departsAt)} {fmtTime(seg.departsAt)}
-            </p>
-          )}
-        </div>
-
-        <div className="flex-1 flex flex-col items-center min-w-[80px]">
-          <p className="text-[11px] text-[#888] mb-1">{duration} · 직항</p>
-          {/* 0563 ⑤: 구 마스크 방식(bg-white 패치로 선 가림) 폐기 — 카드가 반투명(glass-outer)이라
-              배경과 일치하는 단색이 없어 라이트에서 흰 사각형이 떴다. 선을 아이콘 양옆 두 토막으로
-              갈라 배경색 의존 자체를 제거. 아이콘 색은 검색 폼(FlightSearchSection)과 한 벌(primary). */}
-          <div className="w-full flex items-center gap-1">
-            <span aria-hidden className="flex-1 h-px bg-[#E0E0E0]" />
-            <span className="text-primary">{PLANE_ICON}</span>
-          </div>
-          <p className="text-[11px] text-[#888] mt-1">{seg.airline} {seg.flightNo}</p>
-        </div>
-
-        <div className="shrink-0 min-w-[100px]">
-          <p className="text-[22px] font-bold text-[#1A1A1A] tracking-[-0.5px] leading-none">{seg.destination}</p>
-          <p className="text-[11px] text-[#888] mt-0.5">{AIRPORT_NAME[seg.destination] ?? ''}</p>
-          {showDetails && (
-            <p className="text-[13px] text-[#4A4A4A] font-medium mt-1.5">
-              {fmtDateFlight(seg.arrivesAt)} {fmtTime(seg.arrivesAt)}
-            </p>
-          )}
-        </div>
-
-        {showDetails && (
-          <div className="shrink-0 text-right min-w-[110px]">
-            {showPrice ? (
-              <>
-                <p className="text-[11px] text-[#888]">
-                  {isRoundTrip ? '왕복 합계(예상)' : '편도 합계(예상)'}
-                </p>
-                <p className="text-[18px] font-bold text-[#1A1A1A] mt-0.5 tabular-nums">
-                  ₩{totalAmount.toLocaleString()}
-                </p>
-              </>
-            ) : (
-              <p className="text-[11px] text-[#888]">상기 금액에 포함됨</p>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function FlightLeg({ data, showDetails = true }: {
-  data: FlightLegData;
-  showDetails?: boolean;
-}) {
-  const isRoundTrip = data.tripType === 'ROUND_TRIP';
-  return (
-    <>
-      <LegCard
-        seg={data.out}
-        label="가는편"
-        isRoundTrip={isRoundTrip}
-        totalAmount={data.totalAmount}
-        showPrice={true}
-        showDetails={showDetails}
-      />
-      {isRoundTrip && data.ret && (
-        <LegCard
-          seg={data.ret}
-          label="오는편"
-          isRoundTrip={isRoundTrip}
-          totalAmount={data.totalAmount}
-          showPrice={false}
-          showDetails={showDetails}
-        />
-      )}
-    </>
-  );
-}
