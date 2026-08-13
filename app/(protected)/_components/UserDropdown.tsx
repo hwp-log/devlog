@@ -80,8 +80,8 @@ export function UserDropdown({ email, avatarUrl, nickname, isAdmin }: Props) {
           >
             MyPlan
           </Link>
-          {/* Admin은 이동 그룹에 편입(0482 3구역 재구성) — 선행 구분선 제거해 MyStory와 한 그룹.
-              항목·순서 불변, 구분선만 재배치 */}
+          {/* Admin은 이동 그룹에 편입(0482 3구역 재구성) — 선행 구분선 제거해 이동 그룹과 한 덩어리.
+              0482 당시 직전 항목은 MyStory였으나 0546 순서 동조로 MyPlan이 됐다(그룹 소속은 불변) */}
           {isAdmin && (
             <Link
               href="/admin"
