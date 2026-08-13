@@ -13,7 +13,7 @@ SpotFinder 모바일 바텀시트 제목 행("총 N곳" 옆)에 기존 ThemeTogg
 
 ## 2. 왜 / 목적 / 이유
 
-- **왜**: 0293 토글은 헤더에 있는데, SpotFinder 모바일만 HeaderGate(`hidden lg:contents`)로 헤더를 통째 숨겨 유일하게 토글이 없었음. [사용자 확인 필요]
+- **왜**: 0293 토글은 헤더에 있는데, SpotFinder 모바일만 HeaderGate(`hidden lg:contents`)로 헤더를 통째 숨겨 유일하게 토글이 없었음.
 - **목적**: SpotFinder 모바일에도 테마 전환 수단 — 시트 제목 행 우측이 데스크톱 "칼럼 헤더 옆"과 위계 일치하는 자리.
 - **이유**: ThemeToggle은 반응형 클래스 없는 순수 스위치라 무변 재사용. 탭바(4탭 폭 꽉 참·내비 전용)·플로팅(지도 위 요소 증가)은 기각, 시트 헤더성 영역이 완성도 훼손 최소.
 
@@ -71,7 +71,6 @@ import { ThemeToggle } from '@/app/(protected)/_components/ThemeToggle';
 - 브라우저 수동 확인 잔여(사용자): 360/390/320px에서 제목 행 넘침 없음, peek/half 노출, 토글 전환 동작, 데탑 시트 미노출.
 
 ### 배운점
-- [사용자 확인 필요]
 
 ---
 
