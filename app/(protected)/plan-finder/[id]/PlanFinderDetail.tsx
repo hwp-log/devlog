@@ -405,9 +405,11 @@ export function PlanFinderDetail({
           {/* 0580: hint(옅은 회색) → warning(주황) + 정보 아이콘. hint는 "아직 값이 없음"
               층이라(theme.ts) 읽고 확인하라는 문장에는 맞지 않았다. items-start = 문장이
               두 줄로 접힐 때 아이콘이 첫 줄에 고정. */}
+          {/* 0589: font-medium + 아이콘 16px — 색만으로는 부족했다(theme.ts warning 주석).
+              획이 굵어지면 같은 색도 색으로 읽힌다. 값과 짝이라 한쪽만 되돌리면 안 된다. */}
           {sourcePlanId && (
-            <p className="mt-2 flex items-start gap-1.5 text-[13px] text-warning break-keep">
-              <Info aria-hidden size={14} className="mt-[3px] shrink-0" />
+            <p className="mt-2 flex items-start gap-1.5 text-[13px] font-medium text-warning break-keep">
+              <Info aria-hidden size={16} className="mt-[2px] shrink-0" />
               <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
             </p>
           )}

@@ -1183,10 +1183,12 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
           읽기는 비용 0건이면 섹션째 안 뜨지만 여기는 항상 뜬다 — 입력 화면이라 금액이 비어도
           "지금 보이는 값들의 출처는 원본 시점"이 여전히 참이다. */}
       {/* 0580: warning(주황) + 정보 아이콘으로 승격 — 읽기 상세와 리터럴 준용
-          (아이콘 14px / gap-1.5 / items-start / mt-[3px] 광학 정렬). 한쪽만 바꾸면 어긋난다. */}
+          (gap-1.5 / items-start). 한쪽만 바꾸면 어긋난다.
+          0589: font-medium + 아이콘 16px(mt-[2px] 광학 정렬) — 색만으로는 회색으로 읽혔다.
+          근거는 theme.ts의 warning 주석. 색값과 획 보강은 짝이라 한쪽만 되돌리면 안 된다. */}
       {sourcePlanId && (
-        <p className="mt-2 flex items-start gap-1.5 text-[13px] text-warning break-keep">
-          <Info aria-hidden size={14} className="mt-[3px] shrink-0" />
+        <p className="mt-2 flex items-start gap-1.5 text-[13px] font-medium text-warning break-keep">
+          <Info aria-hidden size={16} className="mt-[2px] shrink-0" />
           <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
         </p>
       )}
