@@ -352,16 +352,34 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // 0584: 계산을 setEditor 갱신 함수 **밖**에서 한다 — 갱신 함수는 순수해야 하고 StrictMode에서
+  //   두 번 호출되므로, 안에서 confirm을 부르면 확인 창이 두 번 뜬다. 결정이 끝난 뒤 한 번만 갱신.
   function handleDateChange(field: 'startDate' | 'endDate', value: string) {
-    setEditor((prev) => {
-      const nextStart = field === 'startDate' ? value : prev.startDate;
-      const nextEnd = field === 'endDate' ? value : prev.endDate;
-      // 0583: null(= 아직 기간이 아님)이면 days를 건드리지 않는다 — 날짜를 한쪽만 고른
-      //   중간 상태에서 기존 항목이 사라지지 않게. 날짜 값 자체는 그대로 반영해 입력을 막지 않고,
-      //   두 날짜가 유효해지는 순간 재계산이 돌아 정상 흐름으로 복귀한다.
-      const newDays = calcDays(nextStart, nextEnd, prev.days);
-      return { ...prev, [field]: value, ...(newDays ? { days: newDays } : {}) };
-    });
+    const nextStart = field === 'startDate' ? value : editor.startDate;
+    const nextEnd = field === 'endDate' ? value : editor.endDate;
+    // 0583: null(= 아직 기간이 아님)이면 days를 건드리지 않는다 — 날짜를 한쪽만 고른
+    //   중간 상태에서 기존 항목이 사라지지 않게. 날짜 값 자체는 그대로 반영해 입력을 막지 않고,
+    //   두 날짜가 유효해지는 순간 재계산이 돌아 정상 흐름으로 복귀한다.
+    const newDays = calcDays(nextStart, nextEnd, editor.days);
+
+    // 0584: 축소(재계산 결과가 기존보다 적음)일 때만 확인 — 확장·동일·판정불가(null)는 그대로 진행.
+    //   개수는 isSavableItem 기준이다: 이름이 빈 행은 어차피 저장되지 않으므로 "삭제됩니다"에
+    //   세면 거짓 경고가 된다(지표 밴드 "장소 N곳"과 같은 조건 — 화면에 보이는 수와도 맞는다).
+    //   그래서 "사라질 게 0건이면 확인 없이 진행"이 이 조건 하나로 충족된다.
+    if (newDays && newDays.length < editor.days.length) {
+      const dropped = editor.days.filter((d) => d.day > newDays.length);
+      const count = dropped.reduce((n, d) => n + d.items.filter(isSavableItem).length, 0);
+      if (count > 0) {
+        const label = dropped.map((d) => `${d.day}일차`).join('·');
+        // 취소 = 상태 미갱신. 제어 입력이라 React가 date input을 이전 값으로 되돌린다
+        //   (`<input value="고정" onChange={()=>{}}/>`가 타이핑을 무시하는 것과 같은 경로) —
+        //   되돌리기 코드·remount key가 따로 필요 없다.
+        // 확인 UI는 네이티브 confirm — 레포의 파괴적 동작 확인 표준(삭제 5곳 동일).
+        if (!confirm(`${label} 항목 ${count}개가 삭제됩니다. 계속할까요?`)) return;
+      }
+    }
+
+    setEditor((prev) => ({ ...prev, [field]: value, ...(newDays ? { days: newDays } : {}) }));
   }
 
   // 0562 D②: 합산 소스 = 일자별(dayCosts) + 고정(daylessCosts) — 구 구조는 일정 항목에서
