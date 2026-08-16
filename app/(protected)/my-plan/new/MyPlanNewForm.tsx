@@ -188,6 +188,14 @@ const FIELD_CLASS = 'flex flex-col gap-[5px]';
 const ITEM_INPUT_CLASS =
   'border border-field-border rounded-lg px-[10px] py-2 text-base text-fg bg-transparent placeholder:text-hint focus:outline-none focus:border-fg/40 transition-colors';
 
+// 0585: 항목 행 좌우 컨트롤(드래그 핸들·번호·삭제)의 정렬 박스 — **입력 필드 높이 안에서 중앙**.
+//   구 조판은 행이 `items-center`라 셋이 **행 전체** 중앙에 놓였다. 내용 열은 입력(42px) 아래
+//   주소·작품 칩 줄이 붙으면 62~66px이 되므로, 주소가 있는 항목에서만 셋이 10~12px 내려가
+//   입력과 축이 어긋났다(주소 유무에 따라 ✕가 위아래로 움직여 보이던 원인).
+//   42px = ITEM_INPUT_CLASS 실측: py-2(8×2) + border(1×2) + text-base lh 24.
+//   **한쪽만 바꾸면 어긋난다** — 입력 패딩·글자 등급을 손대면 이 값도 같이.
+const ITEM_CTRL_ALIGN = 'h-[42px] flex items-center shrink-0';
+
 // 0562 E: 항목 메타 해소 디바운스 — 구 CoverPicker(0497)의 값 이식.
 const RESOLVE_DEBOUNCE_MS = 400;
 
@@ -260,26 +268,36 @@ function SortablePlanItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 ${isDragging ? ' opacity-50' : ''}`}
+      // 0585: items-center → items-start. 좌우 컨트롤은 ITEM_CTRL_ALIGN 박스가 입력 높이에
+      //   맞춰 다시 중앙을 잡는다(그 상수 주석에 산식). 썸네일만 self-center로 현행 유지.
+      className={`flex items-start gap-2 ${isDragging ? ' opacity-50' : ''}`}
     >
-      <button
-        type="button"
-        aria-label="순서 변경"
-        {...attributes}
-        {...listeners}
-        className="shrink-0 text-hint cursor-grab active:cursor-grabbing hover:text-fg2 transition-colors"
-      >
-        <GripVertical size={14} />
-      </button>
+      {/* 0585: 핸들·✕는 래퍼로 감싼다 — 버튼에 직접 높이를 주면 ✕는 w-7 h-7이 깨지고
+          핸들은 드래그 잡히는 영역이 14px → 42px로 넓어져 동작이 바뀐다. */}
+      <div className={ITEM_CTRL_ALIGN}>
+        <button
+          type="button"
+          aria-label="순서 변경"
+          {...attributes}
+          {...listeners}
+          className="shrink-0 text-hint cursor-grab active:cursor-grabbing hover:text-fg2 transition-colors"
+        >
+          <GripVertical size={14} />
+        </button>
+      </div>
       {/* 번호 — 읽기 행과 동일 등급(굵은 회색, #b3b9bd는 읽기와 같은 하드코딩 화석) */}
-      <span className="w-[22px] shrink-0 text-sm font-bold text-[#b3b9bd]">{index + 1}</span>
+      <span className={`${ITEM_CTRL_ALIGN} w-[22px] text-sm font-bold text-[#b3b9bd]`}>
+        {index + 1}
+      </span>
       {meta?.coverUrl && (
         <button
           type="button"
           onClick={onToggleCover}
           aria-pressed={isCover}
           aria-label={isCover ? '대표 이미지 해제' : '대표 이미지로 지정'}
-          className={`relative w-[72px] h-[72px] shrink-0 rounded-[10px] overflow-hidden border-[3px] transition ${
+          // 0585: self-center — items-start 전환에도 썸네일은 현행(중앙) 유지. 72px이 항상
+          //   최대 높이(내용 열 최대 66px)라 실제 이동량은 0이지만, 내용이 더 길어지면 이 의도가 산다.
+          className={`relative w-[72px] h-[72px] shrink-0 self-center rounded-[10px] overflow-hidden border-[3px] transition ${
             isCover ? 'border-primary' : 'border-transparent hover:border-fg/20'
           }`}
         >
@@ -314,13 +332,15 @@ function SortablePlanItem({
           </div>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => onRemove(item.id)}
-        className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full border border-field-border text-hint hover:text-danger hover:border-danger-border transition-colors text-base"
-      >
-        ×
-      </button>
+      <div className={ITEM_CTRL_ALIGN}>
+        <button
+          type="button"
+          onClick={() => onRemove(item.id)}
+          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full border border-field-border text-hint hover:text-danger hover:border-danger-border transition-colors text-base"
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 }
