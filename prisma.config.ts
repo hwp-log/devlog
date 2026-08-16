@@ -13,10 +13,15 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    // prisma db seed 비활성화: seed.ts는 test@dotrip.com의 Story를
-    // deleteMany로 전부 삭제 후 재생성하는 비멱등 로직이라 위험.
-    // Movie 시드는 단독 실행:
-    //   node --env-file=.env.local --import tsx prisma/seed-movies.ts
+    // seed 설정 없음 — 의도된 부재다. 이 config에 seed 항목을 둔 적이 없어
+    // `prisma db seed`는 애초에 동작하지 않았다 (비활성화가 아니라 미설정).
+    // prisma/seed.ts는 0575에서 폐기: DB 실물과 내용이 어긋난 지 오래였고
+    // (스토리 12건 중 7건은 이미 삭제됨), StorySpot·Spot을 만들지 않으며,
+    // 첫 줄의 Story deleteMany가 현재 스토리 5건을 지우고 그에 걸린
+    // 플랜 2건의 연결(Story.planId, onDelete: SetNull)까지 끊는 구조였다.
+    // 시드가 필요한 데이터는 각 스크립트를 단독 실행한다:
+    //   node --env-file=.env.local node_modules/.bin/tsx prisma/seed-movies.ts
+    //   node --env-file=.env.local node_modules/.bin/tsx prisma/seed-spots.ts
   },
   datasource: {
     url: env("DIRECT_URL"),
