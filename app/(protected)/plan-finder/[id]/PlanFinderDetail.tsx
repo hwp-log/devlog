@@ -437,7 +437,25 @@ export function PlanFinderDetail({
       {/* 0560: 상세 한 벌화(구 PlanDetail 하단 흡수) — 원본 링크는 소유자만(담은 플랜은
           비공개라 사실상 소유자만 열람하지만 게이트 명시). 목록은 진입 맥락 따라 분기 —
           소유자는 내 목록(/my-plan)에서 들어온다. */}
-      <div className="mt-7 sm:mt-10 flex flex-col gap-2">
+      {/* 0591: 세로 스택(flex-col gap-2) → 좌우 분리. 두 링크는 **성격이 다르다** —
+          "← 목록으로"는 되돌아가기, "원본 플랜 보기 →"는 새 대상으로의 전진인데, 같은 크기·
+          색·굵기로 세로로 붙어 있어 화살표 방향 말고는 구분이 없었다. 좌우로 나누면 방향이
+          위치로도 표현된다(뒤로=좌 / 앞으로=우).
+          구 조판은 조판 판단의 결과가 아니었다 — 0103에서 링크 하나였던 자리에 원본 링크를
+          얹으며 `mt-4` → `mt-4 flex flex-col gap-2`가 됐고, 0560 라우트 통합은 그대로 이식만
+          했다(0591 조사: `-S"원본 플랜 보기"` 전체 이력 3커밋에 조판 판단 없음).
+          **DOM 순서는 목록이 먼저**다 — 원본 링크는 `isOwner && sourcePlanId` 조건이라
+          평소엔 없고, justify-between에서 자식이 하나면 그 자식이 좌측에 남는다.
+          360px 검산: 본문 폭 312px(ProtectedMain px-6 = 24×2) vs 두 링크 ≈184px(text-sm 14px,
+          한글 1em 기준) — 한 줄에 들어간다. 320px(272px)에서도 성립. nowrap은 걸지 않는다
+          (넘칠 땐 줄바꿈이 가로 스크롤보다 낫다 — §5 리플로우). */}
+      <div className="mt-7 sm:mt-10 flex items-center justify-between gap-3">
+        <Link
+          href={isOwner ? '/my-plan' : '/plan-finder'}
+          className="text-sm text-muted hover:text-fg transition-colors"
+        >
+          ← 목록으로
+        </Link>
         {isOwner && sourcePlanId && (
           <Link
             href={`/plan-finder/${sourcePlanId}`}
@@ -446,12 +464,6 @@ export function PlanFinderDetail({
             원본 플랜 보기 →
           </Link>
         )}
-        <Link
-          href={isOwner ? '/my-plan' : '/plan-finder'}
-          className="text-sm text-muted hover:text-fg transition-colors"
-        >
-          ← 목록으로
-        </Link>
       </div>
 
       {/* 0515: 모바일 담기 하단 고정 바(시안 4d) — 본인 플랜은 바 자체가 없음(시안 4f).
