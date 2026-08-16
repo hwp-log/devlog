@@ -18,8 +18,8 @@ export function Footer() {
         <Logo />
         <div className="flex items-center justify-center gap-1.5 text-sm text-fg2">
           <Mail size={14} className="shrink-0" />
-          {/* 도메인 미확정 — mailto 미연결, 텍스트만 */}
-          <span>hello@dotrip</span>
+          {/* 포워딩 설정 완료된 실주소. mailto 미연결(텍스트만) */}
+          <span>hello@dotrip.io</span>
         </div>
         <DataAttribution variant="footer" />
         <p className="text-xs text-muted">© 2026 Dotrip. All rights reserved.</p>
