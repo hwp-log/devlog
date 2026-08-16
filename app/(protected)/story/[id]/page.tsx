@@ -83,6 +83,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ id
         story.plan.costs,
         story.plan.flight,
         story.plan.currency as 'KRW' | 'USD' | 'JPY',
+        story.plan.headcount, // 0587: 항공은 1인 요금 — 인원 반영
       )
     : null;
 

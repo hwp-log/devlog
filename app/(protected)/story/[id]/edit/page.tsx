@@ -57,7 +57,8 @@ export default async function StoryEditPage({ params }: { params: Promise<{ id: 
       spotCount: p._count.spots,
       headcount: p.headcount,
       showCost: p.isPublic,
-      total: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY').total,
+      // 0587: 항공은 1인 요금 — 인원 반영(정본 lib/plan/calc-plan-total.ts)
+      total: summarizePlanCost(p.costs, p.flight, p.currency as 'KRW' | 'USD' | 'JPY', p.headcount).total,
       currency: p.currency as 'KRW' | 'USD' | 'JPY',
     }),
   }));

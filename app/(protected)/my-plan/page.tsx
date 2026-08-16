@@ -46,7 +46,7 @@ export default async function MyPlanPage() {
       createdAt: plan.createdAt,
       spotCount: plan._count.spots,
       headcount: plan.headcount,
-      total: calcPlanTotal(plan.costs, plan.flight),
+      total: calcPlanTotal(plan.costs, plan.flight, plan.headcount), // 0587: 항공은 1인 요금
       isPublic: plan.isPublic,
       likeCount: plan._count.planLikes,
     };

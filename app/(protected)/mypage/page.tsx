@@ -29,6 +29,7 @@ export default async function MyPage() {
       select: {
         costs: { select: { amount: true } },
         flight: { select: { totalAmount: true } },
+        headcount: true, // 0587: 항공은 1인 요금 — 평균 비용에도 인원 반영
       },
     }),
     prisma.story.findMany({
@@ -46,7 +47,7 @@ export default async function MyPage() {
   ]);
   if (!profile) redirect('/login');
 
-  const totals = plansForAvg.map((p) => calcPlanTotal(p.costs, p.flight));
+  const totals = plansForAvg.map((p) => calcPlanTotal(p.costs, p.flight, p.headcount));
   const withTotal = totals.filter((t) => t > 0);
   const avgWon =
     withTotal.length > 0
