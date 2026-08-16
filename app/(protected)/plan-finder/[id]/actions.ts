@@ -62,12 +62,12 @@ export async function copyPublicPlanAction(
       region: true,
       movie: true,
       currency: true,
-      // 0579: 날짜·인원 추가. 날짜가 없으면 두 화면(plan-finder/[id]/page·my-plan/[id]/edit/page)이
-      //   dayCount를 1로 폴백해 day≥2 항목이 **행은 있는데 화면에 없는** 상태가 된다.
-      //   그 상태로 편집 저장하면 updatePlanWithItemsAction의 deleteMany+재생성이
-      //   day 2·3을 실제로 지운다 — 표시 문제가 데이터 손실로 확정되던 경로.
-      startDate: true,
-      endDate: true,
+      // 0582: startDate·endDate는 복사하지 않는다 — 0579에서 넣었다가 되돌렸다.
+      //   담기가 가져오는 건 **Day 구조**(며칠짜리로 어떻게 도느냐)이고, 실제 날짜는 담은
+      //   사람이 자기 일정에 맞춰 지정하는 값이다. 원본 날짜를 실어 오면 지난 여행을 담았을 때
+      //   과거 날짜가 그대로 유입돼 0581에서 막은 것이 담기로 우회된다.
+      //   0579가 날짜를 복사한 이유(빼면 Day 1만 보임)는 dayCount 3단 폴백(0582 lib/plan/day-count.ts)
+      //   으로 해소됐다 — 날짜 없이도 PlanSpot의 최대 day로 Day 구조가 산다.
       headcount: true,
       owner: { select: { nickname: true } },
       spots: {
@@ -109,8 +109,6 @@ export async function copyPublicPlanAction(
           description: original.description,
           region: original.region,
           movie: original.movie,
-          startDate: original.startDate,
-          endDate: original.endDate,
           headcount: original.headcount,
           // coverUrl은 복사하지 않는다(0579 명시 제외) — 원본 이미지 소유권.
           // isPublic도 false 고정 유지 — 담은 것이 자동으로 다시 공개되지 않는다.
