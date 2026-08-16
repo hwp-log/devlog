@@ -79,6 +79,7 @@ export async function fetchPublicPlans(userId?: string): Promise<PublicPlanListI
       plan.costs,
       plan.flight,
       plan.currency as 'KRW' | 'USD' | 'JPY',
+      plan.headcount, // 0587: 항공은 1인 요금 — 인원 반영(정본 lib/plan/calc-plan-total.ts)
     ),
   }));
 }

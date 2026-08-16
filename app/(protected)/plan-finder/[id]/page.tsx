@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { visiblePlanWhere } from '@/lib/plan/queries';
 import { resolvePlanDayCount } from '@/lib/plan/day-count';
+import { flightTotal } from '@/lib/plan/calc-plan-total';
 import { PlanFinderDetail } from './PlanFinderDetail';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 
@@ -92,7 +93,8 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   const currency = plan.currency as 'KRW' | 'USD' | 'JPY';
 
   // summarizePlanCost — server-only, 결과만 클라로 전송
-  const summary = summarizePlanCost(plan.costs, plan.flight, currency);
+  // 0587: 항공은 1인 요금이라 인원을 넘긴다(정본 lib/plan/calc-plan-total.ts).
+  const summary = summarizePlanCost(plan.costs, plan.flight, currency, plan.headcount);
 
   // 항공편. 0569: 구 처리는 "duration 계산 후 시간·날짜 제거"였다 — 공개 화면에서 값을 가공해
   //   덜 보여주는 계열(0492 금액 비중·구간 가공)의 잔재다. 0557(비공개 = 글 자체를 가림)·
@@ -101,7 +103,11 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   const publicFlight: FlightLegData | null = plan.flight
     ? {
         tripType: plan.flight.tripType as 'ONE_WAY' | 'ROUND_TRIP',
-        totalAmount: plan.flight.totalAmount,
+        // 0587: 여기서부터는 **전원 총액**이다(DB는 1인 요금 — 정본 lib/plan/calc-plan-total.ts).
+        //   PublicCostSection이 이 값을 그대로 그리므로(항공권 그룹 요약·탑승료·상세내역 행)
+        //   summary와 같은 기준이어야 한다 — 한쪽만 곱하면 그룹 합과 총액이 어긋난다.
+        //   PublicFlightTable은 금액을 그리지 않는다(편별 가격 열 없음, 0492).
+        totalAmount: flightTotal(plan.flight, plan.headcount),
         out: {
           origin: plan.flight.outOrigin,
           destination: plan.flight.outDestination,

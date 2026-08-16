@@ -38,7 +38,7 @@ import {
 } from '../_lib/cost';
 import { CostSection } from '../_components/CostSection';
 import { SectionHeader } from '@/app/(protected)/_components/SectionHeader';
-import { calcPlanTotal } from '@/lib/plan/calc-plan-total';
+import { calcPlanTotal, flightTotal } from '@/lib/plan/calc-plan-total';
 import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
 import { clampHeadcount, HEADCOUNT_MIN, HEADCOUNT_MAX } from '@/lib/plan/validate-input';
 
@@ -440,10 +440,13 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
     return totals;
   }, [editor]);
 
-  const flightAmount = editor.flight?.totalAmount ?? 0;
+  // 0587: 항공은 1인 요금이라 인원을 곱한다(규칙 정본 lib/plan/calc-plan-total.ts).
+  //   editor.headcount 파생이라 인원 입력 즉시 "항공" 행·총액이 다시 계산된다.
+  const flightAmount = flightTotal(editor.flight, editor.headcount);
   const total = calcPlanTotal(
     Object.values(categoryTotals).map((amount) => ({ amount })),
     editor.flight,
+    editor.headcount,
   );
 
   // 0562(C): 지표 밴드 파생값 — 전부 입력에서 계산되는 읽기 전용 값(입력 필드 아님).
