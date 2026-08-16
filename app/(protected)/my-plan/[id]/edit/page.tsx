@@ -136,7 +136,9 @@ export default async function MyPlanEditPage({ params }: Props) {
         mode="edit"
         planId={plan.id}
         // 0579: 담은 플랜이면 비용 주의 문구(읽기 상세와 같은 조건·같은 문구)
+        // 0593: 조건이 비공개 한정이 되며 isPublic도 함께 — 두 값이 짝이다
         sourcePlanId={plan.sourcePlanId}
+        isPublic={plan.isPublic}
       />
     </div>
   );
