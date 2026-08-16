@@ -20,13 +20,17 @@ function buildInitialState(plan: FullPlan, dayCount: number): EditorState {
   //   ② day≠null                → dayCosts. localId = planSpotId(편집의 item.id = PlanSpot.id).
   //     planSpotId=null(시드 90행·기타 지출)도 localId null로 자연 포섭 —
   //     **구 코드는 이 형태를 어느 분류에도 못 넣고 드롭해 재저장 시 전량 소실**되던 버그 해소.
+  // 0588: id는 드래그 전용 키(MyPlanNewForm의 DayCost 주석 참조). 복원 시에는 **PlanCost.id를
+  //   그대로 쓴다** — 이미 고유·안정이고, 서버 컴포넌트에서 난수를 만들면 값이 매 렌더 달라진다.
+  //   새로 추가하는 행만 클라에서 crypto.randomUUID()로 발급한다.
   const daylessCosts = plan.costs
     .filter((c) => c.day == null)
-    .map((c) => ({ label: c.label, category: c.category, amount: c.amount }));
+    .map((c) => ({ id: c.id, label: c.label, category: c.category, amount: c.amount }));
 
   const dayCosts: DayCost[] = plan.costs
     .filter((c) => c.day != null)
     .map((c) => ({
+      id: c.id,
       localId: c.planSpotId,
       day: c.day!,
       category: c.category,

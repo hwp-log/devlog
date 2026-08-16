@@ -59,7 +59,12 @@ export type PlanItem = {
 // 0562 D②: 일자별 비용 — PlanCost(day ≠ null)와 동형. localId = 연결 장소의 item.id
 //   (편집 복원 시 = PlanSpot.id — 생성·편집 모두 단일 의미), null = 기타 지출(planSpotId NULL).
 //   label은 기타 지출용 입력 — 연결 비용의 라벨은 저장 시 서버가 장소 이름으로 강제(단일 소스).
+// 0588: id는 **드래그 전용 키**다 — dnd-kit이 고유·안정 id를 요구하는데 비용 행은 key={index}
+//   였고, localId는 연결 장소 id라 여러 행이 같은 값이거나 null(기타 지출)이라 쓸 수 없다.
+//   기존 CRUD(update·remove)는 index 기반 그대로 둔다(사용자 확정 — 잘 돌고 변경 폭이 작다).
+//   저장 payload에는 싣지 않는다: 순서는 배열 순서가 말하고 서버가 order로 번호를 매긴다.
 export type DayCost = {
+  id: string;
   localId: string | null;
   day: number;
   category: CostCategory | '';
@@ -74,6 +79,7 @@ export type DayPlan = {
 
 // 0504: 하루에 안 묶이는 비용(렌터카·항공권·보험 등). 편집 중 카테고리는 미선택('') 허용 — 저장 시 ETC로 강제(Day 항목과 동형).
 export type DaylessCost = {
+  id: string; // 0588: 드래그 전용 키 — DayCost.id와 같은 규칙(위 주석)
   label: string;
   category: CostCategory | '';
   amount: number;
@@ -611,7 +617,8 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
   function addDaylessCost() {
     setEditor((prev) => ({
       ...prev,
-      daylessCosts: [...prev.daylessCosts, { label: '', category: '', amount: 0 }],
+      // 0588: id는 드래그 전용 키 — 일정 항목(addItem)과 같은 crypto.randomUUID() 방식
+      daylessCosts: [...prev.daylessCosts, { id: crypto.randomUUID(), label: '', category: '', amount: 0 }],
     }));
   }
 
@@ -637,7 +644,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
       ...prev,
       dayCosts: [
         ...prev.dayCosts,
-        { localId: defaultLocalId, day: clampedCostDay, category: '', amount: 0, label: '' },
+        { id: crypto.randomUUID(), localId: defaultLocalId, day: clampedCostDay, category: '', amount: 0, label: '' },
       ],
     }));
   }
@@ -990,7 +997,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
       <div className="mt-1 flex flex-col">
         {editor.daylessCosts.map((cost, index) => (
           <div
-            key={index}
+            key={cost.id} // 0588: index 키 폐기 — 순서가 바뀌면 index는 다른 행을 가리킨다
             className="flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0"
           >
             <input
@@ -1077,7 +1084,7 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
           </div>
           <div className="flex flex-col">
             {currentDayCostEntries.map(({ cost, index }) => (
-              <div key={index} className="flex flex-col gap-2 py-3 border-b border-hairline">
+              <div key={cost.id} className="flex flex-col gap-2 py-3 border-b border-hairline">
                 {/* 0562 D fix③: 기타 지출의 라벨은 **행 위 전폭 한 줄** — 구 조판(드롭다운 아래
                     같은 열에 스택)은 왼쪽 열만 2줄로 커져 카테고리·금액이 중간 높이에 떠 보였다
                     (실검수 발견). 고정 비용 행의 모바일 문법(이름 한 줄 / 나머지 아래 줄) 준용. */}
