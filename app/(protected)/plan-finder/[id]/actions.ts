@@ -81,19 +81,16 @@ export async function copyPublicPlanAction(
       //   0558(공개한 것은 실값으로)이 그 계열을 폐기하면서 **전제가 소멸했다** —
       //   공개 상세에서 이미 실값으로 보이는 금액을 담기에서만 막을 이유가 없다.
       //   (0103 회고는 시점 기록이라 고치지 않는다. 뒤집힌 결정의 정본은 이 주석.)
-      //   항공은 0103이 언급조차 하지 않았다 — 배제 의도가 기록된 적 없는 누락분.
       costs: {
         select: { planSpotId: true, day: true, category: true, label: true, amount: true },
       },
-      flight: {
-        select: {
-          tripType: true, totalAmount: true,
-          outOrigin: true, outDestination: true, outDepartsAt: true, outArrivesAt: true,
-          outAirline: true, outFlightNo: true,
-          retOrigin: true, retDestination: true, retDepartsAt: true, retArrivesAt: true,
-          retAirline: true, retFlightNo: true,
-        },
-      },
+      // 0580: PlanFlight는 복사하지 않는다 — 0579에서 한 번 넣었다가 되돌렸다.
+      //   ① 항공권은 **특정 편명·특정 시각의 예약**이라 담은 사람이 그대로 쓸 수 없다.
+      //      비용·일정은 "이렇게 다녀왔다"는 참고값이지만 편명은 참고가 되지 않는다.
+      //   ② 가격이 매일 바뀌므로 원본 시점 금액이 남아 있으면 오해를 부른다 —
+      //      비용 주의 문구로 덮을 수 있는 오차의 폭이 아니다.
+      //   담은 사람은 자기 날짜로 다시 검색하는 게 맞고, 그 경로(작성 폼의 "항공편 검색")는
+      //   이미 있다. 0103이 항공을 언급조차 안 했던 건 사실이나, 지금 판단으로도 제외가 맞다.
     },
   });
 
@@ -145,10 +142,6 @@ export async function copyPublicPlanAction(
             amount: cost.amount,
           },
         });
-      }
-      if (original.flight) {
-        // planId가 @unique라 사본당 1행. 편도면 ret* 전부 null 그대로 넘어간다.
-        await tx.planFlight.create({ data: { planId: plan.id, ...original.flight } });
       }
     });
   } catch {
