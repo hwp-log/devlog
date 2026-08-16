@@ -4,7 +4,7 @@ import {
   CATEGORY_LABEL,
   type CostCategory,
 } from '@/app/(protected)/my-plan/_lib/cost';
-import { calcPlanTotal } from './calc-plan-total';
+import { calcPlanTotal, flightTotal } from './calc-plan-total';
 
 export type PublicCostSummary = {
   ratios: Array<{
@@ -53,8 +53,14 @@ export function summarizePlanCost(
   costs: { category: string; amount: number; label?: string; day?: number | null; planSpotId?: string | null }[],
   flight: { totalAmount: number } | null | undefined,
   currency: 'KRW' | 'USD' | 'JPY',
+  // 0587: 항공 1인 요금 × 인원. 기본값 1은 기존 테스트 호출 호환용 —
+  //   실제 호출부는 전부 명시적으로 넘긴다(calc-plan-total.ts 주석에 목록).
+  headcount = 1,
 ): PublicCostSummary {
-  const total = calcPlanTotal(costs, flight);
+  // 0587: 항공 금액이 나오는 지점은 셋(total · itemGroups 항공 · ratios FLIGHT)이고
+  //   **전부 이 파생값을 쓴다** — 한 곳만 곱하면 비중 합이 100%에서 어긋난다.
+  const flightAmount = flightTotal(flight, headcount);
+  const total = calcPlanTotal(costs, flight, headcount);
 
   // 0499: 일자별 그룹핑. 존재하는 PlanCost 행에서만 파생 → 비용 없는 날은 그룹 자체가 안 생김(머리글 생략).
   // 0504: day=null(무장소 비용)은 별도 '여행 전체' 버킷으로.
@@ -76,12 +82,12 @@ export function summarizePlanCost(
 
   const itemGroups: PublicCostSummary['itemGroups'] = [
     // 항공(dayless) 머리글 그룹을 맨 위에 — Day 머리글과 평행 구조(0499 Q1)
-    ...(flight && flight.totalAmount > 0
+    ...(flightAmount > 0
       ? [
           {
             day: null,
             label: '항공',
-            items: [{ label: '항공', category: 'FLIGHT' as const, amount: flight.totalAmount }],
+            items: [{ label: '항공', category: 'FLIGHT' as const, amount: flightAmount }],
           },
         ]
       : []),
@@ -116,7 +122,7 @@ export function summarizePlanCost(
   }
 
   const items = [
-    { category: 'FLIGHT' as const, label: '항공', amount: flight?.totalAmount ?? 0 },
+    { category: 'FLIGHT' as const, label: '항공', amount: flightAmount },
     ...CATEGORIES.map((cat) => ({
       category: cat,
       label: CATEGORY_LABEL[cat],
