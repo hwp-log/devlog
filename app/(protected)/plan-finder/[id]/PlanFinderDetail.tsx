@@ -444,8 +444,9 @@ export function PlanFinderDetail({
           구 조판은 조판 판단의 결과가 아니었다 — 0103에서 링크 하나였던 자리에 원본 링크를
           얹으며 `mt-4` → `mt-4 flex flex-col gap-2`가 됐고, 0560 라우트 통합은 그대로 이식만
           했다(0591 조사: `-S"원본 플랜 보기"` 전체 이력 3커밋에 조판 판단 없음).
-          **DOM 순서는 목록이 먼저**다 — 원본 링크는 `isOwner && sourcePlanId` 조건이라
-          평소엔 없고, justify-between에서 자식이 하나면 그 자식이 좌측에 남는다.
+          **DOM 순서는 목록이 먼저**다 — 원본 링크는 조건부(아래 0592 주석)라 평소엔 없고,
+          justify-between에서 자식이 하나면 그 자식이 좌측에 남는다. 0592로 조건이 하나 더
+          좁아지면서(비공개 한정) 원본 링크가 없는 상태가 더 흔해졌다 — 순서 결정이 그만큼 중요.
           360px 검산: 본문 폭 312px(ProtectedMain px-6 = 24×2) vs 두 링크 ≈184px(text-sm 14px,
           한글 1em 기준) — 한 줄에 들어간다. 320px(272px)에서도 성립. nowrap은 걸지 않는다
           (넘칠 땐 줄바꿈이 가로 스크롤보다 낫다 — §5 리플로우). */}
@@ -456,7 +457,13 @@ export function PlanFinderDetail({
         >
           ← 목록으로
         </Link>
-        {isOwner && sourcePlanId && (
+        {/* 0592: 비공개일 때만. **공개하는 순간 독립된 플랜으로 본다** — 담아서 자기 일정으로
+            고친 뒤 공개했다면 그건 그 사람의 플랜이고, 출처 링크가 계속 붙어 있으면 남에게
+            "베낀 것"으로 읽힐 여지가 생긴다. 비공개 동안은 본인만 보므로 "어디서 담았더라"를
+            되짚는 용도로 유효하다(그래서 isOwner 게이트와 짝).
+            **DB의 sourcePlanId는 유지한다** — 담긴 횟수 집계·수익 배분에 쓸 연결이라
+            데이터는 남기고 표시만 끈다. 저장 경로에서 끊지 말 것. */}
+        {isOwner && sourcePlanId && !isPublic && (
           <Link
             href={`/plan-finder/${sourcePlanId}`}
             className="text-sm text-muted hover:text-fg transition-colors"
