@@ -399,7 +399,22 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
       }
     }
 
-    setEditor((prev) => ({ ...prev, [field]: value, ...(newDays ? { days: newDays } : {}) }));
+    // 0586: 날짜가 실제로 바뀌면 선택해 둔 항공권을 비운다 — FlightOffer는 **특정 편명·특정
+    //   시각의 예약**이라(departsAt·arrivesAt·flightNo) 날짜가 바뀌는 순간 통째로 무의미해진다.
+    //   부분 무효화가 없으므로 객체 전체를 null로. 담기가 항공을 복사하지 않는 것과 같은 근거(0580).
+    //   같은 날짜 재선택(value === 현재값)이거나 이미 비어 있으면 아무것도 하지 않는다 —
+    //   불필요한 remount(아래 key)를 만들지 않기 위함.
+    //   축소 확인(위 0584)을 **통과한 뒤**에만 실행된다 — 취소하면 항공권도 그대로 남는다.
+    //   금액은 따로 지울 게 없다: flightAmount·calcPlanTotal이 editor.flight 파생이고,
+    //   항공은 PlanCost 행으로 존재하지 않는다(CostCategory enum에 FLIGHT 없음).
+    const clearFlight = value !== editor[field] && editor.flight !== null;
+
+    setEditor((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(newDays ? { days: newDays } : {}),
+      ...(clearFlight ? { flight: null } : {}),
+    }));
   }
 
   // 0562 D②: 합산 소스 = 일자별(dayCosts) + 고정(daylessCosts) — 구 구조는 일정 항목에서
@@ -951,7 +966,14 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
       {/* 그룹 1 — 항공권 (구 "항공편" 독립 섹션 이동). 구 badge "예상"은 상위 섹션 이름
           "예상 비용"이 대체. 그룹 이름은 읽기의 항공권 그룹(0562 A)과 통일. */}
       <CostGroupHeader title="항공권" />
+      {/* 0586: key로 remount — FlightSearchSection의 showForm은 `useState(!flight)`라 **마운트
+          시점에 한 번만** 정해진다. 렌더 분기가 `flight && !showForm`(티켓)과 `showForm`(검색 폼)
+          둘뿐이라, 부모가 flight를 null로 만들면 두 분기 모두 거짓이 되어 **섹션이 통째로 빈다**.
+          (정상 경로인 "변경" 버튼은 onChange(null)과 setShowForm(true)를 함께 불러 그 짝이 맞는다.)
+          remount하면 showForm이 다시 평가돼 검색 폼으로 돌아간다 — 그쪽 파일은 무접촉.
+          검색 결과·입력한 공항 코드도 함께 초기화되는데, 날짜가 바뀌면 그 결과도 무효라 의도에 맞다. */}
       <FlightSearchSection
+        key={editor.flight ? 'picked' : 'empty'}
         startDate={editor.startDate}
         endDate={editor.endDate}
         flight={editor.flight}
