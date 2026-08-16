@@ -405,11 +405,15 @@ export function PlanFinderDetail({
           {/* 0580: hint(옅은 회색) → warning(주황) + 정보 아이콘. hint는 "아직 값이 없음"
               층이라(theme.ts) 읽고 확인하라는 문장에는 맞지 않았다. items-start = 문장이
               두 줄로 접힐 때 아이콘이 첫 줄에 고정. */}
-          {/* 0589: font-medium + 아이콘 16px — 색만으로는 부족했다(theme.ts warning 주석).
-              획이 굵어지면 같은 색도 색으로 읽힌다. 값과 짝이라 한쪽만 되돌리면 안 된다. */}
+          {/* 0589: font-medium + 아이콘 16px — 색만으로는 회색으로 읽혔다(theme.ts warning 주석).
+              0590: 글씨만 주황이던 조판 → **연한 경고 면 배너**. 흰 배경에 주황 글씨만 떠 있어
+              튀어 보였고, 업계 표준 경고 배너는 면 + 진한 글씨 + 중간 톤 아이콘의 3종 조합이다.
+              면이 영역을 만들어 주므로 글씨가 혼자 튀지 않는다. **테두리 없음**(사용자 확정).
+              px-3 py-2.5 = 지정 12/10px. 아이콘은 더 이상 상속이 아니라 자체 색(text-warning-icon).
+              편집 폼(MyPlanNewForm)과 리터럴 준용 — 한쪽만 바꾸면 두 화면이 갈린다. */}
           {sourcePlanId && (
-            <p className="mt-2 flex items-start gap-1.5 text-[13px] font-medium text-warning break-keep">
-              <Info aria-hidden size={16} className="mt-[2px] shrink-0" />
+            <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-surface px-3 py-2.5 text-[13px] font-medium text-warning-fg break-keep">
+              <Info aria-hidden size={16} className="mt-[2px] shrink-0 text-warning-icon" />
               <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
             </p>
           )}

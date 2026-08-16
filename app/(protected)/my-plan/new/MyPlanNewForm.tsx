@@ -1185,10 +1185,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
       {/* 0580: warning(주황) + 정보 아이콘으로 승격 — 읽기 상세와 리터럴 준용
           (gap-1.5 / items-start). 한쪽만 바꾸면 어긋난다.
           0589: font-medium + 아이콘 16px(mt-[2px] 광학 정렬) — 색만으로는 회색으로 읽혔다.
-          근거는 theme.ts의 warning 주석. 색값과 획 보강은 짝이라 한쪽만 되돌리면 안 된다. */}
+          근거는 theme.ts의 warning 주석. 색값과 획 보강은 짝이라 한쪽만 되돌리면 안 된다.
+          0590: 연한 경고 면 배너로 — 도입 경위·조판 근거는 읽기 상세(PlanFinderDetail) 주석. */}
       {sourcePlanId && (
-        <p className="mt-2 flex items-start gap-1.5 text-[13px] font-medium text-warning break-keep">
-          <Info aria-hidden size={16} className="mt-[2px] shrink-0" />
+        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-surface px-3 py-2.5 text-[13px] font-medium text-warning-fg break-keep">
+          <Info aria-hidden size={16} className="mt-[2px] shrink-0 text-warning-icon" />
           <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
         </p>
       )}
