@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef, useTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { GripVertical, Info } from 'lucide-react';
+import { minStartDate } from '@/lib/plan/date-limits';
 import {
   DndContext,
   closestCenter,
@@ -322,6 +323,12 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dateMissing, setDateMissing] = useState({ start: false, end: false });
+  // 0581: 날짜 하한의 기준은 **최초 저장값**이라 ref로 고정한다 — editor.startDate를 쓰면
+  //   폼에서 날짜를 고르는 순간 하한이 따라 움직여, 한 번 미래로 바꾸면 원래 과거 날짜로
+  //   되돌릴 수 없게 된다. 신규 작성은 undefined → 하한 = 오늘. 서버(updatePlanWithItemsAction)가
+  //   existing.startDate로 잡는 기준과 같은 값이어야 한다(한쪽만 막히면 사용자가 이유를 모른다).
+  const savedStartRef = useRef(initialState?.startDate || null);
+  const startMin = minStartDate(savedStartRef.current);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -699,6 +706,9 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
           <input
             type="date"
             value={editor.startDate}
+            // 0581: 과거 선택 차단. 저장값이 이미 과거면 그 값이 하한(기존 플랜 보호) — 규칙 정본은
+            //   lib/plan/date-limits.ts. min은 선택 UI만 좁히고 타이핑은 못 막으므로 서버가 실제 방어선.
+            min={startMin}
             onChange={(e) => handleDateChange('startDate', e.target.value)}
             className={`${INPUT_CLASS}${dateMissing.start ? ' !border-danger focus:!border-danger' : ''}`}
           />
@@ -708,6 +718,8 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
           <input
             type="date"
             value={editor.endDate}
+            // 0581: 도착일 하한은 출발일 — 출발일이 아직 없으면 출발일과 같은 하한을 쓴다.
+            min={editor.startDate || startMin}
             onChange={(e) => handleDateChange('endDate', e.target.value)}
             className={`${INPUT_CLASS}${dateMissing.end ? ' !border-danger focus:!border-danger' : ''}`}
           />
