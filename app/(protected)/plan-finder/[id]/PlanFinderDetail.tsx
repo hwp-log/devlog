@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Info } from 'lucide-react';
 import { PublicCostSection } from '@/app/(protected)/story/[id]/PublicCostSection';
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { PublicFlightTable } from './PublicFlightTable';
@@ -401,9 +402,13 @@ export function PlanFinderDetail({
           {/* 0579: 담은 플랜의 금액은 원본 작성 시점 값이다(비용·항공 복사 개시 — actions.ts 주석).
               조건은 sourcePlanId 유무 하나 — isOwner를 안 거는 이유는 담은 플랜을 나중에 공개로
               돌리면 남에게도 같은 사실이 성립하기 때문. 편집 폼(MyPlanNewForm)과 같은 문구·조판. */}
+          {/* 0580: hint(옅은 회색) → warning(주황) + 정보 아이콘. hint는 "아직 값이 없음"
+              층이라(theme.ts) 읽고 확인하라는 문장에는 맞지 않았다. items-start = 문장이
+              두 줄로 접힐 때 아이콘이 첫 줄에 고정. */}
           {sourcePlanId && (
-            <p className="mt-2 text-[13px] text-hint break-keep">
-              원본 작성 시점의 금액입니다. 실제와 다를 수 있어요.
+            <p className="mt-2 flex items-start gap-1.5 text-[13px] text-warning break-keep">
+              <Info aria-hidden size={14} className="mt-[3px] shrink-0" />
+              <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
             </p>
           )}
           <div className="mt-[18px]">

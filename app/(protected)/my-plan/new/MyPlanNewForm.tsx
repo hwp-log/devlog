@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect, useRef, useTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Info } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -855,9 +855,12 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
           한쪽만 바꾸면 같은 사실이 두 화면에서 다르게 읽힌다.
           읽기는 비용 0건이면 섹션째 안 뜨지만 여기는 항상 뜬다 — 입력 화면이라 금액이 비어도
           "지금 보이는 값들의 출처는 원본 시점"이 여전히 참이다. */}
+      {/* 0580: warning(주황) + 정보 아이콘으로 승격 — 읽기 상세와 리터럴 준용
+          (아이콘 14px / gap-1.5 / items-start / mt-[3px] 광학 정렬). 한쪽만 바꾸면 어긋난다. */}
       {sourcePlanId && (
-        <p className="mt-2 text-[13px] text-hint break-keep">
-          원본 작성 시점의 금액입니다. 실제와 다를 수 있어요.
+        <p className="mt-2 flex items-start gap-1.5 text-[13px] text-warning break-keep">
+          <Info aria-hidden size={14} className="mt-[3px] shrink-0" />
+          <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
         </p>
       )}
 
