@@ -126,7 +126,13 @@ export default async function MyPlanEditPage({ params }: Props) {
     // 0536: 작성 화면(my-plan/new/page)과 같은 폼·같은 폭 래퍼(--reading-w 860) —
     //   한쪽만 바꾸면 폭이 어긋난다. 검산은 new 쪽 주석 참조.
     <div className="max-w-[var(--reading-w)] mx-auto">
-      <MyPlanNewForm initialState={buildInitialState(plan, dayCount)} mode="edit" planId={plan.id} />
+      <MyPlanNewForm
+        initialState={buildInitialState(plan, dayCount)}
+        mode="edit"
+        planId={plan.id}
+        // 0579: 담은 플랜이면 비용 주의 문구(읽기 상세와 같은 조건·같은 문구)
+        sourcePlanId={plan.sourcePlanId}
+      />
     </div>
   );
 }

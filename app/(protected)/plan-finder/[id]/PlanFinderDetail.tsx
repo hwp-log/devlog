@@ -398,6 +398,14 @@ export function PlanFinderDetail({
       {summary.ratios.length > 0 && (
         <div className="mt-7 sm:mt-11">
           <SectionHeader title="예상 비용" />
+          {/* 0579: 담은 플랜의 금액은 원본 작성 시점 값이다(비용·항공 복사 개시 — actions.ts 주석).
+              조건은 sourcePlanId 유무 하나 — isOwner를 안 거는 이유는 담은 플랜을 나중에 공개로
+              돌리면 남에게도 같은 사실이 성립하기 때문. 편집 폼(MyPlanNewForm)과 같은 문구·조판. */}
+          {sourcePlanId && (
+            <p className="mt-2 text-[13px] text-hint break-keep">
+              원본 작성 시점의 금액입니다. 실제와 다를 수 있어요.
+            </p>
+          )}
           <div className="mt-[18px]">
             <PublicCostSection
               summary={summary}

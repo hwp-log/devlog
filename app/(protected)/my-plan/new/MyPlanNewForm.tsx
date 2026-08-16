@@ -98,6 +98,10 @@ interface Props {
   initialState?: EditorState;
   mode?: 'create' | 'edit';
   planId?: string;
+  // 0579: 담은 플랜이면 원본 id. 비용 주의 문구의 표시 조건 하나에만 쓴다.
+  //   EditorState에 넣지 않는 이유 — EditorState는 저장 페이로드의 형태고 이 값은
+  //   편집 대상이 아닌 읽기 사실이다(단일 소스 + 파생). 신규 작성 경로는 안 넘긴다.
+  sourcePlanId?: string | null;
 }
 
 // 0562(C): 저장 대상 항목 판정 — 이름이 빈 행은 저장되지 않는다.
@@ -303,7 +307,7 @@ function SortablePlanItem({
   );
 }
 
-export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) {
+export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePlanId }: Props) {
   const [editor, setEditor] = useState<EditorState>(initialState ?? DEFAULT_STATE);
   const [selectedDay, setSelectedDay] = useState(1);
   // 0562 D②: 일자별 비용의 날짜 탭 — 일정 탭과 독립 선택(비용 입력 중 일정 탭이 안 튀게)
@@ -847,6 +851,15 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId }: Props) 
       <div className="mt-[26px] sm:mt-11">
         <SectionHeader title="예상 비용" />
       </div>
+      {/* 0579: 담은 플랜(sourcePlanId 있음)만 — 읽기 상세(PlanFinderDetail)와 같은 문구·조판.
+          한쪽만 바꾸면 같은 사실이 두 화면에서 다르게 읽힌다.
+          읽기는 비용 0건이면 섹션째 안 뜨지만 여기는 항상 뜬다 — 입력 화면이라 금액이 비어도
+          "지금 보이는 값들의 출처는 원본 시점"이 여전히 참이다. */}
+      {sourcePlanId && (
+        <p className="mt-2 text-[13px] text-hint break-keep">
+          원본 작성 시점의 금액입니다. 실제와 다를 수 있어요.
+        </p>
+      )}
 
       <CostSection
         totals={categoryTotals}
