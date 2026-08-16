@@ -128,10 +128,27 @@ function savableDayCosts(editor: EditorState): DayCost[] {
   );
 }
 
-function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[] {
-  if (!startDate || !endDate) return [];
+// 0583: 기간으로 성립하는 날짜 쌍인가 — calcDays(재계산 여부)와 기간 라벨(표시 여부)이
+//   **같은 판정을 써야 한다.** 한쪽만 바꾸면 "항목은 유지되는데 기간은 3일"처럼 어긋난다.
+function isValidRange(startDate: string, endDate: string): boolean {
+  if (!startDate || !endDate) return false;
+  return new Date(endDate).getTime() >= new Date(startDate).getTime();
+}
+
+/**
+ * 날짜 쌍 → Day 배열. **null = 재계산 불가**(날짜가 아직 기간을 이루지 않음) — 호출부는
+ * 기존 days를 그대로 둔다.
+ *
+ * 0583: 구 반환은 그 경우 `[]`였다. 그런데 dayCount는 Math.max(1, …)이라 정상 경로에서
+ *   빈 배열이 나올 수 없으므로, `[]`가 "0일"과 "판정 불가" 두 뜻을 겸하고 있었다.
+ *   호출부가 구분할 수 없으니 중간 상태(출발일만 입력)에서 days를 통째로 비웠고,
+ *   0582로 "날짜 없이 항목이 실린 폼"이 생기면서 그게 **항목 삭제 경로**가 됐다
+ *   (저장이 deleteMany 후 폼 상태로 재생성하므로 0건이 확정된다).
+ *   일수가 줄어드는 재계산(3일 → 2일)은 여전히 항목을 버린다 — 그건 별건(Day 증감·경고).
+ */
+function calcDays(startDate: string, endDate: string, prev: DayPlan[]): DayPlan[] | null {
+  if (!isValidRange(startDate, endDate)) return null;
   const diff = new Date(endDate).getTime() - new Date(startDate).getTime();
-  if (diff < 0) return [];
   const dayCount = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
   return Array.from({ length: dayCount }, (_, i) => {
     const day = i + 1;
@@ -339,8 +356,11 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
     setEditor((prev) => {
       const nextStart = field === 'startDate' ? value : prev.startDate;
       const nextEnd = field === 'endDate' ? value : prev.endDate;
+      // 0583: null(= 아직 기간이 아님)이면 days를 건드리지 않는다 — 날짜를 한쪽만 고른
+      //   중간 상태에서 기존 항목이 사라지지 않게. 날짜 값 자체는 그대로 반영해 입력을 막지 않고,
+      //   두 날짜가 유효해지는 순간 재계산이 돌아 정상 흐름으로 복귀한다.
       const newDays = calcDays(nextStart, nextEnd, prev.days);
-      return { ...prev, [field]: value, days: newDays };
+      return { ...prev, [field]: value, ...(newDays ? { days: newDays } : {}) };
     });
   }
 
@@ -380,10 +400,12 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
     () => editor.days.reduce((n, d) => n + d.items.filter(isSavableItem).length, 0),
     [editor.days],
   );
-  // 기간: 날짜 미설정이면 "—". days는 calcDays 산출이라 역순 날짜(diff<0)면 빈 배열이 되므로
-  //   길이도 함께 본다 — 그때 formatDurationLabel(0)은 "당일"이 돼 거짓이 된다.
+  // 기간: 날짜가 기간으로 성립할 때만 표시, 아니면 "—".
+  // 0583: 구 판정은 `days.length > 0`이었다 — 역순 날짜면 calcDays가 빈 배열을 주는 데
+  //   기댄 간접 판정이다. 이제 그 경우 days가 **보존**되므로 길이로는 못 가른다
+  //   (역순인데 "2박 3일"이 뜬다). 날짜 유효성을 직접 본다 — calcDays와 같은 술어.
   const durationLabel =
-    editor.startDate && editor.endDate && editor.days.length > 0
+    isValidRange(editor.startDate, editor.endDate) && editor.days.length > 0
       ? formatDurationLabel(editor.days.length)
       : '—';
 
