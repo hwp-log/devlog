@@ -259,8 +259,12 @@ export function PublicCostSection({ summary, startDate, endDate, flight }: Props
   };
   const periodLabel =
     startDate && endDate ? `${formatDayLabel(startDate)} ~ ${formatDayLabel(endDate)}` : null;
+  // 0582: 폴백 문안 `DAY N` → `Day N` — 나머지 세 탭(PlanFinderDetail 일정 / MyPlanNewForm
+  //   일정·비용)이 전부 `Day N`이라 여기만 대문자였다. 날짜 없는 플랜이 실제로 생기면서
+  //   (담기 날짜 미복사, 0582) 이 폴백이 처음 화면에 노출된다.
+  //   문안이 호출부마다 흩어져 있는 건 의도다 — "화면마다 폴백 어휘가 다름"(DayTabs 주석).
   const dayDateLabel = (day: number) =>
-    startDate ? formatDayLabel(addDays(startDate, day - 1)) : `DAY ${day}`;
+    startDate ? formatDayLabel(addDays(startDate, day - 1)) : `Day ${day}`;
 
   // 0565: 탭 목록 = 비용이 있는 날만(dayGroups 그대로). 0499 "비용 없는 날은 그룹 자체가
   //   안 생김"을 승계 — 눌러도 빈 화면인 탭은 헛걸음이고, 이 섹션은 "얼마 썼나"를 보는
