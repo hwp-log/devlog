@@ -351,6 +351,92 @@ function SortablePlanItem({
   );
 }
 
+// 0588: 고정 비용 행 — 일정 항목(SortablePlanItem)의 dnd-kit 패턴을 그대로 따른다:
+//   useSortable({ id }) / 핸들은 행 맨 왼쪽 / attributes·listeners는 핸들 버튼에만
+//   (행 전체에 걸면 입력·드롭다운 조작이 드래그로 먹힌다) / isDragging은 opacity-50.
+//   핸들 아이콘 크기(14px)도 일정 항목과 같은 값 — 터치 타겟 미달은 그쪽과 함께 별건.
+//
+//   조판: 구 2줄 스택(이름 / 카테고리·금액·삭제)을 유지하되 핸들이 이름과 같은 줄에 붙는다.
+//   sm 이상은 `sm:contents`로 래퍼를 지워 핸들·이름이 그리드의 1·2열이 된다 — 그래서
+//   grid-cols가 [1fr_150px_120px_32px] → [20px_1fr_150px_120px_32px]로 한 열 늘었다.
+function SortableDaylessCostRow({
+  cost,
+  index,
+  onUpdate,
+  onRemove,
+}: {
+  cost: DaylessCost;
+  index: number;
+  onUpdate: (index: number, patch: Partial<DaylessCost>) => void;
+  onRemove: (index: number) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: cost.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[20px_1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0${
+        isDragging ? ' opacity-50' : ''
+      }`}
+    >
+      <div className="flex items-center gap-2 sm:contents">
+        <button
+          type="button"
+          aria-label="순서 변경"
+          {...attributes}
+          {...listeners}
+          className="shrink-0 text-hint cursor-grab active:cursor-grabbing hover:text-fg2 transition-colors"
+        >
+          <GripVertical size={14} />
+        </button>
+        <input
+          type="text"
+          value={cost.label}
+          onChange={(e) => onUpdate(index, { label: e.target.value })}
+          placeholder="이름 (예: 렌터카)"
+          className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
+        />
+      </div>
+      <div className="flex gap-2 sm:contents">
+        <select
+          value={cost.category}
+          onChange={(e) => onUpdate(index, { category: e.target.value as CostCategory | '' })}
+          className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
+        >
+          <option value="">카테고리</option>
+          {CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>
+              {CATEGORY_LABEL[cat]}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          min={0}
+          value={cost.amount === 0 ? '' : cost.amount}
+          onChange={(e) => {
+            const raw = Number(e.target.value);
+            onUpdate(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
+          }}
+          placeholder="금액"
+          className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0 sm:text-right'}
+        />
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          aria-label="항목 삭제"
+          className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-md text-hint hover:bg-surface2 hover:text-fg2 transition-colors text-base"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePlanId }: Props) {
   const [editor, setEditor] = useState<EditorState>(initialState ?? DEFAULT_STATE);
   const [selectedDay, setSelectedDay] = useState(1);
@@ -627,6 +713,19 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
       ...prev,
       daylessCosts: prev.daylessCosts.map((c, i) => (i === index ? { ...c, ...patch } : c)),
     }));
+  }
+
+  // 0588: 고정 비용 순서 변경 — 일정 항목 handleDragEnd와 같은 형태(arrayMove).
+  //   daylessCosts는 통째로 한 그룹(day=null)이라 필터·역매핑이 없다.
+  function handleDaylessCostDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setEditor((prev) => {
+      const oldIdx = prev.daylessCosts.findIndex((c) => c.id === active.id);
+      const newIdx = prev.daylessCosts.findIndex((c) => c.id === over.id);
+      if (oldIdx < 0 || newIdx < 0) return prev;
+      return { ...prev, daylessCosts: arrayMove(prev.daylessCosts, oldIdx, newIdx) };
+    });
   }
 
   function removeDaylessCost(index: number) {
@@ -995,53 +1094,28 @@ export function MyPlanNewForm({ initialState, mode = 'create', planId, sourcePla
           행은 2줄 스택(이름 / 카테고리·금액·삭제) — 360px 리플로우로 잘림 방지(min-w-0 필수). */}
       <CostGroupHeader title="여행 고정 비용" />
       <div className="mt-1 flex flex-col">
-        {editor.daylessCosts.map((cost, index) => (
-          <div
-            key={cost.id} // 0588: index 키 폐기 — 순서가 바뀌면 index는 다른 행을 가리킨다
-            className="flex flex-col gap-2 py-3 border-b border-hairline sm:grid sm:grid-cols-[1fr_150px_120px_32px] sm:items-center sm:gap-3 sm:space-y-0"
+        {/* 0588: 일정 항목과 같은 DndContext/SortableContext 구성(sensors·collisionDetection·
+            strategy 전부 동일 값 재사용) — 컨텍스트만 별개다. */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDaylessCostDragEnd}
+        >
+          <SortableContext
+            items={editor.daylessCosts.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
           >
-            <input
-              type="text"
-              value={cost.label}
-              onChange={(e) => updateDaylessCost(index, { label: e.target.value })}
-              placeholder="이름 (예: 렌터카)"
-              className={DAYLESS_INPUT_CLASS}
-            />
-            <div className="flex gap-2 sm:contents">
-              <select
-                value={cost.category}
-                onChange={(e) => updateDaylessCost(index, { category: e.target.value as CostCategory | '' })}
-                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0'}
-              >
-                <option value="">카테고리</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {CATEGORY_LABEL[cat]}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min={0}
-                value={cost.amount === 0 ? '' : cost.amount}
-                onChange={(e) => {
-                  const raw = Number(e.target.value);
-                  updateDaylessCost(index, { amount: isNaN(raw) ? 0 : Math.max(0, Math.floor(raw)) });
-                }}
-                placeholder="금액"
-                className={DAYLESS_INPUT_CLASS + ' flex-1 min-w-0 sm:text-right'}
+            {editor.daylessCosts.map((cost, index) => (
+              <SortableDaylessCostRow
+                key={cost.id}
+                cost={cost}
+                index={index}
+                onUpdate={updateDaylessCost}
+                onRemove={removeDaylessCost}
               />
-              <button
-                type="button"
-                onClick={() => removeDaylessCost(index)}
-                aria-label="항목 삭제"
-                className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 flex items-center justify-center rounded-md text-hint hover:bg-surface2 hover:text-fg2 transition-colors text-base"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        ))}
+            ))}
+          </SortableContext>
+        </DndContext>
         {/* 0562 D②: 구 "+ 항목 추가" — 그룹이 셋이 되며 무엇의 항목인지 모호해져 명시 */}
         <button
           type="button"
