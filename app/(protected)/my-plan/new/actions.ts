@@ -9,6 +9,7 @@ import { pickPlanCover, firstOwnSpotCover } from '@/lib/plan/pick-cover';
 import { normalizeRegionKey } from '@/lib/plan/region-cover';
 import { inferRegionKey, inferMovieTitle } from '@/lib/plan/infer-plan-meta';
 import { clampHeadcount } from '@/lib/plan/validate-input';
+import { validatePlanDates, savedDateStr } from '@/lib/plan/date-limits';
 import { findNearbySpots } from '@/lib/spot/nearby';
 import { normalizeSpotName } from '@/lib/spot/normalize-name';
 
@@ -251,6 +252,15 @@ export async function createPlanWithItemsAction(
   const title = payload.title.trim();
   if (!title) return { error: '제목을 입력해주세요' };
 
+  // 0581: 신규는 저장값이 없으므로 하한 = 오늘. 클라의 min 속성은 타이핑 입력을 완전히
+  //   막지 못하므로(브라우저는 invalid 표시만 하고 값은 들어간다) 여기가 실제 방어선이다.
+  const dateError = validatePlanDates({
+    startDate: payload.startDate,
+    endDate: payload.endDate,
+    saved: null,
+  });
+  if (dateError) return { error: dateError };
+
   // 재사용 판정을 먼저(주소·재사용 spotId 확보 → 커버 선택에 사용). tx 밖 read.
   const resolvedItems = await resolveReuse(payload.items);
 
@@ -302,6 +312,16 @@ export async function updatePlanWithItemsAction(
 
   const existing = await prisma.myPlan.findFirst({ where: { id: planId, ownerId: user.id } });
   if (!existing) return { error: '수정 권한이 없습니다' };
+
+  // 0581: 하한 기준은 **기존 저장값** — 이미 지난 여행을 기록한 플랜(실측 1건, 공개 시연
+  //   데이터)이 날짜와 무관한 수정조차 막히면 안 된다. 값을 안 바꾸면 그대로 통과하고,
+  //   더 과거로 당기는 것만 막힌다. 클라 min(MyPlanNewForm의 savedStartRef)과 같은 기준.
+  const dateError = validatePlanDates({
+    startDate: payload.startDate,
+    endDate: payload.endDate,
+    saved: savedDateStr(existing.startDate),
+  });
+  if (dateError) return { error: dateError };
 
   // 재사용 판정은 tx 밖에서 선행(create와 동형). 수정 폼은 4단계 전까지 place 미탑재라
   // 재검색하지 않은 항목은 hasCoords=false → 좌표·spotId NULL(기존과 동일).
