@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { visiblePlanWhere } from '@/lib/plan/queries';
+import { resolvePlanDayCount } from '@/lib/plan/day-count';
 import { PlanFinderDetail } from './PlanFinderDetail';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 
@@ -129,11 +130,9 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       }
     : null;
 
-  let dayCount = 1;
-  if (plan.startDate && plan.endDate) {
-    const diff = plan.endDate.getTime() - plan.startDate.getTime();
-    dayCount = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
-  }
+  // 0582: 날짜가 없으면 PlanSpot의 최대 day로 — 구 폴백 1은 담은 플랜(날짜 미복사)에서
+  //   Day 2·3을 통째로 가렸다. 규칙 정본은 lib/plan/day-count.ts.
+  const dayCount = resolvePlanDayCount(plan.startDate, plan.endDate, plan.spots);
 
   const createdAtLabel = plan.createdAt.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
 

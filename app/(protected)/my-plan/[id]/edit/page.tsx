@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { resolvePlanDayCount } from '@/lib/plan/day-count';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { MyPlanNewForm } from '../../new/MyPlanNewForm';
 import type { EditorState, DayPlan, PlanItem, DayCost } from '../../new/MyPlanNewForm';
@@ -116,11 +117,9 @@ export default async function MyPlanEditPage({ params }: Props) {
   });
   if (!plan) notFound();
 
-  let dayCount = 1;
-  if (plan.startDate && plan.endDate) {
-    const diff = plan.endDate.getTime() - plan.startDate.getTime();
-    dayCount = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
-  }
+  // 0582: 상세(plan-finder/[id]/page)와 같은 3단 폴백 — 두 화면이 같은 플랜에서 다른 일수를
+  //   내면 안 된다. 규칙 정본은 lib/plan/day-count.ts.
+  const dayCount = resolvePlanDayCount(plan.startDate, plan.endDate, plan.spots);
 
   return (
     // 0536: 작성 화면(my-plan/new/page)과 같은 폼·같은 폭 래퍼(--reading-w 860) —
