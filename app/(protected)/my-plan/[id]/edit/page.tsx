@@ -111,7 +111,9 @@ export default async function MyPlanEditPage({ params }: Props) {
     where: { id, ownerId: user.id },
     include: {
       spots: { orderBy: { order: 'asc' }, include: { spot: { select: { address: true } } } },
-      costs: { orderBy: { createdAt: 'asc' } },
+      // 0588: createdAt(삽입 순서) → order(사용자가 정한 순서). 드래그 정렬이 붙으면서
+      //   둘이 갈린다 — 순서의 정본은 order다. day는 그룹 축이라 정렬 앞에 둔다.
+      costs: { orderBy: [{ day: 'asc' }, { order: 'asc' }] },
       flight: true,
     },
   });

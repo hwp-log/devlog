@@ -152,9 +152,13 @@ async function insert() {
           data: { planId: plan.id, day: (s % days) + 1, order: s, name: `${movie} 스팟 ${s + 1}`, lat: 0, lng: 0 },
         });
       }
+      // 0588: order는 day 그룹별 러닝 카운터 — 앱 저장 경로(buildPlanRows)와 같은 규칙.
+      const orderByDay = new Map<number, number>();
       for (const c of splitCosts(total, days)) {
+        const order = orderByDay.get(c.day) ?? 0;
+        orderByDay.set(c.day, order + 1);
         await tx.planCost.create({
-          data: { planId: plan.id, day: c.day, category: c.category, label: c.label, amount: c.amount },
+          data: { planId: plan.id, day: c.day, order, category: c.category, label: c.label, amount: c.amount },
         });
       }
     });

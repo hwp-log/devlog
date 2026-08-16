@@ -218,14 +218,21 @@ async function buildPlanRows(
   // 2패스: 일자별 비용 — 연결이 풀린 localId(클라 선별을 통과 못 한 경우는 없어야 정상)는
   //   기타 지출로 강등(planSpotId NULL·라벨 유지). 연결 비용의 label은 **장소 이름으로 강제**
   //   — 이름이 정본(단일 소스), 클라 label은 기타 지출에서만 의미.
+  // 0588: order는 **그룹(day) 안의 러닝 카운터**다 — 배열 인덱스를 쓰면 안 된다.
+  //   금액 0인 행을 건너뛰므로 인덱스에는 구멍이 생기고, 폼의 dayCosts는 전 Day가 한 배열이라
+  //   인덱스가 Day 경계를 넘어 이어진다. 둘 다 (planId, day) 그룹별 0..n-1을 깨뜨린다.
+  const orderByDay = new Map<number, number>();
   for (const cost of dayCosts) {
     if (cost.amount <= 0) continue;
     const linked = cost.localId ? spotByLocalId.get(cost.localId) : undefined;
+    const order = orderByDay.get(cost.day) ?? 0;
+    orderByDay.set(cost.day, order + 1);
     await tx.planCost.create({
       data: {
         planId,
         planSpotId: linked?.id ?? null,
         day: cost.day,
+        order,
         category: cost.category,
         label: linked ? linked.name : cost.label,
         amount: cost.amount,
@@ -233,11 +240,17 @@ async function buildPlanRows(
     });
   }
   // 0504: 무장소 비용 — planSpotId·day 모두 NULL로 저장(create/update 공통 경로).
+  // 0588: day=null이 한 그룹이므로 자체 카운터(위 orderByDay와 순번 공간이 겹치지 않는다).
+  let daylessOrder = 0;
   for (const cost of dayless) {
     if (cost.amount > 0) {
       await tx.planCost.create({
-        data: { planId, planSpotId: null, day: null, category: cost.category, label: cost.label, amount: cost.amount },
+        data: {
+          planId, planSpotId: null, day: null, order: daylessOrder,
+          category: cost.category, label: cost.label, amount: cost.amount,
+        },
       });
+      daylessOrder += 1;
     }
   }
 }

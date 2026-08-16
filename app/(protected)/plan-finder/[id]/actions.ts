@@ -82,7 +82,11 @@ export async function copyPublicPlanAction(
       //   공개 상세에서 이미 실값으로 보이는 금액을 담기에서만 막을 이유가 없다.
       //   (0103 회고는 시점 기록이라 고치지 않는다. 뒤집힌 결정의 정본은 이 주석.)
       costs: {
-        select: { planSpotId: true, day: true, category: true, label: true, amount: true },
+        // 0588: order도 함께 복사한다 — **원본 작성자가 정한 순서를 유지**한다(사용자 확정).
+        //   담기는 "이 사람이 짠 것"을 가져오는 것이므로 비용 배열의 순서도 그 일부다.
+        //   재번호 없이 그대로 실어도 그룹(day)별 0..n-1이 보존된다 — 원본이 이미 그 형태고
+        //   행을 걸러내지 않고 전량 복사하기 때문.
+        select: { planSpotId: true, day: true, order: true, category: true, label: true, amount: true },
       },
       // 0580: PlanFlight는 복사하지 않는다 — 0579에서 한 번 넣었다가 되돌렸다.
       //   ① 항공권은 **특정 편명·특정 시각의 예약**이라 담은 사람이 그대로 쓸 수 없다.
@@ -135,6 +139,7 @@ export async function copyPublicPlanAction(
             // 복사하므로 실제로는 도달하지 않지만, 끊긴 연결이 남의 id를 가리키느니 낫다.
             planSpotId: cost.planSpotId ? spotIdMap.get(cost.planSpotId) ?? null : null,
             day: cost.day,
+            order: cost.order, // 0588: 원본 순서 유지
             category: cost.category,
             label: cost.label,
             amount: cost.amount,
