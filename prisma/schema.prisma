@@ -232,6 +232,10 @@ model PlanCost {
   planId     String       @map("plan_id")
   planSpotId String?      @map("plan_spot_id")
   day        Int?         // 0504: nullable화 — 하루에 안 묶이는 비용(렌터카·항공권·보험 등)은 day 부재(NULL)
+  // 0588: 표시 순서의 정본. 순번 공간은 (planId, day) 그룹별 — day=null인 고정 비용이 한 그룹.
+  //   createdAt(삽입 순서)에 기대던 정렬을 대체한다: 드래그로 순서를 바꾸면 둘이 갈린다.
+  //   PlanSpot.order와 같은 축이지만 그쪽은 (planId, day, order)에 day가 NOT NULL이라 짝이 아니다.
+  order      Int
   category   CostCategory
   label      String
   amount     Int
@@ -243,6 +247,7 @@ model PlanCost {
   @@map("plan_costs")
   @@index([planId])
   @@index([planId, day])
+  @@index([planId, day, order]) // 0588: 그룹 안 정렬 조회용 (PlanSpot의 같은 형태 인덱스와 대응)
 }
 
 model PlanFlight {
