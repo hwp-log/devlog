@@ -42,6 +42,9 @@ interface Props {
   isPublic: boolean;
   // 0560: 담은 플랜의 원본 링크(구 PlanDetail 흡수) — isOwner일 때만 렌더
   sourcePlanId: string | null;
+  // 0594: 담은 뒤 비용 총액이 그대로인가 — **서버에서 판정한 결과만** 받는다.
+  //   판정 규칙·근거는 lib/plan/cost-snapshot.ts, 계산은 page.tsx.
+  isCostUnchanged: boolean;
 }
 
 // 히어로 커버 sizes — 본문 컬럼 폭 기준(모바일 100vw, 데스크톱 = --reading-w 860).
@@ -163,6 +166,7 @@ export function PlanFinderDetail({
   isOwner,
   isPublic,
   sourcePlanId,
+  isCostUnchanged,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
 
@@ -401,13 +405,17 @@ export function PlanFinderDetail({
           <SectionHeader title="예상 비용" />
           {/* 0579: 담은 플랜의 금액은 원본 작성 시점 값이다(비용·항공 복사 개시 — actions.ts 주석).
               편집 폼(MyPlanNewForm)과 같은 문구·조판·조건.
-              0593: 조건을 **비공개 한정**으로 좁힌다. 0580의 "isOwner를 안 거는 이유는 공개로
-              돌리면 남에게도 같은 사실이 성립하기 때문"은 **이 판단으로 정정된다** —
-              배너의 목적은 출처 표시가 아니라 **담은 사람에게 확인을 요청하는 안내**다.
-              확인하고 고친 뒤 공개했다면 그건 그 사람이 책임지는 금액이고, 안 고쳤더라도
-              그대로 두기로 한 판단이다. 어느 쪽이든 공개 시점에는 "원본 시점 금액"이라는
-              서술 자체가 틀린 말이 된다 — 남에게 보여줄 이유가 없는 게 아니라 **사실이 아니다**.
-              0592(원본 링크도 비공개 한정)와 같은 축: 공개하면 독립된 플랜으로 본다. */}
+              0593: 조건을 비공개 한정으로 좁혔다. 그때 확정된 것은 **배너의 목적**이다 —
+              출처 표시가 아니라 담은 사람에게 확인을 요청하는 안내.
+              0594: 그런데 **기준이 틀렸다**. 공개 여부는 금액이 낡았는지와 무관하다.
+              사라져야 하는 시점은 **금액을 실제로 고쳤을 때**다. 그래서 `!isPublic`을 버리고
+              담은 시점 스냅샷(MyPlan.sourceCostTotal) 대조로 바꿨다 —
+              판정은 서버가 하고 여기는 결과(isCostUnchanged)만 쓴다.
+              규칙·근거(총액 비교인 이유, 라이브 비교를 안 쓰는 이유)는 lib/plan/cost-snapshot.ts.
+              `isOwner`는 유지한다: "확인 바랍니다"는 담은 사람에게 하는 요청이라, 공개된 담은
+              플랜을 남이 볼 때는 할 일이 없는 사람에게 하는 말이 된다(0592 원본 링크와 같은 결).
+              **편집 폼은 `isOwner` 없이 같은 판정을 쓴다** — 폼은 소유자만 진입하므로
+              조건 문자열은 갈리지만 의미는 같다. */}
           {/* 0580: hint(옅은 회색) → warning(주황) + 정보 아이콘. hint는 "아직 값이 없음"
               층이라(theme.ts) 읽고 확인하라는 문장에는 맞지 않았다. items-start = 문장이
               두 줄로 접힐 때 아이콘이 첫 줄에 고정. */}
@@ -417,7 +425,7 @@ export function PlanFinderDetail({
               면이 영역을 만들어 주므로 글씨가 혼자 튀지 않는다. **테두리 없음**(사용자 확정).
               px-3 py-2.5 = 지정 12/10px. 아이콘은 더 이상 상속이 아니라 자체 색(text-warning-icon).
               편집 폼(MyPlanNewForm)과 리터럴 준용 — 한쪽만 바꾸면 두 화면이 갈린다. */}
-          {sourcePlanId && !isPublic && (
+          {isOwner && sourcePlanId && isCostUnchanged && (
             <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-surface px-3 py-2.5 text-[13px] font-medium text-warning-fg break-keep">
               <Info aria-hidden size={16} className="mt-[2px] shrink-0 text-warning-icon" />
               <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
