@@ -191,6 +191,12 @@ model MyPlan {
   isPublic       Boolean   @default(false) @map("is_public")
   isDraft        Boolean   @default(false) @map("is_draft")
   sourceNickname String?   @db.VarChar(20) @map("source_nickname")
+  // 0594: 담은 시점의 PlanCost 합계 스냅샷. 비용 주의 배너의 판정 기준 —
+  //   "현재 합계와 다르면 담은 사람이 금액을 고친 것"으로 본다.
+  //   NULL = 스냅샷 없음(담기가 아닌 플랜 / 0594 이전에 담긴 플랜). 0(합계 0원)과 다른 뜻이다.
+  //   PlanFlight는 합산에서 제외 — 담기가 항공을 복사하지 않으므로(0580) 담은 시점 값이 늘 0이고,
+  //   나중에 항공권을 붙이면 "비용을 안 고쳤는데" 총액이 바뀐다.
+  sourceCostTotal Int?     @map("source_cost_total")
   headcount      Int       @default(1)
   coverUrl       String?   @map("cover_url")
   createdAt      DateTime  @default(now()) @map("created_at")

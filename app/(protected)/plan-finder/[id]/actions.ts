@@ -114,6 +114,14 @@ export async function copyPublicPlanAction(
           region: original.region,
           movie: original.movie,
           headcount: original.headcount,
+          // 0594: 담은 시점의 비용 총액 스냅샷. 비용 주의 배너를 "금액을 실제로 고쳤는가"로
+          //   판정하기 위한 비교 기준이다(판정 적용은 별도 커밋 — 여기선 기록만).
+          //   별도 조회가 없다 — original.costs는 위 findFirst 결과이고, 아래 복사 루프가
+          //   행을 거르지 않으므로 **이 합 = 사본 PlanCost 합**이 성립한다(0594 조사 확인).
+          //   PlanFlight는 넣지 않는다: 담기가 항공을 복사하지 않으므로(0580) 담은 시점 값이
+          //   늘 0이고, 담은 사람이 나중에 항공권을 붙이면 "비용을 안 고쳤는데" 총액이 바뀐다.
+          //   create가 tx 안이라 실패 시 스냅샷도 함께 롤백된다.
+          sourceCostTotal: original.costs.reduce((sum, c) => sum + c.amount, 0),
           // coverUrl은 복사하지 않는다(0579 명시 제외) — 원본 이미지 소유권.
           // isPublic도 false 고정 유지 — 담은 것이 자동으로 다시 공개되지 않는다.
         },
