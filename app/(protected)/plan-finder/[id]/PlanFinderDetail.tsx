@@ -15,7 +15,10 @@ import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-
 import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 import { DayTabs } from '@/app/(protected)/_components/DayTabs';
-import { COPIED_PLAN_COST_NOTICE } from '@/lib/plan/copied-plan-notice';
+import {
+  COPIED_PLAN_COST_NOTICE_TITLE,
+  COPIED_PLAN_COST_NOTICE_BODY,
+} from '@/lib/plan/copied-plan-notice';
 
 interface Props {
   planId: string;
@@ -417,22 +420,35 @@ export function PlanFinderDetail({
               플랜을 남이 볼 때는 할 일이 없는 사람에게 하는 말이 된다(0592 원본 링크와 같은 결).
               **편집 폼은 `isOwner` 없이 같은 판정을 쓴다** — 폼은 소유자만 진입하므로
               조건 문자열은 갈리지만 의미는 같다. */}
-          {/* 0580: hint(옅은 회색) → warning(주황) + 정보 아이콘. hint는 "아직 값이 없음"
-              층이라(theme.ts) 읽고 확인하라는 문장에는 맞지 않았다. items-start = 문장이
-              두 줄로 접힐 때 아이콘이 첫 줄에 고정. */}
-          {/* 0589: font-medium + 아이콘 16px — 색만으로는 회색으로 읽혔다(theme.ts warning 주석).
-              0590: 글씨만 주황이던 조판 → **연한 경고 면 배너**. 흰 배경에 주황 글씨만 떠 있어
-              튀어 보였고, 업계 표준 경고 배너는 면 + 진한 글씨 + 중간 톤 아이콘의 3종 조합이다.
-              면이 영역을 만들어 주므로 글씨가 혼자 튀지 않는다. **테두리 없음**(사용자 확정).
-              px-3 py-2.5 = 지정 12/10px. 아이콘은 더 이상 상속이 아니라 자체 색(text-warning-icon).
-              편집 폼(MyPlanNewForm)과 **조판만** 리터럴 준용 — 한쪽만 바꾸면 두 화면이 갈린다.
-              0596: 문구는 준용이 아니라 공유다(COPIED_PLAN_COST_NOTICE) — 두 화면에 각각 박혀
-              있던 문자열을 상수로 뺐다. 문구 동기화는 더 이상 사람이 지킬 일이 아니다. */}
+          {/* 0580~0590 경위: hint(회색) → warning(주황 글씨) → 경고 면 배너.
+              0597: **경고 면 폐기 → 중립 안내 블록**. 두 가지가 문제였다.
+              ① 이 화면은 전체가 **선과 여백만으로 구획**되는데 여기만 채워진 면이라
+                 "혼자 다른 재질"로 읽혔다. ② 색이 경고(amber)인데 **내용은 경고가 아니라 안내**다.
+              면은 중립 회색으로: 라이트 hairline(#f1f2f3) / 다크 fill1(#24282e).
+              **한 유틸로는 두 모드 지정값을 동시에 못 낸다**(hairline 다크는 #212426,
+              fill1 라이트는 #e2e6ee) — 그래서 dark: 변형으로 토큰을 갈아 끼운다.
+              모드별로 다른 토큰을 쓰는 선례가 이미 있다(Footer의 `bg-popover dark:bg-bg-deep`).
+              다크 #24282e는 배경 bg-deep(#0f1112) 대비 1.278:1 — warningSurface 다크(1.272)·
+              dangerSurface 다크(1.272)와 사실상 같아 현행과 동등한 가시성이다(0597 실측).
+              문구는 제목(할 일)·설명(왜) 2단 — 상수 정본은 lib/plan/copied-plan-notice.ts.
+              편집 폼(MyPlanNewForm)과 **조판 리터럴 준용, 문구는 공유** — 조판은 한쪽만 바꾸면 갈린다. */}
           {isOwner && sourcePlanId && isCostUnchanged && (
-            <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-surface px-3 py-2.5 text-[13px] font-medium text-warning-fg break-keep">
-              <Info aria-hidden size={16} className="mt-[2px] shrink-0 text-warning-icon" />
-              <span>{COPIED_PLAN_COST_NOTICE}</span>
-            </p>
+            <div className="mt-2 flex items-start gap-2 rounded-lg bg-hairline dark:bg-fill1 px-3 py-2.5">
+              {/* 0597: 경고(amber) → primary 계열 정보 아이콘. 라이트 #2f7fe0는 토큰이 아니라
+                  리터럴이다 — 같은 값을 가진 토큰은 chipMovieFg(작품 칩 전용)뿐이라 그걸 쓰면
+                  작품 칩 색을 바꿀 때 이 아이콘이 딸려 바뀐다(의미 없는 결합). primary 단독은
+                  라이트 면에서 2.45:1로 비텍스트 3:1 미달이라 못 쓴다. 전용 토큰 신설은 이번
+                  범위 밖(별건) — 그때까지 리터럴 + 이 주석. 다크는 primary 그대로(5.40:1). */}
+              <Info aria-hidden size={17} className="mt-[1px] shrink-0 text-[#2f7fe0] dark:text-primary" />
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-fg break-keep">
+                  {COPIED_PLAN_COST_NOTICE_TITLE}
+                </p>
+                <p className="mt-1 text-[12.5px] leading-[1.5] text-fg2 break-keep">
+                  {COPIED_PLAN_COST_NOTICE_BODY}
+                </p>
+              </div>
+            </div>
           )}
           <div className="mt-[18px]">
             <PublicCostSection

@@ -41,7 +41,10 @@ import { SectionHeader } from '@/app/(protected)/_components/SectionHeader';
 import { calcPlanTotal, flightTotal } from '@/lib/plan/calc-plan-total';
 import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-day-label';
 import { clampHeadcount, HEADCOUNT_MIN, HEADCOUNT_MAX } from '@/lib/plan/validate-input';
-import { COPIED_PLAN_COST_NOTICE } from '@/lib/plan/copied-plan-notice';
+import {
+  COPIED_PLAN_COST_NOTICE_TITLE,
+  COPIED_PLAN_COST_NOTICE_BODY,
+} from '@/lib/plan/copied-plan-notice';
 
 // 0562 D②: category·amount 제거 — 일정 항목은 장소만 담는다(DB의 PlanSpot과 동형).
 //   비용은 dayCosts 별도 컬렉션(아래 DayCost) — DB의 PlanCost와 동형. 폼 상태만 한 몸이던
@@ -1200,17 +1203,23 @@ export function MyPlanNewForm({
           경위는 읽기 상세(PlanFinderDetail) 주석.
           읽기는 `isOwner`를 함께 걸지만 여기는 없다 — **폼은 소유자만 진입**하므로 조건
           문자열은 갈려도 의미는 같다. 두 화면의 조건은 한 벌로 본다. */}
-      {/* 0580: warning(주황) + 정보 아이콘으로 승격 — 읽기 상세와 **조판만** 리터럴 준용
-          (gap-1.5 / items-start). 한쪽만 바꾸면 어긋난다.
-          0596: 문구는 공유 상수(COPIED_PLAN_COST_NOTICE) — 준용 대상이 아니다.
-          0589: font-medium + 아이콘 16px(mt-[2px] 광학 정렬) — 색만으로는 회색으로 읽혔다.
-          근거는 theme.ts의 warning 주석. 색값과 획 보강은 짝이라 한쪽만 되돌리면 안 된다.
-          0590: 연한 경고 면 배너로 — 도입 경위·조판 근거는 읽기 상세(PlanFinderDetail) 주석. */}
+      {/* 0580~0590 경위: hint(회색) → warning(주황 글씨) → 경고 면 배너.
+          0597: 경고 면 폐기 → **중립 안내 블록**. 도입 경위·대비 실측·dark: 변형을 쓴 이유는
+          읽기 상세(PlanFinderDetail) 주석이 정본. 여기는 그 조판을 리터럴 준용한다
+          (면 bg-hairline dark:bg-fill1 / radius 8 / 테두리 없음 / 아이콘 17px / 2단 문구).
+          문구는 준용이 아니라 공유다 — lib/plan/copied-plan-notice.ts. */}
       {sourcePlanId && isCostUnchanged && (
-        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-surface px-3 py-2.5 text-[13px] font-medium text-warning-fg break-keep">
-          <Info aria-hidden size={16} className="mt-[2px] shrink-0 text-warning-icon" />
-          <span>{COPIED_PLAN_COST_NOTICE}</span>
-        </p>
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-hairline dark:bg-fill1 px-3 py-2.5">
+          <Info aria-hidden size={17} className="mt-[1px] shrink-0 text-[#2f7fe0] dark:text-primary" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-fg break-keep">
+              {COPIED_PLAN_COST_NOTICE_TITLE}
+            </p>
+            <p className="mt-1 text-[12.5px] leading-[1.5] text-fg2 break-keep">
+              {COPIED_PLAN_COST_NOTICE_BODY}
+            </p>
+          </div>
+        </div>
       )}
 
       <CostSection
