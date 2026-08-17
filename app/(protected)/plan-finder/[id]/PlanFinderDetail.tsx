@@ -424,16 +424,25 @@ export function PlanFinderDetail({
               0597: **경고 면 폐기 → 중립 안내 블록**. 두 가지가 문제였다.
               ① 이 화면은 전체가 **선과 여백만으로 구획**되는데 여기만 채워진 면이라
                  "혼자 다른 재질"로 읽혔다. ② 색이 경고(amber)인데 **내용은 경고가 아니라 안내**다.
-              면은 중립 회색으로: 라이트 hairline(#f1f2f3) / 다크 fill1(#24282e).
-              **한 유틸로는 두 모드 지정값을 동시에 못 낸다**(hairline 다크는 #212426,
-              fill1 라이트는 #e2e6ee) — 그래서 dark: 변형으로 토큰을 갈아 끼운다.
-              모드별로 다른 토큰을 쓰는 선례가 이미 있다(Footer의 `bg-popover dark:bg-bg-deep`).
+              면은 중립 회색으로: 라이트 surface2(#e8e8ee) / 다크 fill1(#24282e).
+              **한 유틸로는 두 모드 값을 동시에 못 낸다** — 그래서 dark: 변형으로 토큰을 갈아
+              끼운다. 모드별로 다른 토큰을 쓰는 선례가 이미 있다
+              (Footer의 `bg-popover dark:bg-bg-deep` — 0597 grep 실측 dark: 70건).
               다크 #24282e는 배경 bg-deep(#0f1112) 대비 1.278:1 — warningSurface 다크(1.272)·
               dangerSurface 다크(1.272)와 사실상 같아 현행과 동등한 가시성이다(0597 실측).
+              0598: 라이트를 hairline(#f1f2f3) → surface2로 한 단 올렸다. hairline은 배경
+              bg-deep(#f6f6f8) 대비 **1.038:1**이라 실화면에서 면이 안 보였다(선용 토큰을 면에
+              쓴 셈). surface2는 1.131:1이고 **무채(r=g)라 배경과 같은 계열이 유지**된다 —
+              fill1(1.159:1)은 대비가 더 높지만 r<g<b 푸른기가 무채 배경 위에서 다른 종류로 튄다
+              (fill1을 쓰면 dark: 변형이 사라지는 이점이 있었으나 그 이유로 기각).
+              fieldBorder(1.206:1)는 입력 테두리용이라 면으로 쓰면 토큰 하이재킹이다.
+              면이 진해지면 그 위 글자·아이콘 대비는 내려간다 — 제목 14.27:1 / 설명 5.99:1(AA
+              충족) / 아이콘 3.29:1(비텍스트 3:1 충족). fill2(1.510:1)는 설명이 4.49:1로 AA를
+              깨서 후보에서 빠졌다.
               문구는 제목(할 일)·설명(왜) 2단 — 상수 정본은 lib/plan/copied-plan-notice.ts.
               편집 폼(MyPlanNewForm)과 **조판 리터럴 준용, 문구는 공유** — 조판은 한쪽만 바꾸면 갈린다. */}
           {isOwner && sourcePlanId && isCostUnchanged && (
-            <div className="mt-2 flex items-start gap-2 rounded-lg bg-hairline dark:bg-fill1 px-3 py-2.5">
+            <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface2 dark:bg-fill1 px-3 py-2.5">
               {/* 0597: 경고(amber) → primary 계열 정보 아이콘. 라이트 #2f7fe0는 토큰이 아니라
                   리터럴이다 — 같은 값을 가진 토큰은 chipMovieFg(작품 칩 전용)뿐이라 그걸 쓰면
                   작품 칩 색을 바꿀 때 이 아이콘이 딸려 바뀐다(의미 없는 결합). primary 단독은

@@ -1206,10 +1206,11 @@ export function MyPlanNewForm({
       {/* 0580~0590 경위: hint(회색) → warning(주황 글씨) → 경고 면 배너.
           0597: 경고 면 폐기 → **중립 안내 블록**. 도입 경위·대비 실측·dark: 변형을 쓴 이유는
           읽기 상세(PlanFinderDetail) 주석이 정본. 여기는 그 조판을 리터럴 준용한다
-          (면 bg-hairline dark:bg-fill1 / radius 8 / 테두리 없음 / 아이콘 17px / 2단 문구).
+          (면 bg-surface2 dark:bg-fill1 / radius 8 / 테두리 없음 / 아이콘 17px / 2단 문구).
+          0598: 라이트 면 hairline → surface2(대비 1.038 → 1.131:1) — 근거는 읽기 상세 주석.
           문구는 준용이 아니라 공유다 — lib/plan/copied-plan-notice.ts. */}
       {sourcePlanId && isCostUnchanged && (
-        <div className="mt-2 flex items-start gap-2 rounded-lg bg-hairline dark:bg-fill1 px-3 py-2.5">
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-surface2 dark:bg-fill1 px-3 py-2.5">
           <Info aria-hidden size={17} className="mt-[1px] shrink-0 text-[#2f7fe0] dark:text-primary" />
           <div className="min-w-0">
             <p className="text-[13px] font-medium text-fg break-keep">
