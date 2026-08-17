@@ -197,6 +197,13 @@ model MyPlan {
   //   PlanFlight는 합산에서 제외 — 담기가 항공을 복사하지 않으므로(0580) 담은 시점 값이 늘 0이고,
   //   나중에 항공권을 붙이면 "비용을 안 고쳤는데" 총액이 바뀐다.
   sourceCostTotal Int?     @map("source_cost_total")
+  // 0595: 담은 뒤 금액을 고친 적이 있는가 — **이벤트 기록**이다.
+  //   0594의 총액 대조(위 sourceCostTotal)는 최종 상태만 봐서 상쇄 수정(+1만/-1만)을 못 잡았다.
+  //   저장 시점에 행이 실제로 달라졌는지 판정해 사실을 남긴다(판정 정본: lib/plan/cost-snapshot.ts).
+  //   **한 번 true면 내리지 않는다** — 고쳤다 되돌려도 "고친 적 있다"는 사실은 유지된다.
+  //   비교에서 order는 뺀다: 드래그로 순서만 바꾼 건 금액 수정이 아니다(0588).
+  //   sourceCostTotal은 남겨 둔다 — 판정에선 빠졌지만 담은 시점 금액 표시에 쓸 여지가 있다.
+  costEdited     Boolean   @default(false) @map("cost_edited")
   headcount      Int       @default(1)
   coverUrl       String?   @map("cover_url")
   createdAt      DateTime  @default(now()) @map("created_at")
