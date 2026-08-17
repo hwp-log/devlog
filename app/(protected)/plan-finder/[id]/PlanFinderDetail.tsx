@@ -15,6 +15,7 @@ import { formatDayLabel, addDays, formatDurationLabel } from '@/lib/plan/format-
 import { formatAmount } from '@/app/(protected)/my-plan/_lib/cost';
 import { AuthorAvatar } from '@/components/AuthorAvatar';
 import { DayTabs } from '@/app/(protected)/_components/DayTabs';
+import { COPIED_PLAN_COST_NOTICE } from '@/lib/plan/copied-plan-notice';
 
 interface Props {
   planId: string;
@@ -424,11 +425,13 @@ export function PlanFinderDetail({
               튀어 보였고, 업계 표준 경고 배너는 면 + 진한 글씨 + 중간 톤 아이콘의 3종 조합이다.
               면이 영역을 만들어 주므로 글씨가 혼자 튀지 않는다. **테두리 없음**(사용자 확정).
               px-3 py-2.5 = 지정 12/10px. 아이콘은 더 이상 상속이 아니라 자체 색(text-warning-icon).
-              편집 폼(MyPlanNewForm)과 리터럴 준용 — 한쪽만 바꾸면 두 화면이 갈린다. */}
+              편집 폼(MyPlanNewForm)과 **조판만** 리터럴 준용 — 한쪽만 바꾸면 두 화면이 갈린다.
+              0596: 문구는 준용이 아니라 공유다(COPIED_PLAN_COST_NOTICE) — 두 화면에 각각 박혀
+              있던 문자열을 상수로 뺐다. 문구 동기화는 더 이상 사람이 지킬 일이 아니다. */}
           {isOwner && sourcePlanId && isCostUnchanged && (
             <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-surface px-3 py-2.5 text-[13px] font-medium text-warning-fg break-keep">
               <Info aria-hidden size={16} className="mt-[2px] shrink-0 text-warning-icon" />
-              <span>원본 작성 시점의 금액입니다. 현시점에서는 다를 수 있으니, 확인 바랍니다.</span>
+              <span>{COPIED_PLAN_COST_NOTICE}</span>
             </p>
           )}
           <div className="mt-[18px]">
