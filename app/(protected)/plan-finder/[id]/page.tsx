@@ -5,7 +5,6 @@ import { summarizePlanCost } from '@/lib/plan/summarize-plan-cost';
 import { visiblePlanWhere } from '@/lib/plan/queries';
 import { resolvePlanDayCount } from '@/lib/plan/day-count';
 import { flightTotal } from '@/lib/plan/calc-plan-total';
-import { isCostUnchangedFromSource } from '@/lib/plan/cost-snapshot';
 import { PlanFinderDetail } from './PlanFinderDetail';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 
@@ -30,7 +29,9 @@ export default async function PlanFinderDetailPage({ params }: Props) {
       isPublic: true,
       // 0560: 담은 플랜의 원본 링크(구 PlanDetail 흡수) — isOwner일 때만 렌더
       sourcePlanId: true,
-      sourceCostTotal: true, // 0594: 비용 주의 배너 판정용 스냅샷
+      // 0594: 담은 시점 총액 스냅샷(판정에서는 0595로 빠졌으나 컬럼·조회는 유지 — 금액 표시 여지)
+      sourceCostTotal: true,
+      costEdited: true, // 0595: 비용 주의 배너 판정 — "고쳤다"는 이벤트 기록
       title: true,
       description: true,
       region: true,
@@ -98,12 +99,10 @@ export default async function PlanFinderDetailPage({ params }: Props) {
   // 0587: 항공은 1인 요금이라 인원을 넘긴다(정본 lib/plan/calc-plan-total.ts).
   const summary = summarizePlanCost(plan.costs, plan.flight, currency, plan.headcount);
 
-  // 0594: 비용 주의 배너 판정 — **저장된** PlanCost 합만(항공 제외, 인원 무관).
-  //   서버에서 판정해 불리언만 내려보낸다(근거는 lib/plan/cost-snapshot.ts 주석).
-  const isCostUnchanged = isCostUnchangedFromSource(
-    plan.sourceCostTotal,
-    plan.costs.reduce((sum, c) => sum + c.amount, 0),
-  );
+  // 0595: 총액 대조(0594) → **이벤트 기록 대조**. 총액은 최종 상태만 봐서 상쇄 수정
+  //   (한 항목 +1만, 다른 항목 -1만)을 못 잡았다 — 실제로 고쳤는데 배너가 안 사라진다.
+  //   판정 자체는 저장 액션이 하고(updatePlanWithItemsAction) 여기선 기록을 읽기만 한다.
+  const isCostUnchanged = !plan.costEdited;
 
   // 항공편. 0569: 구 처리는 "duration 계산 후 시간·날짜 제거"였다 — 공개 화면에서 값을 가공해
   //   덜 보여주는 계열(0492 금액 비중·구간 가공)의 잔재다. 0557(비공개 = 글 자체를 가림)·

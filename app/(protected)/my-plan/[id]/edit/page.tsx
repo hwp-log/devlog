@@ -2,7 +2,6 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { resolvePlanDayCount } from '@/lib/plan/day-count';
-import { isCostUnchangedFromSource } from '@/lib/plan/cost-snapshot';
 import type { MyPlan, PlanSpot, PlanCost, PlanFlight } from '@prisma/client';
 import { MyPlanNewForm } from '../../new/MyPlanNewForm';
 import type { EditorState, DayPlan, PlanItem, DayCost } from '../../new/MyPlanNewForm';
@@ -138,14 +137,12 @@ export default async function MyPlanEditPage({ params }: Props) {
         planId={plan.id}
         // 0579: 담은 플랜이면 비용 주의 문구(읽기 상세와 같은 조건·같은 문구)
         // 0594: 판정 기준이 "공개 여부"에서 "금액을 고쳤는가"로 바뀌며 isPublic 전달 폐기.
-        //   판정은 **여기(서버)에서** 하고 폼에는 결과만 넘긴다 — 폼이 편집 중인 라이브 합계와
-        //   비교하면 고쳤다 되돌릴 때 깜빡이고, 저장 없이 나갔다 오면 화면이 방금 한 말을
-        //   뒤집는다(근거 정본: lib/plan/cost-snapshot.ts). 읽기 상세와 같은 규칙·같은 소스.
+        //   폼은 편집 중인 라이브 합계와 비교하지 않는다 — 고쳤다 되돌릴 때 깜빡이고,
+        //   저장 없이 나갔다 오면 화면이 방금 한 말을 뒤집는다(정본: lib/plan/cost-snapshot.ts).
+        // 0595: 총액 대조 → **이벤트 기록**(costEdited). 총액은 상쇄 수정을 못 잡았다.
+        //   판정은 저장 액션이 하고 여기선 읽기만 한다 — 읽기 상세와 같은 소스.
         sourcePlanId={plan.sourcePlanId}
-        isCostUnchanged={isCostUnchangedFromSource(
-          plan.sourceCostTotal,
-          plan.costs.reduce((sum, c) => sum + c.amount, 0),
-        )}
+        isCostUnchanged={!plan.costEdited}
       />
     </div>
   );

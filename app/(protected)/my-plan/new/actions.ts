@@ -10,6 +10,7 @@ import { normalizeRegionKey } from '@/lib/plan/region-cover';
 import { inferRegionKey, inferMovieTitle } from '@/lib/plan/infer-plan-meta';
 import { clampHeadcount } from '@/lib/plan/validate-input';
 import { validatePlanDates, savedDateStr } from '@/lib/plan/date-limits';
+import { costRowsToWrite, hasCostRowsChanged, type CostRowToWrite } from '@/lib/plan/cost-snapshot';
 import { findNearbySpots } from '@/lib/spot/nearby';
 import { normalizeSpotName } from '@/lib/spot/normalize-name';
 
@@ -190,7 +191,8 @@ async function buildPlanRows(
   items: ResolvedItem[],
   dayCosts: DayCostPayload[],
   dayless: DaylessCost[],
-): Promise<void> {
+  // 0595: 실제로 쓴 비용 행을 돌려준다 — 호출부(수정 액션)가 "고쳤는가"를 이 값으로 판정한다.
+): Promise<CostRowToWrite[]> {
   // 1패스: planSpot 생성 + localId 매핑
   const spotByLocalId = new Map<string, { id: string; name: string }>();
   for (const item of items) {
@@ -215,44 +217,32 @@ async function buildPlanRows(
     });
     spotByLocalId.set(item.localId, { id: spot.id, name: spot.name });
   }
-  // 2패스: 일자별 비용 — 연결이 풀린 localId(클라 선별을 통과 못 한 경우는 없어야 정상)는
-  //   기타 지출로 강등(planSpotId NULL·라벨 유지). 연결 비용의 label은 **장소 이름으로 강제**
-  //   — 이름이 정본(단일 소스), 클라 label은 기타 지출에서만 의미.
-  // 0588: order는 **그룹(day) 안의 러닝 카운터**다 — 배열 인덱스를 쓰면 안 된다.
-  //   금액 0인 행을 건너뛰므로 인덱스에는 구멍이 생기고, 폼의 dayCosts는 전 Day가 한 배열이라
-  //   인덱스가 Day 경계를 넘어 이어진다. 둘 다 (planId, day) 그룹별 0..n-1을 깨뜨린다.
-  const orderByDay = new Map<number, number>();
-  for (const cost of dayCosts) {
-    if (cost.amount <= 0) continue;
-    const linked = cost.localId ? spotByLocalId.get(cost.localId) : undefined;
-    const order = orderByDay.get(cost.day) ?? 0;
-    orderByDay.set(cost.day, order + 1);
+  // 2패스: 일자별 비용 + 무장소 비용.
+  // 0595: **저장될 행 산출을 costRowsToWrite로 위임**한다(선별·라벨 강제·order 규칙 전부).
+  //   구 구조는 여기 인라인이었는데, 그러면 "고쳤는가" 판정이 같은 규칙을 두 번 적기 때문에
+  //   조용히 갈린다 — 페이로드를 그대로 비교하면 **아무것도 안 고쳐도 "고쳤다"**가 된다
+  //   (amount<=0 스킵 / 연결 비용 label을 장소 이름으로 강제). 쓰는 것과 비교하는 것이
+  //   같은 계산이어야 한다. 규칙의 근거 주석은 lib/plan/cost-snapshot.ts에 이관.
+  //   0562 D②(연결 비용 label = 장소 이름) · 0588(order는 그룹별 러닝 카운터)이 그 안에 산다.
+  const rows = costRowsToWrite({
+    dayCosts,
+    daylessCosts: dayless,
+    nameByLocalId: new Map([...spotByLocalId].map(([k, v]) => [k, v.name])),
+  });
+  for (const row of rows) {
     await tx.planCost.create({
       data: {
         planId,
-        planSpotId: linked?.id ?? null,
-        day: cost.day,
-        order,
-        category: cost.category,
-        label: linked ? linked.name : cost.label,
-        amount: cost.amount,
+        planSpotId: row.localId ? spotByLocalId.get(row.localId)!.id : null,
+        day: row.day,
+        order: row.order,
+        category: row.category as CostCategory,
+        label: row.label,
+        amount: row.amount,
       },
     });
   }
-  // 0504: 무장소 비용 — planSpotId·day 모두 NULL로 저장(create/update 공통 경로).
-  // 0588: day=null이 한 그룹이므로 자체 카운터(위 orderByDay와 순번 공간이 겹치지 않는다).
-  let daylessOrder = 0;
-  for (const cost of dayless) {
-    if (cost.amount > 0) {
-      await tx.planCost.create({
-        data: {
-          planId, planSpotId: null, day: null, order: daylessOrder,
-          category: cost.category, label: cost.label, amount: cost.amount,
-        },
-      });
-      daylessOrder += 1;
-    }
-  }
+  return rows;
 }
 
 export async function createPlanWithItemsAction(
@@ -323,7 +313,13 @@ export async function updatePlanWithItemsAction(
   const title = payload.title.trim();
   if (!title) return { error: '제목을 입력해주세요' };
 
-  const existing = await prisma.myPlan.findFirst({ where: { id: planId, ownerId: user.id } });
+  // 0595: costs를 함께 읽는다 — "금액을 고쳤는가" 판정의 이전 상태다.
+  //   별도 쿼리를 만들지 않고 어차피 도는 이 조회에 관계를 얹는다(트랜잭션을 길게 만들지 않음).
+  //   select는 비교 키 4개만 — order·planSpotId는 비교 대상이 아니다(cost-snapshot.ts).
+  const existing = await prisma.myPlan.findFirst({
+    where: { id: planId, ownerId: user.id },
+    include: { costs: { select: { day: true, category: true, label: true, amount: true } } },
+  });
   if (!existing) return { error: '수정 권한이 없습니다' };
 
   // 0581: 하한 기준은 **기존 저장값** — 이미 지난 여행을 기록한 플랜(실측 1건, 공개 시연
@@ -359,7 +355,15 @@ export async function updatePlanWithItemsAction(
       });
       await tx.planCost.deleteMany({ where: { planId } });
       await tx.planSpot.deleteMany({ where: { planId } });
-      await buildPlanRows(tx, planId, resolvedItems, payload.dayCosts, payload.daylessCosts);
+      const writtenRows = await buildPlanRows(tx, planId, resolvedItems, payload.dayCosts, payload.daylessCosts);
+
+      // 0595: "담은 뒤 금액을 고쳤다"는 이벤트 기록. 비교 대상은 페이로드가 아니라
+      //   **buildPlanRows가 실제로 쓴 행**이다 — 페이로드를 비교하면 amount<=0 스킵과
+      //   연결 비용 label 강제 때문에 아무것도 안 고쳐도 true가 된다(cost-snapshot.ts 주석).
+      //   한 번 true면 내리지 않으므로 이미 true면 쓰지 않는다(불필요한 UPDATE 회피).
+      if (!existing.costEdited && hasCostRowsChanged(existing.costs, writtenRows)) {
+        await tx.myPlan.update({ where: { id: planId }, data: { costEdited: true } });
+      }
       if (payload.flight) {
         await tx.planFlight.upsert({
           where:  { planId },

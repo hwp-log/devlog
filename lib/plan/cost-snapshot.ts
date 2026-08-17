@@ -33,3 +33,88 @@ export function isCostUnchangedFromSource(
 ): boolean {
   return sourceCostTotal != null && sourceCostTotal === currentCostTotal;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 0595: 총액 대조 → **행 대조 + 이벤트 기록**(MyPlan.costEdited).
+//   총액은 최종 상태만 봐서 상쇄 수정(한 항목 +1만, 다른 항목 -1만)을 못 잡았다.
+//   위 isCostUnchangedFromSource는 판정에서 빠졌지만 sourceCostTotal 컬럼과 함께 남긴다
+//   (담은 시점 금액 표시에 쓸 여지 — 사용자 확정).
+
+/** 비교 키. **order·planSpotId는 없다** — 순서 변경(0588 드래그)과 장소 재연결은 금액 수정이 아니다. */
+export type CostRowKey = {
+  day: number | null;
+  category: string;
+  label: string;
+  amount: number;
+};
+
+/** 저장될 비용 행 = 비교 키 + 쓰기에만 필요한 값(order·localId). */
+export type CostRowToWrite = CostRowKey & { order: number; localId: string | null };
+
+/**
+ * 폼 페이로드 → **실제로 저장될** 비용 행.
+ *
+ * 이 함수가 존재하는 이유가 0595의 핵심이다. 판정을 페이로드끼리 비교하면
+ * **아무것도 안 고쳐도 "고쳤다"가 된다** — 저장 경로가 페이로드를 그대로 쓰지 않기 때문이다:
+ *   ① `amount <= 0`인 행은 저장되지 않는다
+ *   ② 장소에 연결된 비용의 label은 **장소 이름으로 강제**된다(이름이 정본 — 0562 D②).
+ *      폼은 연결 비용의 label을 빈 문자열로 들고 있다(edit/page 복원 규칙).
+ * 그래서 buildPlanRows가 이 함수의 결과를 **그대로 써서** PlanCost를 만들고, 판정도 같은
+ * 결과를 비교한다 — 쓰는 것과 비교하는 것이 같은 계산이라 둘이 어긋날 수 없다.
+ *
+ * order는 그룹(day)별 러닝 카운터다(0588) — 배열 인덱스가 아니다.
+ */
+export function costRowsToWrite(input: {
+  dayCosts: { localId: string | null; day: number; category: string; label: string; amount: number }[];
+  daylessCosts: { category: string; label: string; amount: number }[];
+  /** localId → 장소 이름. 연결 비용의 label 강제에 쓴다(저장 시 생성되는 PlanSpot.name과 같은 값). */
+  nameByLocalId: Map<string, string>;
+}): CostRowToWrite[] {
+  const rows: CostRowToWrite[] = [];
+  const orderByDay = new Map<number, number>();
+  for (const cost of input.dayCosts) {
+    if (cost.amount <= 0) continue;
+    const linkedName = cost.localId ? input.nameByLocalId.get(cost.localId) : undefined;
+    const order = orderByDay.get(cost.day) ?? 0;
+    orderByDay.set(cost.day, order + 1);
+    rows.push({
+      day: cost.day,
+      order,
+      // 연결이 풀린 localId는 기타 지출로 강등(planSpotId NULL·라벨 유지) — 저장 경로와 동일.
+      localId: linkedName !== undefined ? cost.localId : null,
+      category: cost.category,
+      label: linkedName ?? cost.label,
+      amount: cost.amount,
+    });
+  }
+  let daylessOrder = 0;
+  for (const cost of input.daylessCosts) {
+    if (cost.amount <= 0) continue;
+    rows.push({
+      day: null,
+      order: daylessOrder,
+      localId: null,
+      category: cost.category,
+      label: cost.label,
+      amount: cost.amount,
+    });
+    daylessOrder += 1;
+  }
+  return rows;
+}
+
+/** 비교용 정규화 — 다중집합 비교라 정렬한다(행 순서 자체는 의미 없음). */
+function costRowKeys(rows: CostRowKey[]): string[] {
+  return rows.map((r) => `${r.day ?? 'n'}|${r.category}|${r.label}|${r.amount}`).sort();
+}
+
+/**
+ * 저장 전 행과 저장될 행이 다른가 — 다르면 "금액을 고쳤다"로 본다.
+ * 다중집합 비교라 **행 순서는 무시**한다(order 미포함과 같은 이유).
+ */
+export function hasCostRowsChanged(prev: CostRowKey[], next: CostRowKey[]): boolean {
+  const a = costRowKeys(prev);
+  const b = costRowKeys(next);
+  if (a.length !== b.length) return true;
+  return a.some((v, i) => v !== b[i]);
+}
