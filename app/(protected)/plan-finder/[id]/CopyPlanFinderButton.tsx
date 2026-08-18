@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPlanCopyOrderAction } from './actions';
 
@@ -15,6 +15,17 @@ const PRICE_LABEL = '1,500원';
 const BAR_BTN = 'w-full py-[14px] rounded-lg bg-primary text-white text-[15px] font-bold disabled:opacity-50';
 const INLINE_BTN = 'px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50';
 
+// 0605: 시트 열기·닫기 시간. SpotMap:130(SHEET_OPEN_MS 320 / SHEET_CLOSE_MS 240)과 같은 계열 —
+//   레포의 시트 질감을 하나로 유지한다. 값을 바꿀 땐 그쪽과 함께 볼 것.
+const SHEET_OPEN_MS = 320;
+const SHEET_CLOSE_MS = 240;
+const SHEET_EASING = 'cubic-bezier(0.32,0.72,0,1)';
+// jsdom엔 matchMedia가 없어 가드(SpotMap:128과 동형) — 테스트는 애니 있는 경로로 렌더.
+const prefersReduced = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // 0515: variant='bar' — 모바일 하단 고정 바용 전폭 채움 버튼(시안 4d). 기본은 기존 인라인 그대로.
 // 0605: **트리거 전용으로 축소.** 확인 시트와 결제 실행은 아래 CopyPlanConfirmSheet가 맡는다.
 //   이유: 트리거가 2개(데스크톱 인라인·모바일 바)인데 둘 다 마운트되므로(CSS로만 가림),
@@ -29,7 +40,7 @@ export function CopyPlanFinderButton({
       onClick={onRequest}
       className={variant === 'bar' ? BAR_BTN : INLINE_BTN}
     >
-      내 여행으로 담기
+      여행계획 담기
     </button>
   );
 }
@@ -47,12 +58,17 @@ export function CopyPlanFinderButton({
 //   **바깥 클릭 닫기·ESC 없음** — 레포 관례(SpotMap:1370 "시트 밖 탭 = 닫힘 없음"). 닫기는 [취소]뿐.
 export function CopyPlanConfirmSheet({
   planId,
-  spotCount,
   open,
   onClose,
-}: { planId: string; spotCount: number; open: boolean; onClose: () => void }) {
+}: { planId: string; open: boolean; onClose: () => void }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  // 0605: 닫힘 애니를 보이려면 닫는 동안 마운트를 유지해야 한다(SpotMap의 closingSpot과 같은 구조).
+  const [closing, setClosing] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<Animation | null>(null);
+  const phaseRef = useRef<'open' | 'close' | null>(null);
 
   // 0599: 이동은 여기가 담당한다 — 액션은 값만 돌려준다(actions.ts 상단 주석).
   //   startTransition 안이라 작업이 끝날 때까지 isPending이 유지돼 버튼 비활성 표시가 산다.
@@ -91,7 +107,7 @@ export function CopyPlanConfirmSheet({
         //   못했습니다"는 사용자가 스스로 한 선택을 오류로 되돌려주는 말이었다.
         //   코드 문자열이 SDK 타입 정의에 열거돼 있지 않아(2.7.1 확인) 속성 접근으로 방어적으로 본다.
         if ((e as { code?: string } | null)?.code === 'PAY_PROCESS_CANCELED') {
-          onClose();
+          startClose();
           return;
         }
         // 그 외만 안내. 주문 행은 PENDING으로 남는다 — 승인되지 않은 주문이라 무해하고,
@@ -102,33 +118,107 @@ export function CopyPlanConfirmSheet({
     });
   };
 
+  // 0605: 닫기는 **핸들러에서 시작한다** — 호스트의 open을 먼저 내리면 노드가 사라져 닫힘
+  //   애니를 재생할 수 없다. closing=true로 애니를 돌리고, 끝난 뒤 onClose()로 호스트를 닫는다.
+  //   reduced-motion이면 애니 없이 즉시 닫는다.
+  const startClose = () => {
+    if (prefersReduced()) { onClose(); return; }
+    setClosing(true);
+  };
+
+  // 0605: 슬라이드는 WAAPI로 — 노드 재사용 상태에서 animation-name 교체가 재시작되지 않는
+  //   iOS Safari 거동을 우회한다(el.animate는 명시적 재생). SpotMap:392의 관용구를 그대로 이식했다.
+  //   useLayoutEffect = 첫 paint 전 시작(열릴 때 아래에서 시작하지 않고 번쩍이는 것 방지).
+  //   reduced-motion이면 애니 없이 즉시 표시/제거한다.
+  useLayoutEffect(() => {
+    const el = sheetRef.current;
+    if (!el || !open) return;
+    const dir = closing ? 'close' : 'open';
+    if (phaseRef.current === dir) return; // 같은 방향 중복 재생 방지
+    phaseRef.current = dir;
+    if (prefersReduced()) return;
+
+    animRef.current?.cancel(); // 진행 중 애니 취소 후 새로 시작(연타 인터럽트)
+    const frames: Keyframe[] = dir === 'open'
+      ? [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }]
+      : [{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }];
+    const duration = dir === 'open' ? SHEET_OPEN_MS : SHEET_CLOSE_MS;
+    const anim = el.animate(frames, { duration, easing: SHEET_EASING, fill: 'forwards' });
+    animRef.current = anim;
+    // 스크림은 같은 시간에 맞춰 페이드 — 시트만 움직이면 배경이 툭 바뀐다.
+    scrimRef.current?.animate(
+      dir === 'open' ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }],
+      { duration, easing: SHEET_EASING, fill: 'forwards' },
+    );
+    // cancel(인터럽트·언마운트)은 reject되므로 catch로 흡수한다(unhandled rejection 방지).
+    if (dir === 'close') {
+      anim.finished.then(() => { setClosing(false); onClose(); }).catch(() => {});
+    } else {
+      anim.finished.catch(() => {});
+    }
+  }, [open, closing, onClose]);
+
+  // 닫힌 뒤 방향 기록을 비운다 — 다음 열기에서 'open'이 새 방향으로 인식돼야 재생된다.
+  useEffect(() => { if (!open) phaseRef.current = null; }, [open]);
+  useEffect(() => () => { animRef.current?.cancel(); }, []);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[70] rounded-t-[22px] border border-border bg-card shadow-2xl px-4 pt-5 pb-[calc(16px+env(safe-area-inset-bottom))]">
-      <h2 className="text-[17px] font-bold text-fg break-keep">
-        장소 {spotCount}곳을 직접 옮겨 적지 않아도 돼요
-      </h2>
-      <p className="mt-2 text-sm text-fg2 break-keep">
-        주소·좌표·비용까지 그대로 들어오고, 가져온 뒤 내 일정에 맞게 고칠 수 있어요.
-      </p>
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-        <span className="text-sm text-fg2">결제 금액</span>
-        <span className="text-[17px] font-bold text-fg tabular-nums">{PRICE_LABEL}</span>
-      </div>
-      {/* §5: 터치 타겟 44px 이상 + 인접 간격 8px 이상 */}
-      <div className="mt-5 flex flex-col gap-2">
-        <button type="button" onClick={startPayment} disabled={isPending} className={BAR_BTN}>
-          {isPending ? '결제 진행 중...' : '결제하고 담기'}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isPending}
-          className="w-full py-[14px] rounded-lg border border-border text-fg2 text-[15px] font-semibold hover:bg-surface2 transition-colors disabled:opacity-50"
-        >
-          취소
-        </button>
+    // 0605: 스크림 + 시트를 한 겹(z-[70]) 안에 담는다 — 계층 지도에 값이 하나만 늘어난다.
+    //   **스크림을 넣은 이유**: 기존 시트 둘(SpotFinderMapNaver·SpotMap)에 스크림이 없는 건
+    //   뒤(지도)를 계속 보고 조작해야 하는 화면이라서다(standard sheet). 결제 확인은 결정
+    //   지점이라 뒤를 조작할 이유가 없고, 확인이 떠 있는 동안 뒤의 좋아요·링크가 눌리는 게
+    //   오히려 사고다(modal sheet). **다만 클릭으로 닫지는 않는다** — 닫기는 [취소]뿐이라는
+    //   레포 관례(SpotMap:1370)는 유지한다. 스크림은 어둡게 + 포인터 차단 역할만 한다.
+    <div className="fixed inset-0 z-[70]">
+      <div ref={scrimRef} className="absolute inset-0 bg-black/40" aria-hidden />
+      {/* 0605: **데스크톱에도 시트를 쓴다 — 표준과 다른 선택이라 근거를 남긴다.**
+          Material은 "modal bottom sheet는 작은 화면에서 가장 효과적이고, 큰 화면에서는 메뉴·
+          다이얼로그로 트리거와의 시각적 연결을 만들라"고 권한다. shadcn 계열 실무도 모바일
+          Drawer / 데스크톱 Dialog로 가른다. 그럼에도 시트인 이유:
+          ① 이 화면 전체가 면·여백 기반이라 가운데 모달은 **그 위에 상자를 얹는 것**이고
+             시트는 바닥에서 밀려 올라오는 것이다 — 후자가 이 레포의 결이다.
+          ② 레포에 시트 어휘가 이미 서 있다(rounded-t-[22px]·WAAPI 320/240·reduced-motion).
+             모달 셸은 0건이고 FormatMenu.tsx:13엔 모달을 기각한 이력이 있다.
+          ③ Material의 근거인 "트리거와의 시각적 연결"이 여기선 세게 걸리지 않는다 —
+             담기 버튼이 상단 액션 행에 있어 어차피 트리거와 확인이 붙어 있지 않다. */}
+      <div
+        ref={sheetRef}
+        className="absolute inset-x-0 bottom-0 rounded-t-[22px] border border-border bg-card shadow-2xl px-4 pt-5 pb-[calc(16px+env(safe-area-inset-bottom))]"
+      >
+        {/* 0605: 시트는 가로 전체, 내용만 가운데 고정 폭. --reading-w(860)를 쓰지 않는다 —
+            이건 읽기 콘텐츠가 아니라 결정 블록이고, 860이면 두 줄짜리 문구가 늘어진다.
+            420 = 모바일 시트 실폭(360~390 − 좌우 패딩 32 = 328~358)에 가깝게 잡아 두 화면의
+            조판이 같은 덩어리로 보이게 하는 값. */}
+        <div className="mx-auto w-full max-w-[420px]">
+          {/* 0605: "커피 한 잔 값" — 메가커피 핫 아메리카노 1,700원 기준으로 1,500원이 그보다 낮다.
+              금액을 숫자로만 보이면 비교 기준이 없어 비싼지 싼지 판단할 근거가 안 생긴다. */}
+          <h2 className="text-[17px] font-bold text-fg break-keep">
+            커피 한 잔 값으로
+          </h2>
+          <p className="mt-2 text-sm text-fg2 break-keep">
+            담아서 내 일정에 맞게 고칠 수 있어요.
+          </p>
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+            <span className="text-sm text-fg2">결제 금액</span>
+            <span className="text-[17px] font-bold text-fg tabular-nums">{PRICE_LABEL}</span>
+          </div>
+          {/* §5: 터치 타겟 44px 이상 + 인접 간격 8px 이상 */}
+          <div className="mt-5 flex flex-col gap-2">
+            <button type="button" onClick={startPayment} disabled={isPending} className={BAR_BTN}>
+              {isPending ? '결제 진행 중...' : '결제하고 담기'}
+            </button>
+            <button
+              type="button"
+              onClick={startClose}
+              disabled={isPending}
+              className="w-full py-[14px] rounded-lg border border-border text-fg2 text-[15px] font-semibold hover:bg-surface2 transition-colors disabled:opacity-50"
+            >
+              취소
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
