@@ -13,5 +13,8 @@ import 'server-only';
 //   'server-only': 이 상수가 클라이언트 번들로 새는 경로를 컴파일 단계에서 막는다
 //   (lib/flights/client.ts와 같은 장치). 금액은 서버가 정해 내려보내는 값이지
 //   클라이언트가 읽어 쓰는 값이 아니다.
+//   0603: 화면에 보이는 금액 문구는 CopyPlanFinderButton의 PRICE_LABEL('1,500원')에 따로 있다
+//   (이 파일이 server-only라 클라이언트에서 import할 수 없다). **값을 바꾸면 그쪽도 함께 고칠 것** —
+//   한쪽만 바꾸면 화면 금액과 실제 청구 금액이 갈린다.
 export const PLAN_COPY_PRICE = 1500;
 export const PLAN_COPY_CURRENCY = 'KRW' as const;

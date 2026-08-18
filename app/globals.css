@@ -11,6 +11,7 @@
      40        하단 탭바 (전역 크롬, 하단 고정)
      50        인페이지 팝오버 메뉴 (FilterDropdown·UserDropdown) + 헤더(sticky 전역 크롬)
      55 / 60   풀스크린 지도 테이크오버 (SpotMap 시트 / SpotFinderMap 상세) — 헤더를 덮음
+     70        결제 확인 시트 (CopyPlanFinderButton) — 하단 고정 담기 바(z-50) 위
      1000      맵 내부 컨트롤 (relative 부모 안 로컬 컨텍스트)
 
    주의: glass-header의 backdrop-filter가 stacking context를 만들어
