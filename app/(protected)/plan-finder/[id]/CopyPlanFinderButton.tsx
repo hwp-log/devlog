@@ -210,10 +210,12 @@ export function CopyPlanConfirmSheet({
           {/* 0605: "커피 한 잔 값" — 메가커피 핫 아메리카노 1,700원 기준으로 1,500원이 그보다 낮다.
               금액을 숫자로만 보이면 비교 기준이 없어 비싼지 싼지 판단할 근거가 안 생긴다. */}
           <h2 className="text-[17px] font-bold text-fg break-keep">
-            커피 한 잔 값으로
+            커피 한 잔 값으로...
           </h2>
+          {/* 0606: "MyPlan"은 /my-plan 화면 상단 실표기와 일치시킨 것 — 담긴 곳의 이름을
+              화면에 보이는 그대로 불러야 결제 후 어디로 갔는지 찾을 수 있다. */}
           <p className="mt-2 text-sm text-fg2 break-keep">
-            담아서 내 일정에 맞게 고칠 수 있어요.
+            지금 보고 있는 여행계획을 MyPlan에 담아서, 내 일정에 맞게 고칠 수 있어요.
           </p>
           <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
             <span className="text-sm text-fg2">결제 금액</span>
