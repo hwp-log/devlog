@@ -1,15 +1,23 @@
 'use client';
 import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { copyPublicPlanAction } from './actions';
 
 // 0515: variant='bar' — 모바일 하단 고정 바용 전폭 채움 버튼(시안 4d). 기본은 기존 인라인 그대로.
 export function CopyPlanFinderButton({ planId, variant }: { planId: string; variant?: 'bar' }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
+  // 0599: 이동은 여기가 담당한다 — 액션은 값만 돌려준다(actions.ts 상단 주석).
+  //   push인 이유: 서버 액션의 redirect는 기본이 push라(Next 16) 뒤로가기 히스토리가
+  //   기존과 같게 유지된다. startTransition 안이라 내비게이션이 끝날 때까지
+  //   isPending이 유지돼 버튼 비활성·"담는 중..." 표시도 그대로다.
   const handleCopy = () => {
     startTransition(async () => {
       const result = await copyPublicPlanAction(planId);
-      if (result?.error) alert(result.error);
+      if ('planId' in result) router.push('/my-plan');
+      else if ('unauthenticated' in result) router.push('/login');
+      else alert(result.error);
     });
   };
 

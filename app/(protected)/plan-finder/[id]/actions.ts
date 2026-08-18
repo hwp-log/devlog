@@ -1,5 +1,4 @@
 'use server';
-import { redirect } from 'next/navigation';
 import { visiblePlanWhere } from '@/lib/plan/queries';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
@@ -46,12 +45,22 @@ export async function togglePlanLikeAction(planId: string): Promise<{ liked: boo
   return { liked, count };
 }
 
+// 0599: 담기 결과를 **값으로** 돌려준다. 셋을 섞지 않는 것이 요점 —
+//   planId = 성공(새 사본 id) / unauthenticated = 제어 신호 / error = 표시용 메시지.
+//   이 액션은 redirect를 던지지 않는다: 결제 승인 뒤 서버에서 담기를 부를 때
+//   NEXT_REDIRECT가 throw로 튀면 "승인은 됐는데 담기가 됐는지"를 판정할 수 없다.
+//   화면 이동은 호출부(CopyPlanFinderButton)가 router.push로 담당한다.
+export type CopyPublicPlanResult =
+  | { planId: string }
+  | { unauthenticated: true }
+  | { error: string };
+
 export async function copyPublicPlanAction(
   planId: string,
-): Promise<{ error: string } | undefined> {
+): Promise<CopyPublicPlanResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (!user) return { unauthenticated: true };
 
   // 0557: 공개이거나 내 것 — 자기 비공개 담기는 무해(버튼은 isOwner 숨김, 방어만 공유)
   const original = await prisma.myPlan.findFirst({
@@ -100,8 +109,9 @@ export async function copyPublicPlanAction(
 
   if (!original) return { error: '원본 플랜을 찾을 수 없습니다' };
 
+  let newPlanId: string;
   try {
-    await prisma.$transaction(async (tx) => {
+    newPlanId = await prisma.$transaction(async (tx) => {
       const plan = await tx.myPlan.create({
         data: {
           ownerId: user.id,
@@ -154,10 +164,15 @@ export async function copyPublicPlanAction(
           },
         });
       }
+      return plan.id;
     });
   } catch {
     return { error: '복사 중 오류가 발생했습니다' };
   }
 
-  redirect('/my-plan');
+  // 0599: 지금까지 목록 갱신은 이 액션의 redirect('/my-plan')가 부수적으로 맡고 있었다.
+  //   이동이 클라이언트(router.push)로 넘어가면 Client Cache의 stale한 목록이 그대로
+  //   그려질 수 있어 명시적으로 무효화한다(같은 처리: my-plan/[id]/actions.ts).
+  revalidatePath('/my-plan');
+  return { planId: newPlanId };
 }
