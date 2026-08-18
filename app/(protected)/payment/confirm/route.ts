@@ -15,19 +15,40 @@ import { copyPublicPlanAction } from '@/app/(protected)/plan-finder/[id]/actions
 //      안 된" 상태가 된다.
 //   /payment/success는 결과 표시 전용으로 남는다.
 
+// 0603: 리다이렉트는 전부 **303 See Other**. 기본값 307(NextResponse.redirect의
+//   `?? 307`)은 **메서드를 보존**해서, POST로 도착한 콜백이 리다이렉트 뒤에도 히스토리에
+//   POST로 남는다 → 성공 화면 새로고침이 POST /payment/confirm을 재전송하고, 이 라우트가
+//   GET만 받으면 405가 난다("결제는 됐는데 화면은 실패"의 원인).
+//   303은 후속 요청을 GET으로 강제하므로 히스토리에 GET이 남는다(표준 PRG).
+const SEE_OTHER = 303;
+
 function fail(request: NextRequest, code: string, message: string, planId?: string | null) {
   const url = new URL('/payment/fail', request.url);
   url.searchParams.set('code', code);
   url.searchParams.set('message', message);
   if (planId) url.searchParams.set('planId', planId);
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(url, SEE_OTHER);
 }
 
-export async function GET(request: NextRequest) {
+// 0603: 토스는 successUrl로 **POST를 보낼 수 있다** — 기본은 GET이지만 일부 인앱
+//   브라우저(웹뷰 제한)에서는 POST로 오고, 그때 값은 쿼리가 아니라 **form body**에 담긴다.
+//   그래서 GET·POST가 같은 처리를 공유하고, 파라미터는 쿼리 우선 + 없으면 body에서 읽는다.
+async function readCallbackParams(request: NextRequest) {
   const q = request.nextUrl.searchParams;
-  const paymentKey = q.get('paymentKey');
-  const orderId = q.get('orderId');
-  const amountParam = q.get('amount');
+  let form: FormData | null = null;
+  if (request.method === 'POST') {
+    form = await request.formData().catch(() => null);
+  }
+  const pick = (key: string) => q.get(key) ?? (form?.get(key)?.toString() ?? null);
+  return {
+    paymentKey: pick('paymentKey'),
+    orderId: pick('orderId'),
+    amountParam: pick('amount'),
+  };
+}
+
+async function handle(request: NextRequest) {
+  const { paymentKey, orderId, amountParam } = await readCallbackParams(request);
 
   // ① 돌아온 값 — 셋 중 하나라도 없으면 정상 콜백이 아니다.
   if (!paymentKey || !orderId || !amountParam) {
@@ -57,7 +78,7 @@ export async function GET(request: NextRequest) {
   //   두 번 실행될 수 있다. 사본 id를 따로 저장하지 않으므로 planId 없이 성공 화면으로
   //   보낸다(성공 페이지가 /my-plan 링크로 대체한다).
   if (order.status === 'PAID') {
-    return NextResponse.redirect(new URL('/payment/success', request.url));
+    return NextResponse.redirect(new URL('/payment/success', request.url), SEE_OTHER);
   }
 
   // ⑤ 금액 대조 — 클라이언트가 돌려준 값과 **요청 시점에 서버가 정한 값**(0601)을 맞춘다.
@@ -98,5 +119,10 @@ export async function GET(request: NextRequest) {
   // ⑨ 결과 안내 — 담은 플랜으로 가는 링크를 성공 페이지가 그린다.
   const url = new URL('/payment/success', request.url);
   url.searchParams.set('planId', copied.planId);
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(url, SEE_OTHER);
 }
+
+// 0603: GET·POST 모두 같은 처리. POST를 안 받으면 인앱 브라우저 콜백과
+//   새로고침 재전송이 405로 떨어진다.
+export const GET = handle;
+export const POST = handle;
