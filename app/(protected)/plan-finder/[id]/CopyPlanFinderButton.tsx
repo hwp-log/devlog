@@ -65,6 +65,9 @@ export function CopyPlanConfirmSheet({
   const router = useRouter();
   // 0605: 닫힘 애니를 보이려면 닫는 동안 마운트를 유지해야 한다(SpotMap의 closingSpot과 같은 구조).
   const [closing, setClosing] = useState(false);
+  // 0606: 실패 안내는 브라우저 alert 대신 시트 안 한 줄로 — 시트가 이미 떠 있으므로
+  //   그 안에서 말하는 것이 문맥에 맞고, alert는 시트·스크림 위에 이질적인 레이어를 얹는다.
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<Animation | null>(null);
@@ -75,10 +78,11 @@ export function CopyPlanConfirmSheet({
   // 0601: 담기가 결제 뒤로 옮겨졌다 — 여기서는 **주문 저장 → 결제창 열기**까지만 한다.
   //   실제 복사(copyPublicPlanAction)는 승인 단계에서 서버가 호출한다(0602 /payment/confirm).
   const startPayment = () => {
+    setErrorMsg(null); // 재시도 진입 시 이전 오류 지움
     startTransition(async () => {
       const order = await createPlanCopyOrderAction(planId);
       if ('unauthenticated' in order) { router.push('/login'); return; }
-      if ('error' in order) { alert(order.error); return; }
+      if ('error' in order) { setErrorMsg(order.error); return; }
 
       try {
         // 0601: SDK는 클릭 시점에 동적 import — 상세 페이지 초기 번들에 결제 코드를 싣지 않는다.
@@ -102,18 +106,28 @@ export function CopyPlanConfirmSheet({
           failUrl: `${window.location.origin}/payment/failed`,
         });
       } catch (e) {
-        // 0603: 결제창을 닫으면 리다이렉트 없이 여기로 reject된다. **취소는 실패가 아니라
-        //   정상 흐름**이라 안내하지 않고 확인 UI만 원상 복귀한다 — "결제를 시작하지
-        //   못했습니다"는 사용자가 스스로 한 선택을 오류로 되돌려주는 말이었다.
-        //   코드 문자열이 SDK 타입 정의에 열거돼 있지 않아(2.7.1 확인) 속성 접근으로 방어적으로 본다.
-        if ((e as { code?: string } | null)?.code === 'PAY_PROCESS_CANCELED') {
+        // 0603→0606: 결제창을 닫으면 리다이렉트 없이 여기로 reject된다. **취소는 실패가 아니라
+        //   정상 흐름**이라 안내하지 않고 시트만 닫는다.
+        //
+        //   판정은 배포 SDK(https://js.tosspayments.com/v2/standard) 원문에서 확인한
+        //   실제 에러 형태 기준(0606 실측 — 0603의 PAY_PROCESS_CANCELED는 **failUrl 쿼리
+        //   코드**지 reject 코드가 아니었다. 스크립트 전체에서 그 코드로 에러를 만드는 곳 0건):
+        //   형태 A(결제창 v2): name='UserCancelError', message='취소되었습니다.', code 없음
+        //   형태 B(위젯 계열): name='Error', message='취소되었습니다.', code='USER_CANCEL'
+        //   메시지 검사는 원격 스크립트 개정 대비 최후망 — 두 형태 모두 같은 메시지 상수를 쓴다.
+        const err = e as { code?: string; name?: string; message?: string } | null;
+        const canceled =
+          err?.code === 'USER_CANCEL' ||
+          err?.name === 'UserCancelError' ||
+          (err?.message?.includes('취소되었습니다') ?? false);
+        if (canceled) {
           startClose();
           return;
         }
-        // 그 외만 안내. 주문 행은 PENDING으로 남는다 — 승인되지 않은 주문이라 무해하고,
-        //   정리 정책은 별건이다.
+        // 그 외만 안내(시트 안 한 줄 — alert 아님). 주문 행은 PENDING으로 남는다 —
+        //   승인되지 않은 주문이라 무해하고, 정리 정책은 별건이다.
         console.error('[payment] requestPayment failed:', e);
-        alert('결제를 시작하지 못했습니다');
+        setErrorMsg('결제를 시작하지 못했습니다');
       }
     });
   };
@@ -122,6 +136,7 @@ export function CopyPlanConfirmSheet({
   //   애니를 재생할 수 없다. closing=true로 애니를 돌리고, 끝난 뒤 onClose()로 호스트를 닫는다.
   //   reduced-motion이면 애니 없이 즉시 닫는다.
   const startClose = () => {
+    setErrorMsg(null); // 닫았다 다시 열면 깨끗한 시트
     if (prefersReduced()) { onClose(); return; }
     setClosing(true);
   };
@@ -204,6 +219,12 @@ export function CopyPlanConfirmSheet({
             <span className="text-sm text-fg2">결제 금액</span>
             <span className="text-[17px] font-bold text-fg tabular-nums">{PRICE_LABEL}</span>
           </div>
+          {/* 0606: 실패 안내 — alert 대신 시트 안 한 줄. 위치는 금액 행과 버튼 사이:
+              오류는 "결제하고 담기"를 누른 결과라 그 버튼 바로 위가 원인-결과로 읽힌다.
+              text-danger = 레포 오류 축 토큰(0477). role="alert" = 동적 삽입 통지. */}
+          {errorMsg && (
+            <p role="alert" className="mt-3 text-[13px] text-danger break-keep">{errorMsg}</p>
+          )}
           {/* §5: 터치 타겟 44px 이상 + 인접 간격 8px 이상 */}
           <div className="mt-5 flex flex-col gap-2">
             <button type="button" onClick={startPayment} disabled={isPending} className={BAR_BTN}>
