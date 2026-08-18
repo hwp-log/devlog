@@ -56,6 +56,7 @@ model User {
   myPlans   MyPlan[]
   likes     Like[]
   planLikes PlanLike[]
+  orders    Order[] // 0600
 
   @@map("users")
 }
@@ -314,4 +315,46 @@ model PlanLike {
 
   @@map("plan_likes")
   @@unique([planId, userId])
+}
+
+// 0600: 결제 주문 상태. 최소 3단계 — 세분화하지 않는다.
+//   PENDING = 결제창을 띄우기 전 서버가 먼저 기록한 상태(금액 대조의 기준점)
+//   PAID    = 토스 승인 API 성공
+//   FAILED  = 인증 실패·승인 실패·금액 불일치로 승인하지 않음
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// 0600: 담기 결제 주문. **결제 요청 전에 먼저 저장한다** —
+//   successUrl로 돌아온 amount와 여기 저장된 amount를 대조해 금액 조작을 잡기 때문이다.
+//   요청 전 기록이 없으면 대조할 기준값이 없고, 클라이언트가 보낸 금액을 그대로 승인하게 된다.
+model Order {
+  id           String      @id @default(cuid())
+  // 우리가 만드는 주문번호(토스에 넘기는 orderId). **unique** —
+  //   같은 주문이 두 번 승인되는 것을 막는 유일한 장치다.
+  //   (paymentKey에는 unique를 걸지 않는다 — 장치를 둘로 늘리지 않는다.)
+  orderId      String      @unique @map("order_id")
+  // nullable + SetNull: **저장소 관례(Cascade)와 다르다.** 돈이 오간 사실은 탈퇴해도
+  //   남아야 한다(분쟁·정산·세무 근거). 탈퇴 흐름이 콘텐츠를 익명화해 남기는 것과 같은 결이며,
+  //   글은 남기고 결제 기록만 지우는 건 앞뒤가 맞지 않는다.
+  //   SetNull이면 "누가 샀는지"만 지워지고 "언제 얼마짜리 주문이 있었다"는 남는다.
+  userId       String?     @map("user_id") @db.Uuid
+  // 어떤 공개 플랜을 담으려는 주문인가. **FK를 걸지 않는다**(MyPlan.sourcePlanId와 같은 선례) —
+  //   원본 플랜이 지워져도 결제 기록 자체는 남아야 한다.
+  sourcePlanId String      @map("source_plan_id")
+  // 결제 금액. **요청 시점에 서버가 정한 값**이고 클라이언트가 보낸 값이 아니다.
+  //   승인 직전 successUrl의 amount와 이 값을 비교해 다르면 승인하지 않는다.
+  amount       Int
+  status       OrderStatus @default(PENDING)
+  // 토스가 주는 값 — 승인 후에 채워진다.
+  paymentKey   String?     @map("payment_key")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  approvedAt   DateTime?   @map("approved_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("orders")
+  @@index([userId])
 }
