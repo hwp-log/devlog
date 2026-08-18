@@ -1,7 +1,7 @@
 'use client';
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { copyPublicPlanAction } from './actions';
+import { createPlanCopyOrderAction } from './actions';
 
 // 0515: variant='bar' — 모바일 하단 고정 바용 전폭 채움 버튼(시안 4d). 기본은 기존 인라인 그대로.
 export function CopyPlanFinderButton({ planId, variant }: { planId: string; variant?: 'bar' }) {
@@ -9,15 +9,43 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
   const router = useRouter();
 
   // 0599: 이동은 여기가 담당한다 — 액션은 값만 돌려준다(actions.ts 상단 주석).
-  //   push인 이유: 서버 액션의 redirect는 기본이 push라(Next 16) 뒤로가기 히스토리가
-  //   기존과 같게 유지된다. startTransition 안이라 내비게이션이 끝날 때까지
-  //   isPending이 유지돼 버튼 비활성·"담는 중..." 표시도 그대로다.
+  //   startTransition 안이라 작업이 끝날 때까지 isPending이 유지돼 버튼 비활성 표시가 산다.
+  // 0601: 담기가 결제 뒤로 옮겨졌다 — 여기서는 **주문 저장 → 결제창 열기**까지만 한다.
+  //   실제 복사(copyPublicPlanAction)는 승인 단계에서 서버가 호출한다(다음 커밋).
   const handleCopy = () => {
     startTransition(async () => {
-      const result = await copyPublicPlanAction(planId);
-      if ('planId' in result) router.push('/my-plan');
-      else if ('unauthenticated' in result) router.push('/login');
-      else alert(result.error);
+      const order = await createPlanCopyOrderAction(planId);
+      if ('unauthenticated' in order) { router.push('/login'); return; }
+      if ('error' in order) { alert(order.error); return; }
+
+      try {
+        // 0601: SDK는 클릭 시점에 동적 import — 상세 페이지 초기 번들에 결제 코드를 싣지 않는다.
+        const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
+        const toss = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!);
+        // 0601: customerKey는 빌링키·브랜드페이처럼 **재사용되는 결제수단을 고객과 매핑**할 때
+        //   쓰는 값이다. 카드 단건 결제에는 저장할 결제수단이 없어 지금 넘겨도 쓰이는 곳이 없다.
+        //   자동결제·브랜드페이를 붙이게 되면 그때 실제 customerKey로 바꾼다.
+        const payment = toss.payment({ customerKey: ANONYMOUS });
+
+        await payment.requestPayment({
+          method: 'CARD',
+          // v2의 amount는 숫자가 아니라 객체다. 값은 **서버가 정해 내려준 것**을 그대로 쓴다 —
+          // 클라이언트가 금액을 만들면 승인 단계의 금액 대조가 무의미해진다.
+          amount: { currency: 'KRW', value: order.amount },
+          orderId: order.orderId,
+          orderName: order.orderName,
+          // 오리진 포함 절대 URL이 필수(SDK 제약). 돌아올 때 쿼리가 붙는다 —
+          //   성공: ?amount=&orderId=&paymentKey=  /  실패: ?code=&message=&orderId=
+          successUrl: `${window.location.origin}/payment/success`,
+          failUrl: `${window.location.origin}/payment/fail`,
+        });
+      } catch (e) {
+        // 사용자가 결제창을 닫은 경우도 여기로 온다(리다이렉트 없이 reject).
+        //   주문 행은 PENDING으로 남는다 — 승인되지 않은 주문이라 무해하고,
+        //   정리 정책은 승인 흐름을 붙인 뒤 판단한다.
+        console.error('[payment] requestPayment failed:', e);
+        alert('결제를 시작하지 못했습니다');
+      }
     });
   };
 

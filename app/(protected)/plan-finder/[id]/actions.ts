@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { PLAN_COPY_PRICE } from '@/lib/payment/price';
 
 export async function togglePlanLikeAction(planId: string): Promise<{ liked: boolean; count: number }> {
   const supabase = await createClient();
@@ -175,4 +176,52 @@ export async function copyPublicPlanAction(
   //   그려질 수 있어 명시적으로 무효화한다(같은 처리: my-plan/[id]/actions.ts).
   revalidatePath('/my-plan');
   return { planId: newPlanId };
+}
+
+// 0601: 담기 결제의 주문 생성. 결제창을 띄우기 **전에** 서버가 먼저 주문을 남긴다 —
+//   승인 단계에서 successUrl로 돌아온 amount를 이 행의 amount와 대조해야 하기 때문이다(0600).
+//   반환은 0599와 같은 결: redirect를 던지지 않고 값만 돌려준다.
+//   **금액도 주문명도 서버가 정해 내려보낸다** — 클라이언트는 받은 값을 SDK에 그대로 넘길 뿐이고,
+//   클라이언트가 보낸 금액을 주문에 쓰면 대조 자체가 무의미해진다.
+export type CreatePlanOrderResult =
+  | { orderId: string; amount: number; orderName: string }
+  | { unauthenticated: true }
+  | { error: string };
+
+export async function createPlanCopyOrderAction(
+  sourcePlanId: string,
+): Promise<CreatePlanOrderResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { unauthenticated: true };
+
+  // copyPublicPlanAction과 **같은 게이트**(visiblePlanWhere) — 담을 수 없는 플랜에
+  //   주문이 생기면 결제는 되고 담기는 실패하는 상태가 만들어진다.
+  const plan = await prisma.myPlan.findFirst({
+    where: { id: sourcePlanId, ...visiblePlanWhere(user.id) },
+    select: { title: true },
+  });
+  if (!plan) return { error: '원본 플랜을 찾을 수 없습니다' };
+
+  // 토스 orderId 제약: 영문 대소문자·숫자·'-'·'_'·'='로 이루어진 6~64자.
+  //   randomUUID는 36자 hex+하이픈이라 제약 안이고, Node 내장이라 의존성이 늘지 않는다.
+  const orderId = crypto.randomUUID();
+  // orderName은 결제창·영수증에 뜨는 문구. SDK 상한 100자에 맞춰 자른다.
+  const orderName = `여행 플랜 담기 - ${plan.title}`.slice(0, 100);
+
+  try {
+    await prisma.order.create({
+      data: {
+        orderId,
+        userId: user.id,
+        sourcePlanId,
+        amount: PLAN_COPY_PRICE, // 산출 정본은 lib/payment/price.ts 하나뿐
+        status: 'PENDING',
+      },
+    });
+  } catch {
+    return { error: '주문 생성에 실패했습니다' };
+  }
+
+  return { orderId, amount: PLAN_COPY_PRICE, orderName };
 }
