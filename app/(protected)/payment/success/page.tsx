@@ -1,24 +1,42 @@
-// 0601: **미완 페이지.** 결제창이 정상적으로 돌아오는지 확인하는 용도로만 존재한다.
-//   다음 커밋에서 여기에 붙는다 —
-//   ① searchParams의 paymentKey·orderId·amount를 읽고
-//   ② orders 행을 orderId로 찾아 amount가 같은지 대조(다르면 승인하지 않는다)
-//   ③ 토스 승인 API 호출(TOSS_SECRET_KEY는 서버 전용 모듈에서만)
-//   ④ status=PAID·approvedAt·paymentKey 기록
-//   ⑤ copyPublicPlanAction(0599)을 호출해 실제 담기 실행
-//
-//   함께 판단할 것: 이 라우트가 (protected) 안이라 로그인 상태를 전제한다.
-//   결제 도중 세션이 만료되거나 다른 기기에서 돌아오면 로그인 화면으로 튕기면서
-//   쿼리(paymentKey·orderId·amount)가 사라지고, 그러면 승인할 방법이 없어진다.
-//   승인을 붙일 때 이 경우를 어떻게 다룰지(라우트 위치·쿼리 보존·재개 경로) 결정해야 한다.
-export default function PaymentSuccessPage() {
+import Link from 'next/link';
+
+// 0602: 결과 표시 전용 페이지. 검증·승인·담기는 전부 /payment/confirm(route.ts)에서
+//   끝나고 이 화면은 결과만 그린다 — 부수효과를 렌더에 두지 않기 위한 분리다.
+//   (0601에서 우려했던 "세션 만료로 튕기며 쿼리 유실"은 해당하지 않는다:
+//    (protected) 레이아웃은 미인증 사용자를 튕기지 않고, Route Handler는 레이아웃을
+//    거치지도 않는다. 세션 없는 진입은 confirm 핸들러가 직접 판정한다.)
+type Props = { searchParams: Promise<{ planId?: string }> };
+
+export default async function PaymentSuccessPage({ searchParams }: Props) {
+  const { planId } = await searchParams;
+
   return (
     <div className="max-w-[var(--reading-w)] mx-auto">
       <h1 className="text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] break-keep">
         결제가 완료되었습니다
       </h1>
-      <p className="mt-3 text-sm text-muted">
-        담기 처리는 곧 이어집니다.
+      <p className="mt-3 text-sm text-fg2 break-keep">
+        플랜을 내 여행으로 담았습니다. 날짜와 비용은 자유롭게 수정할 수 있어요.
       </p>
+
+      <div className="mt-7 flex flex-wrap items-center gap-2">
+        {/* planId가 없는 경우 = 이미 승인된 주문으로 재진입한 경우(confirm 핸들러 ④).
+            사본 id를 orders에 저장하지 않으므로 그때는 목록으로 보낸다. */}
+        {planId ? (
+          <Link
+            href={`/plan-finder/${planId}`}
+            className="px-4 py-[10px] rounded-lg bg-primary text-white text-sm font-bold"
+          >
+            담은 플랜 보기
+          </Link>
+        ) : null}
+        <Link
+          href="/my-plan"
+          className="px-4 py-[10px] rounded-lg border border-border text-fg2 text-sm hover:bg-surface2 transition-colors"
+        >
+          내 플랜 목록
+        </Link>
+      </div>
     </div>
   );
 }

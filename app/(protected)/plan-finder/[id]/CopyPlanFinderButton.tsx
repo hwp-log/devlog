@@ -36,8 +36,8 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
           orderName: order.orderName,
           // 오리진 포함 절대 URL이 필수(SDK 제약). 돌아올 때 쿼리가 붙는다 —
           //   성공: ?amount=&orderId=&paymentKey=  /  실패: ?code=&message=&orderId=
-          successUrl: `${window.location.origin}/payment/success`,
-          failUrl: `${window.location.origin}/payment/fail`,
+          successUrl: `${window.location.origin}/payment/confirm`,
+          failUrl: `${window.location.origin}/payment/failed`,
         });
       } catch (e) {
         // 사용자가 결제창을 닫은 경우도 여기로 온다(리다이렉트 없이 reject).
@@ -64,7 +64,7 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
           : 'px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50'
       }
     >
-      {isPending ? '담는 중...' : '내 여행으로 담기'}
+      {isPending ? '결제 진행 중...' : '내 여행으로 담기'}
     </button>
   );
 }
