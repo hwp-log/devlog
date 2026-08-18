@@ -13,7 +13,15 @@ const PRICE_LABEL = '1,500원';
 //   형태가 갈린다: variant='bar'(모바일) = 하단 시트 / 기본(데스크톱) = 버튼 자리 2단계 전환.
 //   **새 미디어쿼리를 들이지 않는다** — 두 지점이 이미 CSS로 갈려 있어(PlanFinderDetail의
 //   max-sm:hidden 래퍼 / sm:hidden 바) variant가 곧 뷰포트 분기다.
-export function CopyPlanFinderButton({ planId, variant }: { planId: string; variant?: 'bar' }) {
+export function CopyPlanFinderButton({
+  planId,
+  variant,
+  // 0604: 확인 시트 제목의 "장소 N곳". **추가 쿼리 없이 온다** — PlanFinderDetail이 이미
+  //   spots 배열을 받아 상단 지표줄에 `{spots.length}곳`으로 렌더하고 있어 그 값을 그대로 넘긴다.
+  //   서버 액션에서 받지 않는 이유: 확인 UI는 클릭 즉시(액션 호출 **전에**) 열리므로
+  //   왕복을 기다리면 제목이 비었다가 채워진다.
+  spotCount,
+}: { planId: string; variant?: 'bar'; spotCount: number }) {
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const router = useRouter();
@@ -73,6 +81,17 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
   const BAR_BTN = 'w-full py-[14px] rounded-lg bg-primary text-white text-[15px] font-bold disabled:opacity-50';
   const INLINE_BTN = 'px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50';
 
+  // 0604: 가격은 **버튼 밖**에 둔다. 0603에서 라벨에 넣었더니 "이 코스가 1,500원"으로 읽혔다 —
+  //   우리가 파는 건 코스가 아니라 옮겨 담는 기능이다. 뒷절반("내 플랜으로 저장돼요")은
+  //   산 뒤 그것이 어디에 남는지를 결제 전에 알리는 자리다.
+  //   confirming 중에는 렌더하지 않는다 — 확인 UI가 이미 금액을 말하고 있어, 한 화면에
+  //   가격이 두 번 나오면 어느 쪽이 청구액인지 흐려진다.
+  const priceNote = (
+    <p className="text-[12.5px] text-fg2 break-keep">
+      가져오기 {PRICE_LABEL} · 내 플랜으로 저장돼요
+    </p>
+  );
+
   const trigger = (
     <button
       type="button"
@@ -80,8 +99,7 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
       disabled={isPending}
       className={variant === 'bar' ? BAR_BTN : INLINE_BTN}
     >
-      {/* 0603: 가격을 라벨에 노출 — 누르기 전에 유료임을 알린다(문구 정본은 위 PRICE_LABEL 주석) */}
-      {isPending ? '결제 진행 중...' : `내 여행으로 담기 · ${PRICE_LABEL}`}
+      {isPending ? '결제 진행 중...' : '내 여행으로 담기'}
     </button>
   );
 
@@ -99,14 +117,19 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
   if (variant === 'bar') {
     return (
       <>
+        {/* 0604: 모바일 바는 문구가 버튼 **위** — 아래는 홈바·safe-area 자리다 */}
+        {!confirming && <div className="mb-2">{priceNote}</div>}
         {trigger}
         {confirming && (
           <div className="fixed inset-x-0 bottom-0 z-[70] rounded-t-[22px] border border-border bg-card shadow-2xl px-4 pt-5 pb-[calc(16px+env(safe-area-inset-bottom))]">
+            {/* 0604: 파는 것이 코스가 아니라 **옮겨 적는 수고**임을 숫자로 말한다.
+                N은 그 플랜의 실제 장소 수(spotCount) — 0이어도 폴백을 두지 않는다
+                (장소 없는 플랜을 담을 일이 실제로 없고, 안 쓰이는 갈래만 늘어난다). */}
             <h2 className="text-[17px] font-bold text-fg break-keep">
-              이 코스를 내 플랜으로 가져옵니다
+              장소 {spotCount}곳을 직접 옮겨 적지 않아도 돼요
             </h2>
             <p className="mt-2 text-sm text-fg2 break-keep">
-              가져온 뒤 날짜·인원·금액을 자유롭게 고칠 수 있어요.
+              주소·좌표·비용까지 그대로 들어오고, 가져온 뒤 내 일정에 맞게 고칠 수 있어요.
             </p>
             <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
               <span className="text-sm text-fg2">결제 금액</span>
@@ -162,5 +185,13 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
     );
   }
 
-  return trigger;
+  // 0604: 데스크톱은 문구가 버튼 **아래**. 이 블록이 액션 행(PlanFinderDetail:190,
+  //   flex items-center)의 높이를 약 27px 올려 좋아요 버튼이 함께 재정렬된다 — 구조를
+  //   바꾸지 않는 선에서 불가피한 결과라 그대로 둔다.
+  return (
+    <div className="flex flex-col items-end gap-1">
+      {trigger}
+      {priceNote}
+    </div>
+  );
 }

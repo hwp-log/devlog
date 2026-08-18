@@ -192,7 +192,7 @@ export function PlanFinderDetail({
       {/* 0515: 모바일은 하단 고정 바가 담기를 담당(시안 4d) — 인라인 버튼은 sm+ 전용 */}
       {!isOwner && (
         <span className="max-sm:hidden">
-          <CopyPlanFinderButton planId={planId} />
+          <CopyPlanFinderButton planId={planId} spotCount={spots.length} />
         </span>
       )}
       <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
@@ -200,14 +200,19 @@ export function PlanFinderDetail({
   );
 
   return (
-    // 0515: 담기 고정 바(모바일)가 마지막 내용을 가리지 않게 하단 여백 88px(시안 4d).
+    // 0515: 담기 고정 바(모바일)가 마지막 내용을 가리지 않게 하단 여백.
+    // 0604: 88 → 116 — 바 안에 가격 보조 문구 한 줄이 생겨 바가 높아졌다. 산식(safe-area 제외):
+    //   border-t 1 + pt-3 12 + 문구 12.5×1.5=18.75 + 문구↔버튼 간격 8 + 버튼(py14×2 + 15×1.5)=50.5
+    //   + pb 12 = 102.25. 기존 88이 실높이 75.5에 여유 12.5를 얹은 값이라 같은 여유를 유지해 116.
+    //   (line-height 1.5 = Tailwind preflight 기본. arbitrary 폰트 크기는 이를 상속한다.)
+    //   safe-area는 88 때도 미포함 — 노치 기기에선 바가 그만큼 더 높다는 전제를 그대로 유지.
     // 0534: 읽기 화면 공용 본문 폭 --reading-w(860, 스토리 상세와 동일) — 히어로 포함 통째.
     //   히어로를 안에 넣는 근거: 스토리 상세 선례(썸네일 포함 전부 컬럼 안) + 히어로만 넓으면
     //   정렬선이 두 개가 돼 "한 화면 안 폭 갈림"이 히어로-본문 사이로 옮겨갈 뿐.
     //   860 성립 검산(0534 실측, Pretendard 폴백): 일정 행 652 / 비용 2열 한 칸 211(열폭 420)
     //   / 항공 4열 최장 482 — 전부 하한 위. 모바일 담기 고정 바(fixed inset-x-0)는
     //   max-w 래퍼의 containing block이 아니라 무영향.
-    <div className={`max-w-[var(--reading-w)] mx-auto${isOwner ? '' : ' max-sm:pb-[88px]'}`}>
+    <div className={`max-w-[var(--reading-w)] mx-auto${isOwner ? '' : ' max-sm:pb-[116px]'}`}>
       {/* 0512: 히어로에 제목(좌하단)·지역 칩(좌상단) — 시안 4a/4d. 좌우 인셋은 시안 40px가
           전체 페이지 패딩 기준이라 컬럼 폭인 우리 히어로엔 기존 16px 유지. */}
       {coverUrl && (
@@ -519,7 +524,7 @@ export function PlanFinderDetail({
           iOS 홈바 대응: pb에 safe-area 합산(CLAUDE.md §5). z-50 — 탭바(z-40) 위. */}
       {!isOwner && (
         <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg/[.94] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-          <CopyPlanFinderButton planId={planId} variant="bar" />
+          <CopyPlanFinderButton planId={planId} spotCount={spots.length} variant="bar" />
         </div>
       )}
     </div>
