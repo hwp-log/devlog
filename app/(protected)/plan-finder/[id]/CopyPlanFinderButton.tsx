@@ -8,22 +8,50 @@ import { createPlanCopyOrderAction } from './actions';
 //   **가격을 바꿀 때 두 곳을 함께 고칠 것** — 한쪽만 바꾸면 화면 금액과 청구 금액이 갈린다.
 const PRICE_LABEL = '1,500원';
 
+// 0524: 흰 글자는 primary(#4d9eff) 면에서 대비 2.74:1로 WCAG AA(4.5) 미달이고
+// primary-fg(#0b1a2b)가 6.39:1이라 한때 primary-fg였다.
+// 0530: 그럼에도 primary 채움 버튼의 글자는 흰색으로 통일(사용자 확정, 0529 주요 버튼과 동일 선택) —
+// AA 미달을 알고 수용한다. 바꿀 땐 세 화면(작성 저장·MyPlan 새 계획·여기)을 함께.
+const BAR_BTN = 'w-full py-[14px] rounded-lg bg-primary text-white text-[15px] font-bold disabled:opacity-50';
+const INLINE_BTN = 'px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50';
+
 // 0515: variant='bar' — 모바일 하단 고정 바용 전폭 채움 버튼(시안 4d). 기본은 기존 인라인 그대로.
-// 0603: 확인 단계 추가 — 클릭은 확인 UI를 열기만 하고, 주문 생성·결제창은 "결제하고 담기"에서 시작한다.
-//   형태가 갈린다: variant='bar'(모바일) = 하단 시트 / 기본(데스크톱) = 버튼 자리 2단계 전환.
-//   **새 미디어쿼리를 들이지 않는다** — 두 지점이 이미 CSS로 갈려 있어(PlanFinderDetail의
-//   max-sm:hidden 래퍼 / sm:hidden 바) variant가 곧 뷰포트 분기다.
+// 0605: **트리거 전용으로 축소.** 확인 시트와 결제 실행은 아래 CopyPlanConfirmSheet가 맡는다.
+//   이유: 트리거가 2개(데스크톱 인라인·모바일 바)인데 둘 다 마운트되므로(CSS로만 가림),
+//   상태를 버튼 안에 두면 **시트가 2벌** 생긴다. 상태는 호스트(PlanFinderDetail)가 갖는다.
 export function CopyPlanFinderButton({
-  planId,
   variant,
-  // 0604: 확인 시트 제목의 "장소 N곳". **추가 쿼리 없이 온다** — PlanFinderDetail이 이미
-  //   spots 배열을 받아 상단 지표줄에 `{spots.length}곳`으로 렌더하고 있어 그 값을 그대로 넘긴다.
-  //   서버 액션에서 받지 않는 이유: 확인 UI는 클릭 즉시(액션 호출 **전에**) 열리므로
-  //   왕복을 기다리면 제목이 비었다가 채워진다.
+  onRequest,
+}: { variant?: 'bar'; onRequest: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRequest}
+      className={variant === 'bar' ? BAR_BTN : INLINE_BTN}
+    >
+      내 여행으로 담기
+    </button>
+  );
+}
+
+// 0605: 확인 시트 — **담기 바 밖**, 호스트 루트에 1개만 렌더된다.
+//   0603에서는 이 시트가 담기 바(`fixed … z-50`) 안에 있어 z-[70]이 그 stacking context에
+//   갇혔는데, 바 밖으로 나오면서 해소됐다(호스트 래퍼는 transform·z-index가 없어 컨텍스트를
+//   만들지 않는다). 데스크톱에도 담기 바가 없으므로 이 위치라야 두 화면이 같은 시트를 쓴다.
+//
+//   셸 어휘는 기존 시트 2종(SpotFinderMapNaver:1161 · SpotMap:1381)과 동일 계열 —
+//   rounded-t-[22px] + border-border + shadow-2xl, pb에 safe-area 합산(CLAUDE.md §5).
+//   **높이 미지정 = 콘텐츠 높이.** svh를 쓰지 않는 이유: 58svh(0247)·70svh(0378)는
+//   "시트 아래로 지도가 계속 보여야 한다"는 요구에서 나온 값인데, 이 확인 시트는 뒤를 볼
+//   필요가 없어 그 규칙의 대상이 아니다.
+//   **바깥 클릭 닫기·ESC 없음** — 레포 관례(SpotMap:1370 "시트 밖 탭 = 닫힘 없음"). 닫기는 [취소]뿐.
+export function CopyPlanConfirmSheet({
+  planId,
   spotCount,
-}: { planId: string; variant?: 'bar'; spotCount: number }) {
+  open,
+  onClose,
+}: { planId: string; spotCount: number; open: boolean; onClose: () => void }) {
   const [isPending, startTransition] = useTransition();
-  const [confirming, setConfirming] = useState(false);
   const router = useRouter();
 
   // 0599: 이동은 여기가 담당한다 — 액션은 값만 돌려준다(actions.ts 상단 주석).
@@ -63,7 +91,7 @@ export function CopyPlanFinderButton({
         //   못했습니다"는 사용자가 스스로 한 선택을 오류로 되돌려주는 말이었다.
         //   코드 문자열이 SDK 타입 정의에 열거돼 있지 않아(2.7.1 확인) 속성 접근으로 방어적으로 본다.
         if ((e as { code?: string } | null)?.code === 'PAY_PROCESS_CANCELED') {
-          setConfirming(false);
+          onClose();
           return;
         }
         // 그 외만 안내. 주문 행은 PENDING으로 남는다 — 승인되지 않은 주문이라 무해하고,
@@ -74,124 +102,34 @@ export function CopyPlanFinderButton({
     });
   };
 
-  // 0524: 흰 글자는 primary(#4d9eff) 면에서 대비 2.74:1로 WCAG AA(4.5) 미달이고
-  // primary-fg(#0b1a2b)가 6.39:1이라 한때 primary-fg였다.
-  // 0530: 그럼에도 primary 채움 버튼의 글자는 흰색으로 통일(사용자 확정, 0529 주요 버튼과 동일 선택) —
-  // AA 미달을 알고 수용한다. 바꿀 땐 세 화면(작성 저장·MyPlan 새 계획·여기)을 함께.
-  const BAR_BTN = 'w-full py-[14px] rounded-lg bg-primary text-white text-[15px] font-bold disabled:opacity-50';
-  const INLINE_BTN = 'px-4 py-1.5 rounded-full text-sm border border-border text-fg2 hover:bg-surface2 transition-colors disabled:opacity-50';
+  if (!open) return null;
 
-  // 0604: 가격은 **버튼 밖**에 둔다. 0603에서 라벨에 넣었더니 "이 코스가 1,500원"으로 읽혔다 —
-  //   우리가 파는 건 코스가 아니라 옮겨 담는 기능이다. 뒷절반("내 플랜으로 저장돼요")은
-  //   산 뒤 그것이 어디에 남는지를 결제 전에 알리는 자리다.
-  //   confirming 중에는 렌더하지 않는다 — 확인 UI가 이미 금액을 말하고 있어, 한 화면에
-  //   가격이 두 번 나오면 어느 쪽이 청구액인지 흐려진다.
-  const priceNote = (
-    <p className="text-[12.5px] text-fg2 break-keep">
-      가져오기 {PRICE_LABEL} · 내 플랜으로 저장돼요
-    </p>
-  );
-
-  const trigger = (
-    <button
-      type="button"
-      onClick={() => setConfirming(true)}
-      disabled={isPending}
-      className={variant === 'bar' ? BAR_BTN : INLINE_BTN}
-    >
-      {isPending ? '결제 진행 중...' : '내 여행으로 담기'}
-    </button>
-  );
-
-  // ── 모바일: 하단 시트 ──────────────────────────────────────────────────────
-  // 0603: 셸 어휘는 기존 시트 2종(SpotFinderMapNaver:1161 · SpotMap:1381)과 동일 계열 —
-  //   rounded-t-[22px] + border-border + shadow-2xl, pb에 safe-area 합산(CLAUDE.md §5).
-  //   **높이 미지정 = 콘텐츠 높이.** svh를 쓰지 않는 이유: 58svh(0247)·70svh(0378)는
-  //   "시트 아래로 지도가 계속 보여야 한다"는 요구에서 나온 값인데, 이 확인 시트는 뒤를 볼
-  //   필요가 없어 그 규칙의 대상이 아니다.
-  //   **스크림·바깥 클릭 닫기·ESC 없음** — 레포 관례(SpotMap:1370 "시트 밖 탭 = 닫힘 없음").
-  //   닫기는 [취소]뿐이고, 시트가 담기 바를 물리적으로 덮어 뒤 버튼 오터치도 없다.
-  //   z-[70] = globals.css 계층 지도의 신규 단계(담기 바 z-50 위). 다만 이 시트는
-  //   PlanFinderDetail:521의 `fixed … z-50` div **안**에 있어 그 stacking context에 갇힌다 —
-  //   이 화면엔 50을 넘는 레이어가 없어 결과는 의도대로지만, 값이 전역에서 그대로 통하진 않는다.
-  if (variant === 'bar') {
-    return (
-      <>
-        {/* 0604: 모바일 바는 문구가 버튼 **위** — 아래는 홈바·safe-area 자리다 */}
-        {!confirming && <div className="mb-2">{priceNote}</div>}
-        {trigger}
-        {confirming && (
-          <div className="fixed inset-x-0 bottom-0 z-[70] rounded-t-[22px] border border-border bg-card shadow-2xl px-4 pt-5 pb-[calc(16px+env(safe-area-inset-bottom))]">
-            {/* 0604: 파는 것이 코스가 아니라 **옮겨 적는 수고**임을 숫자로 말한다.
-                N은 그 플랜의 실제 장소 수(spotCount) — 0이어도 폴백을 두지 않는다
-                (장소 없는 플랜을 담을 일이 실제로 없고, 안 쓰이는 갈래만 늘어난다). */}
-            <h2 className="text-[17px] font-bold text-fg break-keep">
-              장소 {spotCount}곳을 직접 옮겨 적지 않아도 돼요
-            </h2>
-            <p className="mt-2 text-sm text-fg2 break-keep">
-              주소·좌표·비용까지 그대로 들어오고, 가져온 뒤 내 일정에 맞게 고칠 수 있어요.
-            </p>
-            <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-              <span className="text-sm text-fg2">결제 금액</span>
-              <span className="text-[17px] font-bold text-fg tabular-nums">{PRICE_LABEL}</span>
-            </div>
-            {/* §5: 터치 타겟 44px 이상 + 인접 간격 8px 이상 */}
-            <div className="mt-5 flex flex-col gap-2">
-              <button type="button" onClick={startPayment} disabled={isPending} className={BAR_BTN}>
-                {isPending ? '결제 진행 중...' : '결제하고 담기'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={isPending}
-                className="w-full py-[14px] rounded-lg border border-border text-fg2 text-[15px] font-semibold hover:bg-surface2 transition-colors disabled:opacity-50"
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  // ── 데스크톱: 버튼 자리 2단계 전환 (레이어 없음) ────────────────────────────
-  // 0603: 중앙 모달을 만들지 않는다 — FormatMenu.tsx:13의 기각 이력("모달 금지 —
-  //   레이어 두 겹·모바일 답답함")과 같은 판단이다. 같은 자리에서 내용만 바뀐다.
-  //   포커스는 [취소]에 — FormatMenu 확인 화면 관례("파괴적 확인은 안전한 쪽이 기본").
-  //   ESC는 넣지 않는다(모바일 시트와 동일 규칙).
-  if (confirming) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-fg2 whitespace-nowrap">{PRICE_LABEL}이 결제됩니다</span>
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-[70] rounded-t-[22px] border border-border bg-card shadow-2xl px-4 pt-5 pb-[calc(16px+env(safe-area-inset-bottom))]">
+      <h2 className="text-[17px] font-bold text-fg break-keep">
+        장소 {spotCount}곳을 직접 옮겨 적지 않아도 돼요
+      </h2>
+      <p className="mt-2 text-sm text-fg2 break-keep">
+        주소·좌표·비용까지 그대로 들어오고, 가져온 뒤 내 일정에 맞게 고칠 수 있어요.
+      </p>
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+        <span className="text-sm text-fg2">결제 금액</span>
+        <span className="text-[17px] font-bold text-fg tabular-nums">{PRICE_LABEL}</span>
+      </div>
+      {/* §5: 터치 타겟 44px 이상 + 인접 간격 8px 이상 */}
+      <div className="mt-5 flex flex-col gap-2">
+        <button type="button" onClick={startPayment} disabled={isPending} className={BAR_BTN}>
+          {isPending ? '결제 진행 중...' : '결제하고 담기'}
+        </button>
         <button
           type="button"
-          autoFocus
-          onClick={() => setConfirming(false)}
+          onClick={onClose}
           disabled={isPending}
-          className={INLINE_BTN}
+          className="w-full py-[14px] rounded-lg border border-border text-fg2 text-[15px] font-semibold hover:bg-surface2 transition-colors disabled:opacity-50"
         >
           취소
         </button>
-        <button
-          type="button"
-          onClick={startPayment}
-          disabled={isPending}
-          className="px-4 py-1.5 rounded-full text-sm font-bold bg-primary text-white disabled:opacity-50"
-        >
-          {isPending ? '결제 중...' : '결제'}
-        </button>
       </div>
-    );
-  }
-
-  // 0604: 데스크톱은 문구가 버튼 **아래**. 이 블록이 액션 행(PlanFinderDetail:190,
-  //   flex items-center)의 높이를 약 27px 올려 좋아요 버튼이 함께 재정렬된다 — 구조를
-  //   바꾸지 않는 선에서 불가피한 결과라 그대로 둔다.
-  return (
-    <div className="flex flex-col items-end gap-1">
-      {trigger}
-      {priceNote}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { PublicCostSection } from '@/app/(protected)/story/[id]/PublicCostSectio
 import { openNaverDirections } from '@/lib/naver/directionsUrl';
 import { PublicFlightTable } from './PublicFlightTable';
 import { PlanLikeButton } from './PlanLikeButton';
-import { CopyPlanFinderButton } from './CopyPlanFinderButton';
+import { CopyPlanFinderButton, CopyPlanConfirmSheet } from './CopyPlanFinderButton';
 import { PlanPublicToggle, PlanManageIcons } from '@/app/(protected)/my-plan/[id]/PlanOwnerActions';
 import type { FlightLegData } from '@/app/(protected)/my-plan/_components/FlightLeg';
 import type { PublicCostSummary } from '@/lib/plan/summarize-plan-cost';
@@ -173,6 +173,9 @@ export function PlanFinderDetail({
   isCostUnchanged,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState(1);
+  // 0605: 결제 확인 시트의 열림 상태. **트리거가 2개**(데스크톱 인라인·모바일 바)인데 둘 다
+  //   마운트되므로(CSS로만 가림) 상태를 버튼 안에 두면 시트가 2벌 생긴다 → 호스트가 갖는다.
+  const [confirming, setConfirming] = useState(false);
 
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
 
@@ -192,7 +195,7 @@ export function PlanFinderDetail({
       {/* 0515: 모바일은 하단 고정 바가 담기를 담당(시안 4d) — 인라인 버튼은 sm+ 전용 */}
       {!isOwner && (
         <span className="max-sm:hidden">
-          <CopyPlanFinderButton planId={planId} spotCount={spots.length} />
+          <CopyPlanFinderButton onRequest={() => setConfirming(true)} />
         </span>
       )}
       <PlanLikeButton planId={planId} initialLiked={initialLiked} initialCount={initialCount} />
@@ -524,8 +527,20 @@ export function PlanFinderDetail({
           iOS 홈바 대응: pb에 safe-area 합산(CLAUDE.md §5). z-50 — 탭바(z-40) 위. */}
       {!isOwner && (
         <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg/[.94] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-          <CopyPlanFinderButton planId={planId} spotCount={spots.length} variant="bar" />
+          <CopyPlanFinderButton onRequest={() => setConfirming(true)} variant="bar" />
         </div>
+      )}
+
+      {/* 0605: 확인 시트는 담기 바 **밖**, 루트의 마지막 자식으로 1개만.
+          바 안에 있으면 (a) 데스크톱엔 바가 없어 시트를 못 쓰고 (b) 바의 `fixed z-50`이
+          만드는 stacking context에 시트의 z-[70]이 갇힌다(0603 보고 건). */}
+      {!isOwner && (
+        <CopyPlanConfirmSheet
+          planId={planId}
+          spotCount={spots.length}
+          open={confirming}
+          onClose={() => setConfirming(false)}
+        />
       )}
     </div>
   );
