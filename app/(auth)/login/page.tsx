@@ -7,10 +7,14 @@ const BRAND_TAGS = ['TRAVEL', 'PLAN', 'RECORD'] as const;
 export default function LoginPage() {
   return (
     // 0394: data-allow-landscape = 이 화면만 가로 차단 예외(globals.css body:has([data-allow-landscape]))
+    // 0607: 컬럼 정의를 인라인 style → 클래스로 — 인라인엔 미디어쿼리를 걸 수 없어
+    //   모바일에서 2열이 고정돼 폼이 오른쪽으로 잘렸다(glass-outer overflow hidden이라
+    //   스크롤 도달도 불가, 0606 실측). md(768) 미만 1열 스택. 기준은 SpotMap MOBILE_MQ(767)와
+    //   동일 계열 — 640~767 2열은 컬럼 콘텐츠 폭이 ~200px라 폼이 답답하다.
     <div
-      className="glass-outer grid w-full"
+      className="glass-outer grid w-full grid-cols-1 md:grid-cols-[1.1fr_1fr]"
       data-allow-landscape
-      style={{ maxWidth: '900px', gridTemplateColumns: '1.1fr 1fr' }}
+      style={{ maxWidth: '900px' }}
     >
       {/* 좌측: brand-side */}
       <div style={{ padding: '56px 48px', color: '#FFFFFF' }}>
@@ -57,7 +61,10 @@ export default function LoginPage() {
           여행의 시작점을 찍다.
         </div>
 
+        {/* 0607: 좁은 폭은 일어 숨김 — 세로가 길어지면 폼이 더 밀린다(숨기면 이 div의
+            mb 36도 함께 사라져 본문과 4px로 붙는다 — 폐기 예정 화면이라 수용). */}
         <div
+          className="max-md:hidden"
           style={{
             fontSize: '13px',
             color: 'rgba(255,255,255,0.9)',
@@ -76,12 +83,14 @@ export default function LoginPage() {
         >
           영화나 드라마에서 봤던 그 장면, 그 장소.<br />
           나만의 점을 찍어보자.<br />
+          {/* 0607: display를 인라인에서 클래스로 — 인라인 display가 남아 있으면
+              특이도에서 이겨 max-md:hidden이 안 먹는다(0462 계열: 반응형 숨김은 max-* 변형). */}
           <span
+            className="inline-block max-md:hidden"
             style={{
               fontSize: '12px',
               color: 'rgba(255,255,255,0.65)',
               marginTop: '8px',
-              display: 'inline-block',
             }}
           >
             映画やドラマで見たあのシーン、あの場所。<br />
