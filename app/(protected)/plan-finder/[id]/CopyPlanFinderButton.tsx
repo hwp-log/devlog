@@ -50,9 +50,16 @@ export function CopyPlanFinderButton({ planId, variant }: { planId: string; vari
           failUrl: `${window.location.origin}/payment/failed`,
         });
       } catch (e) {
-        // 사용자가 결제창을 닫은 경우도 여기로 온다(리다이렉트 없이 reject).
-        //   주문 행은 PENDING으로 남는다 — 승인되지 않은 주문이라 무해하고,
-        //   정리 정책은 승인 흐름을 붙인 뒤 판단한다.
+        // 0603: 결제창을 닫으면 리다이렉트 없이 여기로 reject된다. **취소는 실패가 아니라
+        //   정상 흐름**이라 안내하지 않고 확인 UI만 원상 복귀한다 — "결제를 시작하지
+        //   못했습니다"는 사용자가 스스로 한 선택을 오류로 되돌려주는 말이었다.
+        //   코드 문자열이 SDK 타입 정의에 열거돼 있지 않아(2.7.1 확인) 속성 접근으로 방어적으로 본다.
+        if ((e as { code?: string } | null)?.code === 'PAY_PROCESS_CANCELED') {
+          setConfirming(false);
+          return;
+        }
+        // 그 외만 안내. 주문 행은 PENDING으로 남는다 — 승인되지 않은 주문이라 무해하고,
+        //   정리 정책은 별건이다.
         console.error('[payment] requestPayment failed:', e);
         alert('결제를 시작하지 못했습니다');
       }
