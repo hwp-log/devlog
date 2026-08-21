@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Map, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
@@ -9,14 +10,15 @@ import { MyPlanListClient, type MyPlanListItem } from './_components/MyPlanListC
 export default async function MyPlanPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
   const profile = await prisma.user.findUnique({
-    where: { id: user!.id },
+    where: { id: user.id },
     select: { nickname: true, avatarUrl: true },
   });
 
   const plans = await prisma.myPlan.findMany({
-    where: { ownerId: user!.id },
+    where: { ownerId: user.id },
     orderBy: { createdAt: 'desc' },
     include: {
       costs: true,

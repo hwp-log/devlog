@@ -1,5 +1,6 @@
 import { ViewTransition } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { MapPin, PenSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
@@ -15,19 +16,20 @@ export default async function MyStoryPage({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
   const profile = await prisma.user.findUnique({
-    where: { id: user!.id },
+    where: { id: user.id },
     select: { nickname: true, avatarUrl: true },
   });
 
   const { q } = await searchParams;
   const keyword = q?.trim() ?? '';
 
-  const stories = await fetchStoriesWithMeta({ userId: user!.id, tag: keyword || undefined });
-  const myTags = await fetchMyStoryTags(user!.id);
+  const stories = await fetchStoriesWithMeta({ userId: user.id, tag: keyword || undefined });
+  const myTags = await fetchMyStoryTags(user.id);
   // 내가 누른 좋아요(빨강 하트) 판정 — 공용 mapStoryToCard가 두 화면에서 일관되게 하트를 칠하도록 뷰어 좋아요 집합을 넘긴다.
-  const likedSet = await fetchLikedStoryIds(user!.id, stories.map((s) => s.id));
+  const likedSet = await fetchLikedStoryIds(user.id, stories.map((s) => s.id));
 
   const listKey = stories.map(s => s.id).join('-') || '__empty__';
 
