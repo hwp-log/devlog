@@ -1,7 +1,13 @@
 'use client';
 import { useActionState, useState } from 'react';
+import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { BTN_SUBMIT } from '@/lib/button-styles';
+
+// 0612: lib/auth/actions.ts signUp의 generic 실패 문구와 동기 — 한쪽만 바꾸면 링크가 안 붙는다.
+// 이 문구일 때만 "로그인"을 /login 링크로 분해 렌더 (형식 오류 3종은 문자열 그대로).
+const SIGNUP_BLOCKED_ERROR =
+  '이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면 로그인하거나, 잠시 후 다시 시도해주세요.';
 
 type ActionState = { error: string } | { data: { user: unknown } } | null;
 type Strength = '약함' | '보통' | '강함';
@@ -106,7 +112,19 @@ export function SignupForm({ action }: SignupFormProps) {
         </div>
       </div>
       {state && 'error' in state && (
-        <p role="alert" className="text-sm text-danger">{state.error}</p>
+        <p role="alert" className="text-sm text-danger break-keep">
+          {state.error === SIGNUP_BLOCKED_ERROR ? (
+            <>
+              이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면{' '}
+              <Link href="/login" className="font-semibold underline">
+                로그인
+              </Link>
+              하거나, 잠시 후 다시 시도해주세요.
+            </>
+          ) : (
+            state.error
+          )}
+        </p>
       )}
       <button type="submit" disabled={isPending} className={`mt-1 ${BTN_SUBMIT}`}>
         {isPending ? '가입 중...' : '회원가입'}

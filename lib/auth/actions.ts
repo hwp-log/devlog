@@ -42,7 +42,10 @@ export async function signUp(email: string, password: string, passwordConfirm: s
   const { data, error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return { error: '회원가입에 실패했습니다' };
+    // 0612: 원인(중복·rate limit·장애) 미확정 문구 — "이미 가입된 이메일" 명시는 계정 존재
+    // 노출(로그인 쪽 뭉뚱그림과 동일 기준). SignupForm이 이 문자열 일치로 /login 링크를
+    // 붙인다 — 문구 바꾸면 SignupForm의 SIGNUP_BLOCKED_ERROR도 함께 (상호 참조).
+    return { error: '이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면 로그인하거나, 잠시 후 다시 시도해주세요.' };
   }
 
   if (data.user) {
