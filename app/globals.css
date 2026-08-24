@@ -197,8 +197,10 @@
   /* 경고 축(0580) — danger와 분리: 파괴가 아니라 "값이 지금과 다를 수 있다"의 색.
      0590: 면 배너 3종으로 확장(bg-warning-surface / text-warning-fg / text-warning-icon).
      테두리 짝은 두지 않는다 — 면만으로 영역이 성립한다. 값 근거는 lib/theme.ts.
-     ⚠ 0597: 경고 축 4개(--color-warning / -surface / -fg / -icon)가 **전부 소비처 0**이다.
-     담은 플랜 안내가 중립 블록으로 바뀌며 미사용이 됐다. 유틸 정의는 남긴다(제거는 별건) */
+     ⚠ 0597에서 경고 축 4개(--color-warning / -surface / -fg / -icon) 전부 소비처 0이
+     됐다가(담은 플랜 안내가 중립 블록으로 전환), 0610에서 --color-warning만 부활
+     (SignupForm 강도 표시 '보통'). -surface / -fg / -icon 3개는 여전히 소비처 0 —
+     유틸 정의는 남긴다(제거는 별건) */
   --color-warning: var(--warning);
   --color-warning-surface: var(--warning-surface);
   --color-warning-fg: var(--warning-fg);

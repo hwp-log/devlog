@@ -16,7 +16,8 @@ export default function LoginPage() {
     >
       <div className="text-center mb-6">
         <p className="text-2xl font-bold tracking-[-0.02em] text-fg">Dotrip</p>
-        <p className="mt-1.5 text-sm text-muted break-keep">여행의 시작점을 찍다.</p>
+        {/* 0611: 태그라인 → 화면 제목 — 두 화면 공통 문구는 구분에 기여하지 않음. 페이지 유일 제목이라 h1 */}
+        <h1 className="mt-1.5 text-lg font-bold tracking-[-0.01em] text-fg break-keep">로그인</h1>
       </div>
 
       <LoginForm action={loginAction} />
