@@ -7,7 +7,7 @@ import { BTN_SUBMIT } from '@/lib/button-styles';
 // 0612: lib/auth/actions.ts signUp의 generic 실패 문구와 동기 — 한쪽만 바꾸면 링크가 안 붙는다.
 // 이 문구일 때만 "로그인"을 /login 링크로 분해 렌더 (형식 오류 3종은 문자열 그대로).
 const SIGNUP_BLOCKED_ERROR =
-  '이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면 로그인하거나, 잠시 후 다시 시도해주세요.';
+  '이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면 로그인해주세요.';
 
 type ActionState = { error: string } | { data: { user: unknown } } | null;
 type Strength = '약함' | '보통' | '강함';
@@ -42,9 +42,16 @@ const inputClass =
 
 export function SignupForm({ action }: SignupFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
-  const [strength, setStrength] = useState<Strength | null>(null);
+  // 0613: controlled 3필드 — React 19 form action은 액션 완료 시(성공·실패 무관)
+  // uncontrolled 필드를 자동 리셋한다. 실패 후 재입력 부담 + 강도 바 유령(값은 비고
+  // state만 잔존) 방지. PasswordForm(mypage) controlled 패턴 준용.
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  // 0613: 강도는 password state 파생 — 별도 state로 들면 리셋·수정 경로마다 어긋난다(단일 소스+파생)
+  const strength = getPasswordStrength(password);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -52,7 +59,15 @@ export function SignupForm({ action }: SignupFormProps) {
         <label htmlFor="email" className="text-xs font-medium text-muted">
           이메일
         </label>
-        <input id="email" name="email" type="email" autoComplete="email" className={inputClass} />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="password" className="text-xs font-medium text-muted">
@@ -64,7 +79,8 @@ export function SignupForm({ action }: SignupFormProps) {
             name="password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
-            onChange={(e) => setStrength(getPasswordStrength(e.target.value))}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className={`${inputClass} pr-12`}
           />
           {/* 히트 = input 전체 높이(~48px) × w-12 — §5 44px 충족 */}
@@ -99,6 +115,8 @@ export function SignupForm({ action }: SignupFormProps) {
             name="passwordConfirm"
             type={showConfirm ? 'text' : 'password'}
             autoComplete="new-password"
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
             className={`${inputClass} pr-12`}
           />
           <button
@@ -119,7 +137,7 @@ export function SignupForm({ action }: SignupFormProps) {
               <Link href="/login" className="font-semibold underline">
                 로그인
               </Link>
-              하거나, 잠시 후 다시 시도해주세요.
+              해주세요.
             </>
           ) : (
             state.error
