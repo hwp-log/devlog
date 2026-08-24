@@ -130,19 +130,23 @@ export function SignupForm({ action }: SignupFormProps) {
         </div>
       </div>
       {state && 'error' in state && (
-        <p role="alert" className="text-sm text-danger break-keep">
+        <div role="alert" className="text-sm text-danger break-keep">
           {state.error === SIGNUP_BLOCKED_ERROR ? (
             <>
-              이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면{' '}
-              <Link href="/login" className="font-semibold underline">
-                로그인
-              </Link>
-              해주세요.
+              {/* 문장 단위 줄바꿈 — 카드 폭 임의 줄바꿈이 둘째 문장을 어중간하게 끊음 */}
+              <p>이 이메일로는 지금 가입할 수 없습니다.</p>
+              <p>
+                이미 가입하셨다면{' '}
+                <Link href="/login" className="font-semibold underline">
+                  로그인
+                </Link>
+                해주세요.
+              </p>
             </>
           ) : (
             state.error
           )}
-        </p>
+        </div>
       )}
       <button type="submit" disabled={isPending} className={`mt-1 ${BTN_SUBMIT}`}>
         {isPending ? '가입 중...' : '회원가입'}
