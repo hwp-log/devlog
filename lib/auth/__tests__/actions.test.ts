@@ -81,7 +81,7 @@ describe('signUp', () => {
     // 2. 함수 호출
     const result = await signUp('user@example.com', 'password123', 'password123');
     // 3. 기대값 검증
-    expect(result).toEqual({ error: '회원가입에 실패했습니다' });
+    expect(result).toEqual({ error: '이 이메일로는 지금 가입할 수 없습니다. 이미 가입하셨다면 로그인해주세요.' });
   });
 
   // 작업5 : Supabase 회원가입 성공 시 user 데이터 반환

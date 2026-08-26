@@ -81,6 +81,7 @@ describe('SpotPopup — 저장', () => {
       expect(onUpdate).toHaveBeenCalledWith({
         name: '경복궁',
         review: '고궁 산책',
+        rating: null, // 0199 별점 — 미조작 저장 시 null 전달이 현재 명세
         movieId: null,
         movieTitle: null,
       });
