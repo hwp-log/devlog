@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# humanize-korean 진단 산출물 (CLAUDE.md §7 검사 절차)
+_workspace/
