@@ -32,7 +32,7 @@ async function searchKeyword(keyword: string): Promise<KwItem[]> {
     const res = await fetch(`https://apis.data.go.kr/B551011/KorService2/searchKeyword2?${qs}`);
     const text = await res.text(); let j: unknown;
     try { j = JSON.parse(text); } catch { await delay(300); continue; }
-    // @ts-expect-error 동적
+    // @ts-expect-error TourAPI 응답(unknown)의 중첩 접근 — 바로 아래에서 배열 정규화 + 타입 단언으로 처리하므로 안전
     let items = j?.response?.body?.items?.item; if (items && !Array.isArray(items)) items = [items];
     return (items as KwItem[]) || [];
   }

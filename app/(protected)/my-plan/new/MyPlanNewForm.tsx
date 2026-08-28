@@ -571,12 +571,12 @@ export function MyPlanNewForm({
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dateMissing, setDateMissing] = useState({ start: false, end: false });
-  // 0581: 날짜 하한의 기준은 **최초 저장값**이라 ref로 고정한다 — editor.startDate를 쓰면
+  // 0581: 날짜 하한의 기준은 **최초 저장값**이라 마운트 시 1회 고정한다(setter 없는 useState) — editor.startDate를 쓰면
   //   폼에서 날짜를 고르는 순간 하한이 따라 움직여, 한 번 미래로 바꾸면 원래 과거 날짜로
   //   되돌릴 수 없게 된다. 신규 작성은 undefined → 하한 = 오늘. 서버(updatePlanWithItemsAction)가
   //   existing.startDate로 잡는 기준과 같은 값이어야 한다(한쪽만 막히면 사용자가 이유를 모른다).
-  const savedStartRef = useRef(initialState?.startDate || null);
-  const startMin = minStartDate(savedStartRef.current);
+  const [savedStart] = useState(initialState?.startDate || null);
+  const startMin = minStartDate(savedStart);
 
   const sensors = useSensors(
     useSensor(PointerSensor),

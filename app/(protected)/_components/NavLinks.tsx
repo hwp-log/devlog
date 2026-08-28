@@ -21,9 +21,9 @@ export function NavLinks() {
   const activeIndex = BASE_NAV.findIndex(({ href }) => pathname.startsWith(href));
 
   const startedAt = useRef(lastCenter); // 이 인스턴스 마운트 시점의 이전 위치(null=최초 로드)
-  const [center, setCenter] = useState<number | null>(startedAt.current);
+  const [center, setCenter] = useState<number | null>(lastCenter);
   // 최초 로드에서만 transition off(0→활성위치 점프 방지). remount면 이전 위치 있으니 처음부터 on.
-  const [enabled, setEnabled] = useState(startedAt.current != null);
+  const [enabled, setEnabled] = useState(lastCenter != null);
 
   const getCenter = useCallback(() => {
     const el = activeIndex >= 0 ? itemRefs.current[activeIndex] : null;
@@ -35,6 +35,7 @@ export function NavLinks() {
   useEffect(() => {
     const target = getCenter();
     if (target == null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- React Compiler 대비 규칙. 현재 동작 정상이며, 해소하려면 구조 변경이 필요해 별건으로 남김 (페인트 후 DOM 측정→배치 패턴이라 effect 내 setState가 불가피)
       setCenter(null); // 비활성 라우트/모바일(display:none) → 감춤
       return;
     }

@@ -11,6 +11,7 @@ export function SpotFinderHeader() {
   const [headline, setHeadline] = useState('');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- React Compiler 대비 규칙. 현재 동작 정상이며, 해소하려면 구조 변경이 필요해 별건으로 남김 (랜덤 헤드라인은 SSR/CSR 불일치를 피하려 마운트 후 결정 — hydration 안전 때문에 useState 초기화 불가)
     setHeadline(HEADLINES[Math.floor(Math.random() * HEADLINES.length)]);
   }, []);
 
