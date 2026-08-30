@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Geist, Geist_Mono } from "next/font/google";
 import { buildThemeCss } from "@/lib/theme";
 import { ThemeProvider } from "@/app/(protected)/_components/ThemeProvider";
@@ -33,6 +34,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // GA4 — Vercel Production에만 NEXT_PUBLIC_GA_ID가 있어 Preview·로컬 방문은 수집 안 됨
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
   return (
     // suppressHydrationWarning: next-themes가 첫 페인트 전 html의 data-theme를 수정 (1레벨만 적용)
     <html
@@ -51,6 +54,7 @@ export default function RootLayout({
           <p className="landscape-blocker__sub">이 화면은 세로 모드에 최적화되어 있어요</p>
         </div>
       </body>
+      {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }
