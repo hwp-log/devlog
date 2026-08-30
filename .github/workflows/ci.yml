@@ -53,6 +53,7 @@ jobs:
             TEXT="❌ CI 실패 (${JOB_STATUS}) — ${FIRST_LINE} (${COMMIT_AUTHOR})"$'\n'"확인: ${RUN_URL}"
           fi
           # jq --arg: 커밋 메시지의 따옴표·역슬래시를 JSON 안전하게 이스케이프
+          # --fail: 웹훅이 4xx를 돌려줘도 curl은 기본 정상 종료라 고장이 초록으로 묻힌다 — HTTP 에러를 비0 종료로 승격
           jq -n --arg content "$TEXT" '{content: $content}' \
-            | curl -sS -o /dev/null -w "discord: %{http_code}\n" \
+            | curl -sS --fail -o /dev/null -w "discord: %{http_code}\n" \
                 -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"
