@@ -36,6 +36,7 @@
     "@tiptap/starter-kit": "^3.23.6",
     "@tiptap/suggestion": "^3.23.6",
     "@tosspayments/tosspayments-sdk": "^2.7.1",
+    "@vercel/analytics": "^2.0.1",
     "@woowa-babble/random-nickname": "^1.0.2",
     "jotai": "^2.19.1",
     "jsdom": "^26.1.0",

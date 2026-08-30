@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { buildThemeCss } from "@/lib/theme";
 import { ThemeProvider } from "@/app/(protected)/_components/ThemeProvider";
@@ -53,6 +54,8 @@ export default function RootLayout({
           <p className="landscape-blocker__title">세로로 돌려주세요</p>
           <p className="landscape-blocker__sub">이 화면은 세로 모드에 최적화되어 있어요</p>
         </div>
+        {/* Vercel Web Analytics — 자기 도메인 경로(/_vercel/insights)로 전송해 광고 차단기에 안 걸림. dev 모드는 수집 안 함 */}
+        <Analytics />
       </body>
       {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
