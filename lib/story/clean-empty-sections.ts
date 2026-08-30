@@ -23,7 +23,10 @@ export function cleanEmptySections(html: string): string {
   if (!html) return html;
 
   try {
-    const { document } = new JSDOM(html).window;
+    // Document 명시: @next/third-parties가 전역 Window에 [key: string]: any 인덱스
+    // 시그니처를 병합해 DOMWindow(Omit<Window,...>)의 구체 속성 추론이 무너짐.
+    // 타입만 복원하는 주석이며 런타임 동작은 이전과 같다.
+    const document: Document = new JSDOM(html).window.document;
 
     // 빈 콜아웃 제거 — 첫 문단(제목)은 내용으로 치지 않음(heading 규칙과 동일 철학,
     // empty-sections-doc.ts nodeHasContent의 callout 분기와 짝). 구간 분할 "전"이어야
