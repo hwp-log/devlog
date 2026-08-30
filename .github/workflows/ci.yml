@@ -30,3 +30,29 @@ jobs:
       - run: npm test
 
       - run: npm run build
+
+      # CI 결과 디스코드 알림. 서드파티 액션 대신 curl 직접 POST — 공급망 위험 회피.
+      # if: always() — step 기본 게이트는 success()라 앞 단계가 실패하면 건너뛰는데,
+      #   알림이 가장 필요한 게 실패한 순간이라 항상 실행한다.
+      - name: notify discord
+        if: always()
+        env:
+          # 시크릿은 env로만 주입 — run 본문에 ${{ secrets… }}를 직접 보간하지 않는다
+          WEBHOOK_URL: ${{ secrets.DOTRIP_DISCORD_CI_WEBHOOK_URL }}
+          JOB_STATUS: ${{ job.status }}
+          # push 이벤트엔 head_commit이 있고 pull_request 이벤트엔 없다 — PR은 제목·actor로 폴백.
+          # 값을 run에 직접 보간하지 않는 것은 커밋 메시지발 스크립트 인젝션 차단용
+          COMMIT_MSG: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          COMMIT_AUTHOR: ${{ github.event.head_commit.author.name || github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          FIRST_LINE="${COMMIT_MSG%%$'\n'*}"
+          if [ "$JOB_STATUS" = "success" ]; then
+            TEXT="✅ CI 통과 — ${FIRST_LINE} (${COMMIT_AUTHOR})"$'\n'"${RUN_URL}"
+          else
+            TEXT="❌ CI 실패 (${JOB_STATUS}) — ${FIRST_LINE} (${COMMIT_AUTHOR})"$'\n'"확인: ${RUN_URL}"
+          fi
+          # jq --arg: 커밋 메시지의 따옴표·역슬래시를 JSON 안전하게 이스케이프
+          jq -n --arg content "$TEXT" '{content: $content}' \
+            | curl -sS -o /dev/null -w "discord: %{http_code}\n" \
+                -H 'Content-Type: application/json' -d @- "$WEBHOOK_URL"
